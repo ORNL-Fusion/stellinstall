@@ -129,7 +129,6 @@
       INTEGER                               :: current_profile
       REAL (rprec)                          :: start_time
 
-
 !  Start of executable code
       start_time = profiler_get_start_time()
 
@@ -139,7 +138,7 @@
       ece_keyword(3) = 'end_of_file'
 
 !  Open up the 'ece.' file
-      ece_dot_file_ref = signal_dot_open(TRIM(ece_file),"ece")
+      ece_dot_file_ref = signal_dot_open(TRIM(ece_file), 'ece')
 
 !  Infinite Loop
 !  Character variable line should be defined on entry

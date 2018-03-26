@@ -39,7 +39,7 @@
       END TYPE sxrem_class
 
 !-------------------------------------------------------------------------------
-!> Structure to hold all memory needed to be sent to the callback function.
+!>  Structure to hold all memory needed to be sent to the callback function.
 !-------------------------------------------------------------------------------
       TYPE sxrem_context
 !>  The index of the emissivity profile model.
@@ -48,10 +48,45 @@
          TYPE (model_class), POINTER :: model => null()
       END TYPE
 
+!-------------------------------------------------------------------------------
+!>  Structure to hold all memory needed to be sent to the guassian process
+!>  callback function for point.
+!-------------------------------------------------------------------------------
+      TYPE sxrem_gp_context_i
+!>  The index of the emissivity profile model.
+         INTEGER                     :: profile_number
+!>  Reference to a @ref model::model_class object.
+         TYPE (model_class), POINTER :: model => null()
+!>  Position index.
+         INTEGER                     :: i
+      END TYPE
+
+!-------------------------------------------------------------------------------
+!>  Structure to hold all memory needed to be sent to the guassian process
+!>  callback function for signal.
+!-------------------------------------------------------------------------------
+      TYPE sxrem_gp_context_x
+!>  The index of the emissivity profile model.
+         INTEGER                     :: profile_number
+!>  Reference to a @ref model::model_class object.
+         TYPE (model_class), POINTER :: model => null()
+!>  First position.
+         REAL (rprec), DIMENSION(3)  :: xcart
+      END TYPE
+
 !*******************************************************************************
 !  INTERFACE BLOCKS
 !*******************************************************************************
-      PRIVATE :: sxr_function
+!-------------------------------------------------------------------------------
+!>  Interface to get the guassian process kernel values.
+!-------------------------------------------------------------------------------
+      INTERFACE sxrem_get_gp
+         MODULE PROCEDURE sxrem_get_gp_i,                                      &
+     &                    sxrem_get_gp_s,                                      &
+     &                    sxrem_get_gp_x
+      END INTERFACE
+
+      PRIVATE :: sxr_function, gp_function_i, gp_function_x
 
       CONTAINS
 !*******************************************************************************
@@ -184,10 +219,9 @@
          context_length = SIZE(TRANSFER(sxr_context, context))
          ALLOCATE(context(context_length))
          context = TRANSFER(sxr_context, context)
-         sxrem_get_modeled_signal(1) = path_integrate(this%chord_path,         &
-     &                                                sxr_function,            &
-     &                                                context)                 &
-     &                               * this%geo*scale_factor
+         sxrem_get_modeled_signal(1) =                                         &
+     &      path_integrate(a_model%int_params, this%chord_path,                &
+     &                     sxr_function, context)*this%geo*scale_factor
 
          DEALLOCATE(context)
       END IF
@@ -228,6 +262,166 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!>  @brief Gets the guassian process kernel for a sxrem signal and a position.
+!>
+!>  Calculates the guassian process kernel between the signal and the position.
+!>  Soft x-ray emission kernels are provided by
+!>  @ref model::model_get_gp_sxrem.
+!>
+!>  @param[in] this         A @ref sxrem_class instance.
+!>  @param[in] a_model      A @ref model instance.
+!>  @param[in] i            Index of the position for the kernel.
+!>  @param[in] scale_factor Factor to scale the modeled signal.
+!>  @returns Kernel value for the position and the signal.
+!-------------------------------------------------------------------------------
+      FUNCTION sxrem_get_gp_i(this, a_model, i, scale_factor)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: sxrem_get_gp_i
+      TYPE (sxrem_class), INTENT(in)         :: this
+      TYPE (model_class), TARGET, INTENT(in) :: a_model
+      INTEGER, INTENT(in)                    :: i
+
+!  local variables
+      REAL (rprec)                           :: start_time
+      CHARACTER(len=1), ALLOCATABLE          :: context(:)
+      INTEGER                                :: context_length
+      TYPE (sxrem_gp_context_i)              :: gp_context
+      REAL (rprec), INTENT(in)               :: scale_factor
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+!  The relevant data for the guassian process context.
+      gp_context%profile_number = this%profile_number
+      gp_context%model => a_model
+      gp_context%i = i
+
+!  Cast model into a data context. This is the equivalent to casting to a void
+!  pointer in C.
+      context_length = SIZE(TRANSFER(gp_context, context))
+      ALLOCATE(context(context_length))
+      context = TRANSFER(gp_context, context)
+
+      sxrem_get_gp_i = path_integrate(a_model%int_params,                      &
+     &                                this%chord_path, gp_function_i,          &
+     &                                context)*this%geo*scale_factor
+
+      DEALLOCATE(context)
+
+      CALL profiler_set_stop_time('sxrem_get_gp_i', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the guassian process kernel for a sxrem signal and a signal.
+!>
+!>  Calculates the guassian process kernel between the signal and a signal.
+!>  Calls back to the @ref signal module to call the other signal. This is the
+!>  first signal.
+!>
+!>  @param[in] this         A @ref sxrem_class instance.
+!>  @param[in] a_model      A @ref model instance.
+!>  @param[in] gp_context   A @ref signal_class instance.
+!>  @param     gp_callback  Function pointer to call back to signal module.
+!>  @param[in] scale_factor Factor to scale the modeled signal.
+!>  @returns Kernel value for the signal and the signal.
+!-------------------------------------------------------------------------------
+      FUNCTION sxrem_get_gp_s(this, a_model, context, callback,                &
+     &                        scale_factor)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                   :: sxrem_get_gp_s
+      TYPE (sxrem_class), INTENT(in) :: this
+      TYPE (model_class), INTENT(in) :: a_model
+      CHARACTER (len=1), INTENT(in)  :: context(:)
+      INTERFACE
+         FUNCTION callback(context, xcart, dxcart, length, dx)
+         USE stel_kinds
+         REAL (rprec)                           :: callback
+         CHARACTER (len=1), INTENT(in)          :: context(:)
+         REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
+         REAL (rprec), DIMENSION(3), INTENT(in) :: dxcart
+         REAL (rprec), INTENT(in)               :: length
+         REAL (rprec), INTENT(in)               :: dx
+         END FUNCTION
+      END INTERFACE
+      REAL (rprec), INTENT(in)       :: scale_factor
+
+!  local variables
+      REAL (rprec)                   :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+!  The relevant data for the guassian process context.
+      sxrem_get_gp_s = path_integrate(a_model%int_params,                      &
+     &                                this%chord_path, callback,               &
+     &                                context)*this%geo*scale_factor
+
+      CALL profiler_set_stop_time('sxrem_get_gp_s', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the guassian process kernel for a sxrem signal and a cartesian
+!>  position.
+!>
+!>  Calculates the guassian process kernel between the signal and the position.
+!>  This is the second signal.
+!>
+!>  @param[in] this         A @ref sxrem_class instance.
+!>  @param[in] a_model      A @ref model instance.
+!>  @param[in] x_cart       The cartesian position of to get the kernel at.
+!>  @param[in] scale_factor Factor to scale the modeled signal.
+!>  @returns Kernel value for the signal and the signal.
+!-------------------------------------------------------------------------------
+      FUNCTION sxrem_get_gp_x(this, a_model, x_cart, scale_factor)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: sxrem_get_gp_x
+      TYPE (sxrem_class), INTENT(in)         :: this
+      TYPE (model_class), TARGET, INTENT(in) :: a_model
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      REAL (rprec), INTENT(in)               :: scale_factor
+
+!  local variables
+      REAL (rprec)                           :: start_time
+      CHARACTER(len=1), ALLOCATABLE          :: context(:)
+      INTEGER                                :: context_length
+      TYPE (sxrem_gp_context_x)              :: gp_context
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+!  The relevant data for the guassian process context.
+      gp_context%profile_number = this%profile_number
+      gp_context%model => a_model
+      gp_context%xcart = x_cart
+
+!  Cast model into a data context. This is the equivalent to casting to a void
+!  pointer in C.
+      context_length = SIZE(TRANSFER(gp_context, context))
+      ALLOCATE(context(context_length))
+      context = TRANSFER(gp_context, context)
+
+      sxrem_get_gp_x =  path_integrate(a_model%int_params,                     &
+     &                                 this%chord_path, gp_function_x,         &
+     &                                 context)*this%geo*scale_factor
+
+      DEALLOCATE(context)
+
+      CALL profiler_set_stop_time('sxrem_get_gp_x', start_time)
+
+      END FUNCTION
+
 !*******************************************************************************
 !  PRIVATE
 !*******************************************************************************
@@ -249,16 +443,16 @@
 !>  @returns The sxrem(x)*dl at point x.
 !-------------------------------------------------------------------------------
       FUNCTION sxr_function(context, xcart, dxcart, length, dx)
-      USE coordinate_utilities
 
       IMPLICIT NONE
 
 !  Declare Arguments
+      REAL (rprec)                           :: sxr_function
       CHARACTER (len=1), INTENT(in)          :: context(:)
-      REAL (rprec), DIMENSION(3), INTENT(in) :: xcart, dxcart
+      REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
+      REAL (rprec), DIMENSION(3), INTENT(in) :: dxcart
       REAL (rprec), INTENT(in)               :: length
       REAL (rprec), INTENT(in)               :: dx
-      REAL (rprec)                           :: sxr_function
 
 ! local variables
       TYPE (sxrem_context)                   :: sxr_context
@@ -272,6 +466,98 @@
      &                               sxr_context%profile_number)*dx
 
       CALL profiler_set_stop_time('sxr_function', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Soft x-ray gaussian process callback function for signal point
+!>  kernel evaluation.
+!>
+!>  Returns the value of the soft x-ray guassian process kernel times the change
+!>  in path length. This function is passed to
+!>  @ref integration_path::path_integrate to act as a callback. The soft x-ray
+!>  kernel is provided by @ref model::model_get_gp_sxrem.
+!>
+!>  @see integration_path
+!>
+!>  @param[in] context A @ref sxrem_gp_context_i for the model.
+!>  @param[in] xcart   The integration point.
+!>  @param[in] dxcart  A vector change in path. Not used in this function.
+!>  @param[in] length  Length along the integration.
+!>  @param[in] dx      A scalar change in path.
+!>  @returns The k(x, i)*dl at point x.
+!-------------------------------------------------------------------------------
+      FUNCTION gp_function_i(context, xcart, dxcart, length, dx)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: gp_function_i
+      CHARACTER (len=1), INTENT(in)          :: context(:)
+      REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
+      REAL (rprec), DIMENSION(3), INTENT(in) :: dxcart
+      REAL (rprec), INTENT(in)               :: length
+      REAL (rprec), INTENT(in)               :: dx
+
+! local variables
+      TYPE (sxrem_gp_context_i)              :: gp_context
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      gp_context = TRANSFER(context, gp_context)
+      gp_function_i = model_get_gp_sxrem(gp_context%model, xcart,              &
+     &                                   gp_context%i,                         &
+     &                                   gp_context%profile_number)*dx
+
+      CALL profiler_set_stop_time('gp_function_i', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Soft x-ray gaussian process callback function for kernel evaluation
+!>  of two signals.
+!>
+!>  Calculates the guassian process kernel between the signal and a signal.
+!>  Calls back to the @ref signal module to call the other signal. This is the
+!>  second signal so xcart should go in the first index.
+!>
+!>  @see integration_path
+!>
+!>  @param[in] context A @ref sxrem_gp_context_x for the model.
+!>  @param[in] xcart   The integration point.
+!>  @param[in] dxcart  A vector change in path. Not used in this function.
+!>  @param[in] length  Length along the integration.
+!>  @param[in] dx      A scalar change in path.
+!>  @returns The k(x, y)*dl at point y.
+!-------------------------------------------------------------------------------
+      FUNCTION gp_function_x(context, xcart, dxcart, length, dx)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: gp_function_x
+      CHARACTER (len=1), INTENT(in)          :: context(:)
+      REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
+      REAL (rprec), DIMENSION(3), INTENT(in) :: dxcart
+      REAL (rprec), INTENT(in)               :: length
+      REAL (rprec), INTENT(in)               :: dx
+
+! local variables
+      TYPE (sxrem_gp_context_x)              :: gp_context
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+!  This is the second signal so put xcart in the second position.
+      gp_context = TRANSFER(context, gp_context)
+      gp_function_x = model_get_gp_sxrem(gp_context%model,                     &
+     &                                   xcart, gp_context%xcart,              &
+     &                                   gp_context%profile_number)*dx
+
+      CALL profiler_set_stop_time('gp_function_x', start_time)
 
       END FUNCTION
 

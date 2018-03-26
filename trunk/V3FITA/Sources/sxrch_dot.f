@@ -170,7 +170,7 @@
       sxrchd_keyword(6) = 'end_of_file'
 
 !  Open up the 'sxrch.' file
-      sxrch_dot_file_ref = signal_dot_open(TRIM(sxrch_file),"sxrch")
+      sxrch_dot_file_ref = signal_dot_open(TRIM(sxrch_file), 'sxrch')
 
 !  Start with the first profile
       current_profile = 1

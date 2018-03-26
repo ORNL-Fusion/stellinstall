@@ -170,7 +170,7 @@
       ipchd_keyword(9) = 'end_of_file'
 
 !  Open up the 'ipch.' file
-      ipch_dot_file_ref = signal_dot_open(TRIM(ipch_file), "ipch")
+      ipch_dot_file_ref = signal_dot_open(TRIM(ipch_file), 'ipch')
 
       use_polarimetry = .false.
 
@@ -331,7 +331,7 @@
 
       IF (chord_type .eq. 'p') THEN
          wavelength = signal_dot_parse_real(ipch_dot_file_ref,                 &
-     &                   "Expected wavelength for polarimetry chord")
+     &                   'Expected wavelength for polarimetry chord')
          signals(signals_created + 1)%p => signal_construct(                   &
      &      diagnostic_construct(                                              &
      &         intpol_construct(wavelength, inDegrees, xcart)),                &

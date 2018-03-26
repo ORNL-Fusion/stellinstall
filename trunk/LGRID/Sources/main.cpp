@@ -248,7 +248,7 @@ int main(int argc, const char * argv[]) {
     
     std::vector<double> phi_angles;
     
-    for (std::pair<double, std::vector<vertex *> > phi : limiters) {
+    for (std::pair<const double, std::vector<vertex *> > &phi : limiters) {
         phi_angles.push_back(phi.first);
         for (size_t j = 0; j < num_z; j++) {
             const double z = z0 + j*dz;

@@ -141,7 +141,7 @@
 
 !  Open up the 'thscte.' file
       thscte_dot_file_ref = signal_dot_open(TRIM(thscte_file),                 &
-     &                                      "thscte")
+     &                                      'thscte')
 
 !  Infinite Loop
 !  Character variable line should be defined on entry

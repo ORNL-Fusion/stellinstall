@@ -49,6 +49,15 @@
 !*******************************************************************************
 !  INTERFACE BLOCKS
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Interface to get the guassian process kernel values.
+!-------------------------------------------------------------------------------
+      INTERFACE ece_get_gp
+         MODULE PROCEDURE ece_get_gp_i,                                        &
+     &                    ece_get_gp_s,                                        &
+     &                    ece_get_gp_x
+      END INTERFACE
+
       PRIVATE :: ece_function, is_in_range
 
       CONTAINS
@@ -149,9 +158,6 @@
       REAL (rprec), INTENT(in)                :: scale_factor
 
 ! local variables
-      CHARACTER(len=1), ALLOCATABLE           :: context(:)
-      INTEGER                                 :: context_length
-      TYPE (ece_context)                      :: temp_context
       LOGICAL                                 :: found
       REAL (rprec)                            :: start_time
 
@@ -167,18 +173,8 @@
      &    BTEST(a_model%state_flags, model_state_shift_flag)  .or.             &
      &    BTEST(a_model%state_flags, model_state_signal_flag)) THEN
 
-!  The relevant data for the ece context.
-         temp_context%resonance = this%resonance
-         temp_context%model => a_model
-
-!  Cast model into a data to a context. This is the equivalent to casting to a
-!  void pointer in C.
-         context_length = SIZE(TRANSFER(temp_context, context))
-         ALLOCATE(context(context_length))
-         context = TRANSFER(temp_context, context)
-         ece_get_modeled_signal(2:4) = path_search(this%chord_path,            &
-     &                                             ece_function,               &
-     &                                             context, found)
+         ece_get_modeled_signal(2:4) = ece_get_cart(this, a_model,             &
+     &                                              found)
 
          IF (found) THEN
             ece_get_modeled_signal(1) =                                        &
@@ -186,11 +182,58 @@
          ELSE
             ece_get_modeled_signal(1) = 0.0
          END IF
-
-         DEALLOCATE(context)
       END IF
 
       CALL profiler_set_stop_time('ece_get_modeled_signal', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Calculates the signal measurement point.
+!>
+!>  Calculates the ECE measurement point by searching along the chord for the
+!>  resonance. The search criteria is provided by the @ref ece_function.
+!>
+!>  @param[in]  this    A @ref ece_class instance.
+!>  @param[in]  a_model A @ref model instance.
+!>  @param[out] found   Flag to indicate if the resonance was found.
+!>  @returns Position in cartesian coordinates of the resonance.
+!-------------------------------------------------------------------------------
+      FUNCTION ece_get_cart(this, a_model, found)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(3)             :: ece_get_cart
+      TYPE (ece_class), INTENT(in)           :: this
+      TYPE (model_class), TARGET, INTENT(in) :: a_model
+      LOGICAL, INTENT(out)                   :: found
+
+! local variables
+      CHARACTER(len=1), ALLOCATABLE          :: context(:)
+      INTEGER                                :: context_length
+      TYPE (ece_context)                     :: temp_context
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+!  The relevant data for the ece context.
+      temp_context%resonance = this%resonance
+      temp_context%model => a_model
+
+!  Cast model into a data to a context. This is the equivalent to casting to a
+!  void pointer in C.
+      context_length = SIZE(TRANSFER(temp_context, context))
+      ALLOCATE(context(context_length))
+      context = TRANSFER(temp_context, context)
+
+      ece_get_cart = path_search(this%chord_path, ece_function, context,       &
+     &                           found)
+
+      DEALLOCATE(context)
+
+      CALL profiler_set_stop_time('ece_get_cart', start_time)
 
       END FUNCTION
 
@@ -257,6 +300,150 @@
       ece_get_header(7) = 'model_sig(4)'
 
       CALL profiler_set_stop_time('ece_get_header', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the guassian process kernel for an ece signal and a position.
+!>
+!>  Calculates the guassian process kernel between the signal and the position.
+!>  Temperature kernels are provided by @ref model::model_get_gp_te.
+!>
+!>  @param[in] this         A @ref ece_class instance.
+!>  @param[in] a_model      A @ref model instance.
+!>  @param[in] i            Index of the position for the kernel.
+!>  @param[in] scale_factor Factor to scale the modeled signal.
+!>  @returns Kernel value for the position and the signal.
+!-------------------------------------------------------------------------------
+      FUNCTION ece_get_gp_i(this, a_model, i, scale_factor)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                   :: ece_get_gp_i
+      TYPE (ece_class), INTENT(in)   :: this
+      TYPE (model_class), INTENT(in) :: a_model
+      INTEGER, INTENT(in)            :: i
+      REAL (rprec), INTENT(in)       :: scale_factor
+
+!  local variables
+      REAL (rprec), DIMENSION(3)     :: x_cart
+      LOGICAL                        :: found
+      REAL (rprec)                   :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      x_cart = ece_get_cart(this, a_model, found)
+      IF (found) THEN
+         ece_get_gp_i = model_get_gp_te(a_model, x_cart, i)*scale_factor
+      ELSE
+         ece_get_gp_i = 0.0
+      END IF
+
+      CALL profiler_set_stop_time('ece_get_gp_i', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the guassian process kernel for a ece signal and a signal.
+!>
+!>  Calculates the guassian process kernel between the signal and a signal.
+!>  Calls back to the @ref signal module to call the other signal.
+!>
+!>  @param[in] this         A @ref ece_class instance.
+!>  @param[in] a_model      A @ref model instance.
+!>  @param[in] gp_context   A @ref signal_class instance.
+!>  @param     gp_callback  Function pointer to call back to signal module.
+!>  @param[in] scale_factor Factor to scale the modeled signal.
+!>  @returns Kernel value for the signal and the signal.
+!-------------------------------------------------------------------------------
+      FUNCTION ece_get_gp_s(this, a_model, context, callback,                  &
+     &                      scale_factor)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                   :: ece_get_gp_s
+      TYPE (ece_class), INTENT(in)   :: this
+      TYPE (model_class), INTENT(in) :: a_model
+      CHARACTER (len=1), INTENT(in)  :: context(:)
+      INTERFACE
+         FUNCTION callback(context, xcart, dxcart, length, dx)
+         USE stel_kinds
+         REAL (rprec)                           :: callback
+         CHARACTER (len=1), INTENT(in)          :: context(:)
+         REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
+         REAL (rprec), DIMENSION(3), INTENT(in) :: dxcart
+         REAL (rprec), INTENT(in)               :: length
+         REAL (rprec), INTENT(in)               :: dx
+         END FUNCTION
+      END INTERFACE
+      REAL (rprec), INTENT(in)       :: scale_factor
+
+!  local variables
+      REAL (rprec), DIMENSION(3)     :: x_cart
+      LOGICAL                        :: found
+      REAL (rprec)                   :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      x_cart = ece_get_cart(this, a_model, found)
+      IF (found) THEN
+         ece_get_gp_s = callback(context, x_cart, x_cart, 1.0_rprec,           &
+     &                           1.0_rprec)*scale_factor
+      ELSE
+         ece_get_gp_s = 0.0
+      END IF
+
+      CALL profiler_set_stop_time('ece_get_gp_s', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the guassian process kernel for an ece signal and a cartesian
+!>  position.
+!>
+!>  Calculates the guassian process kernel between the signal and the position.
+!>  Temperature kernels are provided by @ref model::model_get_gp_te. This is the
+!>  second signal so x_cart goes in the second position and this signal in the
+!>  second.
+!>
+!>  @param[in] this         A @ref ece_class instance.
+!>  @param[in] a_model      A @ref model instance.
+!>  @param[in] x_cart       The cartesian position of to get the kernel at.
+!>  @param[in] scale_factor Factor to scale the modeled signal.
+!>  @returns Kernel value for the signal and the signal.
+!-------------------------------------------------------------------------------
+      FUNCTION ece_get_gp_x(this, a_model, x_cart, scale_factor)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: ece_get_gp_x
+      TYPE (ece_class), INTENT(in)           :: this
+      TYPE (model_class), INTENT(in)         :: a_model
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      REAL (rprec), INTENT(in)               :: scale_factor
+
+!  local variables
+      REAL (rprec), DIMENSION(3)             :: y_cart
+      LOGICAL                                :: found
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      y_cart = ece_get_cart(this, a_model, found)
+      IF (found) THEN
+         ece_get_gp_x = model_get_gp_te(a_model, y_cart, x_cart)               &
+     &                * scale_factor
+      ELSE
+         ece_get_gp_x = 0.0
+      END IF
+
+      CALL profiler_set_stop_time('ece_get_gp_x', start_time)
 
       END FUNCTION
 

@@ -22,7 +22,6 @@
 # BLACS_F77INIT_NAME  -- Name of BLACS F77init library
 #
 # BUILD_GTOVMI        -- Optionally builds GTOVMI
-#
 
 cmake_minimum_required (VERSION 2.8.7)
 

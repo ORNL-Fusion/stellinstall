@@ -1011,5 +1011,4 @@ if (MPI_Fortran_FOUND)
 	add_test (NAME    reconstruction_task_test_check_point4_probe4_mpiexec
 	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value2.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name1=probe4 --s_name2=point4 --attribute=plasma --range=1.0E-5)
 
-
 endif ()

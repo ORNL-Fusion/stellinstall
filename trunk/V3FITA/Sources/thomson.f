@@ -16,19 +16,20 @@
       USE stel_kinds, only: rprec
       USE mpi_inc
       USE profiler
+      USE model
 
       IMPLICIT NONE
 
 !*******************************************************************************
-!  diagnostic module parameters
+!  thomson module parameters
 !*******************************************************************************
 !>  Type descriptor for thomson no type.
       INTEGER, PARAMETER :: thomson_no_type = -1
 !>  Type descriptor for thomson type measureing temperature.
       INTEGER, PARAMETER :: thomson_temperature_type = 0
-!>  Type descriptor for intpol type measureing denisty.
+!>  Type descriptor for thomson type measureing denisty.
       INTEGER, PARAMETER :: thomson_density_type = 1
-!>  Type descriptor for intpol type measureing pressure.
+!>  Type descriptor for thomson type measureing pressure.
       INTEGER, PARAMETER :: thomson_pressure_type = 2
 
 !*******************************************************************************
@@ -52,6 +53,18 @@
 !>  Position of the thomson scattering point.
          REAL (rprec), DIMENSION(3) :: xcart
       END TYPE thomson_class
+
+!*******************************************************************************
+!  INTERFACE BLOCKS
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Interface to get the guassian process kernel values.
+!-------------------------------------------------------------------------------
+      INTERFACE thomson_get_gp
+         MODULE PROCEDURE thomson_get_gp_i,                                    &
+     &                    thomson_get_gp_s,                                    &
+     &                    thomson_get_gp_x
+      END INTERFACE
 
       CONTAINS
 !*******************************************************************************
@@ -310,6 +323,166 @@
       thomson_get_signal_type = 'thscte'
 
       CALL profiler_set_stop_time('thomson_get_signal_type', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the guassian process kernel for a thomson signal and a position.
+!>
+!>  Calculates the guassian process kernel between the signal and the position.
+!>  Temperature kernels are provided by @ref model::model_get_gp_te. Denisty
+!>  kernels are provided by @ref model::model_get_gp_ne. This does not support
+!>  pressure measurements.
+!>
+!>  @param[in] this         A @ref thomson_class instance.
+!>  @param[in] a_model      A @ref model instance.
+!>  @param[in] i            Index of the position for the kernel.
+!>  @param[in] scale_factor Factor to scale the modeled signal.
+!>  @returns Kernel value for the position and the signal.
+!-------------------------------------------------------------------------------
+      FUNCTION thomson_get_gp_i(this, a_model, i, scale_factor)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                     :: thomson_get_gp_i
+      TYPE (thomson_class), INTENT(in) :: this
+      TYPE (model_class), INTENT(in)   :: a_model
+      INTEGER, INTENT(in)              :: i
+      REAL (rprec), INTENT(in)         :: scale_factor
+
+!  local variables
+      REAL (rprec)                     :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE(this%type)
+
+         CASE (thomson_temperature_type)
+            thomson_get_gp_i =                                                 &
+     &         model_get_gp_te(a_model, this%xcart, i)*scale_factor
+
+         CASE (thomson_density_type)
+            thomson_get_gp_i =                                                 &
+     &         model_get_gp_ne(a_model, this%xcart, i)*scale_factor
+
+         CASE DEFAULT
+            thomson_get_gp_i = 0.0
+
+      END SELECT
+
+      CALL profiler_set_stop_time('thomson_get_gp', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the guassian process kernel for a thomson signal and a signal.
+!>
+!>  Calculates the guassian process kernel between the signal and a signal.
+!>  Calls back to the @ref signal module to call the other signal. This does not
+!>  support pressure measurements.
+!>
+!>  @param[in] this         A @ref thomson_class instance.
+!>  @param[in] context      A @ref signal_class instance.
+!>  @param     callback     Function pointer to call back to signal module.
+!>  @param[in] scale_factor Factor to scale the modeled signal.
+!>  @returns Kernel value for the signal and the signal.
+!-------------------------------------------------------------------------------
+      FUNCTION thomson_get_gp_s(this, context, callback, scale_factor)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                     :: thomson_get_gp_s
+      TYPE (thomson_class), INTENT(in) :: this
+      CHARACTER (len=1), INTENT(in)    :: context(:)
+      INTERFACE
+         FUNCTION callback(context, xcart, dxcart, length, dx)
+         USE stel_kinds
+         REAL (rprec)                           :: callback
+         CHARACTER (len=1), INTENT(in)          :: context(:)
+         REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
+         REAL (rprec), DIMENSION(3), INTENT(in) :: dxcart
+         REAL (rprec), INTENT(in)               :: length
+         REAL (rprec), INTENT(in)               :: dx
+         END FUNCTION
+      END INTERFACE
+      REAL (rprec), INTENT(in)         :: scale_factor
+
+!  local variables
+      REAL (rprec)                     :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE(this%type)
+
+         CASE (thomson_temperature_type, thomson_density_type)
+!  The call back is an integation kernel. Since we are not integrating here pass
+!  a dx of 1.
+            thomson_get_gp_s = callback(context, this%xcart,                   &
+     &                                  this%xcart, 1.0_rprec,                 &
+     &                                  1.0_rprec)*scale_factor
+
+         CASE DEFAULT
+            thomson_get_gp_s = 0.0
+
+      END SELECT
+
+      CALL profiler_set_stop_time('thomson_get_gp_s', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the guassian process kernel for a thomson signal and a cartesian
+!>  position.
+!>
+!>  Calculates the guassian process kernel between the signal and the position.
+!>  Temperature kernels are provided by @ref model::model_get_gp_te. Denisty
+!>  kernels are provided by @ref model::model_get_gp_ne. This does not support
+!>  pressure measurements. This is the second signal so x_cart goes in the
+!>  second position and this signal in the first.
+!>
+!>  @param[in] this         A @ref thomson_class instance.
+!>  @param[in] a_model      A @ref model instance.
+!>  @param[in] x_cart       The cartesian position of to get the kernel at.
+!>  @param[in] scale_factor Factor to scale the modeled signal.
+!>  @returns Kernel value for the signal and the signal.
+!-------------------------------------------------------------------------------
+      FUNCTION thomson_get_gp_x(this, a_model, x_cart, scale_factor)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: thomson_get_gp_x
+      TYPE (thomson_class), INTENT(in)       :: this
+      TYPE (model_class), INTENT(in)         :: a_model
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      REAL (rprec), INTENT(in)               :: scale_factor
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE(this%type)
+
+         CASE (thomson_temperature_type)
+            thomson_get_gp_x = model_get_gp_te(a_model, this%xcart,            &
+     &                                         x_cart)*scale_factor
+
+         CASE (thomson_density_type)
+            thomson_get_gp_x = model_get_gp_ne(a_model, this%xcart,            &
+     &                                         x_cart)*scale_factor
+
+         CASE DEFAULT
+            thomson_get_gp_x = 0.0
+
+      END SELECT
+
+      CALL profiler_set_stop_time('thomson_get_gp_s', start_time)
 
       END FUNCTION
 

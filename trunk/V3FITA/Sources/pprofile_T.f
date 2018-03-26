@@ -63,6 +63,18 @@
 !>  @fixed_width{'line_segment'} Profile defined as line segments. Segment knots
 !>  are defined by the position, @fixed_width{'_as'} array, and amplitude,
 !>  @fixed_width{'_af'} array.
+!>
+!>  @subsection profile_sq_ecp sq_exp_1d
+!>  @fixed_width{'sq_exp_1d'} Guassian process profile are defined by hyper
+!>  parameters in the first two elements of the @fixed_width{'_b'} array. The
+!>  points the profile is computed to is defined by positions on the
+!>  @fixed_width{'_as'} array.
+!>
+!>  @subsection profile_sq_ecp sq_exp_1d_ln
+!>  @fixed_width{'sq_exp_1d_ln'} Guassian process profile are defined by hyper
+!>  parameters in the first two elements of the @fixed_width{'_b'} array. The
+!>  points the profile is computed to is defined by positions on the
+!>  @fixed_width{'_as'} array.
 !*******************************************************************************
 !>  @file pprofile_T.f
 !>  @brief Contains module @ref pprofile_T.
@@ -96,21 +108,25 @@
       INTEGER, PARAMETER, PUBLIC :: iub_asf = 101
 
 !>  No profile type.
-      INTEGER, PARAMETER, PRIVATE :: pprofile_none_type         = -1
+      INTEGER, PARAMETER, PRIVATE :: pprofile_none_type           = -1
 !>  Two Power profile type.
-      INTEGER, PARAMETER, PRIVATE :: pprofile_two_power_type    = 0
+      INTEGER, PARAMETER, PRIVATE :: pprofile_two_power_type      = 0
 !>  Two Power with guassian profile type.
-      INTEGER, PARAMETER, PRIVATE :: pprofile_two_power_gs_type = 1
+      INTEGER, PARAMETER, PRIVATE :: pprofile_two_power_gs_type   = 1
 !>  Power Series profile type.
-      INTEGER, PARAMETER, PRIVATE :: pprofile_power_series_type = 2
+      INTEGER, PARAMETER, PRIVATE :: pprofile_power_series_type   = 2
 !>  Cubic Spline profile type.
-      INTEGER, PARAMETER, PRIVATE :: pprofile_cubic_spline_type = 3
+      INTEGER, PARAMETER, PRIVATE :: pprofile_cubic_spline_type   = 3
 !>  Akima Spline profile type.
-      INTEGER, PARAMETER, PRIVATE :: pprofile_akima_spline_type = 4
+      INTEGER, PARAMETER, PRIVATE :: pprofile_akima_spline_type   = 4
 !>  Line Segment profile type.
-      INTEGER, PARAMETER, PRIVATE :: pprofile_line_segment_type = 5
+      INTEGER, PARAMETER, PRIVATE :: pprofile_line_segment_type   = 5
 !>  Reverse Two Power profile type.
-      INTEGER, PARAMETER, PRIVATE :: pprofile_two_power_r_type  = 6
+      INTEGER, PARAMETER, PRIVATE :: pprofile_two_power_r_type    = 6
+!>  Guassian process profile 1D square exponetal type.
+      INTEGER, PARAMETER, PRIVATE :: pprofile_gp_1d_sexp_type     = 7
+!>  Guassian process profile 1D square exponetal with the ln of sigma x type.
+      INTEGER, PARAMETER, PRIVATE :: pprofile_gp_1d_ln_sexp_type  = 8
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
@@ -124,13 +140,16 @@
 !>  Parameterized profile type
          INTEGER :: p_type = pprofile_none_type
 !>  Array of coefficients for the functional profiles.
-         REAL(rprec), DIMENSION(ilb_b:iub_b) :: b = 0.0
+         REAL (rprec), DIMENSION(ilb_b:iub_b) :: b = 0.0
 !>  Array of radial position values for the segmented profiles.
-         REAL(rprec), DIMENSION(iub_asf)     :: as = 0.0
+         REAL (rprec), DIMENSION(:), POINTER  :: as => null()
 !>  Array of profile values for the segmented profiles.
-         REAL(rprec), DIMENSION(iub_asf)     :: af = 0.0
+         REAL (rprec), DIMENSION(:), POINTER  :: af => null()
 !>  Index of the last segemented value.
-         INTEGER                             :: maxSplineIndex = 1
+         INTEGER                              :: maxSplineIndex = 1
+
+!>  Cached value of the af array.
+         REAL (rprec), DIMENSION(:), POINTER  :: cache => null()
       END TYPE
 
 !-------------------------------------------------------------------------------
@@ -144,6 +163,14 @@
 !*******************************************************************************
 ! SECTION III. INTERFACE BLOCKS
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Interface for the guassian process kernel values.
+!-------------------------------------------------------------------------------
+      INTERFACE pprofile_get_gp
+         MODULE PROCEDURE pprofile_get_gp_ij,                                  &
+     &                    pprofile_get_gp_pi,                                  &
+     &                    pprofile_get_gp_pp
+      END INTERFACE
 
       PRIVATE findMaxIndex
 
@@ -157,24 +184,24 @@
 !>  Allocates memory and initializes a @ref pprofile_class.
 !>
 !>  @param[in] p_type Profile type discription.
-!>  @param[in] b_arg  Array of functional profile coefficients
-!>  @param[in] as_arg Array of segmented radial positions.
-!>  @param[in] af_arg Array of segmented profile values.
+!>  @param[in] b      Array of functional profile coefficients
+!>  @param[in] as     Array of segmented radial positions.
+!>  @param[in] af     Array of segmented profile values.
 !>  @returns A pointer to a constructed @ref pprofile_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION pprofile_construct(p_type_arg, b_arg, as_arg, af_arg)
+      FUNCTION pprofile_construct(p_type, b, as, af)
 
       IMPLICIT NONE
 
 !  Declare Arguments 
       TYPE (pprofile_class), POINTER :: pprofile_construct
-      CHARACTER (len=*), INTENT(in)         :: p_type_arg
-      REAL(rprec), DIMENSION(:), INTENT(in) :: b_arg
-      REAL(rprec), DIMENSION(:), INTENT(in) :: as_arg
-      REAL(rprec), DIMENSION(:), INTENT(in) :: af_arg
+      CHARACTER (len=*), INTENT(in)         :: p_type
+      REAL(rprec), DIMENSION(:), INTENT(in) :: b
+      REAL(rprec), DIMENSION(:), INTENT(in) :: as
+      REAL(rprec), DIMENSION(:), INTENT(in) :: af
 
 !  local variables
-      CHARACTER (len = p_type_len)          :: p_type_lc
+      CHARACTER (len=p_type_len)            :: p_type_lc
       REAL (rprec)                          :: start_time
 
 !  Start of executable code
@@ -183,15 +210,18 @@
       ALLOCATE(pprofile_construct)
 
 ! Store profile coeffients.
-      pprofile_construct%b = b_arg
+      pprofile_construct%b = b
 
 ! Find and store the maximum s index if specifying splines.
-      pprofile_construct%maxSplineIndex = findMaxIndex(as_arg)
-      pprofile_construct%as = as_arg
-      pprofile_construct%af = af_arg
+      pprofile_construct%maxSplineIndex = findMaxIndex(as)
+      ALLOCATE(pprofile_construct%as(pprofile_construct%maxSplineIndex))
+      pprofile_construct%as = as(1:pprofile_construct%maxSplineIndex)
+
+      ALLOCATE(pprofile_construct%af(pprofile_construct%maxSplineIndex))
+      pprofile_construct%af = af(1:pprofile_construct%maxSplineIndex)
 
 !  Convert the type to lower case, and truncate
-      p_type_lc = p_type_arg
+      p_type_lc = p_type
       CALL tolower(p_type_lc)
       SELECT CASE(TRIM(p_type_lc))
       
@@ -230,6 +260,16 @@
          CASE ('line_segment')
             pprofile_construct%p_type = pprofile_line_segment_type
 
+         CASE ('sq_exp_1d')
+            pprofile_construct%p_type = pprofile_gp_1d_sexp_type
+            ALLOCATE(pprofile_construct%cache(                                 &
+     &                  SIZE(pprofile_construct%af)))
+
+         CASE ('sq_exp_1d_ln')
+            pprofile_construct%p_type = pprofile_gp_1d_ln_sexp_type
+            ALLOCATE(pprofile_construct%cache(                                 &
+     &                  SIZE(pprofile_construct%af)))
+
          CASE ('none')
             pprofile_construct%p_type = pprofile_none_type
 
@@ -262,6 +302,21 @@
       TYPE (pprofile_class), POINTER :: this
 
 !  Start of executable code
+      IF (ASSOCIATED(this%as)) THEN
+         DEALLOCATE(this%as)
+         this%as => null()
+      END IF
+
+      IF (ASSOCIATED(this%af)) THEN
+         DEALLOCATE(this%af)
+         this%af => null()
+      END IF
+
+      IF (ASSOCIATED(this%cache)) THEN
+         DEALLOCATE(this%cache)
+         this%cache => null()
+      END IF
+
       DEALLOCATE(this)
 
       END SUBROUTINE
@@ -289,15 +344,16 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL(rprec)                        :: pprofile_get_value
+      REAL (rprec)                       :: pprofile_get_value
       TYPE (pprofile_class), INTENT (in) :: this
-      REAL(rprec), INTENT(in)            :: s_arg
+      REAL (rprec), INTENT(in)           :: s_arg
 
 !  local variables
-      REAL(rprec)                        :: s_use
-      REAL(rprec)                        :: s_01
+      REAL (rprec)                       :: s_use
+      REAL (rprec)                       :: s_01
       LOGICAL                            :: l_01
-      INTEGER                            :: i, iflag
+      INTEGER                            :: i
+      INTEGER                            :: iflag
       REAL (rprec)                       :: start_time
 
 !  Start of executable code
@@ -387,7 +443,9 @@
                CALL EXIT(1)
             ENDIF
 
-         CASE (pprofile_line_segment_type)
+         CASE (pprofile_line_segment_type,                                     &
+     &         pprofile_gp_1d_sexp_type,                                       &
+     &         pprofile_gp_1d_ln_sexp_type)
             CALL line_seg(s_arg, pprofile_get_value, this%as, this%af,         &
      &                    this%maxSplineIndex)
          
@@ -408,7 +466,7 @@
       FUNCTION pprofile_get_p_type_name(this)
 
 !  Declare Arguments
-      CHARACTER(len=p_type_len)         :: pprofile_get_p_type_name
+      CHARACTER (len=p_type_len)        :: pprofile_get_p_type_name
       TYPE (pprofile_class), INTENT(in) :: this
 
 !  local variables
@@ -440,6 +498,12 @@
          CASE (pprofile_line_segment_type)
             pprofile_get_p_type_name = 'line_segment'
 
+         CASE (pprofile_gp_1d_sexp_type)
+            pprofile_get_p_type_name = 'sq_exp_1d'
+
+         CASE (pprofile_gp_1d_ln_sexp_type)
+            pprofile_get_p_type_name = 'sq_exp_1d_ln'
+
          CASE DEFAULT
             pprofile_get_p_type_name = 'none'
 
@@ -447,6 +511,144 @@
 
       CALL profiler_set_stop_time('pprofile_get_p_type_name',                  &
      &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the guassian process kernel value for the two as indicies.
+!>
+!>  Indicies are the index of the as array. Only valid for guassian process
+!>  profiles.
+!>
+!>  @param[in] this A @ref pprofile_class instance.
+!>  @param[in] i    ith profile position.
+!>  @param[in] j    jth profile position.
+!>  @returns The name of the profile type.
+!-------------------------------------------------------------------------------
+      FUNCTION pprofile_get_gp_ij(this, i, j)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                       :: pprofile_get_gp_ij
+      TYPE (pprofile_class), INTENT (in) :: this
+      INTEGER, INTENT(in)                :: i
+      INTEGER, INTENT(in)                :: j
+
+!  local variables
+      REAL (rprec)                       :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE(this%p_type)
+
+         CASE (pprofile_gp_1d_sexp_type)
+            pprofile_get_gp_ij = pprofile_gp_1d_sqexp_k(this,                  &
+     &                                                  this%as(i),            &
+     &                                                  this%as(j))
+
+         CASE (pprofile_gp_1d_ln_sexp_type)
+            pprofile_get_gp_ij = pprofile_gp_1d_sqexp_ln_k(this,               &
+     &                                                     this%as(i),         &
+     &                                                     this%as(j))
+
+         CASE DEFAULT
+            pprofile_get_gp_ij = 0.0
+
+      END SELECT
+
+      CALL profiler_set_stop_time('pprofile_get_gp_ij', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the guassian process kernel value for the point and index.
+!>
+!>  Index are the index of the as array. Point is a measurement point on the
+!>  profile. Only valid for guassian process profiles.
+!>
+!>  @param[in] this  A @ref pprofile_class instance.
+!>  @param[in] p     Point to evaluate the kernel at.
+!>  @param[in] i     Profile position index.
+!>  @returns The value of the gp kernel function for p and i.
+!-------------------------------------------------------------------------------
+      FUNCTION pprofile_get_gp_pi(this, p, i)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                       :: pprofile_get_gp_pi
+      TYPE (pprofile_class), INTENT (in) :: this
+      REAL (rprec), INTENT(in)           :: p
+      INTEGER, INTENT(in)                :: i
+
+!  local variables
+      REAL (rprec)                       :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE(this%p_type)
+
+         CASE (pprofile_gp_1d_sexp_type)
+            pprofile_get_gp_pi = pprofile_gp_1d_sqexp_k(this, p,               &
+     &                                                  this%as(i))
+
+         CASE (pprofile_gp_1d_ln_sexp_type)
+            pprofile_get_gp_pi = pprofile_gp_1d_sqexp_ln_k(this, p,            &
+     &                                                     this%as(i))
+
+         CASE DEFAULT
+            pprofile_get_gp_pi = 0.0
+
+      END SELECT
+
+      CALL profiler_set_stop_time('pprofile_get_gp_pi', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the guassian process kernel value for two points.
+!>
+!>  Points are a measurement point on the profile. Only valid for guassian
+!>  process profiles.
+!>
+!>  @param[in] this A @ref pprofile_class instance.
+!>  @param[in] p1   First point to evaluate the kernel at.
+!>  @param[in] p2   SEOND point to evaluate the kernel at.
+!>  @returns The value of the gp kernel function for p and i.
+!-------------------------------------------------------------------------------
+      FUNCTION pprofile_get_gp_pp(this, p1, p2)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                       :: pprofile_get_gp_pp
+      TYPE (pprofile_class), INTENT (in) :: this
+      REAL (rprec), INTENT(in)           :: p1
+      REAL (rprec), INTENT(in)           :: p2
+
+!  local variables
+      REAL (rprec)                       :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE(this%p_type)
+
+         CASE (pprofile_gp_1d_sexp_type)
+            pprofile_get_gp_pp = pprofile_gp_1d_sqexp_k(this, p1, p2)
+
+         CASE (pprofile_gp_1d_ln_sexp_type)
+            pprofile_get_gp_pp = pprofile_gp_1d_sqexp_ln_k(this, p1, p2)
+
+         CASE DEFAULT
+            pprofile_get_gp_pp = 0.0
+
+      END SELECT
+
+      CALL profiler_set_stop_time('pprofile_get_gp_pp', start_time)
 
       END FUNCTION
 
@@ -459,6 +661,7 @@
 !>  This formats and writes out information about a parameterized profile.
 !>
 !>  @param[in] this A @ref pprofile_class instance.
+!>  @param[in] id   Identification of the profle.
 !>  @param[in] iou  Input/output unit of the output file.
 !-------------------------------------------------------------------------------
       SUBROUTINE pprofile_write(this, id, iou)
@@ -498,7 +701,13 @@
             WRITE(iou,1230)
             WRITE(iou,1231) (i, this%as(i), this%af(i),                        &
      &                       i = 1, this%maxSplineIndex)
-         
+
+         CASE (pprofile_gp_1d_sexp_type,                                       &
+     &         pprofile_gp_1d_ln_sexp_type)
+            WRITE(iou,1300) this%b(0:3)
+            WRITE(iou,1231) (i, this%as(i), this%af(i),                        &
+     &                       i = 1, this%maxSplineIndex)
+
       END SELECT
 
       CALL profiler_set_stop_time('pprofile_write', start_time)
@@ -511,6 +720,70 @@
 1230  FORMAT(' i       as(i)           af(i)')
 1231  FORMAT(1x,i3,2x,es15.8,2x,es15.8)
 1300  FORMAT(4(2x,es15.8))
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Save the internal state of the profile.
+!>
+!>  Saves the profile af array if using the guassian process.
+!>
+!>  @param[inout] this A @ref pprofile_class instance.
+!-------------------------------------------------------------------------------
+      SUBROUTINE pprofile_save_state(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (pprofile_class), INTENT(inout) :: this
+
+!  local variables
+      REAL (rprec)                     :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE (this%p_type)
+
+         CASE (pprofile_gp_1d_sexp_type,                                       &
+     &         pprofile_gp_1d_ln_sexp_type)
+            this%cache = this%af
+
+      END SELECT
+
+      CALL profiler_set_stop_time('pprofile_save_state', start_time)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Reset the internal state of the profile.
+!>
+!>  Resets the profile af array if using the guassian process.
+!>
+!>  @param[inout] this A @ref pprofile_class instance.
+!-------------------------------------------------------------------------------
+      SUBROUTINE pprofile_reset_state(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (pprofile_class), INTENT(inout) :: this
+
+!  local variables
+      REAL (rprec)                     :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE (this%p_type)
+
+         CASE (pprofile_gp_1d_sexp_type,                                       &
+     &         pprofile_gp_1d_ln_sexp_type)
+            this%af = this%cache
+
+      END SELECT
+
+      CALL profiler_set_stop_time('pprofile_reset_state', start_time)
 
       END SUBROUTINE
 
@@ -542,6 +815,64 @@
       findMaxIndex = MAXLOC(s_array, dim=1)
 
       CALL profiler_set_stop_time('findMaxIndex', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Evaluate the one dimensional squared exponential kernel
+!>
+!>    b(0)^2*exp(-(x1 - x2)^2/2*b(1)^2)                                      (1)
+!>
+!>  @param[in] this A @ref pprofile_class instance.
+!>  @param[in] p1   First position.
+!>  @param[in] p2   Second position.
+!>  @returns Value of the kernel.
+!-------------------------------------------------------------------------------
+      PURE FUNCTION pprofile_gp_1d_sqexp_k(this, p1, p2)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec) :: pprofile_gp_1d_sqexp_k
+      TYPE (pprofile_class), INTENT(in) :: this
+      REAL (rprec), INTENT(in)          :: p1
+      REAL (rprec), INTENT(in)          :: p2
+
+!  Start of executable code
+      pprofile_gp_1d_sqexp_k =                                                 &
+     &   this%b(0)**2*EXP(-(p1 - p2)**2/(2.0*this%b(1)**2))
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Evaluate the one dimensional squared exponential kernel
+!>
+!>  This kernel is mathmatically the same as the squared exp kernel, but here
+!>  we treat the amplitude [ b(0) ] differently. The value of b(0) used here is
+!>  equal to the log of value of b(0) used in the 1d_sqexp. I'm testing this
+!>  formulation to see if it helps convergence.
+!>
+!>    exp(2*b(0) - (x1- x2)**2)/2*b(1)**2)                                   (1)
+!>
+!>  @param[in] this A @ref pprofile_class instance.
+!>  @param[in] p1 first position
+!>  @param[in] p2 second position
+!>  @param[in] b  Array of coefficients
+!>  @returns Value of the kernel
+!-------------------------------------------------------------------------------
+      PURE FUNCTION pprofile_gp_1d_sqexp_ln_k(this, p1, p2)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec) :: pprofile_gp_1d_sqexp_ln_k
+      TYPE (pprofile_class), INTENT(in) :: this
+      REAL (rprec), INTENT(in)          :: p1
+      REAL (rprec), INTENT(in)          :: p2
+
+!  Start of executable code
+      pprofile_gp_1d_sqexp_ln_k =                                              &
+     &   EXP(2.0*this%b(0) - (p1 - p2)**2/(2.0*this%b(1)**2))
 
       END FUNCTION
 

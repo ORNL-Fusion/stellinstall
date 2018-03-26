@@ -53,23 +53,24 @@ then
 	      -DNETCDF_LIB_PATH=/usr/lib            \
 	      -DEXTRA_FLAGS=-fopenmp                \
 	      -DEXTRA_RELEASE_FLAGS:String="-m64 -mfpmath=sse -march=native -msse4a -msse3"
+
 elif [ "$MACHINE_ID" == "recon2" ]
 then
 	# This machines is hosted on the Auburn network.
 
-	cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE \
-	      -DCMAKE_Fortran_COMPILER=gfortran     \
-	      -DNETCDF_INC_PATH=/usr/include/       \
-	      -DNETCDF_LIB_PATH=/usr/lib            \
-	      -DNETCDF_F_LIB_NAME=libnetcdff.so.5   \
-	      -DNETCDF_C_LIB_NAME=libnetcdf.so.7    \
-	      -DBLACS_LIB_NAME=libblacs-openmpi.so.1 \
-	      -DBLACS_CINIT_NAME=libblacsCinit-openmpi.so.1 \
-	      -DBLACS_F77INIT_NAME=libblacsF77init-openmpi.so.1\
-	      -DSCALAPACK_LIB_NAME=libscalapack-openmpi.so.1 \
-	      -DUSE_PARVMEC=ON                      \
-	      -DEXTRA_FLAGS="-fopenmp -DNEW_CODE"    \
-     	      -DEXTRA_RELEASE_FLAGS:String="-m64 -mfpmath=sse -march=native -msse4a -msse3"
+	cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE             \
+	      -DCMAKE_Fortran_COMPILER=gfortran                 \
+	      -DNETCDF_INC_PATH=/usr/include/                   \
+	      -DNETCDF_LIB_PATH=/usr/lib                        \
+	      -DNETCDF_F_LIB_NAME=libnetcdff.so.5               \
+	      -DNETCDF_C_LIB_NAME=libnetcdf.so.7                \
+	      -DBLACS_LIB_NAME=libblacs-openmpi.so.1            \
+	      -DBLACS_CINIT_NAME=libblacsCinit-openmpi.so.1     \
+	      -DBLACS_F77INIT_NAME=libblacsF77init-openmpi.so.1 \
+	      -DSCALAPACK_LIB_NAME=libscalapack-openmpi.so.1    \
+	      -DUSE_PARVMEC=ON                                  \
+	      -DEXTRA_FLAGS="-fopenmp -DNEW_CODE"               \
+	      -DEXTRA_RELEASE_FLAGS:String="-m64 -mfpmath=sse -march=native -msse4a -msse3"
 
 elif [ "${MACHINE_ID#*.}" == "igi.cnr.it" ]; then
 
@@ -112,7 +113,7 @@ elif [ $MACHINE_ID == "r2d2.gat.com" ]
 then
 
 	# r2d2 at General Atomics has the LAPACK and BLAS libraries
-	# in a non standard location. Variables for these will need 
+	# in a non standard location. Variables for these will need
 	# to be set manually.
 
 	cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE                                                                 \
@@ -143,6 +144,7 @@ then
 	        -DEXTRA_RELEASE_FLAGS:String="-m64 -mfpmath=sse -march=native -msse4a -msse3"
 
 elif [ $MACHINE_ID == "mbp103254"     ] || \
+     [ $MACHINE_ID == "mbp103254-2"   ] || \
      [ $MACHINE_ID == "cianciosaimac" ]
 then
 	# Config for Mark Cianciosa's ORNL machine.
@@ -155,7 +157,7 @@ then
               -DUSE_PARVMEC=ON                      \
               -DUSE_FAST_COPY=ON
 
-elif [ $MACHINE_ID == "swim.ornl.gov" ] || \
+elif [ $MACHINE_ID == "swim.ornl.gov"    ] || \
      [ $MACHINE_ID == "fusion2.ornl.gov" ]
 then
 
@@ -201,13 +203,16 @@ then
 
 	module load cmake
 	module load cray-netcdf/4.3.3.1
-	cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE                                  \
-	      -DNETCDF_INC_PATH=$NETCDF_DIR/include                           \
-	      -DNETCDF_LIB_PATH=$NETCDF_DIR/lib                               \
-	      -DCMAKE_PREFIX_PATH:FILEPATH=$CRAY_MPICH2_DIR                   \
-	      -DEXTRA_FLAGS="-openmp -DNEW_CODE"                              \
-	      -DSCALAPACK_LIB=$CRAY_LIBSCI_PREFIX_DIR/lib/libsci_intel_mpi.so \
-	      -DUSE_PARVMEC=ON
+	cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE                                   \
+	      -DNETCDF_INC_PATH=$NETCDF_DIR/include                            \
+	      -DNETCDF_LIB_PATH=$NETCDF_DIR/lib                                \
+	      -DCMAKE_PREFIX_PATH:FILEPATH=$CRAY_MPICH2_DIR                    \
+	      -DEXTRA_FLAGS="-openmp -DNEW_CODE"                               \
+	      -DSCALAPACK_LIB=$CRAY_LIBSCI_PREFIX_DIR/lib/libsci_gnu_mpi.so    \
+	      -DBLAS_LIBRARIES=$CRAY_LIBSCI_PREFIX_DIR/lib/libsci_gnu_mpi.so   \
+	      -DLAPACK_LIBRARIES=$CRAY_LIBSCI_PREFIX_DIR/lib/libsci_gnu_mpi.so \
+	      -DUSE_PARVMEC=ON                                                 \
+	      -DUSE_FAST_COPY=ON
 
 elif [ $MACHINE_ID == "titan-ext1" ] || \
      [ $MACHINE_ID == "titan-ext2" ] || \
@@ -218,20 +223,20 @@ elif [ $MACHINE_ID == "titan-ext1" ] || \
      [ $MACHINE_ID == "titan-ext7" ]
 then
 
-        # Config for ORNL OLCF Machines. OLCF systems use a module system. Load the cmake                                                                                                                                                                                        
-        # module to get a compatable version first.                               
-    module swap PrgEnv-pgi PrgEnv-gnu
-    module load cray-netcdf
-    cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE                                     \
-          -DNETCDF_INC_PATH=$NETCDF_DIR/include                              \
-          -DNETCDF_LIB_PATH=$NETCDF_DIR/lib                                  \
-          -DCMAKE_PREFIX_PATH:FILEPATH=$CRAY_MPICH2_DIR                      \
-          -DEXTRA_FLAGS="-openmp -DNEW_CODE"                                 \
-          -DSCALAPACK_LIB=$CRAY_LIBSCI_PREFIX_DIR/lib/libsci_gnu_mpi.so      \
-          -DBLAS_LIBRARIES=$CRAY_LIBSCI_PREFIX_DIR/lib/libsci_gnu_mpi.so     \
-          -DLAPACK_LIBRARIES=$CRAY_LIBSCI_PREFIX_DIR/lib/libsci_gnu_mpi.so   \
-          -DUSE_PARVMEC=ON                                                   \
-          -DUSE_FAST_COPY=ON
+	# Config for ORNL OLCF Machines. OLCF systems use a module system. Load the cmake                                                                                                                                                                                        
+	# module to get a compatable version first.                               
+	module swap PrgEnv-pgi PrgEnv-gnu
+	module load cray-netcdf
+	cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE                                     \
+	      -DNETCDF_INC_PATH=$NETCDF_DIR/include                              \
+	      -DNETCDF_LIB_PATH=$NETCDF_DIR/lib                                  \
+	      -DCMAKE_PREFIX_PATH:FILEPATH=$CRAY_MPICH2_DIR                      \
+	      -DEXTRA_FLAGS="-openmp -DNEW_CODE"                                 \
+	      -DSCALAPACK_LIB=$CRAY_LIBSCI_PREFIX_DIR/lib/libsci_gnu_mpi.so      \
+	      -DBLAS_LIBRARIES=$CRAY_LIBSCI_PREFIX_DIR/lib/libsci_gnu_mpi.so     \
+	      -DLAPACK_LIBRARIES=$CRAY_LIBSCI_PREFIX_DIR/lib/libsci_gnu_mpi.so   \
+	      -DUSE_PARVMEC=ON                                                   \
+	      -DUSE_FAST_COPY=ON
 
 elif [ $MACHINE_ID == "edison01" ] || \
      [ $MACHINE_ID == "edison02" ] || \
@@ -259,22 +264,22 @@ elif [ $MACHINE_ID == "edison01" ] || \
      [ $MACHINE_ID == "cori12"   ]
 then
 
-    # Config for NERSC Edison Machine. OLCF systems use a module system. Load the cmake                                                                                                                                                                                        
-    # module to get a compatable version first.                               
-    module load cmake
-    module load python
-    module load cray-netcdf
-    cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE                                     \
-          -DCMAKE_C_COMPILER=icc                                             \
-          -DCMAKE_CXX_COMPILER=icpc                                          \
-          -DCMAKE_Fortran_COMPILER=ifort                                     \
-	  -DNETCDF_INC_PATH=$NETCDF_DIR/include                              \
-          -DNETCDF_LIB_PATH=$NETCDF_DIR/lib                                  \
-          -DSCALAPACK_LIB=$CRAY_LIBSCI_PREFIX_DIR/lib/libsci_intel_mpi.so    \
-          -DCMAKE_PREFIX_PATH:FILEPATH=$MPICH_DIR                            \
-          -DEXTRA_FLAGS="-mkl"                                               \
-          -DUSE_PARVMEC=ON                                                   \
-          -DUSE_FAST_COPY=ON
+	# Config for NERSC Edison Machine. OLCF systems use a module system. Load the cmake                                                                                                                                                                                        
+	# module to get a compatable version first.                               
+	module load cmake
+	module load python
+	module load cray-netcdf
+	cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE                                  \
+	      -DCMAKE_C_COMPILER=icc                                          \
+	      -DCMAKE_CXX_COMPILER=icpc                                       \
+	      -DCMAKE_Fortran_COMPILER=ifort                                  \
+	      -DNETCDF_INC_PATH=$NETCDF_DIR/include                           \
+	      -DNETCDF_LIB_PATH=$NETCDF_DIR/lib                               \
+	      -DSCALAPACK_LIB=$CRAY_LIBSCI_PREFIX_DIR/lib/libsci_intel_mpi.so \
+	      -DCMAKE_PREFIX_PATH:FILEPATH=$MPICH_DIR                         \
+	      -DEXTRA_FLAGS="-mkl"                                            \
+	      -DUSE_PARVMEC=ON                                                \
+	      -DUSE_FAST_COPY=ON
 
 elif [ $MACHINE_ID == "clus45" ]
 then
@@ -296,97 +301,99 @@ then
 
 elif [ $MACHINE_ID == "Erics-iMac.local" ]
 then
-	# Config for Eric's Work iMac.
+	# Config for Eric Howell's Mac.
 
-        cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE \
-              -DCMAKE_Fortran_COMPILER=gfortran     \
-              -DNETCDF_INC_PATH=/usr/local/include/ \
-              -DNETCDF_LIB_PATH=/usr/local/lib      \
-              -DEXTRA_FLAGS="-fopenmp -DNEW_CODE"   \
-	      -DUSE_PARVMEC=ON
+	cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE                                \
+	      -DCMAKE_Fortran_COMPILER=gfortran                                    \
+	      -DNETCDF_INC_PATH=/usr/local/include/                                \
+	      -DNETCDF_LIB_PATH=/usr/local/lib                                     \
+	      -DEXTRA_FLAGS="-fopenmp -DNEW_CODE"                                  \
+	      -DUSE_PARVMEC=ON                                                     \
+	      -DTRAVIS_LIB_PATH=/Users/erichowell/lib/TRAVIS_161013/TRAVIS-src/lib \
+	      -DMCONF_LIB_PATH=/Users/erichowell/lib/TRAVIS_161013/TRAVIS-src/mag_conf/lib
 
 elif [ $MACHINE_ID == "draco01" ] || \
      [ $MACHINE_ID == "draco02" ] || \
      [ $MACHINE_ID == "draco03" ] || \
      [ $MACHINE_ID == "draco04" ]
 then
-    # Config for IPP Draco cluster
-    # Load the following modules prior to running setup_cmake:
-    module purge
-    module load cmake
-    module load gcc
-    module load impi
-    module load mkl
-    module load hdf5-mpi/gcc
-    module load netcdf-mpi/gcc
-    module list
-    #Pre- June 27, 2017
-    #Currently Loaded Modulefiles:
-    # 1) cmake/3.5    3) impi/5.1.3   5) hdf5-mpi/gcc/1.8.16
-    # 2) gcc/5.4      4) mkl/11.3     6) netcdf-mpi/gcc/4.4.0
-    #Post- June 27, 2017
-    #Currently Loaded Modulefiles:
-    # 1) cmake/3.7    3) impi/2017.3  5) hdf5-mpi/gcc/1.8.18
-    # 2) gcc/6.3      4) mkl/2017     6) netcdf-mpi/gcc/4.4.1.1
+	# Config for IPP Draco cluster
+	# Load the following modules prior to running setup_cmake:
+	module purge
+	module load cmake
+	module load gcc
+	module load impi
+	module load mkl
+	module load hdf5-mpi/gcc
+	module load netcdf-mpi/gcc
+	module list
+	#Pre- June 27, 2017
+	#Currently Loaded Modulefiles:
+ 	# 1) cmake/3.5    3) impi/5.1.3   5) hdf5-mpi/gcc/1.8.16
+	# 2) gcc/5.4      4) mkl/11.3     6) netcdf-mpi/gcc/4.4.0
+	#Post- June 27, 2017
+	#Currently Loaded Modulefiles:
+	# 1) cmake/3.7    3) impi/2017.3  5) hdf5-mpi/gcc/1.8.18
+	# 2) gcc/6.3      4) mkl/2017     6) netcdf-mpi/gcc/4.4.1.1
 
-    cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE \
-          -DCMAKE_Fortran_COMPILER=gfortran     \
-          -DLAPACK_LIBRARIES="${MKLROOT}/lib/intel64/libmkl_blas95_lp64.a;${MKLROOT}/lib/intel64/libmkl_lapack95_lp64.a;${MKLROOT}/lib/intel64/libmkl_scalapack_lp64.a;-Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_gf_lp64.a;${MKLROOT}/lib/intel64/libmkl_gnu_thread.a;${MKLROOT}/lib/intel64/libmkl_core.a;${MKLROOT}/lib/intel64/libmkl_blacs_intelmpi_lp64.a;-Wl,--end-group" \
-          -DBLAS_LIBRARIES="${MKLROOT}/lib/intel64/libmkl_blas95_lp64.a;-Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_gf_lp64.a;${MKLROOT}/lib/intel64/libmkl_gnu_thread.a;${MKLROOT}/lib/intel64/libmkl_core.a;${MKLROOT}/lib/intel64/libmkl_blacs_intelmpi_lp64.a;-Wl,--end-group"  \
-          -DNETCDF_INC_PATH="${NETCDF_HOME}/include/" \
-          -DNETCDF_LIB_PATH="${NETCDF_HOME}/lib"      \
-          -DSCALAPACK_LIB="${MKLROOT}/lib/intel64/libmkl_scalapack_lp64.a;${MKLROOT}/lib/intel64/libmkl_gf_lp64.a;${MKLROOT}/lib/intel64/libmkl_gnu_thread.a;${MKLROOT}/lib/intel64/libmkl_core.a;${MKLROOT}/lib/intel64/libmkl_blacs_intelmpi_lp64.a" \
-          -DEXTRA_FLAGS="-lgomp -lpthread -lm -ldl -I${MKLROOT}/include/intel64/lp64 -m64 -I${MKLROOT}/include -DNEW_CODE -O3" \
-          -DUSE_PARVMEC=ON       \
-          -DUSE_FAST_COPY=ON
+	cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE       \
+	      -DCMAKE_Fortran_COMPILER=gfortran           \
+	      -DLAPACK_LIBRARIES="${MKLROOT}/lib/intel64/libmkl_blas95_lp64.a;${MKLROOT}/lib/intel64/libmkl_lapack95_lp64.a;${MKLROOT}/lib/intel64/libmkl_scalapack_lp64.a;-Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_gf_lp64.a;${MKLROOT}/lib/intel64/libmkl_gnu_thread.a;${MKLROOT}/lib/intel64/libmkl_core.a;${MKLROOT}/lib/intel64/libmkl_blacs_intelmpi_lp64.a;-Wl,--end-group" \
+	      -DBLAS_LIBRARIES="${MKLROOT}/lib/intel64/libmkl_blas95_lp64.a;-Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_gf_lp64.a;${MKLROOT}/lib/intel64/libmkl_gnu_thread.a;${MKLROOT}/lib/intel64/libmkl_core.a;${MKLROOT}/lib/intel64/libmkl_blacs_intelmpi_lp64.a;-Wl,--end-group"  \
+	      -DNETCDF_INC_PATH="${NETCDF_HOME}/include/" \
+	      -DNETCDF_LIB_PATH="${NETCDF_HOME}/lib"      \
+	      -DSCALAPACK_LIB="${MKLROOT}/lib/intel64/libmkl_scalapack_lp64.a;${MKLROOT}/lib/intel64/libmkl_gf_lp64.a;${MKLROOT}/lib/intel64/libmkl_gnu_thread.a;${MKLROOT}/lib/intel64/libmkl_core.a;${MKLROOT}/lib/intel64/libmkl_blacs_intelmpi_lp64.a" \
+	      -DEXTRA_FLAGS="-lgomp -lpthread -lm -ldl -I${MKLROOT}/include/intel64/lp64 -m64 -I${MKLROOT}/include -DNEW_CODE -O3" \
+	      -DUSE_PARVMEC=ON                            \
+	      -DUSE_FAST_COPY=ON
 
 elif [ $MACHINE_ID == "hydra01" ] || \
      [ $MACHINE_ID == "hydra02" ] || \
      [ $MACHINE_ID == "hydra03" ] || \
      [ $MACHINE_ID == "hydra04" ]
 then
-    # Config for IPP hydra cluster
-    # Load the following modules prior to running setup_cmake:
-    module purge
-    module load cmake
-    module load gcc
-    module load mpi.intel
-    module load mkl
-    module load hdf5-mpi/gcc
-    module load netcdf-mpi/gcc
-    module list
-    #Currently Loaded Modulefiles:
-    # on Hydra
-    # 1) cmake/3.5    3) mpi.intel/5.1.3        5) hdf5-mpi/gcc/1.8.16
-    # 2) gcc/5.4      4) mkl/11.3               6) netcdf-mpi/gcc/4.4.1
+	# Config for IPP hydra cluster
+	# Load the following modules prior to running setup_cmake:
+	module purge
+	module load cmake
+	module load gcc
+	module load mpi.intel
+	module load mkl
+	module load hdf5-mpi/gcc
+	module load netcdf-mpi/gcc
+	module list
+	#Currently Loaded Modulefiles:
+	# on Hydra
+	# 1) cmake/3.5    3) mpi.intel/5.1.3        5) hdf5-mpi/gcc/1.8.16
+	# 2) gcc/5.4      4) mkl/11.3               6) netcdf-mpi/gcc/4.4.1
 
-    cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE \
-          -DCMAKE_Fortran_COMPILER=gfortran     \
-          -DUSE_PARVMEC=ON       \
-          -DLAPACK_LIBRARIES="${MKLROOT}/lib/intel64/libmkl_blas95_lp64.a;${MKLROOT}/lib/intel64/libmkl_lapack95_lp64.a;${MKLROOT}/lib/intel64/libmkl_scalapack_lp64.a;-Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_gf_lp64.a;${MKLROOT}/lib/intel64/libmkl_gnu_thread.a;${MKLROOT}/lib/intel64/libmkl_core.a;${MKLROOT}/lib/intel64/libmkl_blacs_intelmpi_lp64.a;-Wl,--end-group" \
-          -DBLAS_LIBRARIES="${MKLROOT}/lib/intel64/libmkl_blas95_lp64.a;-Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_gf_lp64.a;${MKLROOT}/lib/intel64/libmkl_gnu_thread.a;${MKLROOT}/lib/intel64/libmkl_core.a;${MKLROOT}/lib/intel64/libmkl_blacs_intelmpi_lp64.a;-Wl,--end-group"  \
-          -DNETCDF_INC_PATH="${NETCDF_HOME}/include/" \
-          -DNETCDF_LIB_PATH="${NETCDF_HOME}/lib"      \
-          -DSCALAPACK_LIB="${MKLROOT}/lib/intel64/libmkl_scalapack_lp64.a;${MKLROOT}/lib/intel64/libmkl_gf_lp64.a;${MKLROOT}/lib/intel64/libmkl_gnu_thread.a;${MKLROOT}/lib/intel64/libmkl_core.a;${MKLROOT}/lib/intel64/libmkl_blacs_intelmpi_lp64.a" \
-          -DEXTRA_FLAGS="-lgomp -lpthread -lm -ldl -I${MKLROOT}/include/intel64/lp64 -m64 -I${MKLROOT}/include -DNEW_CODE -O3"
+	cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE       \
+	      -DCMAKE_Fortran_COMPILER=gfortran           \
+	      -DUSE_PARVMEC=ON                            \
+	      -DLAPACK_LIBRARIES="${MKLROOT}/lib/intel64/libmkl_blas95_lp64.a;${MKLROOT}/lib/intel64/libmkl_lapack95_lp64.a;${MKLROOT}/lib/intel64/libmkl_scalapack_lp64.a;-Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_gf_lp64.a;${MKLROOT}/lib/intel64/libmkl_gnu_thread.a;${MKLROOT}/lib/intel64/libmkl_core.a;${MKLROOT}/lib/intel64/libmkl_blacs_intelmpi_lp64.a;-Wl,--end-group" \
+	      -DBLAS_LIBRARIES="${MKLROOT}/lib/intel64/libmkl_blas95_lp64.a;-Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_gf_lp64.a;${MKLROOT}/lib/intel64/libmkl_gnu_thread.a;${MKLROOT}/lib/intel64/libmkl_core.a;${MKLROOT}/lib/intel64/libmkl_blacs_intelmpi_lp64.a;-Wl,--end-group"  \
+	      -DNETCDF_INC_PATH="${NETCDF_HOME}/include/" \
+	      -DNETCDF_LIB_PATH="${NETCDF_HOME}/lib"      \
+	      -DSCALAPACK_LIB="${MKLROOT}/lib/intel64/libmkl_scalapack_lp64.a;${MKLROOT}/lib/intel64/libmkl_gf_lp64.a;${MKLROOT}/lib/intel64/libmkl_gnu_thread.a;${MKLROOT}/lib/intel64/libmkl_core.a;${MKLROOT}/lib/intel64/libmkl_blacs_intelmpi_lp64.a" \
+	      -DEXTRA_FLAGS="-lgomp -lpthread -lm -ldl -I${MKLROOT}/include/intel64/lp64 -m64 -I${MKLROOT}/include -DNEW_CODE -O3"
 
 elif [ $MACHINE_ID == "irisa.cluster" ] || \
-     [ $MACHINE_ID == "irisb.cluster" ] || \ 
+     [ $MACHINE_ID == "irisb.cluster" ] || \
      [ $MACHINE_ID == "irisc.cluster" ]
 then
 
-     # iris cluster at GA
+	# iris cluster at GA
 
-     module purge
-     module load scalapack
-     module load netcdf
-     cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE                    \
-           -DNETCDF_INC_PATH=$NETCDF_DIR/include                    \
-           -DNETCDF_LIB_PATH=$NETCDF_DIR/lib                        \
-           -DCMAKE_C_COMPILER=gcc                                   \
-           -DCMAKE_CXX_COMPILER=g++                                 \
-           -DCMAKE_Fortran_COMPILER=gfortran                        \
-           -DCMAKE_PREFIX_PATH:FILEPATH="$MPICH_DIR;$SCALAPACK_DIR"
+	module purge
+	module load scalapack
+	module load netcdf
+	cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE                    \
+	      -DNETCDF_INC_PATH=$NETCDF_DIR/include                    \
+	      -DNETCDF_LIB_PATH=$NETCDF_DIR/lib                        \
+	      -DCMAKE_C_COMPILER=gcc                                   \
+	      -DCMAKE_CXX_COMPILER=g++                                 \
+	      -DCMAKE_Fortran_COMPILER=gfortran                        \
+	      -DCMAKE_PREFIX_PATH:FILEPATH="$MPICH_DIR;$SCALAPACK_DIR"
 
 else
 # MACHINE_ID is new and unknown. Inform the user how to add support for this new machine.

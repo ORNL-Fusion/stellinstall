@@ -17,6 +17,7 @@
 !>  @author Lang Lao
 !>  @author Steve Knowlton
 !>  @author Gregorio L. Trevisan
+!>  @author Eric C. Howell
 !>
 !>  The theory behind V3FIT is outlined in
 !>     Hanson et. al. doi:10.1088/0029-5515/49/7/075031
@@ -235,6 +236,7 @@
       INTEGER                                   :: error
       LOGICAL                                   :: converged
       INTEGER                                   :: i, last_para_signal
+      INTEGER                                   :: first_para_signal
       REAL (rprec)                              :: g2
       REAL (rprec)                              :: start_time
 
@@ -282,12 +284,26 @@
          last_para_signal = context%combination_index - 1
       END IF
 
+!  The gaussian process signals have to be computed before all the other signals
+!  in principle they could also depend on each other. So let's do them first in
+!  serial.
+!  FIXME: Check for parallel opportunities here.
+      IF (context%gaussp_last_index .eq. -1) THEN
+         first_para_signal = 1
+      ELSE
+         first_para_signal = context%gaussp_last_index + 1
+         DO i = 1, context%gaussp_last_index
+            g2 = g2 + signal_get_g2(context%signals(i)%p,                      &
+     &                              context%model, .false., dummy_value)
+         END DO
+      END IF
+
 !$OMP PARALLEL DO
 !$OMP& SCHEDULE(DYNAMIC)
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(i)
 !$OMP& REDUCTION(+:g2)
-      DO i = 1, last_para_signal
+      DO i = first_para_signal, last_para_signal
          g2 = g2 + signal_get_g2(context%signals(i)%p,                         &
      &                           context%model, .false., dummy_value)
       END DO
@@ -826,7 +842,7 @@
      &                                  pp_sxrem_af_a(i,:))
       END DO
 
-!  Create a emission object if an emission file was provided.
+!  Create an emission object if an emission file was provided.
       IF (TRIM(emission_file) .ne. '') THEN
          emission_func => emission_construct(emission_file)
       END IF
@@ -838,7 +854,10 @@
      &                                          pp_ne_af),                     &
      &                       pprofile_construct(TRIM(pp_te_ptype),             &
      &                                          pp_te_b, pp_te_as,             &
-     &                                          pp_te_af), sxr,                &
+     &                                          pp_te_af),                     &
+     &                       pprofile_construct(TRIM(pp_ze_ptype),             &
+     &                                          pp_ze_b, pp_ze_as,             &
+     &                                          pp_ze_af), sxr,                &
      &                       phi_offset, z_offset, pol_rad_ratio,              &
      &                       context%runlog_iou,                               &
 #if defined(MPI_OPT)
@@ -850,10 +869,12 @@
 
       context%model => model_construct(model_ne_type,                          &
      &   model_sxrem_type_a(1:num_sxrem_p), model_te_type,                     &
-     &   ne_pp_unit, ne_min, te_min, e_pressure_fraction,                      &
-     &   emission_func, equilibrium_construct(vmec, force_solve),              &
-     &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range, state_flags,          &
-     &   sfactor_spec_fac(:MINLOC(sfactor_spec_imin, 1) - 1))
+     &   model_ze_type, ne_pp_unit, ne_min, te_min, ze_min,                    &
+     &   sxrem_min(1:num_sxrem_p), e_pressure_fraction, emission_func,         &
+     &   equilibrium_construct(vmec, force_solve), sxrem_te_a,                 &
+     &   sxrem_ratio_a, ece_resonance_range, coosig_wgts, state_flags,         &
+     &   sfactor_spec_fac(:MINLOC(sfactor_spec_imin, 1) - 1),                  &
+     &   path_construct(int_method, int_num_points, int_size))
 
       CALL profiler_set_stop_time('init_vmec_equilibrium', start_time)
 
@@ -891,14 +912,15 @@
 
       context%model => model_construct(model_ne_type,                          &
      &   model_sxrem_type_a(1:num_sxrem_p), model_te_type,                     &
-     &   ne_pp_unit, ne_min, te_min, e_pressure_fraction,                      &
-     &   emission_func,                                                        &
+     &   model_ze_type, ne_pp_unit, ne_min, te_min, ze_min,                    &
+     &   sxrem_min(1:num_sxrem_p), e_pressure_fraction, emission_func,         &
      &   equilibrium_construct(vacuum_construct(vacuum_nli_filename,           &
      &                                          context%runlog_iou),           &
      &                         force_solve),                                   &
-     &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range,                       &
+     &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range, coosig_wgts,          &
      &   model_state_all_off,                                                  &
-     &   sfactor_spec_fac(:MINLOC(sfactor_spec_imin, 1)))
+     &   sfactor_spec_fac(:MINLOC(sfactor_spec_imin, 1)),                      &
+     &   path_construct(int_method, int_num_points, int_size))
 
       CALL profiler_set_stop_time('init_vacuum_equilibrium', start_time)
 
@@ -966,9 +988,9 @@
      &                                              pp_ne_af),                 &
      &                           pprofile_construct(TRIM(pp_te_ptype),         &
      &                                              pp_te_b, pp_te_as,         &
-     &                                              pp_te_af), sxr,            &
-     &                           phi_offset, z_offset, pol_rad_ratio,          &
-     &                           context%runlog_iou,                           &
+     &                                              pp_te_af),                 &
+     &                           sxr, phi_offset, z_offset,                    &
+     &                           pol_rad_ratio, context%runlog_iou,            &
 #if defined(MPI_OPT)
      &                           context%equilibrium_comm,                     &
      &                           context%reconstruction_comm,                  &
@@ -983,11 +1005,12 @@
 
       context%model => model_construct(model_ne_type,                          &
      &   model_sxrem_type_a(1:num_sxrem_p), model_te_type,                     &
-     &   ne_pp_unit, ne_min, te_min, e_pressure_fraction,                      &
-     &   emission_func,                                                        &
-     &   equilibrium_construct_siesta(siesta, force_solve),                                                      &
-     &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range, state_flags,          &
-     &   sfactor_spec_fac(:MINLOC(sfactor_spec_imin, 1)))
+     &   model_ze_type, ne_pp_unit, ne_min, te_min, ze_min,                    &
+     &   sxrem_min(1:num_sxrem_p), e_pressure_fraction, emission_func,         &
+     &   equilibrium_construct_siesta(siesta, force_solve),                    &
+     &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range, coosig_wgts,          &
+     &   state_flags, sfactor_spec_fac(:MINLOC(sfactor_spec_imin, 1)),         &
+     &   path_construct(int_method, int_num_points, int_size))
 
       CALL profiler_set_stop_time('init_siesta_equilibrium', start_time)
 
@@ -1010,6 +1033,8 @@
 
 !  local variables
       INTEGER                                   :: signals_created = 0
+      INTEGER                                   :: i
+      INTEGER                                   :: j
       REAL (rprec)                              :: start_time
 
 !  Start of executable code
@@ -1025,6 +1050,9 @@
       WRITE (context%runlog_iou,*) ' *** Constructing signals'
 
       ALLOCATE(context%signals(na_s_desc))
+
+!  Gaussian process signals.
+      CALL init_gaussian_process_signals(context, signals_created)
 
 !  If a mdsig filename is given, construct the diagnostics contained inside it.
       IF (mdsig_list_filename .ne. '') THEN
@@ -1070,6 +1098,21 @@
       END IF
 
       CALL init_combination_signals(context, signals_created)
+
+!  Now that all the signals are created set the gaussian process signals.
+      DO i = 1, context%gaussp_last_index
+         DO j = 1, n_sig_gpsig(i)
+            IF (gpsig_indices(i,j) .gt. signals_created .or.                   &
+     &          gpsig_indices(i,j) .lt. 1) THEN
+               CALL err_fatal('init_gaussian_process_signals: cannot '//       &
+     &                        'create signal with uninitalized ' //            &
+     &                        'signal')
+            END IF
+
+            CALL gaussp_set_signal(context%signals(i)%p%gaussp,                              &
+     &              context%signals(gpsig_indices(i,j))%p, j)
+         END DO
+      END DO
 
       CALL v3fit_context_resize(context)
 
@@ -1205,14 +1248,15 @@
      &              context%model%equilibrium, ANY(mag_3D_a),                  &
      &              context%model%state_flags)
          END IF
+
+!  At lease one magnetic signal was made. Mark the index of it in the context.
+!  This should only be run once.
+         IF (context%magnetic_index .eq. -1) THEN
+            context%magnetic_index = signals_created
+         END IF
       END DO
 
       CLOSE(mdsig_list_iou)
-
-!  Set the magnetic index to one is any signals were creates at this point.
-      IF (signals_created .gt. 0) THEN
-         context%magnetic_index = 1
-      END IF
 
       CALL profiler_set_stop_time('init_magnetic_signals', start_time)
 
@@ -1808,6 +1852,72 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
+!>  @brief Constructs @ref signal::gaussp_class signals.
+!>
+!>  @param[inout] context         An instance of a @ref v3fit_context object.
+!>  @param[inout] signals_created Count of the current number of signals
+!>                                constructed.
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_gaussian_process_signals(context, signals_created)
+      USE v3fit_context
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+      INTEGER, INTENT(inout)                    :: signals_created
+
+!  local variables
+      INTEGER                                   :: i
+      INTEGER                                   :: j
+      TYPE (gaussp_class), POINTER              :: gaussp_signal
+      REAL (rprec)                              :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      WRITE (*,*) ' *** Constructing Gaussian process signals'
+      WRITE (context%runlog_iou,*) ' *** Constructing ' //                     &
+     &                             'Gaussian process signals'
+
+      DO i = 1, n_gpsig
+!  Check if there are too many signals
+         IF (signals_created + 1 .gt. v3fit_max_signals) THEN
+            CALL err_fatal('init_gaussian_process_signals: created ' //        &
+     &                     'signals exceeds v3fit_max_signals')
+         END IF
+
+!  Check if there are too many gaussian process signals.
+         IF (i .gt. max_gaussprocess) THEN
+            CALL err_fatal('init_gaussian_process_signals: created ' //        &
+     &                     'signals exceeds v3fit_max_gaussprocess')
+         END IF
+
+         gaussp_signal =>                                                      &
+     &      gaussp_construct(n_sig_gpsig(i), context%model%equilibrium,        &
+     &                       gpsig_model_type(i), gpsig_model_id(i),           &
+     &                       gp_cholesky_fact(i), gp_chi2_offset(i))
+
+         context%signals(signals_created + 1)%p => signal_construct(           &
+     &      gaussp_signal, gpsig_name(i), gpsig_name(i),                       &
+     &      gpsig_units(i), sdo_data_a(signals_created + 1),                   &
+     &      sdo_sigma_a(signals_created + 1),                                  &
+     &      sdo_weight_a(signals_created + 1),                                 &
+     &      v3fit_input_find_scale_index(signals_created + 1))
+
+         signals_created = signals_created + 1
+
+!  In order to reorder the signals I need to know the index of last gauss p
+!  signal created.
+         context%gaussp_last_index = signals_created
+      END DO
+
+      CALL profiler_set_stop_time('init_gaussian_process_signals',             &
+     &                            start_time)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
 !>  @brief Constructs @ref signal::combination_class signals.
 !>
 !>  @param[inout] context         An instance of a @ref v3fit_context object.
@@ -1824,7 +1934,8 @@
       INTEGER, INTENT(inout)                    :: signals_created
 
 !  local variables
-      INTEGER                                   :: i, j
+      INTEGER                                   :: i
+      INTEGER                                   :: j
       TYPE (combination_class), POINTER         :: combination_signal
       REAL (rprec)                              :: start_time
 
@@ -1848,9 +1959,10 @@
      &                     'signals exceeds v3fit_max_combinations')
          END IF
 
-!  Search for the last index. It would be better if there was a 
-         combination_signal => combination_construct(n_sig_coosig(i),          &
-     &                                               coosig_type(i))
+!  Search for the last index.
+         combination_signal =>                                                 &
+     &      combination_construct(n_sig_coosig(i), coosig_type(i),             &
+     &                            coosig_wgts_id(i))
          DO j = 1, n_sig_coosig(i)
             IF (coosig_indices(i,j) .gt. signals_created) THEN
                CALL err_fatal('init_combination_signals: cannot ' //           &
@@ -1986,6 +2098,7 @@
 
 !  local variables
       INTEGER                                   :: last_para_signal
+      INTEGER                                   :: first_para_signal
       REAL (rprec)                              :: start_time
 
 !  Start of executable code
@@ -2000,6 +2113,16 @@
          last_para_signal = context%combination_index - 1
       END IF
 
+!  The gaussian process signals have to be computed before all the other signals
+!  in principle they could also depend on each other. So let's do them first in
+!  serial.
+!  FIXME: Check for parallel opportunities here.
+      IF (context%gaussp_last_index .eq. -1) THEN
+         first_para_signal = 1
+      ELSE
+         first_para_signal = context%gaussp_last_index + 1
+      END IF
+
 !  Override from command line if set.
       use_central_diff = use_central_diff .or.                                 &
      &   commandline_parser_is_flag_set(context%cl_parser, '-c_diff')
@@ -2011,8 +2134,8 @@
      &                    SIZE(context%params),                                &
      &                    step_type, astep_max, cut_svd, cut_eff,              &
      &                    cut_marg_eff, cut_delta_a, cut_dg2,                  &
-     &                    last_para_signal, cut_inv_svd,                       &
-     &                    use_central_diff)
+     &                    first_para_signal, last_para_signal,                 &
+     &                    cut_inv_svd, use_central_diff)
 
       CALL profiler_set_stop_time('init_reconstruction', start_time)
 

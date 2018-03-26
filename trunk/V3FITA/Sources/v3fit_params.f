@@ -1646,13 +1646,13 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (param_class), INTENT(inout)   :: this
-      INTEGER, INTENT(in)                 :: recon_comm
+      TYPE (param_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)               :: recon_comm
 
 #if defined(MPI_OPT)
 !  local variables
-      INTEGER                             :: error
-      REAL (rprec)                        :: start_time
+      INTEGER                           :: error
+      REAL (rprec)                      :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()

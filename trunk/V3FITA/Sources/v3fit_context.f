@@ -60,6 +60,9 @@
 
 !  The default for the following index is -1 indicating that this signal hasn't
 !  been created.
+!>  Index of the last instance of a @ref gaussp_class signal. The default
+!>  -1 represents no @ref gaussp_class signal created.
+         INTEGER :: gaussp_last_index = -1
 !>  Index of the first instance of a @ref magnetic signal. The default -1
 !>  represents no @ref magnetic signal created.
          INTEGER :: magnetic_index = -1
@@ -231,6 +234,7 @@
       END IF
 
 !  Reset the signal index
+      this%prior_gaussian_index = -1
       this%magnetic_index = -1
       this%sxrem_index = -1
       this%intpol_index = -1
@@ -239,7 +243,6 @@
 	  this%mse_index = -1
 	  this%ece_index = -1
       this%limiter_index = -1
-      this%prior_gaussian_index = -1
       this%sxrem_ratio_index = -1
       this%combination_index = -1
 
@@ -612,17 +615,18 @@
 
          DO i = 1, SIZE(this%signals)
 !  Check if the index has reached a new signal type
-            IF ((this%magnetic_index .eq. i) .or.                              &
-     &          (this%sxrem_index .eq. i) .or.                                 &
-     &          (this%intpol_index .eq. i) .or.                                &
-     &          (this%thomson_index .eq. i) .or.                               &
-     &          (this%extcurz_index .eq. i) .or.                               &
-     &          (this%mse_index .eq. i) .or.                                   &
-     &          (this%ece_index .eq. i) .or.                                   &
-     &          (this%limiter_index .eq. i) .or.                               &
+            IF ((1                         .eq. i) .or.                        &
+     &          (this%magnetic_index       .eq. i) .or.                        &
+     &          (this%sxrem_index          .eq. i) .or.                        &
+     &          (this%intpol_index         .eq. i) .or.                        &
+     &          (this%thomson_index        .eq. i) .or.                        &
+     &          (this%extcurz_index        .eq. i) .or.                        &
+     &          (this%mse_index            .eq. i) .or.                        &
+     &          (this%ece_index            .eq. i) .or.                        &
+     &          (this%limiter_index        .eq. i) .or.                        &
      &          (this%prior_gaussian_index .eq. i) .or.                        &
-     &          (this%sxrem_ratio_index .eq. i) .or.                           &
-     &          (this%combination_index .eq. i)) THEN
+     &          (this%sxrem_ratio_index    .eq. i) .or.                        &
+     &          (this%combination_index    .eq. i)) THEN
 
                CALL signal_write_header(this%signals(i)%p,                     &
      &                                  this%recout_iou)

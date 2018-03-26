@@ -79,43 +79,44 @@
 !  siesta equilibrium module parameters
 !*******************************************************************************
 !  Define id's only for values that can change. All others shouldn't be needed
-!  outside of the vmec interface. Parameter id's start at 8 since 0-7 are
+!  outside of the vmec interface. Parameter id's start at 11 since 0-10 are
 !  reserved for non equilibrium model parameters. These numbers will need to be
 !  updated if any new model parameters are added. Siesta uses the VMEC model
 !  parameters but overwrites the auxilary parameters.
 
 !  Auxiliary Model Parameters
 !>  1D Array of function density profile parameters. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_ne_b_id     = 52
+      INTEGER, PARAMETER :: siesta_pp_ne_b_id     = 55
 !>  1D Array of segment density profile s poitions. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_ne_as_id    = 53
+      INTEGER, PARAMETER :: siesta_pp_ne_as_id    = 56
 !>  1D Array of segment density profile f values. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_ne_af_id    = 54
+      INTEGER, PARAMETER :: siesta_pp_ne_af_id    = 57
 !>  1D Array of function sxrem profile parameters. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_sxrem_b_id  = 55
+      INTEGER, PARAMETER :: siesta_pp_sxrem_b_id  = 58
 !>  1D Array of segment sxrem profile s poitions. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_sxrem_as_id = 56
+      INTEGER, PARAMETER :: siesta_pp_sxrem_as_id = 59
 !>  1D Array of segment sxrem profile f values. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_sxrem_af_id = 57
+      INTEGER, PARAMETER :: siesta_pp_sxrem_af_id = 60
 !>  1D Array of function temperature profile parameters. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_te_b_id     = 58
+      INTEGER, PARAMETER :: siesta_pp_te_b_id     = 61
 !>  1D Array of segment temperature profile s poitions. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_te_as_id    = 59
+      INTEGER, PARAMETER :: siesta_pp_te_as_id    = 62
 !>  1D Array of segment temperature profile f values. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_te_af_id    = 60
+      INTEGER, PARAMETER :: siesta_pp_te_af_id    = 63
 
+!  Skip 68-76 since these parameters have a VMEC value but not a SIESTA analog.
 !>  Plasma Phi offset. This is a parameter to allow changing the phi angle of a
 !>  quasi helical state in an RFP. Defined in @ref vmec_equilibrium.
-      INTEGER, PARAMETER :: siesta_phi_offset_id  = 70
+      INTEGER, PARAMETER :: siesta_phi_offset_id  = 76
 !>  Plasma z offset. This is a parameter to allow changing the vertical shift of
 !>  the plasma
-      INTEGER, PARAMETER :: siesta_z_offset_id    = 71
+      INTEGER, PARAMETER :: siesta_z_offset_id    = 77
 
 !>  Helical perturbation parameter.
-      INTEGER, PARAMETER :: siesta_helpert_id     = 72
+      INTEGER, PARAMETER :: siesta_helpert_id     = 78
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
@@ -246,7 +247,7 @@
       END INTERFACE
 
 !-------------------------------------------------------------------------------
-!>  Interface for the siesta pressure profile values.
+!>  Interface for the siesta density profile values.
 !-------------------------------------------------------------------------------
       INTERFACE siesta_get_ne
          MODULE PROCEDURE siesta_get_ne_cart,                                  &
@@ -254,7 +255,16 @@
       END INTERFACE
 
 !-------------------------------------------------------------------------------
-!>  Interface for the siesta pressure profile values.
+!>  Interface for the siesta guassian process density profile values.
+!-------------------------------------------------------------------------------
+      INTERFACE siesta_get_gp_ne
+         MODULE PROCEDURE siesta_get_gp_ne_ij,                                 &
+     &                    siesta_get_gp_ne_pi,                                 &
+     &                    siesta_get_gp_ne_pp
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
+!>  Interface for the siesta temperature profile values.
 !-------------------------------------------------------------------------------
       INTERFACE siesta_get_te
          MODULE PROCEDURE siesta_get_te_cart,                                  &
@@ -262,11 +272,30 @@
       END INTERFACE
 
 !-------------------------------------------------------------------------------
-!>  Interface for the siesta pressure profile values.
+!>  Interface for the siesta guassian process temperature profile values.
+!-------------------------------------------------------------------------------
+      INTERFACE siesta_get_gp_te
+         MODULE PROCEDURE siesta_get_gp_te_ij,                                 &
+     &                    siesta_get_gp_te_pi,                                 &
+     &                    siesta_get_gp_te_pp
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
+!>  Interface for the siesta soft x-ray emission profile values.
 !-------------------------------------------------------------------------------
       INTERFACE siesta_get_sxrem
          MODULE PROCEDURE siesta_get_sxrem_cart,                               &
      &                    siesta_get_sxrem_radial
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
+!>  Interface for the siesta guassian process soft x-ray emissivity profile
+!>  values.
+!-------------------------------------------------------------------------------
+      INTERFACE siesta_get_gp_sxrem
+         MODULE PROCEDURE siesta_get_gp_sxrem_ij,                              &
+     &                    siesta_get_gp_sxrem_pi,                              &
+     &                    siesta_get_gp_sxrem_pp
       END INTERFACE
 
 !-------------------------------------------------------------------------------
@@ -671,7 +700,7 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!>  @brief Set magnetic cache for plasma resonce.
+!>  @brief Set magnetic cache for plasma responce.
 !>
 !>  This method overrides @ref equilibrium::equilibrium_set_magnetic_cache. This
 !>  allocates a @ref siesta_magnetic_cache structure. Point measurements require
@@ -766,7 +795,7 @@
 !>  @brief Set magnetic cache initialy.
 !>
 !>  This method overrides @ref equilibrium::equilibrium_set_magnetic_cache. This
-!>  allocates a @ref vmec_magnetic_cache structure. Point measurements require
+!>  allocates a @ref sieste_magnetic_cache structure. Point measurements require
 !>  no array allocations.
 !>
 !>  @param[inout] this    A @ref siesta_class instance.
@@ -833,7 +862,7 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!>  @brief Set magnetic cache initialy.
+!>  @brief Set magnetic cache.
 !>
 !>  After the equilibrium has been converged calculate the r, z, jr, jphi and
 !>  jz on grid of s, u, v points.
@@ -1643,6 +1672,155 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
+!>  @brief Gets the electron density profile af array.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_ne_af. If no density
+!>  profile was created a null pointer is returned.
+!>
+!>  @param[in] this A @ref siesta_class instance.
+!>  @returns Pointer to the electron density profile af array.
+!-------------------------------------------------------------------------------
+      FUNCTION siesta_get_ne_af(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:), POINTER :: siesta_get_ne_af
+      TYPE (siesta_class), INTENT(in)     :: this
+
+!  local variables
+      REAL (rprec)                        :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (ASSOCIATED(this%ne)) THEN
+         siesta_get_ne_af => this%ne%af
+      ELSE
+         siesta_get_ne_af => null()
+      END IF
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the electron density gp kernel value for the two indicies.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_gp_ne_ij. If no
+!>  density profile was created zero is returned.
+!>
+!>  @param[in] this A @ref siesta_class instance.
+!>  @param[in] i    ith profile position.
+!>  @param[in] j    jth profile position.
+!>  @returns The value of the gp kernel function for i, j.
+!-------------------------------------------------------------------------------
+      FUNCTION siesta_get_gp_ne_ij(this, i, j)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                    :: siesta_get_gp_ne_ij
+      TYPE (siesta_class), INTENT(in) :: this
+      INTEGER, INTENT(in)             :: i
+      INTEGER, INTENT(in)             :: j
+
+!  local variables
+      REAL (rprec)                  :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (ASSOCIATED(this%ne)) THEN
+         siesta_get_gp_ne_ij = pprofile_get_gp(this%ne, i, j)
+      ELSE
+         siesta_get_gp_ne_ij = 0.0
+      END IF
+
+      CALL profiler_set_stop_time('siesta_get_gp_ne_ij', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the electron density gp kernel value for the position and index.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_gp_ne_pi. If no
+!>  density profile was created zero is returned.
+!>
+!>  @param[in] this   A @ref siesta_class instance.
+!>  @param[in] x_cart Cartesian position to get the electron density at.
+!>  @param[in] i      Profile position index.
+!>  @returns The value of the gp kernel function for x_cart and i.
+!-------------------------------------------------------------------------------
+      FUNCTION siesta_get_gp_ne_pi(this, x_cart, i)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: siesta_get_gp_ne_pi
+      TYPE (siesta_class), INTENT(in)        :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      INTEGER, INTENT(in)                    :: i
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (ASSOCIATED(this%ne)) THEN
+         siesta_get_gp_ne_pi = pprofile_get_gp(this%ne,                        &
+     &                                         siesta_get_p(this,              &
+     &                                                      x_cart,            &
+     &                                                      .true.),           &
+     &                                         i)
+      ELSE
+         siesta_get_gp_ne_pi = 0.0
+      END IF
+
+      CALL profiler_set_stop_time('siesta_get_gp_ne_pi', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the electron density gp kernel value for the position and
+!>  position.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_gp_ne_pp. If no
+!>  density profile was created zero is returned.
+!>
+!>  @param[in] this   A @ref siesta_class instance.
+!>  @param[in] x_cart First cartesian position to get the electron density at.
+!>  @param[in] y_cart Second cartesian position to get the electron density at.
+!>  @returns The value of the gp kernel function for x_cart and y_cart.
+!-------------------------------------------------------------------------------
+      FUNCTION siesta_get_gp_ne_pp(this, x_cart, y_cart)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: siesta_get_gp_ne_pp
+      TYPE (siesta_class), INTENT(in)        :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      REAL (rprec), DIMENSION(3), INTENT(in) :: y_cart
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (ASSOCIATED(this%ne)) THEN
+         siesta_get_gp_ne_pp =                                                 &
+     &      pprofile_get_gp(this%ne, siesta_get_p(this, x_cart, .true.),       &
+     &                      siesta_get_p(this, y_cart, .true.))
+      ELSE
+         siesta_get_gp_ne_pp = 0.0
+      END IF
+
+      CALL profiler_set_stop_time('siesta_get_gp_ne_pp', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
 !>  @brief Gets the electron density at a cartesian position.
 !>
 !>  This method overrides @ref equilibrium::equilibrium_get_ne. If no density
@@ -1709,6 +1887,160 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
+!>  @brief Gets the electron temperature profile af array.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_te_af. If no
+!>  temperature profile was created a null pointer is returned.
+!>
+!>  @param[in] this A @ref siesta_class instance.
+!>  @returns Pointer to the electron temperature profile af array.
+!-------------------------------------------------------------------------------
+      FUNCTION siesta_get_te_af(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:), POINTER :: siesta_get_te_af
+      TYPE (siesta_class), INTENT(in)     :: this
+
+!  local variables
+      REAL (rprec)                        :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (ASSOCIATED(this%te)) THEN
+         siesta_get_te_af => this%te%af
+      ELSE
+         siesta_get_te_af => null()
+      END IF
+
+      CALL profiler_set_stop_time('siesta_get_te_af', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the electron temperature gp kernel value for the two indicies.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_gp_te_ij. If no
+!>  temperature profile was created zero is returned.
+!>
+!>  @param[in] this A @ref siesta_class instance.
+!>  @param[in] i    ith profile position.
+!>  @param[in] j    jth profile position.
+!>  @returns The value of the gp kernel function for i, j.
+!-------------------------------------------------------------------------------
+      FUNCTION siesta_get_gp_te_ij(this, i, j)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                    :: siesta_get_gp_te_ij
+      TYPE (siesta_class), INTENT(in) :: this
+      INTEGER, INTENT(in)             :: i
+      INTEGER, INTENT(in)             :: j
+
+!  local variables
+      REAL (rprec)                    :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (ASSOCIATED(this%te)) THEN
+         siesta_get_gp_te_ij = pprofile_get_gp(this%te, i, j)
+      ELSE
+         siesta_get_gp_te_ij = 0.0
+      END IF
+
+      CALL profiler_set_stop_time('siesta_get_gp_te_ij', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the electron temperature gp kernel value for the position and
+!>  index.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_gp_te_pi. If no
+!>  density profile was created zero is returned.
+!>
+!>  @param[in] this   A @ref siesta_class instance.
+!>  @param[in] x_cart Cartesian position to get the electron temperature at.
+!>  @param[in] i      Profile position index.
+!>  @returns The value of the gp kernel function for x_cart and i.
+!-------------------------------------------------------------------------------
+      FUNCTION siesta_get_gp_te_pi(this, x_cart, i)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: siesta_get_gp_te_pi
+      TYPE (siesta_class), INTENT(in)        :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      INTEGER, INTENT(in)                    :: i
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (ASSOCIATED(this%te)) THEN
+         siesta_get_gp_te_pi = pprofile_get_gp(this%te,                        &
+     &                                         siesta_get_p(this,              &
+     &                                                      x_cart,            &
+     &                                                      .true.),           &
+     &                                         i)
+      ELSE
+         siesta_get_gp_te_pi = 0.0
+      END IF
+
+      CALL profiler_set_stop_time('siesta_get_gp_te_pi', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the electron temperature gp kernel value for the position and
+!>  position.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_gp_te_pp. If no
+!>  temperature profile was created zero is returned.
+!>
+!>  @param[in] this   A @ref siesta_class instance.
+!>  @param[in] x_cart First cartesian position to get the electron temperature
+!>                    at.
+!>  @param[in] y_cart Second cartesian position to get the electron temperature
+!>                    at.
+!>  @returns The value of the gp kernel function for x_cart and y_cart.
+!-------------------------------------------------------------------------------
+      FUNCTION siesta_get_gp_te_pp(this, x_cart, y_cart)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: siesta_get_gp_te_pp
+      TYPE (siesta_class), INTENT(in)        :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      REAL (rprec), DIMENSION(3), INTENT(in) :: y_cart
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (ASSOCIATED(this%te)) THEN
+         siesta_get_gp_te_pp =                                                 &
+     &      pprofile_get_gp(this%te, siesta_get_p(this, x_cart, .true.),       &
+     &                      siesta_get_p(this, y_cart, .true.))
+      ELSE
+         siesta_get_gp_te_pp = 0.0
+      END IF
+
+      CALL profiler_set_stop_time('siesta_get_gp_te_pp', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
 !>  @brief Gets the electron temperature at a cartesian position.
 !>
 !>  This method overrides @ref equilibrium::equilibrium_get_te. If no
@@ -1771,6 +2103,174 @@
      &   pprofile_get_value(this%te, siesta_get_p(this, s, .true.))
 
       CALL profiler_set_stop_time('siesta_get_te_radial', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the soft x-ray emissivity profile af array.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_te_af. If no soft
+!>  x-ray emissivity profile was created a null pointer is returned.
+!>
+!>  @param[in] this  A @ref siesta_class instance.
+!>  @param[in] index Index of the soft x-ray emissivity profile.
+!>  @returns Pointer to the electron temperature profile af array.
+!-------------------------------------------------------------------------------
+      FUNCTION siesta_get_sxrem_af(this, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:), POINTER :: siesta_get_sxrem_af
+      TYPE (siesta_class), INTENT(in)     :: this
+      INTEGER, INTENT(in)                 :: index
+
+!  local variables
+      REAL (rprec)                        :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (ASSOCIATED(this%sxrem) .and.                                         &
+     &    (index .le. SIZE(this%sxrem))) THEN
+         siesta_get_sxrem_af => this%sxrem(index)%p%af
+      ELSE
+         siesta_get_sxrem_af => null()
+      END IF
+
+      CALL profiler_set_stop_time('siesta_get_sxrem_af', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the soft x-ray emissivity gp kernel value for the two indicies.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_gp_sxrem_ij. If no
+!>  soft x-ray emissivity profile was created zero is returned.
+!>
+!>  @param[in] this  A @ref siesta_class instance.
+!>  @param[in] i     ith profile position.
+!>  @param[in] j     jth profile position.
+!>  @param[in] index Index of the soft x-ray emissivity profile.
+!>  @returns The value of the gp kernel function for i, j.
+!-------------------------------------------------------------------------------
+      FUNCTION siesta_get_gp_sxrem_ij(this, i, j, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                    :: siesta_get_gp_sxrem_ij
+      TYPE (siesta_class), INTENT(in) :: this
+      INTEGER, INTENT(in)             :: i
+      INTEGER, INTENT(in)             :: j
+      INTEGER, INTENT(in)             :: index
+
+!  local variables
+      REAL (rprec)                    :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (ASSOCIATED(this%sxrem) .and.                                         &
+     &    (index .le. SIZE(this%sxrem))) THEN
+         siesta_get_gp_sxrem_ij =                                              &
+     &      pprofile_get_gp(this%sxrem(index)%p, i, j)
+      ELSE
+         siesta_get_gp_sxrem_ij = 0.0
+      END IF
+
+      CALL profiler_set_stop_time('siesta_get_gp_sxrem_ij', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the soft x-ray emissivity gp kernel value for the position and
+!>  index.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_gp_sxrem_pi. If no
+!>  density profile was created zero is returned.
+!>
+!>  @param[in] this   A @ref siesta_class instance.
+!>  @param[in] x_cart Cartesian position to get the soft x-ray emissivity at.
+!>  @param[in] i      Profile position index.
+!>  @param[in] index  Index of the soft x-ray emissivity profile.
+!>  @returns The value of the gp kernel function for x_cart and i.
+!-------------------------------------------------------------------------------
+      FUNCTION siesta_get_gp_sxrem_pi(this, x_cart, i, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: siesta_get_gp_sxrem_pi
+      TYPE (siesta_class), INTENT(in)        :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      INTEGER, INTENT(in)                    :: i
+      INTEGER, INTENT(in)                    :: index
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (ASSOCIATED(this%sxrem) .and.                                         &
+     &    (index .le. SIZE(this%sxrem))) THEN
+         siesta_get_gp_sxrem_pi = pprofile_get_gp(this%sxrem(index)%p,         &
+     &                                            siesta_get_p(this,           &
+     &                                                         x_cart,         &
+     &                                                         .true.),        &
+     &                                            i)
+      ELSE
+         siesta_get_gp_sxrem_pi = 0.0
+      END IF
+
+      CALL profiler_set_stop_time('siesta_get_gp_sxrem_pi', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the soft x-ray emissivity gp kernel value for the position and
+!>  position.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_gp_sxrem_pp. If no
+!>  soft x-ray emissivity profile was created zero is returned.
+!>
+!>  @param[in] this   A @ref siesta_class instance.
+!>  @param[in] x_cart First cartesian position to get the soft x-ray emissivity
+!>                    at.
+!>  @param[in] y_cart Second cartesian position to get the soft x-ray emissivity
+!>                    at.
+!>  @param[in] index  Index of the soft x-ray emissivity profile.
+!>  @returns The value of the gp kernel function for x_cart and y_cart.
+!-------------------------------------------------------------------------------
+      FUNCTION siesta_get_gp_sxrem_pp(this, x_cart, y_cart, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: siesta_get_gp_sxrem_pp
+      TYPE (siesta_class), INTENT(in)        :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      REAL (rprec), DIMENSION(3), INTENT(in) :: y_cart
+      INTEGER, INTENT(in)                    :: index
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (ASSOCIATED(this%sxrem) .and.                                         &
+     &    (index .le. SIZE(this%sxrem))) THEN
+         siesta_get_gp_sxrem_pp =                                              &
+     &      pprofile_get_gp(this%sxrem(index)%p,                               &
+     &                      siesta_get_p(this, x_cart, .true.),                &
+     &                      siesta_get_p(this, y_cart, .true.))
+      ELSE
+         siesta_get_gp_sxrem_pp = 0.0
+      END IF
+
+      CALL profiler_set_stop_time('siesta_get_gp_sxrem_pp', start_time)
 
       END FUNCTION
 
@@ -1896,7 +2396,7 @@
 !>  This method overrides @ref equilibrium::equilibrium_get_p.
 !>
 !>  @param[in] this      A @ref siesta_class instance.
-!>  @param[in] s    Cartesian position to get the plasma pressure at.
+!>  @param[in] s         Cartesian position to get the plasma pressure at.
 !>  @param[in] normalize Normalize the pressure value.
 !>  @returns The plasma pressure at x_cart.
 !-------------------------------------------------------------------------------
@@ -1917,7 +2417,7 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      flux(1) = s
+      flux(1) = MIN(s, 1.0)
       flux(2:3) = 0.0
       siesta_get_p_radial = siesta_get_p_flux(this, flux, normalize)
 

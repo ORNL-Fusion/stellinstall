@@ -23,13 +23,13 @@
 !>        @item{vacuum_nli_filename,      File name for a vacuum namelist input. The file specification is described in the @ref vacuum_namelist_sec.,                v3fit_input::vacuum_nli_filename}
 !>        @item{siesta_nli_filename,      File name for siesta namelist input.,                                                                                       v3fit_input::siesta_nli_filename}
 !>        @item{siesta_restart_filename,  File name for a siesta restart file.,                                                                                       v3fit_input::siesta_restart_filename}
-!>     @table_subsection{signal_filename_sec, Singnal Filename variables}
+!>     @table_subsection{signal_filename_sec, Signal Filename variables}
 !>        @item{mdsig_list_filename,      File name for list of MDSIG files.,                                                                                         v3fit_input::mdsig_list_filename}
 !>        @item{sxrch_dot_filename,       File holding soft x-ray chord information. The file specification is described in the @ref sxrem_dot_sec.,                  v3fit_input::sxrch_dot_filename}
 !>        @item{thscte_dot_filename,      File holding Thomson scattering information. The file specification is described in the @ref thomson_dot_sec.,              v3fit_input::thscte_dot_filename}
 !>        @item{ipch_dot_filename,        File holding interferometry-polarimetry chord information. The file specification is described in the @ref intpol_dot_sec., v3fit_input::ipch_dot_filename}
-!>        @item{mse_dot_filename,         File holding motional stark effect information. The file specification is described in the @ref mse_dot_sec.,               v3fit_input::mse_dot_filename}
-!>        @item{ece_dot_filename,         File holding motional stark effect information. The file specification is described in the @ref ece_dot_sec.,               v3fit_input::ece_dot_filename}
+!>        @item{mse_dot_filename,         File holding motional stark effect information. The file specification is described in the @ref mse_ratio_dot_sec.,         v3fit_input::mse_dot_filename}
+!>        @item{ece_dot_filename,         File holding electron cyclotron emission information. The file specification is described in the @ref ece_dot_sec.,         v3fit_input::ece_dot_filename}
 !>        @item{sxrem_ratio_dot_filename, File holding soft x-ray emissivity ratio information. The file specification is described in the @ref sxrem_ratio_dot_sec., v3fit_input::sxrem_ratio_dot_filename}
 !>        @item{limiter_grid_file,        File to load the limiter grid functions.,                                                                                   v3fit_input::limiter_grid_file}
 !>  @end_table
@@ -48,11 +48,13 @@
 !>  @end_table
 !>
 !>  @table_section{model_profile_sec, Model profile specification}
-!>     @item{pp_ne_ptype,      Model electron density profile\, parameterized profile type.,      v3fit_input::pp_ne_ptype}
+!>     @item{pp_ne_ptype,      Model electron density profile\, parameterized profile type.
+!>                             Valid profile types are defined in @ref profile_sec,               v3fit_input::pp_ne_ptype}
 !>     @item{pp_ne_b,          Array of b_coefficients for the electron density profile.,         v3fit_input::pp_ne_b}
 !>     @item{pp_ne_as,         Array of as_coefficients electron density splines.,                v3fit_input::pp_ne_as}
 !>     @item{pp_ne_af,         Array of af_coefficients electron density splines.,                v3fit_input::pp_ne_af}
-!>     @item{pp_sxrem_ptype,   Model soft x-ray emissivity profile\, parameterized profile type., v3fit_input::pp_sxrem_ptype}
+!>     @item{pp_sxrem_ptype,   Model soft x-ray emissivity profile\, parameterized profile type.
+!>                             Valid profile types are defined in @ref profile_sec,               v3fit_input::pp_sxrem_ptype}
 !>     @item{pp_sxrem_b,       Array of b_coefficients for the soft x-ray emissivity profile.
 !>                             @b DEPRECATED @b,                                                  v3fit_input::pp_sxrem_b}
 !>     @item{pp_sxrem_as,      Array of as_coefficients soft x-ray emissivity splines.
@@ -60,51 +62,59 @@
 !>     @item{pp_sxrem_af,      Array of af_coefficients soft x-ray emissivity splines.
 !>                             @b DEPRECATED @b,                                                  v3fit_input::pp_sxrem_af}
 !>     @item{num_sxrem_p,      Number of soft x-ray emissivity profiles.,                         v3fit_input::num_sxrem_p}
-!>     @item{pp_sxrem_ptype_a, Model soft x-ray emissivity profile\, parameterized profile type., v3fit_input::pp_sxrem_ptype_a}
+!>     @item{pp_sxrem_ptype_a, Model soft x-ray emissivity profile\, parameterized profile type.
+!>                             Valid profile types are defined in @ref profile_sec,               v3fit_input::pp_sxrem_ptype_a}
 !>     @item{pp_sxrem_b_a,     Array of b_coefficients for the soft x-ray emissivity profile.,    v3fit_input::pp_sxrem_b_a}
 !>     @item{pp_sxrem_as_a,    Array of as_coefficients soft x-ray emissivity splines.,           v3fit_input::pp_sxrem_as_a}
 !>     @item{pp_sxrem_af_a,    Array of af_coefficients soft x-ray emissivity splines.,           v3fit_input::pp_sxrem_af_a}
-!>     @item{pp_te_ptype,      Model electron temperature profile\, parameterized profile type.,  v3fit_input::pp_te_ptype}
+!>     @item{pp_te_ptype,      Model electron temperature profile\, parameterized profile type.
+!>                             Valid profile types are defined in @ref profile_sec,               v3fit_input::pp_te_ptype}
 !>     @item{pp_te_b,          Array of b_coefficients for the e-temperature profile.,            v3fit_input::pp_te_b}
 !>     @item{pp_te_as,         Array of as_coefficients e-temperature splines.,                   v3fit_input::pp_te_as}
 !>     @item{pp_te_af,         Array of af_coefficients e-temperature splines.,                   v3fit_input::pp_te_af}
+!>     @item{pp_ze_ptype,      Model z effective profile\, parameterized profile type.
+!>                             Valid profile types are defined in @ref profile_sec,               v3fit_input::pp_ze_ptype}
+!>     @item{pp_ze_b,          Array of b_coefficients for the effective charge profile.,         v3fit_input::pp_ze_b}
+!>     @item{pp_ze_as,         Array of as_coefficients effective charge splines.,                v3fit_input::pp_ze_as}
+!>     @item{pp_ze_af,         Array of af_coefficients effectgive charge splines.,               v3fit_input::pp_ze_af}
 !>     @item{sxrem_te,         Array of temperature points for the sxrem ratio function.,         v3fit_input::sxrem_te_a}
 !>     @item{sxrem_ratio,      Array of ratio points for the sxrem ratio function.,               v3fit_input::sxrem_ratio_a}
 !>  @end_table
 !>
 !>  @table_section{model_spec_sec, Model Specification Variables}
-!>     @item{model_eq_type, Character variable to specify the underlying equilibrium mode.
-!>        -# @fixed_width{'vmec'}   Vmec equilibrium model. Default
-!>        -# @fixed_width{'vacuum'} Vacuum equilibrium model.
-!>        -# @fixed_width{'siesta'} Siesta equilibrium model.,
-!>        v3fit_input::model_eq_type}
-!>     @item{model_ne_type, Character variable to specify how the electron density will be calculated by the model.
-!>        -# @fixed_width{'none'}    Not part of the model.
-!>        -# @fixed_width{'pp_ne'}   Calculated from the parameterized profile pp_ne.
-!>        -# @fixed_width{'pp_te_p'} Calculated from the pp_te and the VMEC pressure,
-!>        v3fit_input::model_ne_type}
-!>     @item{model_sxrem_type, Character variable to specify how the Soft x-ray emissivity will be calculated by the model.
-!>        -# @fixed_width{'none'}     Not part of the model.
-!>        -# @fixed_width{'pp_sxrem'} Calculated from the parameterized profile pp_sxrem.
-!>
-!>        @b DEPRECATED @b,
-!>        v3fit_input::model_sxrem_type}
-!>     @item{model_sxrem_type_a, Character array to specify how the Soft x-ray emissivity will be calculated by the model.
-!>        -# @fixed_width{'none'}           Not part of the model.
-!>        -# @fixed_width{'pp_sxrem'}       Calculated from the parameterized profile pp_sxrem.
-!>        -# @fixed_width{'pp_sxrem_te_ne'} Calculated from pp_te and pp_ne.,
-!>        v3fit_input::model_sxrem_type_a}
-!>     @item{model_te_type, Character variable to specify how the e-temperature will be calculated by the model.
-!>        -# @fixed_width{'none'}                    Not part of the model.
-!>        -# @fixed_width{'pp_te'}                   Calculated from the parameterized profile pp_te.
-!>        -# @fixed_width{'pp_ne_vmec_p'\,'pp_ne_p'} Calculated from the pp_ne and the VMEC pressure.,
-!>        v3fit_input::model_te_type}
-!>     @item{ne_pp_unit,          Scaling/conversion factor for the density. ne * ne_pp_unit is assumed to have units of m^-3.,                                 v3fit_input::ne_pp_unit}
-!>     @item{ne_min,              Minimum electron density\, m^-3.,                                                                                             v3fit_input::ne_min}
-!>     @item{te_min,              Minimum electron temperature\, eV.,                                                                                           v3fit_input::te_min}
-!>     @item{e_pressure_fraction, Electron pressure fraction of the total pressure. Used when model_te_type = 'pp_ne_vmec_p' or model_ne_type = 'pp_te_vmec_p', v3fit_input::e_pressure_fraction}
-!>     @item{emission_file,       Path to file defining the soft x-ray emission. @see @ref emission_file_sec ,                                                  v3fit_input::emission_file}
-!>     @item{ece_resonance_range, Range to find the ECE resonance within.,                                                                                      v3fit_input::ece_resonance_range}
+!>     @item{model_eq_type,       Character variable to specify the underlying equilibrium mode.
+!>                                -# @fixed_width{'vmec'}   Vmec equilibrium model. Default
+!>                                -# @fixed_width{'vacuum'} Vacuum equilibrium model.
+!>                                -# @fixed_width{'siesta'} Siesta equilibrium model.,                                          v3fit_input::model_eq_type}
+!>     @item{model_ne_type,       Character variable to specify how the electron density will be calculated by the model.
+!>                                -# @fixed_width{'none'}    Not part of the model.
+!>                                -# @fixed_width{'pp_ne'}   Calculated from the parameterized profile pp_ne.
+!>                                -# @fixed_width{'pp_te_p'} Calculated from the pp_te and the VMEC pressure,                   v3fit_input::model_ne_type}
+!>     @item{model_ze_type,       Character variable to specify how the effective charge will be calculated by the model.
+!>                                -# @fixed_width{'none'}    Not part of the model. Default value of 1.
+!>                                -# @fixed_width{'pp_ze'}   Calculated from the parameterized profile pp_ze.                   v3fit_input::model_ze_type}
+!>     @item{model_sxrem_type,    Character variable to specify how the Soft x-ray emissivity will be calculated by the model.
+!>                                -# @fixed_width{'none'}     Not part of the model.
+!>                                -# @fixed_width{'pp_sxrem'} Calculated from the parameterized profile pp_sxrem.
+!>                                @b DEPRECATED @b,                                                                             v3fit_input::model_sxrem_type}
+!>     @item{model_sxrem_type_a,  Character array to specify how the Soft x-ray emissivity will be calculated by the model.
+!>                                -# @fixed_width{'none'}           Not part of the model.
+!>                                -# @fixed_width{'pp_sxrem'}       Calculated from the parameterized profile pp_sxrem.
+!>                                -# @fixed_width{'pp_sxrem_te_ne'} Calculated from pp_te and pp_ne.,                           v3fit_input::model_sxrem_type_a}
+!>     @item{model_te_type,       Character variable to specify how the e-temperature will be calculated by the model.
+!>                                -# @fixed_width{'none'}                    Not part of the model.
+!>                                -# @fixed_width{'pp_te'}                   Calculated from the parameterized profile pp_te.
+!>                                -# @fixed_width{'pp_ne_vmec_p'\,'pp_ne_p'} Calculated from the pp_ne and the VMEC pressure.,  v3fit_input::model_te_type}
+!>     @item{ne_pp_unit,          Scaling/conversion factor for the density. ne * ne_pp_unit is assumed to have units of m^-3., v3fit_input::ne_pp_unit}
+!>     @item{ne_min,              Minimum electron density\, m^-3.,                                                             v3fit_input::ne_min}
+!>     @item{te_min,              Minimum electron temperature\, eV.,                                                           v3fit_input::te_min}
+!>     @item{ze_min,              Minimum effective charge.,                                                                    v3fit_input::ze_min}
+!>     @item{sxrem_min,           Minimum soft x-ray emission.,                                                                 v3fit_input::sxrem_min}
+!>     @item{e_pressure_fraction, Electron pressure fraction of the total pressure. Used when
+!>                                model_te_type = 'pp_ne_vmec_p' or model_ne_type = 'pp_te_vmec_p',                             v3fit_input::e_pressure_fraction}
+!>     @item{emission_file,       Path to file defining the soft x-ray emission. @see @ref emission_file_sec ,                  v3fit_input::emission_file}
+!>     @item{ece_resonance_range, Range to find the ECE resonance within.,                                                      v3fit_input::ece_resonance_range}
+!>     @item{coosig_wgts,         Array of combination signal weights.,                                                         v3fit_input::coosig_wgts}
 !>  @end_table
 !>
 !>  @table_section{recon_con_sec, Reconstruction constraints (DEPRECATED)}
@@ -233,9 +243,8 @@
 !>        @item{lif_sigma,      array of sigma values (:),                          v3fit_input::lif_sigma}
 !>        @item{lif_phi_degree, array of phi values (:\,na_phis_lif),               v3fit_input::lif_phi_degree}
 !>        @item{lif_on_edge,    array of logical values (:)
-!>           - true  - edge of plasma is on limiter
-!>           - false - edge of plasma is within limiter,
-!>           v3fit_input::lif_on_edge}
+!>                              - true  - edge of plasma is on limiter
+!>                              - false - edge of plasma is within limiter,         v3fit_input::lif_on_edge}
 !>  @end_table
 !>
 !>  @table_section{prior_sec, Prior information}
@@ -254,18 +263,42 @@
 !>     @item{prior_units,      The units of the prior signal.,          v3fit_input::prior_units}
 !>  @end_table
 !>
+!>  @table_section{gp_sec, Guassian process signal variables}
+!>     @item{n_gpsig,          Number of gaussian process signals.,                v3fit_input::n_gpsig}
+!>     @item{n_sig_gpsig,      Number of signals in a gaussian process signal.,    v3fit_input::n_sig_gpsig}
+!>     @item{gpsig_indices,    Indices of the signals to include in the GP.,       v3fit_input::gpsig_indices}
+!>     @item{gpsig_model_type, Gaussian process profile the guassian process uses.
+!>                             -# @fixed_width{'none'}  No profile.
+!>                             -# @fixed_width{'te'}    Temperature profile.
+!>                             -# @fixed_width{'ne'}    Denisty profile.
+!>                             -# @fixed_width{'sxrem'} Soft X-ray profile.,       v3fit_input::gpsig_model_type}
+!>     @item{gpsig_model_id,   Profile index.,                                     v3fit_input::gpsig_model_id}
+!>     @item{gpsig_name,       Name of the Gaussian Process.,                      v3fit_input::gpsig_name}
+!>     @item{gpsig_units,      Units of the Gausssian Process,                     v3fit_input::gpsig_units}
+!>     @item{gp_cholesky_fact, The Gaussian process uses a cholesky decompositions
+!>                             to factor a matrix. It assumes that the matrix is
+!>                             positive def. Which is true analytically. This
+!>                             input can be used to add a small offset to the
+!>                             matrix to insure positive def.,                     v3fit_input::gp_cholesky_fact}
+!>     @item{gp_chi2_offset,   Offset added to the GP LOG EVIDENCE to insure that
+!>                             it is positive.,                                    v3fit_input::gp_chi2_offset}
+!>  @end_table
+!>
 !>  @table_section{coosig_sec, COOSIG - Combination Of Other SIGnals NLI Variables}
-!>     @item{n_coosig,       Number of new signals of signal_type coosig,                                                                                                           v3fit_input::n_coosig}
-!>     @item{n_sig_coosig,   Array of number of signals in a combinaton.,                                                                                                           v3fit_input::n_sig_coosig}
-!>     @item{coosig_indices, 2d Integer Array of indices (to list of signals) for combinations. First index is for which new signal\, second index is for terms in the combination, v3fit_input::coosig_indices}
-!>     @item{coosig_coeff,   2d real array of coefficients for the combination (a's in the type),                                                                                   v3fit_input::coosig_coeff}
+!>     @item{n_coosig,       Number of new signals of signal_type coosig,                         v3fit_input::n_coosig}
+!>     @item{n_sig_coosig,   Array of number of signals in a combinaton.,                         v3fit_input::n_sig_coosig}
+!>     @item{coosig_indices, 2d Integer Array of indices (to list of signals) for combinations.
+!>                           First index is for which new signal\, second index is for terms in
+!>                           the combination,                                                     v3fit_input::coosig_indices}
+!>     @item{coosig_coeff,   2d real array of coefficients for the combination (a's in the type), v3fit_input::coosig_coeff}
 !>     @item{coosig_type,    Character array of combination types
-!>        -# @fixed_width{'sum'}  - linear combination
-!>        -# @fixed_width{'max'}  - maximum of weighted signals
-!>        -# @fixed_width{'min'}  - minimum of weighted signals,
-!>        v3fit_input::coosig_type}
-!>     @item{coosig_name,    Character array of coosig names,                                                                                                                       v3fit_input::coosig_name}
-!>     @item{coosig_units,   Character array of coosig units,                                                                                                                       v3fit_input::coosig_units}
+!>                           -# @fixed_width{'sum'}  - linear combination
+!>                           -# @fixed_width{'max'}  - maximum of weighted signals
+!>                           -# @fixed_width{'min'}  - minimum of weighted signals,
+!>                           -# @fixed_width{'wavg'} - weighted average of two signal,            v3fit_input::coosig_type}
+!>     @item{coosig_name,    Character array of coosig names,                                     v3fit_input::coosig_name}
+!>     @item{coosig_units,   Character array of coosig units,                                     v3fit_input::coosig_units}
+!>     @item{coosig_wgts_id, Array of coosig_wgt indexs,                                          v3fit_input::coosig_wgts_id}
 !>  @end_table
 !>
 !>  @table_section{plasma_off_sec, Plasma Offset Section}
@@ -286,10 +319,9 @@
 !>     @item{cut_dg2,          cutoff value for expected change in g^2,              v3fit_input::cut_dg2}
 !>     @item{astep_max,        maximum allowable normalized step size,               v3fit_input::astep_max}
 !>     @item{step_type,        character specification of reconstruction step type
-!>        -# @fixed_width{'sl'}  - straight line
-!>        -# @fixed_width{'seg'} - segmented
-!>        -# @fixed_width{'lm'}  - Levenberg-Marquardt,
-!>        v3fit_input::step_type}
+!>                             -# @fixed_width{'sl'}  - straight line
+!>                             -# @fixed_width{'seg'} - segmented
+!>                             -# @fixed_width{'lm'}  - Levenberg-Marquardt,         v3fit_input::step_type}
 !>     @item{cut_inv_svd,      Cut off value for the singular values used for the
 !>                             pseudo matrix inverse of the parameter covariance
 !>                             Matrix.,                                              v3fit_input::cut_inv_svd}
@@ -297,6 +329,15 @@
 !>                             of singular values to keep for the magnet response
 !>                             function data compression. Zero is no compression.,   v3fit_input::cut_comp_svd}
 !>     @item{use_central_diff, Use central difference for the jacobian derivatives., v3fit_input::use_central_diff}
+!>  @end_table
+!>
+!>  @table_section{int_sec,  Integration parameters}
+!>     @item{int_method,     Method of integration.
+!>                           -# @fixed_width{'add'}     - Simple added integration.
+!>                           -# @fixed_width{'gleg'}    - Gauss Legendre Quadrature.
+!>                           -# @fixed_width{'hp_glep'} - hp Guass-Legendre quadrature.,      v3fit_input::int_method}
+!>     @item{int_num_points, Sets number of nodes to use for the Gauss-legendre integration., v3fit_input::int_num_points}
+!>     @item{int_size,       Sets the integration step size.,                                 v3fit_input::int_size}
 !>  @end_table
 !>
 !>  @table_section{xcdot_sec, VMEC zero out xcdot control}
@@ -536,7 +577,8 @@
       INTEGER, PARAMETER :: v3fit_max_signals = v3fit_max_diagnostics          &
      &                                        + v3fit_max_geometrics           &
      &                                        + v3fit_max_priors               &
-     &                                        + v3fit_max_combinations
+     &                                        + v3fit_max_combinations         &
+     &                                        + max_gaussprocess
 
 !>  Maximum number of reconstruction parameters.
       INTEGER, PARAMETER :: v3fit_max_parameters = 100
@@ -559,10 +601,6 @@
 
 !>  Reconstruction step name length.
       INTEGER, PARAMETER :: v3fit_step_name_length = 4
-
-!>  Maximum number of sxrem profiles. Warning do not change this value before
-!>  reading @ref model_state::model_state_sxrem_flag.
-      INTEGER, PARAMETER :: v3fit_max_sxrem_profiles = 10
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
@@ -665,19 +703,19 @@
 !>  -# @fixed_width{'none'}     Not part of the model.
 !>  -# @fixed_width{'pp_sxrem'} Calculated from the parameterized profile pp_sxrem.
 !>  @see pprofile_T
-      CHARACTER (len=p_type_len), DIMENSION(v3fit_max_sxrem_profiles)          &
+      CHARACTER (len=p_type_len), DIMENSION(max_sxrem_profiles)                &
      &   :: pp_sxrem_ptype_a = 'none'
 !>  Array of b_coefficients for the soft x-ray emissvity profile
 !>  @see pprofile_T
-      REAL (rprec), DIMENSION(v3fit_max_sxrem_profiles,ilb_b:iub_b)            &
+      REAL (rprec), DIMENSION(max_sxrem_profiles,ilb_b:iub_b)                  &
      &   :: pp_sxrem_b_a = 0.0
 !>  Array of as_coefficients soft x-ray emissvity profile splines
 !>  @see pprofile_T
-      REAL (rprec), DIMENSION(v3fit_max_sxrem_profiles,iub_asf)                &
+      REAL (rprec), DIMENSION(max_sxrem_profiles,iub_asf)                      &
      &   :: pp_sxrem_as_a = 0.0
 !>  Array of af_coefficients soft x-ray emissvity profile splines
 !>  @see pprofile_T
-      REAL (rprec), DIMENSION(v3fit_max_sxrem_profiles,iub_asf)                &
+      REAL (rprec), DIMENSION(max_sxrem_profiles,iub_asf)                      &
      &   :: pp_sxrem_af_a = 0.0
 
 !  Electron temperature
@@ -696,6 +734,22 @@
 !>  Array of af_coefficients electron temperature splines
 !>  @see pprofile_T
       REAL (rprec), DIMENSION(iub_asf)     :: pp_te_af = 0.0
+
+!  Effective charge
+!>  Model effective charge profile, parameterized profile type.
+!>  -# @fixed_width{'none'}                    Not part of the model. Default value of 1.0
+!>  -# @fixed_width{'pp_ze'}                   Calculated from the parameterized profile pp_ze.
+!>  @see pprofile_T
+      CHARACTER (len=p_type_len)           :: pp_ze_ptype = 'none'
+!>  Array of b_coefficients for the effective charge profile
+!>  @see pprofile_T
+      REAL (rprec), DIMENSION(ilb_b:iub_b) :: pp_ze_b = 0.0
+!>  Array of as_coefficients effective charge splines
+!>  @see pprofile_T
+      REAL (rprec), DIMENSION(iub_asf)     :: pp_ze_as = 0.0
+!>  Array of af_coefficients effective charge splines
+!>  @see pprofile_T
+      REAL (rprec), DIMENSION(iub_asf)     :: pp_ze_af = 0.0
 
 !  Soft X-ray emission ratio
 !>  Array of temperature points for the sxrem ratio function.
@@ -719,23 +773,32 @@
 !>  Specify how soft x-ray emissivity is computed by the model.
 !>  @see model
       CHARACTER (len=data_name_length),                                        &
-     &   DIMENSION(v3fit_max_sxrem_profiles) ::                                &
+     &   DIMENSION(max_sxrem_profiles) ::                                      &
      &      model_sxrem_type_a = 'none'
 !>  Specify how electron temperature is computed by the model.
 !>  @see model
       CHARACTER (len=data_name_length) :: model_te_type = 'none'
+!>  Specify how effective chagre is computed by the model.
+!>  @see model
+      CHARACTER (len=data_name_length) :: model_ze_type = 'none'
 !>  Normalization factor for the electron density.
       REAL (rprec)                     :: ne_pp_unit = 1.0E18
 !>  Minimum electron density.
       REAL (rprec)                     :: ne_min = 0.0
 !>  Minimum electron temperature.
       REAL (rprec)                     :: te_min = 0.0
+!>  Minimum effective charge.
+      REAL (rprec)                     :: ze_min = 1.0
+!>  Minimum soft x-ray emission.
+      REAL (rprec), DIMENSION(max_sxrem_profiles) :: sxrem_min = 0.0
 !>  Specifies the fraction of the pressure constributed by the electrons.
       REAL (rprec)                     :: e_pressure_fraction = 0.5
 !>  Specifies the path to the file contain the soft x-ray emission function.
       CHARACTER (len=data_name_length) :: emission_file = ''
-!>  ECE resonance search range
+!>  ECE resonance search range.
       REAL (rprec) :: ece_resonance_range = 0.0
+!>  Array of combination parameter signal weights.
+      REAL (rprec), DIMENSION(v3fit_max_parameters) :: coosig_wgts = 0.0
 
 !  Reconstruction constraints
 !>  Not implemented.
@@ -887,10 +950,13 @@
       REAL (rprec) :: pol_rad_ratio = 1.0
 
 !  Signal factor parameter specification.
+!>  Signal factor specification lower index.
       INTEGER, DIMENSION(v3fit_max_spec_size)      ::                          &
      &   sfactor_spec_imin = 0
+!>  Signal factor specification upper index.
       INTEGER, DIMENSION(v3fit_max_spec_size)      ::                          &
      &   sfactor_spec_imax = 0
+!>  Signal scale factor.
       REAL (rprec), DIMENSION(v3fit_max_spec_size) ::                          &
      &   sfactor_spec_fac = 0.0
 
@@ -964,13 +1030,56 @@
      &   coosig_coeff = 0.0
 !>  Combination type. @see signal
       CHARACTER(len=combination_type_length),                                  &
-     &   DIMENSION(v3fit_max_combinations) :: coosig_type = 'sum'
+     &   DIMENSION(v3fit_max_combinations)       :: coosig_type = 'sum'
 !>  Name of the combination.
       CHARACTER (len=data_name_length),                                        &
-     &   DIMENSION(v3fit_max_combinations) :: coosig_name = ''
+     &   DIMENSION(v3fit_max_combinations)       :: coosig_name = ''
 !>  Units of the combination.
       CHARACTER (len=data_short_name_length),                                  &
-     &   DIMENSION(v3fit_max_combinations) :: coosig_units = ''
+     &   DIMENSION(v3fit_max_combinations)       :: coosig_units = ''
+!> Array of parameter weight ids to use in the combination signal.
+      INTEGER, DIMENSION(v3fit_max_combinations) :: coosig_wgts_id = -1
+
+!  Gaussian Process Signals specification.
+!>  Number of gaussian process signals.
+      INTEGER :: n_gpsig = 0
+!>  Number of signals in a gaussian process signal.
+      INTEGER, DIMENSION(max_gaussprocess) :: n_sig_gpsig = 0
+!>  Indices of the number signals to include in the GP. Number of indices needs
+!>  to match @ref n_sig_gpsig.
+      INTEGER, DIMENSION(max_gaussprocess,v3fit_max_signals) ::                &
+     &   gpsig_indices = 0
+!>  Gaussian process model type. @see signal
+      CHARACTER(len=gaussp_type_length),                                       &
+     &   DIMENSION(max_gaussprocess) :: gpsig_model_type = 'none'
+!>  Gaussian process model type ID for models with multiple profiles.
+      INTEGER, DIMENSION(max_gaussprocess) :: gpsig_model_id = 0
+!>  Name of the Gaussian Process.
+      CHARACTER (len=data_name_length),                                        &
+     &   DIMENSION(max_gaussprocess) :: gpsig_name = ''
+!>  Units of the Gausssian Process
+      CHARACTER (len=data_short_name_length),                                  &
+     &   DIMENSION(max_gaussprocess) :: gpsig_units = ''
+!>  The Gaussian process uses a cholesky decompositions to factor a matrix. It
+!>  assumes that the matrix is positive def. Which is true analytically. This
+!>  input can be used to add a small offset to the matrix to insure positive
+!>  def.
+      REAL(rprec), DIMENSION(max_gaussprocess) :: gp_cholesky_fact = 0.0
+!>  Offset added to the GP LOG EVIDENCE to insure that it is positive
+      REAL (rprec), DIMENSION(max_gaussprocess) ::                             &
+     &   gp_chi2_offset = 0.0
+
+!  Integration parameters.
+!>  Integation method. The evaultion the K_LL matrix can require multipe
+!>  evaluation of a double path integral. Here naive quadrature using rectangle
+!>  integration with small dx can really slow down v3fit. It is recommended to
+!>  use the @fixed_width{'gleg'} method when using the guassian processes.
+      CHARACTER (len=data_short_name_length) :: int_method = 'add'
+!> Integer control of numerical quadrature. For Gauss-legendre integration
+!> This parameter sets the number of nodes to use.
+      INTEGER                                :: int_num_points = 40
+!> Real control of numerical quadrature. Set dx for addivative integration
+      REAL (rprec)                           :: int_size = 0.0025
 
 !  Initial Plasma Offsets
 !>  Offset of plasma relative to the diagnostics.
@@ -1036,12 +1145,15 @@
      &   pp_sxrem_af_a,                                                        &
 !  Electron temperature
      &   pp_te_ptype, pp_te_b, pp_te_as, pp_te_af,                             &
+!  Effective charge
+     &   pp_ze_ptype, pp_ze_b, pp_ze_as, pp_ze_af,                             &
 !  Soft x-ray ratio
      &   sxrem_te_a, sxrem_ratio_a,                                            &
 !  Model Specification Variables
-     &   model_eq_type, model_ne_type, model_sxrem_type,                       &
+     &   model_eq_type, model_ne_type, model_sxrem_type, model_ze_type,        &
      &   model_sxrem_type_a, model_te_type, ne_pp_unit, ne_min, te_min,        &
-     &   e_pressure_fraction, emission_file, ece_resonance_range,              &
+     &   ze_min, sxrem_min, e_pressure_fraction, emission_file,                &
+     &   ece_resonance_range, coosig_wgts,                                     &
 !  Reconstruction constraints
      &   n_rc, rc_type, rc_index, rc_value,                                    &
 !  Derived parameters
@@ -1081,8 +1193,14 @@
      &   prior_units,                                                          &
 !  Combinations of other signals specification.
      &   n_coosig, n_sig_coosig, coosig_indices, coosig_coeff,                 &
-     &   coosig_type, coosig_name, coosig_units,                               &
-!  Initial PLasma Offsets
+     &   coosig_type, coosig_name, coosig_units, coosig_wgts_id,               &
+!  Gaussian Process Signals specification.
+     &   n_gpsig, n_sig_gpsig, gpsig_indices, gpsig_model_type,                &
+     &   gpsig_model_id, gpsig_name, gpsig_units, gp_cholesky_fact,            &
+     &   gp_chi2_offset,                                                       &
+!  Integration parameters.
+     &   int_method, int_num_points, int_size,                                 &
+!  Initial PLasma Offsets.
      &   phi_offset, z_offset,                                                 &
 !  Reconstruction step control specification.
      &   nrstep, dg2_stop, cut_svd, cut_eff, cut_marg_eff, cut_delta_a,        &
@@ -1116,9 +1234,12 @@
       CHARACTER (len=*), INTENT(in) :: namelist_file
 
 !  local variables
-      INTEGER                       :: iou_mnli, status
-      INTEGER                       :: j, i
-      INTEGER                       :: imin, imax
+      INTEGER                       :: iou_mnli
+      INTEGER                       :: status
+      INTEGER                       :: i
+      INTEGER                       :: j
+      INTEGER                       :: imin
+      INTEGER                       :: imax
       REAL (rprec)                  :: start_time
 
 !  Start of executable code

@@ -56,6 +56,8 @@
          LOGICAL                               :: use_central = .false.
 !>  Counter to track the step number.
          INTEGER                               :: current_step = 0
+!>  Index of the first parallelable signal.
+         INTEGER                               :: first_para_signal = 0
 !>  Index of the last parallelable signal.
          INTEGER                               :: last_para_signal = 0
 
@@ -160,6 +162,8 @@
 !>                                    @ref v3fit_input::cut_delta_a
 !>  @param[in] cut_dg2                Cutoff value for expected change in g^2.
 !>                                    @ref v3fit_input::cut_dg2
+!>  @param[in] first_para_signal      Index of the first signal that can be
+!>                                    parallelized.
 !>  @param[in] last_para_signal       Index of the last signal that can be
 !>                                    parallelized.
 !>  @param[in] cut_inv_svd            Cutoff value for the pseudo inverse
@@ -171,8 +175,9 @@
      &                                  num_parameters, step_type,             &
      &                                  step_max, cut_svd, cut_eff,            &
      &                                  cut_marg_eff, cut_delta_a,             &
-     &                                  cut_dg2, last_para_signal,             &
-     &                                  cut_inv_svd, use_central)
+     &                                  cut_dg2, first_para_signal,            &
+     &                                  last_para_signal, cut_inv_svd,         &
+     &                                  use_central)
 
       IMPLICIT NONE
 
@@ -189,6 +194,7 @@
       REAL (rprec), INTENT(in)             :: cut_marg_eff
       REAL (rprec), INTENT(in)             :: cut_delta_a
       REAL (rprec), INTENT(in)             :: cut_dg2
+      INTEGER, INTENT(in)                  :: first_para_signal
       INTEGER, INTENT(in)                  :: last_para_signal
       REAL (rprec), INTENT(in)             :: cut_inv_svd
       LOGICAL, INTENT(in)                  :: use_central
@@ -229,6 +235,7 @@
       reconstruction_construct%cut_delta_a = cut_delta_a
       reconstruction_construct%cut_dg2 = cut_dg2
 
+      reconstruction_construct%first_para_signal = first_para_signal
       reconstruction_construct%last_para_signal = last_para_signal
 
       reconstruction_construct%cut_inv_svd = cut_inv_svd
@@ -699,11 +706,17 @@
 
 !  Certian signals cannot be parallelized. Compute all the signals up to that
 !  point in parallel then continue in serial.
+      DO i = 1, this%first_para_signal - 1
+         this%e(i,this%current_step) =                                      &
+     &         signal_get_e(signals(i)%p, a_model, .false.,                    &
+     &                      this%last_values(:,i))
+      END DO
+
 !$OMP PARALLEL DO
 !$OMP& SCHEDULE(DYNAMIC)
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(i)
-         DO i = 1, this%last_para_signal
+         DO i = this%first_para_signal, this%last_para_signal
             this%e(i,this%current_step) =                                      &
      &         signal_get_e(signals(i)%p, a_model, .false.,                    &
      &                      this%last_values(:,i))
@@ -923,11 +936,16 @@
 !  point in parallel then continue in serial. Store half the finite difference
 !  in the jacobian. Central difference only takes steps in a single direction so
 !  there is no need to normaize the direction.
+               DO i = 1, this%first_para_signal - 1
+                  this%jacobian(i,j) =                                         &
+     &               signal_get_e(signals(i)%p, a_model, .false.,              &
+     &                            this%last_values(:,i))
+               END DO
 !$OMP PARALLEL DO
 !$OMP& SCHEDULE(DYNAMIC)
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(i)
-               DO i = 1, this%last_para_signal
+               DO i = this%first_para_signal, this%last_para_signal
                   this%jacobian(i,j) =                                         &
      &               signal_get_e(signals(i)%p, a_model, .false.,              &
      &                            this%last_values(:,i))
@@ -964,11 +982,18 @@
 
 !  Find other half of the finite difference. Negate the jacobian to obtain a
 !  direction down hill.
+                  DO i = 1, this%first_para_signal - 1
+                     this%jacobian(i,j) =                                      &
+     &                  -this%jacobian(i,j) +                                  &
+     &                   signal_get_e(signals(i)%p, a_model, .false.,          &
+     &                                this%last_values(:,i))
+                  END DO
+
 !$OMP PARALLEL DO
 !$OMP& SCHEDULE(DYNAMIC)
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(i)
-                  DO i = 1, this%last_para_signal
+                  DO i = this%first_para_signal, this%last_para_signal
                      this%jacobian(i,j) =                                      &
      &                  -this%jacobian(i,j) +                                  &
      &                   signal_get_e(signals(i)%p, a_model, .false.,          &
@@ -997,15 +1022,22 @@
                   this%derived_jacobian(:,j) = 0.0
                END IF
             ELSE
+
 !  Certian signals cannot be parallelized. Compute all the signals up to that
 !  point in parallel then continue in serial. When using a single sided
 !  difference, the step may be taken in either direction. Normalize by the sign
 !  of the parameter delta.
+               DO i = 1, this%first_para_signal - 1
+                  this%jacobian(i,j) =                                         &
+     &               -(signal_get_e(signals(i)%p, a_model, .false.,            &
+     &                              this%last_values(:,i)) -                   &
+     &                this%e(i,this%current_step))
+               END DO
 !$OMP PARALLEL DO
 !$OMP& SCHEDULE(DYNAMIC)
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(i)
-               DO i = 1, this%last_para_signal
+               DO i = this%first_para_signal, this%last_para_signal
                   this%jacobian(i,j) =                                         &
      &               -(signal_get_e(signals(i)%p, a_model, .false.,            &
      &                              this%last_values(:,i)) -                   &
@@ -2575,17 +2607,21 @@
 
 !  Certian signals cannot be parallelized. Compute all the signals up to that
 !  point in parallel then continue in serial.
+      DO i = 1, this%first_para_signal - 1
+         this%e(i,this%current_step) =                                         &
+     &      signal_get_e(signals(i)%p, a_model, .false.,                       &
+     &                   this%last_values(:,i))
+      END DO
 !$OMP PARALLEL DO
 !$OMP& SCHEDULE(DYNAMIC)
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(i)
-      DO i = 1, this%last_para_signal
+      DO i = this%first_para_signal, this%last_para_signal
          this%e(i,this%current_step) =                                         &
      &      signal_get_e(signals(i)%p, a_model, .false.,                       &
      &                   this%last_values(:,i))
       END DO
 !$OMP END PARALLEL DO
-
       DO i = this%last_para_signal + 1, SIZE(signals)
          this%e(i,this%current_step) =                                         &
      &      signal_get_e(signals(i)%p, a_model, .false.,                       &

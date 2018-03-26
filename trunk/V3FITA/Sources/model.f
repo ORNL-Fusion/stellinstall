@@ -20,7 +20,10 @@
 !>     @item{ne_unit,           Electron density scaling.,                                @ref model::model_class::ne_unit}
 !>     @item{ne_min,            Minimum electron density.,                                @ref model::model_class::ne_min}
 !>     @item{te_min,            Minimum electron temperature.,                            @ref model::model_class::te_min}
+!>     @item{ze_min,            Minimum effective charge.,                                @ref model::model_class::ze_min}
+!>     @item{sxrem_min,         Minimum soft x-ray emission.,                             @ref model::model_class::sxrem_min}
 !>     @item{pressure_fraction, Fractional portion of the pressure due to the electrons., @ref model::model_class::pressure_fraction}
+!>     @item{coosig_wgts,       Combination signal weights.,                              @ref model::model_class::coosig_wgts}
 !>     @item{signal_factor,     Signal scaling factor for signal models.,                 @ref model::model_class::signal_factor}
 !>  @end_table
 !>
@@ -30,6 +33,7 @@
 !>  @begin_table
 !>     @item{ne_grid,    Electron density grid.,      @ref model::model_class::ne_grid}
 !>     @item{te_grid,    Electron temperature grid.,  @ref model::model_class::te_grid}
+!>     @item{ze_grid,    Effective charge grid.,      @ref model::model_class::ze_grid}
 !>     @item{sxrem_grid, Soft X-ray emissivity grid., @ref model::model_class::sxrem_grid}
 !>  @end_table
 !>
@@ -53,6 +57,7 @@
       USE equilibrium
       USE emission
       USE model_state
+      USE integration_path, ONLY: path_int_class
 
       IMPLICIT NONE
 
@@ -77,6 +82,9 @@
 !>  Electron temperature model is derived from the density and pressure.
       INTEGER, PARAMETER, PRIVATE :: model_te_ne_p_type     =  1
 
+!>  Effective charge model.
+      INTEGER, PARAMETER, PRIVATE :: model_ze_type          =  0
+
 !  Model parameter ids
 !>  Parameter id for the electron density units.
       INTEGER, PARAMETER :: model_ne_unit_id           = 0
@@ -86,16 +94,24 @@
       INTEGER, PARAMETER :: model_te_min_id            = 2
 !>  Parameter id for the electrion fraction of the pressure.
       INTEGER, PARAMETER :: model_pressure_fraction_id = 3
+!!>  Parameter id for Z effective.
+!      INTEGER, PARAMETER :: model_ze_min_id            = 4
+!>  Parameter id for the electrion fraction of the pressure.
+      INTEGER, PARAMETER :: model_sxrem_min_id         = 4
+!>  Parameter id for the combination signal weights
+      INTEGER, PARAMETER :: model_coosig_wgts_id       = 5
 !>  Parameter id for the modeled signal scale factors.
-      INTEGER, PARAMETER :: model_signal_factor_id     = 4
+      INTEGER, PARAMETER :: model_signal_factor_id     = 6
 
 !  Derived Parameters
 !>  Parameter id for the electrion density grid.
-      INTEGER, PARAMETER :: model_ne_grid_id           = 5
+      INTEGER, PARAMETER :: model_ne_grid_id           = 7
 !>  Parameter id for the electrion temperature grid.
-      INTEGER, PARAMETER :: model_te_grid_id           = 6
+      INTEGER, PARAMETER :: model_te_grid_id           = 8
 !>  Parameter id for the soft x-ray emissivity grid.
-      INTEGER, PARAMETER :: model_sxrem_grid_id        = 7
+      INTEGER, PARAMETER :: model_sxrem_grid_id        = 9
+!>  Parameter id for the effective charge grid.
+      INTEGER, PARAMETER :: model_ze_grid_id           = 10
 !  NOTE: When model parameters are added here, the equilibrium id's need to be
 !  updated in additon.
 
@@ -123,14 +139,23 @@
 !>  Type decritption of the electron temperature. Possible values are
 !>  @ref model_none_type, @ref model_te_type and @ref model_te_ne_p_type.
          INTEGER      :: te_type = model_none_type
+!>  Type decritption of the effective charge. Possible values are
+!>  @ref model_none_type and @ref model_ze_type.
+         INTEGER      :: ze_type = model_none_type
 !>  Unit scaling of the electron density.
-         REAL (rprec) :: ne_unit = 0.0
+         REAL (rprec)                        :: ne_unit = 1.0
 !>  Minimum electron density.
-         REAL (rprec) :: ne_min = 0.0
+         REAL (rprec)                        :: ne_min = 0.0
 !>  Minimum electron temperature.
-         REAL (rprec) :: te_min = 0.0
+         REAL (rprec)                        :: te_min = 0.0
+!>  Minimum effective charge.
+         REAL (rprec)                        :: ze_min = 1.0
+!>  Minimum soft x-ray emission.
+         REAL (rprec), DIMENSION(:), POINTER :: sxrem_min => null()
 !>  Electron pressure fraction.
-         REAL (rprec) :: pressure_fraction = 0.0
+         REAL (rprec)                        :: pressure_fraction = 0.0
+!>  Array of weights for combination signals
+         REAL (rprec), DIMENSION(:), POINTER :: coosig_wgts => null()
 
 !>  Soft X-Ray emission function.
          TYPE (emission_class), POINTER        :: emission => null()
@@ -150,6 +175,8 @@
          REAL (rprec), DIMENSION(:,:), POINTER :: sxrem_grid => null()
 !>  Grided electron temperature profile.
          REAL (rprec), DIMENSION(:), POINTER   :: te_grid => null()
+!>  Grided effective charge profile.
+         REAL (rprec), DIMENSION(:), POINTER   :: ze_grid => null()
 
 !>  Soft X-ray emissivity tempurature.
          REAL (rprec), DIMENSION(:), POINTER :: sxrem_te => null()
@@ -161,6 +188,9 @@
 
 !>  Model Signal factor
          REAL (rprec), DIMENSION(:), POINTER :: signal_factor => null()
+
+!>  Integration parameters.
+         TYPE (path_int_class), POINTER      :: int_params => null()
       END TYPE
 
 !*******************************************************************************
@@ -175,6 +205,15 @@
       END INTERFACE
 
 !-------------------------------------------------------------------------------
+!>  Interface for the model guassian process density profile values.
+!-------------------------------------------------------------------------------
+      INTERFACE model_get_gp_ne
+         MODULE PROCEDURE model_get_gp_ne_ij,                                  &
+     &                    model_get_gp_ne_pi,                                  &
+     &                    model_get_gp_ne_pp
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
 !>  Interface for the model temperature profile values.
 !-------------------------------------------------------------------------------
       INTERFACE model_get_te
@@ -183,11 +222,38 @@
       END INTERFACE
 
 !-------------------------------------------------------------------------------
+!>  Interface for the mdoel guassian process temperature profile values.
+!-------------------------------------------------------------------------------
+      INTERFACE model_get_gp_te
+         MODULE PROCEDURE model_get_gp_te_ij,                                  &
+     &                    model_get_gp_te_pi,                                  &
+     &                    model_get_gp_te_pp
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
+!>  Interface for the model temperature profile values.
+!-------------------------------------------------------------------------------
+      INTERFACE model_get_ze
+         MODULE PROCEDURE model_get_ze_cart,                                   &
+     &                    model_get_ze_radial
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
 !>  Interface for the model soft x-ray emissivity profile values.
 !-------------------------------------------------------------------------------
       INTERFACE model_get_sxrem
          MODULE PROCEDURE model_get_sxrem_cart,                                &
      &                    model_get_sxrem_radial
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
+!>  Interface for the mdoel guassian process soft x-ray emissivity profile
+!>  values.
+!-------------------------------------------------------------------------------
+      INTERFACE model_get_gp_sxrem
+         MODULE PROCEDURE model_get_gp_sxrem_ij,                               &
+     &                    model_get_gp_sxrem_pi,                               &
+     &                    model_get_gp_sxrem_pp
       END INTERFACE
 
       CONTAINS
@@ -201,14 +267,18 @@
 !>  @param[in] ne_type           Model type for the electron density.
 !>  @param[in] sxrem_type        Model type for the soft x-ray emissivity.
 !>  @param[in] te_type           Model type for the electron temperature.
+!>  @param[in] ze_type           Model type for the effective charge.
 !>  @param[in] ne_unit           Scaleing of the electron denisty.
 !>  @param[in] ne_min            Minimum electron density.
 !>  @param[in] te_min            Minimum electron temperature.
+!>  @param[in] ze_min            Minimum effective charge.
+!>  @param[in] sxrem_min         Minimum soft x-ray emission.
 !>  @param[in] pressure_fraction Fraction of the pressure provided by electrons.
 !>  @param[in] equilibrium       An instance of an @ref equilibrium.
 !>  @param[in] sxrem_te          Soft x-ray ratio function te.
 !>  @param[in] sxrem_ratio       Soft x-ray ratio function ratio.
 !>  @param[in] resonace_range    ECE resonance interval.
+!>  @param[in] coosig_wgts       Combination Signal Weights
 !>  @param[in] not_converged     If true the equilibrium was constructed in an
 !>                               unconverged state.
 !>  @param[in] state_flags       Bitwise flags to indicate which parts of the
@@ -217,12 +287,12 @@
 !>                               signals by.
 !>  @returns A pointer to a constructed @ref model_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION model_construct(ne_type, sxrem_type, te_type,                   &
-     &                         ne_unit, ne_min, te_min,                        &
-     &                         pressure_fraction, emission,                    &
+      FUNCTION model_construct(ne_type, sxrem_type, te_type, ze_type,          &
+     &                         ne_unit, ne_min, te_min, ze_min,                &
+     &                         sxrem_min, pressure_fraction, emission,         &
      &                         equilibrium, sxrem_te, sxrem_ratio,             &
-     &                         resonace_range, state_flags,                    &
-     &                         signal_factor)
+     &                         resonace_range, coosig_wgts, state_flags,       &
+     &                         signal_factor, int_params)
       USE model_state
 
       IMPLICIT NONE
@@ -233,20 +303,26 @@
       CHARACTER (len=data_name_length), DIMENSION(:), INTENT(in) ::            &
      &   sxrem_type
       CHARACTER (len=data_name_length), INTENT(in)  :: te_type
+      CHARACTER (len=data_name_length), INTENT(in)  :: ze_type
       REAL (rprec), INTENT(in)                      :: ne_unit
       REAL (rprec), INTENT(in)                      :: ne_min
       REAL (rprec), INTENT(in)                      :: te_min
+      REAL (rprec), INTENT(in)                      :: ze_min
+      REAL (rprec), DIMENSION(:), INTENT(in)        :: sxrem_min
       REAL (rprec), INTENT(in)                      :: pressure_fraction
       TYPE (emission_class), POINTER                :: emission
       TYPE (equilibrium_class), POINTER             :: equilibrium
       REAL (rprec), DIMENSION(:), INTENT(in)        :: sxrem_te
       REAL (rprec), DIMENSION(:), INTENT(in)        :: sxrem_ratio
       REAL (rprec), INTENT(in)                      :: resonace_range
+      REAL (rprec), DIMENSION(:), INTENT(in)        :: coosig_wgts
       INTEGER, INTENT(in)                           :: state_flags
       REAL (rprec), DIMENSION(:)                    :: signal_factor
+      TYPE (path_int_class), POINTER                :: int_params
 
 !  local variables
-      INTEGER                                       :: i, grid_size
+      INTEGER                                       :: i
+      INTEGER                                       :: grid_size
       REAL (rprec)                                  :: start_time
 
 !  Start of executable code
@@ -318,6 +394,21 @@
 
       END SELECT
 
+      SELECT CASE (TRIM(ADJUSTL(ze_type)))
+
+         CASE ('none')
+            model_construct%ze_type = model_none_type
+
+         CASE ('pp_ze')
+            model_construct%ze_type = model_ze_type
+
+         CASE DEFAULT
+            WRITE (*,*) 'ze type: ' // TRIM(ADJUSTL(te_type)) //               &
+     &                  ' setting type to none.'
+            model_construct%ze_type = model_none_type
+
+      END SELECT
+
 !  Cannot have the temperature derived from the denisty at the same time the
 !  density is derived from the temperature.
       CALL assert(.not.(                                                       &
@@ -330,7 +421,15 @@
       model_construct%ne_unit = ne_unit
       model_construct%ne_min = ne_min
       model_construct%te_min = te_min
+      model_construct%ze_min = ze_min
+      ALLOCATE(model_construct%sxrem_min(SIZE(sxrem_min)))
+      model_construct%sxrem_min = sxrem_min
       model_construct%pressure_fraction = pressure_fraction
+
+      ALLOCATE(model_construct%coosig_wgts(SIZE(coosig_wgts)))
+      DO i = 1, SIZE(coosig_wgts)
+         model_construct%coosig_wgts(i)=coosig_wgts(i)
+      ENDDO
 
       model_construct%emission => emission
       IF (ASSOCIATED(model_construct%emission)) THEN
@@ -348,6 +447,7 @@
          ALLOCATE(model_construct%sxrem_grid(grid_size,                        &
      &                                       SIZE(sxrem_type)))
          ALLOCATE(model_construct%te_grid(grid_size))
+         ALLOCATE(model_construct%ze_grid(grid_size))
       END IF
 
 !  Find the size of the sxrem ratio arrays.
@@ -364,6 +464,8 @@
       model_construct%signal_factor = signal_factor
 
       model_construct%resonace_range = resonace_range
+
+      model_construct%int_params => int_params
 
       CALL profiler_set_stop_time('model_construct', start_time)
 
@@ -402,6 +504,11 @@
          this%equilibrium => null()
       END IF
 
+      IF (ASSOCIATED(this%sxrem_min)) THEN
+         DEALLOCATE(this%sxrem_min)
+         this%sxrem_min => null()
+      END IF
+
       IF (ASSOCIATED(this%ne_grid)) THEN
          DEALLOCATE(this%ne_grid)
          this%ne_grid => null()
@@ -417,6 +524,11 @@
          this%te_grid => null()
       END IF
 
+      IF (ASSOCIATED(this%ze_grid)) THEN
+         DEALLOCATE(this%ze_grid)
+         this%ze_grid => null()
+      END IF
+
       IF (ASSOCIATED(this%sxrem_te)) THEN
          DEALLOCATE(this%sxrem_te)
          this%sxrem_te => null()
@@ -427,9 +539,19 @@
          this%sxrem_ratio => null()
       END IF
 
+      IF (ASSOCIATED(this%coosig_wgts)) THEN
+         DEALLOCATE(this%coosig_wgts)
+         this%coosig_wgts => null()
+      END IF
+
       IF (ASSOCIATED(this%signal_factor)) THEN
          DEALLOCATE(this%signal_factor)
          this%signal_factor => null()
+      END IF
+
+      IF (ASSOCIATED(this%int_params)) THEN
+         DEALLOCATE(this%int_params)
+         this%int_params => null()
       END IF
 
       DEALLOCATE(this)
@@ -490,6 +612,17 @@
      &                               model_state_te_flag)
             this%te_min = value
 
+!         CASE (model_ze_min_id)
+!            this%state_flags = IBSET(this%state_flags,                         &
+!     &                               model_state_ze_flag)
+!            this%ze_min = value
+
+         CASE (model_sxrem_min_id)
+            this%state_flags = IBSET(this%state_flags,                         &
+     &                               model_state_sxrem_flag +                  &
+     &                               (i_index - 1))
+            this%sxrem_min(i_index) = value
+
          CASE (model_pressure_fraction_id)
             IF (this%te_type .eq. model_te_ne_p_type) THEN
                this%state_flags = IBSET(this%state_flags,                      &
@@ -501,11 +634,13 @@
             END IF
             this%pressure_fraction = value
 
+         CASE (model_coosig_wgts_id)
+            this%coosig_wgts(i_index) = value
+
          CASE (model_signal_factor_id)
             this%state_flags = IBSET(this%state_flags,                         &
      &                               model_state_signal_flag)
             this%signal_factor(i_index) = value
-     &
 
          CASE DEFAULT
             CALL equilibrium_set_param(this%equilibrium, id,                   &
@@ -613,6 +748,12 @@
          CASE ('te_min')
             model_get_param_id = model_te_min_id
 
+!         CASE ('ze_min')
+!            model_get_param_id = model_ze_min_id
+
+         CASE ('sxrem_min')
+            model_get_param_id = model_sxrem_min_id
+
          CASE ('pressure_fraction', 'e_pressure_fraction')
             model_get_param_id = model_pressure_fraction_id
 
@@ -627,6 +768,12 @@
 
          CASE ('sxrem_grid')
             model_get_param_id = model_sxrem_grid_id
+
+         CASE ('ze_grid')
+            model_get_param_id = model_ze_grid_id
+
+         CASE ('coosig_wgts')
+            model_get_param_id = model_coosig_wgts_id
 
          CASE DEFAULT
             model_get_param_id =                                               &
@@ -679,6 +826,12 @@
          CASE (model_te_min_id)
             model_get_param_value = this%te_min
 
+!         CASE (model_ze_min_id)
+!            model_get_param_value = this%ze_min
+
+         CASE (model_sxrem_min_id)
+            model_get_param_value = this%sxrem_min(i_index)
+
          CASE (model_pressure_fraction_id)
             model_get_param_value = this%pressure_fraction
 
@@ -700,10 +853,24 @@
                model_get_param_value = 0.0
             END IF
 
+         CASE (model_ze_grid_id)
+            IF (ASSOCIATED(this%ze_grid)) THEN
+               model_get_param_value = this%ze_grid(i_index)
+            ELSE
+               model_get_param_value = 1.0 !Default to 1.0
+            END IF
+
          CASE (model_sxrem_grid_id)
             IF (ASSOCIATED(this%sxrem_grid)) THEN
                model_get_param_value = this%sxrem_grid(i_index,                &
      &                                                 j_index)
+            ELSE
+               model_get_param_value = 0.0
+            END IF
+
+         CASE (model_coosig_wgts_id)
+            IF (ASSOCIATED(this%coosig_wgts)) THEN
+               model_get_param_value = this%coosig_wgts(i_index)
             ELSE
                model_get_param_value = 0.0
             END IF
@@ -755,6 +922,12 @@
          CASE (model_te_min_id)
             model_get_param_name = 'te_min'
 
+!         CASE (model_ze_min_id)
+!            model_get_param_name = 'ze_min'
+
+          CASE (model_sxrem_min_id)
+             model_get_param_name = 'sxrem_min'
+
          CASE (model_pressure_fraction_id)
             model_get_param_name = 'pressure_fraction'
 
@@ -770,6 +943,12 @@
          CASE (model_sxrem_grid_id)
             model_get_param_name = 'sxrem_grid'
 
+         CASE (model_ze_grid_id)
+            model_get_param_name = 'ze_grid'
+
+         CASE (model_coosig_wgts_id)
+            model_get_param_name = 'coosig_wgts'
+
          CASE DEFAULT
             model_get_param_name =                                             &
      &         equilibrium_get_param_name(this%equilibrium, id)
@@ -777,6 +956,115 @@
       END SELECT
 
       CALL profiler_set_stop_time('model_get_param_name', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the electron density gp kernel value for the two indicies.
+!>
+!>  Gets the electron density gp kernel for two points. This also sets the
+!>  scaling and min values.
+!>
+!>  @param[in] this A @ref model_class instance.
+!>  @param[in] i    ith profile position.
+!>  @param[in] j    jth profile position.
+!>  @returns The value of the gp kernel function for i, j.
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_gp_ne_ij(this, i, j)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                   :: model_get_gp_ne_ij
+      TYPE (model_class), INTENT(in) :: this
+      INTEGER, INTENT(in)            :: i
+      INTEGER, INTENT(in)            :: j
+
+!  local variables
+      REAL (rprec)                   :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      model_get_gp_ne_ij = this%ne_unit                                        &
+     &                   * equilibrium_get_gp_ne_ij(this%equilibrium,          &
+     &                                              i, j)
+      model_get_gp_ne_ij = MAX(model_get_gp_ne_ij, this%ne_min)
+
+      CALL profiler_set_stop_time('model_get_gp_ne_ij', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the electron density gp kernel value for the position and index.
+!>
+!>  Gets the electron density gp kernel for point and index. This also sets the
+!>  scaling and min values.
+!>
+!>  @param[in] this   A @ref model_class instance.
+!>  @param[in] x_cart Cartesian position to get the electron density at.
+!>  @param[in] i      ith profile position.
+!>  @returns The value of the gp kernel function for x_cart and i.
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_gp_ne_pi(this, x_cart, i)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: model_get_gp_ne_pi
+      TYPE (model_class), INTENT(in)         :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      INTEGER, INTENT(in)                    :: i
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      model_get_gp_ne_pi = this%ne_unit                                        &
+     &                   * equilibrium_get_gp_ne_pi(this%equilibrium,          &
+     &                                              x_cart, i)
+      model_get_gp_ne_pi = MAX(model_get_gp_ne_pi, this%ne_min)
+
+      CALL profiler_set_stop_time('model_get_gp_ne_pi', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the electron density gp kernel value for the position and
+!>  position.
+!>
+!>  Gets the electron density gp kernel for point and index. This also sets the
+!>  scaling and min values.
+!>
+!>  @param[in] this   A @ref model_class instance.
+!>  @param[in] x_cart Cartesian position to get the kernel at.
+!>  @param[in] y_cart Cartesian position to get the kernel at.
+!>  @returns The value of the gp kernel function for x_cart and y_cart.
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_gp_ne_pp(this, x_cart, y_cart)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: model_get_gp_ne_pp
+      TYPE (model_class), INTENT(in)         :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      REAL (rprec), DIMENSION(3), INTENT(in) :: y_cart
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      model_get_gp_ne_pp = this%ne_unit                                        &
+     &                   * equilibrium_get_gp_ne_pp(this%equilibrium,          &
+     &                                              x_cart, y_cart)
+      model_get_gp_ne_pp = MAX(model_get_gp_ne_pp, this%ne_min)
+
+      CALL profiler_set_stop_time('model_get_gp_ne_pp', start_time)
 
       END FUNCTION
 
@@ -825,7 +1113,7 @@
             END IF
 
          CASE DEFAULT
-             model_get_ne_cart = -2.0E49_rprec
+            model_get_ne_cart = 0.0
 
       END SELECT
 
@@ -878,11 +1166,117 @@
             END IF
 
          CASE DEFAULT
-            model_get_ne_radial = -2.0E49_rprec
+            model_get_ne_radial = 0.0_rprec
 
       END SELECT
 
       CALL profiler_set_stop_time('model_get_ne_radial', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the electron temperature gp kernel value for the two indicies.
+!>
+!>  Gets the electron temperature gp kernel for two points. This also sets the
+!>  min value.
+!>
+!>  @param[in] this A @ref model_class instance.
+!>  @param[in] i    ith profile position.
+!>  @param[in] j    jth profile position.
+!>  @returns The value of the gp kernel function for i, j.
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_gp_te_ij(this, i, j)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                   :: model_get_gp_te_ij
+      TYPE (model_class), INTENT(in) :: this
+      INTEGER, INTENT(in)            :: i
+      INTEGER, INTENT(in)            :: j
+
+!  local variables
+      REAL (rprec)                   :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      model_get_gp_te_ij = equilibrium_get_gp_te_ij(this%equilibrium,          &
+     &                                              i, j)
+      model_get_gp_te_ij = MAX(model_get_gp_te_ij, this%te_min)
+
+      CALL profiler_set_stop_time('model_get_gp_te_ij', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the electron temperature gp kernel value for the position and
+!>  index.
+!>
+!>  Gets the electron temperature gp kernel for point and index. This also sets
+!>  the scaling and min values.
+!>
+!>  @param[in] this   A @ref model_class instance.
+!>  @param[in] x_cart Cartesian position to get the electron temperature at.
+!>  @param[in] i      ith profile position.
+!>  @returns The value of the gp kernel function for x_cart and i.
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_gp_te_pi(this, x_cart, i)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: model_get_gp_te_pi
+      TYPE (model_class), INTENT(in)         :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      INTEGER, INTENT(in)                    :: i
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      model_get_gp_te_pi = equilibrium_get_gp_te_pi(this%equilibrium,          &
+     &                                              x_cart, i)
+      model_get_gp_te_pi = MAX(model_get_gp_te_pi, this%te_min)
+
+      CALL profiler_set_stop_time('model_get_gp_te_pi', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the electron temperature gp kernel value for the position and
+!>  position.
+!>
+!>  Gets the electron temperature gp kernel for point and index.
+!>
+!>  @param[in] this   A @ref model_class instance.
+!>  @param[in] x_cart Cartesian position to get the kernel at.
+!>  @param[in] y_cart Cartesian position to get the kernel at.
+!>  @returns The value of the gp kernel function for x_cart and y_cart.
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_gp_te_pp(this, x_cart, y_cart)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: model_get_gp_te_pp
+      TYPE (model_class), INTENT(in)         :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      REAL (rprec), DIMENSION(3), INTENT(in) :: y_cart
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      model_get_gp_te_pp = equilibrium_get_gp_te_pp(this%equilibrium,          &
+     &                                              x_cart, y_cart)
+      model_get_gp_te_pp = MAX(model_get_gp_te_pp, this%te_min)
+
+      CALL profiler_set_stop_time('model_get_gp_ne_pp', start_time)
 
       END FUNCTION
 
@@ -930,7 +1324,7 @@
             END IF
 
          CASE DEFAULT
-            model_get_te_cart = -2.0E49_rprec
+            model_get_te_cart = 0.0_rprec
 
       END SELECT
 
@@ -982,11 +1376,210 @@
             END IF
 
          CASE DEFAULT
-            model_get_te_radial = -2.0E49_rprec
+            model_get_te_radial = 0.0_rprec
 
       END SELECT
 
       CALL profiler_set_stop_time('model_get_te_radial', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the effective charge at a cartesian position.
+!>
+!>  Gets the effective charge at a cartesian position. Effective charge
+!>  is computed based on the type of @ref model_class::ze_type.
+!>
+!>  @param[in] this   A @ref model_class instance.
+!>  @param[in] x_cart Cartesian position to get the effective charge at.
+!>  @returns The effective charge at x_cart.
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_ze_cart(this, x_cart)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: model_get_ze_cart
+      TYPE (model_class), INTENT(in)         :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE (this%ze_type)
+
+         CASE (model_ze_type)
+            model_get_ze_cart = equilibrium_get_ze(this%equilibrium,           &
+     &                                             x_cart)
+            model_get_ze_cart = MAX(this%ze_min, model_get_ze_cart)
+
+         CASE DEFAULT
+            model_get_ze_cart = 1.0 !Default to 1.0
+
+      END SELECT
+
+      CALL profiler_set_stop_time('model_get_ze_cart', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the effective charge at a radial position.
+!>
+!>  Gets the effective charge at a radial position. The charge is
+!>  computed based on the type of @ref model_class::ze_type.
+!>
+!>  @param[in] this A @ref model_class instance.
+!>  @param[in] r    Radial position to get the effective charge at.
+!>  @returns The effective charge at r.
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_ze_radial(this, r)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                   :: model_get_ze_radial
+      TYPE (model_class), INTENT(in) :: this
+      REAL (rprec), INTENT(in)       :: r
+
+!  local variables
+      REAL (rprec)                   :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE (this%ze_type)
+
+         CASE (model_ze_type)
+            model_get_ze_radial = equilibrium_get_ze(this%equilibrium,         &
+     &                                               r)
+            model_get_ze_radial = MAX(this%ze_min, model_get_ze_radial)        &
+
+         CASE DEFAULT
+            model_get_ze_radial = 1.0 !Default to 1.0
+
+      END SELECT
+
+      CALL profiler_set_stop_time('model_get_ze_radial', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the soft x-ray emissivity gp kernel value for the two indicies.
+!>
+!>  Gets the soft x-ray emissivity gp kernel for two points. This also sets the
+!>  min value.
+!>
+!>  @param[in] this  A @ref model_class instance.
+!>  @param[in] i     ith profile position.
+!>  @param[in] j     jth profile position.
+!>  @param[in] index Index of the soft x-ray emissivity profile.
+!>  @returns The value of the gp kernel function for i, j.
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_gp_sxrem_ij(this, i, j, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                   :: model_get_gp_sxrem_ij
+      TYPE (model_class), INTENT(in) :: this
+      INTEGER, INTENT(in)            :: i
+      INTEGER, INTENT(in)            :: j
+      INTEGER, INTENT(in)            :: index
+
+!  local variables
+      REAL (rprec)                   :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      model_get_gp_sxrem_ij =                                                  &
+     &   equilibrium_get_gp_sxrem_ij(this%equilibrium, i, j, index)
+      model_get_gp_sxrem_ij = MAX(model_get_gp_sxrem_ij,                       &
+     &                            this%sxrem_min(index))
+
+      CALL profiler_set_stop_time('model_get_gp_sxrem_ij', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the soft x-ray emissivity gp kernel value for the position and
+!>  index.
+!>
+!>  Gets the soft x-ray emissivity gp kernel for point and index. This also sets
+!>  the scaling and min values.
+!>
+!>  @param[in] this   A @ref model_class instance.
+!>  @param[in] x_cart Cartesian position to get the electron temperature at.
+!>  @param[in] i      ith profile position.
+!>  @param[in] index  Index of the soft x-ray emissivity profile.
+!>  @returns The value of the gp kernel function for x_cart and i.
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_gp_sxrem_pi(this, x_cart, i, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: model_get_gp_sxrem_pi
+      TYPE (model_class), INTENT(in)         :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      INTEGER, INTENT(in)                    :: i
+      INTEGER, INTENT(in)                    :: index
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      model_get_gp_sxrem_pi =                                                  &
+     &   equilibrium_get_gp_sxrem_pi(this%equilibrium, x_cart, i, index)
+      model_get_gp_sxrem_pi = MAX(model_get_gp_sxrem_pi,                       &
+     &                            this%sxrem_min(index))
+
+      CALL profiler_set_stop_time('model_get_gp_sxrem_pi', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the soft x-ray emissivity gp kernel value for the position and
+!>  position.
+!>
+!>  Gets the soft x-ray emissivity gp kernel for point and index. This also sets
+!>  the min value.
+!>
+!>  @param[in] this   A @ref model_class instance.
+!>  @param[in] x_cart Cartesian position to get the kernel at.
+!>  @param[in] y_cart Cartesian position to get the kernel at.
+!>  @param[in] index  Index of the soft x-ray emissivity profile to use.
+!>  @returns The value of the gp kernel function for x_cart and y_cart.
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_gp_sxrem_pp(this, x_cart, y_cart, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: model_get_gp_sxrem_pp
+      TYPE (model_class), INTENT(in)         :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      REAL (rprec), DIMENSION(3), INTENT(in) :: y_cart
+      INTEGER, INTENT(in)                    :: index
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      model_get_gp_sxrem_pp =                                                  &
+     &   equilibrium_get_gp_sxrem_pp(this%equilibrium, x_cart, y_cart,         &
+     &                               index)
+      model_get_gp_sxrem_pp = MAX(model_get_gp_sxrem_pp,                       &
+     &                            this%sxrem_min(index))
+
+      CALL profiler_set_stop_time('model_get_gp_sxrem_pp', start_time)
 
       END FUNCTION
 
@@ -1022,6 +1615,8 @@
          CASE (model_sxrem_type)
             model_get_sxrem_cart =                                             &
      &         equilibrium_get_sxrem(this%equilibrium, x_cart, index)
+            model_get_sxrem_cart = MAX(model_get_sxrem_cart,                   &
+     &                                 this%sxrem_min(index))
 
          CASE (model_sxrem_te_ne_type)
             model_get_sxrem_cart =                                             &
@@ -1030,7 +1625,7 @@
      &                               model_get_ne(this, x_cart), index)
 
          CASE DEFAULT
-            model_get_sxrem_cart = -2.0E49_rprec
+            model_get_sxrem_cart = 0.0_rprec
 
       END SELECT
 
@@ -1070,6 +1665,8 @@
          CASE (model_sxrem_type)
             model_get_sxrem_radial =                                           &
      &         equilibrium_get_sxrem(this%equilibrium, r, index)
+            model_get_sxrem_radial = MAX(model_get_sxrem_radial,               &
+     &                                   this%sxrem_min(index))
 
          CASE (model_sxrem_te_ne_type)
             model_get_sxrem_radial =                                           &
@@ -1078,7 +1675,7 @@
      &                               model_get_ne(this, r), index)
 
          CASE DEFAULT
-            model_get_sxrem_radial = -2.0E49_rprec
+            model_get_sxrem_radial = 0.0_rprec
 
       END SELECT
 
@@ -1087,7 +1684,7 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Gets the soft x-ray emissivity at a radial position.
+!>  @brief Gets the soft x-ray emissivity ratio.
 !>
 !>  Gets the soft x-ray emissivity at a radial position. Soft x-ray emissivity
 !>  is computed based on the type of @ref model_class::sxrem_type.
@@ -1196,6 +1793,40 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
+!>  @brief Gets the effective charge type as a string.
+!>
+!>  @param[in] this   A @ref model_class instance.
+!>  @returns A string description of the effective charge type.
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_ze_type(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length) :: model_get_ze_type
+      TYPE (model_class), INTENT(in)   :: this
+
+!  local variables
+      REAL (rprec)                     :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE (this%ze_type)
+
+         CASE (model_ze_type)
+            model_get_ze_type = 'pp_ze'
+
+         CASE DEFAULT
+            model_get_ze_type = 'none'
+
+      END SELECT
+
+      CALL profiler_set_stop_time('model_get_ze_type', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
 !>  @brief Gets the soft x-ray emissivity type as a string.
 !>
 !>  @param[in] this   A @ref model_class instance.
@@ -1299,7 +1930,8 @@
       SELECT CASE (id)
 
          CASE (model_ne_unit_id, model_ne_min_id, model_te_min_id,             &
-     &         model_pressure_fraction_id, model_signal_factor_id)
+     &         model_sxrem_min_id, model_pressure_fraction_id,                 &
+     &         model_coosig_wgts_id, model_signal_factor_id)
             model_is_recon_param = .true.
 
          CASE DEFAULT
@@ -1421,8 +2053,8 @@
 
          IF (ASSOCIATED(this%sxrem_grid)) THEN
             DO j = 1, SIZE(this%sxrem_grid, 2)
-               IF (BTEST(this%state_flags, model_state_ne_flag -               &
-     &                                     (j - 1))) THEN
+               IF (BTEST(this%state_flags,                                     &
+     &                   model_state_sxrem_flag + (j - 1))) THEN
                   DO i = 1, SIZE(this%sxrem_grid, 1)
                      r = (i - 1)*this%grid_step + this%grid_start
 !  The length to the camera is not really known here so use 1 here. Since this
@@ -1434,10 +2066,18 @@
          END IF
 
          IF (ASSOCIATED(this%te_grid) .and.                                    &
-     &       BTEST(this%state_flags, model_state_ne_flag)) THEN
+     &       BTEST(this%state_flags, model_state_te_flag)) THEN
             DO i = 1, SIZE(this%te_grid)
                r = (i - 1)*this%grid_step + this%grid_start
                this%te_grid(i) = model_get_te(this, r)
+            END DO
+         END IF
+
+         IF (ASSOCIATED(this%ze_grid) .and.                                    &
+     &       BTEST(this%state_flags, model_state_ze_flag)) THEN
+            DO i = 1, SIZE(this%ze_grid)
+               r = (i - 1)*this%grid_step + this%grid_start
+               this%ze_grid(i) = model_get_ze(this, r)
             END DO
          END IF
 
@@ -1486,14 +2126,30 @@
 
       WRITE (iou,*) 'model_te_type is ',                                       &
      &              TRIM(model_get_te_type(this))
+      WRITE (iou,*) 'model_ze_type is ',                                       &
+     &              TRIM(model_get_ze_type(this))
       WRITE (iou, 1000) 'ne_pp_unit is ', this%ne_unit
       WRITE (iou, 1000) 'ne_min is ', this%ne_min
       WRITE (iou, 1000) 'te_min is ', this%te_min
+      WRITE (iou, 1000) 'ze_min is ', this%ze_min
       WRITE (iou, 1000) 'e_pressure_fraction is ',                             &
      &                  this%pressure_fraction
+
+      IF (ASSOCIATED(this%coosig_wgts)) THEN
+         DO i = 1, SIZE(this%coosig_wgts)
+! Only write coosig_wgts if they are non-zero.
+! @todo need better check
+            IF (.NOT.(this%coosig_wgts(i) .EQ. 0.0)) THEN
+               WRITE (iou,1001) i,this%coosig_wgts(i)
+            END IF
+         END DO
+      END IF
+
       WRITE (iou, 1000) 'signal_factors are ',                                 &
      &                  this%signal_factor
+
 1000  FORMAT(1x,a,2x,es12.5)
+1001  FORMAT(' coosig_wgt(',i4,') is ',es12.5)
 
       CALL equilibrium_write(this%equilibrium, iou)
 
@@ -1517,6 +2173,7 @@
 !>  @begin_table
 !>     @item{model_grid_size, Size of the radial profile grids,          equilibrium::equilibrium_get_grid_size}
 !>     @item{model_num_sxrem, Number of soft x-ray emissivity profiles., v3fit_input::v3fit_max_sxrem_profiles}
+!>     @item{model_num_coosig_w, Number of combination signal weights.,  model::model_class::coosig_wgts}
 !>  @end_table
 !>
 !>  @section result_file_model_var_sec Variables
@@ -1524,15 +2181,19 @@
 !>  @begin_table
 !>      @item{model_ne_type (string_len),                      Discription of the electron density model.,      model::model_class::ne_type}
 !>      @item{model_te_type (string_len),                      Discription of the electron temperature model.,  model::model_class::te_type}
+!>      @item{model_ze_type (string_len),                      Discription of the effective charge model.,      model::model_class::ze_type}
 !>      @item{model_sxrem_type (string_len\, model_num_sxrem), Discription of the soft x-ray emissivity model., model::model_class::sxrem_type}
 !>      @item{ne_unit (maxnsteps),                             Electron density unit scaling,                   model::model_class::ne_unit}
 !>      @item{ne_min (maxnsteps),                              Minimum electron density,                        model::model_class::ne_min}
 !>      @item{te_min (maxnsteps),                              Minimum electron temperature,                    model::model_class::te_min}
+!>      @item{ze_min (maxnsteps),                              Minimum effective charge,                        model::model_class::ze_min}
 !>      @item{pressure_fraction (maxnsteps),                   Fractional Pressure,                             model::model_class::pressure_fraction}
+!>      @item{coosig_wgts (num_wgts\, maxnsteps),              Combination Signal Weights,                      model::model_class::coosig_wgts}
 !>  @end_table
 !>  @table_section{result_file_model_grid_sec, Model Profiles}
 !>      @item{ne_grid (model_grid_size\, maxnsteps),                      Radial profile of the electron density,          model::model_class::ne_grid}
 !>      @item{te_grid (model_grid_size\, maxnsteps),                      Radial profile of the electron temperature,      model::model_class::te_grid}
+!>      @item{ze_grid (model_grid_size\, maxnsteps),                      Radial profile of the effective charge,          model::model_class::ze_grid}
 !>      @item{sxrem_grid (model_grid_size\, model_num_sxrem\, maxnsteps), Radial profile of the soft x-ray emissivity,     model::model_class::sxrem_grid}
 !>  @end_table
 !-------------------------------------------------------------------------------
@@ -1563,16 +2224,21 @@
       INTEGER                        :: status
       INTEGER                        :: model_grid_size_dim_id
       INTEGER                        :: model_num_sxrem_dim_id
+      INTEGER                        :: model_num_coosig_w_dim_id
       INTEGER                        :: ne_type_var_id
       INTEGER                        :: te_type_var_id
+      INTEGER                        :: ze_type_var_id
       INTEGER                        :: sxrem_type_var_id
       INTEGER                        :: ne_unit_var_id
       INTEGER                        :: ne_min_var_id
       INTEGER                        :: te_min_var_id
+      INTEGER                        :: ze_min_var_id
       INTEGER                        :: pressure_fraction_var_id
       INTEGER                        :: ne_grid_var_id
       INTEGER                        :: te_grid_var_id
+      INTEGER                        :: ze_grid_var_id
       INTEGER                        :: sxrem_grid_var_id
+      INTEGER                        :: coosig_w_var_id
       REAL (rprec)                   :: start_time
 
 !  Start of executable code
@@ -1581,6 +2247,7 @@
 !  Define dimensions
       IF (ASSOCIATED(this%ne_grid) .or.                                        &
      &    ASSOCIATED(this%te_grid) .or.                                        &
+     &    ASSOCIATED(this%ze_grid) .or.                                        &
      &    ASSOCIATED(this%sxrem_grid)) THEN
          status = nf_def_dim(result_ncid, 'model_grid_size',                   &
      &                       SIZE(this%ne_grid),                               &
@@ -1598,6 +2265,13 @@
       END IF
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
+      IF (ASSOCIATED(this%coosig_wgts)) THEN
+         status = nf_def_dim(result_ncid, 'model_num_coosig',                  &
+     &                       SIZE(this%coosig_wgts, 1),                        &
+     &                       model_num_coosig_w_dim_id)
+      END IF
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
 !  Define variables
       status = nf_def_var(result_ncid, 'model_ne_type', nf_char, 1,            &
      &                    (/ string_len_dim_id /), ne_type_var_id)
@@ -1605,6 +2279,10 @@
 
       status = nf_def_var(result_ncid, 'model_te_type', nf_char, 1,            &
      &                    (/ string_len_dim_id /), te_type_var_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_def_var(result_ncid, 'model_ze_type', nf_char, 1,            &
+     &                    (/ string_len_dim_id /), ze_type_var_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       IF (ASSOCIATED(this%sxrem_type)) THEN
@@ -1627,6 +2305,10 @@
      &                    (/ maxnsteps_dim_id /), te_min_var_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
+      status = nf_def_var(result_ncid, 'ze_min', nf_double, 1,                 &
+     &                    (/ maxnsteps_dim_id /), ze_min_var_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
       status = nf_def_var(result_ncid, 'pressure_fraction', nf_double,         &
      &                    1, (/ maxnsteps_dim_id /),                           &
      &                    pressure_fraction_var_id)
@@ -1644,11 +2326,23 @@
      &                          maxnsteps_dim_id /), te_grid_var_id)
       END IF
 
+      IF (ASSOCIATED(this%ze_grid)) THEN
+         status = nf_def_var(result_ncid, 'ze_grid', nf_double, 2,             &
+     &                       (/ model_grid_size_dim_id,                        &
+     &                          maxnsteps_dim_id /), ze_grid_var_id)
+      END IF
+
       IF (ASSOCIATED(this%sxrem_grid)) THEN
          status = nf_def_var(result_ncid, 'sxrem_grid', nf_double, 3,          &
      &                       (/ model_grid_size_dim_id,                        &
      &                          model_num_sxrem_dim_id,                        &
      &                          maxnsteps_dim_id /), sxrem_grid_var_id)
+      END IF
+
+      IF (ASSOCIATED(this%coosig_wgts)) THEN
+         status = nf_def_var(result_ncid, 'coosig_wgts', nf_double, 2,         &
+     &                       (/ model_num_coosig_w_dim_id,                     &
+     &                          maxnsteps_dim_id /), coosig_w_var_id)
       END IF
 
       CALL equilibrium_def_result(this%equilibrium, result_ncid,               &
@@ -1679,6 +2373,7 @@
       INTEGER                        :: i, status
       INTEGER                        :: ne_type_var_id
       INTEGER                        :: te_type_var_id
+      INTEGER                        :: ze_type_var_id
       INTEGER                        :: sxrem_type_var_id
       REAL (rprec)                   :: start_time
 
@@ -1697,6 +2392,13 @@
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
       status = nf_put_var_text(result_ncid, te_type_var_id,                    &
      &                         model_get_te_type(this))
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_inq_varid(result_ncid, 'model_ze_type',                      &
+     &                      ze_type_var_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      status = nf_put_var_text(result_ncid, ze_type_var_id,                    &
+     &                         model_get_ze_type(this))
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       IF (ASSOCIATED(this%sxrem_type)) THEN
@@ -1739,10 +2441,13 @@
       INTEGER                        :: ne_unit_var_id
       INTEGER                        :: ne_min_var_id
       INTEGER                        :: te_min_var_id
+      INTEGER                        :: ze_min_var_id
       INTEGER                        :: pressure_fraction_var_id
       INTEGER                        :: ne_grid_var_id
       INTEGER                        :: te_grid_var_id
+      INTEGER                        :: ze_grid_var_id
       INTEGER                        :: sxrem_grid_var_id
+      INTEGER                        :: coosig_w_var_id
       REAL (rprec)                   :: start_time
 
 !  Start of executable code
@@ -1764,6 +2469,12 @@
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
       status = nf_put_var1_double(result_ncid, te_min_var_id,                  &
      &                            current_step, this%te_min)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_inq_varid(result_ncid, 'ze_min', ze_min_var_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      status = nf_put_var1_double(result_ncid, ze_min_var_id,                  &
+     &                            current_step, this%ze_min)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       status = nf_inq_varid(result_ncid, 'pressure_fraction',                  &
@@ -1793,6 +2504,16 @@
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
       END IF
 
+      IF (ASSOCIATED(this%ze_grid)) THEN
+         status = nf_inq_varid(result_ncid, 'ze_grid', ze_grid_var_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+         status = nf_put_vara_double(result_ncid, ze_grid_var_id,              &
+     &                               (/ 1, current_step /),                    &
+     &                               (/ SIZE(this%ze_grid), 1 /),              &
+     &                               this%ze_grid)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      END IF
+
       IF (ASSOCIATED(this%sxrem_grid)) THEN
          status = nf_inq_varid(result_ncid, 'sxrem_grid',                      &
      &                         sxrem_grid_var_id)
@@ -1802,6 +2523,17 @@
      &                               (/ SIZE(this%sxrem_grid, 1),              &
      &                                  SIZE(this%sxrem_grid, 2), 1 /),        &
      &                               this%sxrem_grid)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      END IF
+
+      IF (ASSOCIATED(this%coosig_wgts)) THEN
+         status = nf_inq_varid(result_ncid, 'coosig_wgts',                     &
+     &                         coosig_w_var_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+         status = nf_put_vara_double(result_ncid, coosig_w_var_id,             &
+     &                               (/ 1, current_step /),                    &
+     &                               (/ SIZE(this%coosig_wgts), 1 /),          &
+     &                               this%coosig_wgts)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
       END IF
 
@@ -1836,10 +2568,13 @@
       INTEGER                           :: ne_unit_var_id
       INTEGER                           :: ne_min_var_id
       INTEGER                           :: te_min_var_id
+      INTEGER                           :: ze_min_var_id
       INTEGER                           :: pressure_fraction_var_id
       INTEGER                           :: ne_grid_var_id
       INTEGER                           :: te_grid_var_id
+      INTEGER                           :: ze_grid_var_id
       INTEGER                           :: sxrem_grid_var_id
+      INTEGER                           :: coosig_w_var_id
       REAL (rprec)                      :: start_time
 
 !  Start of executable code
@@ -1861,6 +2596,12 @@
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
       status = nf_get_var1_double(result_ncid, te_min_var_id,                  &
      &                            current_step, this%te_min)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_inq_varid(result_ncid, 'ze_min', ze_min_var_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      status = nf_get_var1_double(result_ncid, ze_min_var_id,                  &
+     &                            current_step, this%ze_min)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       status = nf_inq_varid(result_ncid, 'pressure_fraction',                  &
@@ -1890,6 +2631,16 @@
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
       END IF
 
+      IF (ASSOCIATED(this%ze_grid)) THEN
+         status = nf_inq_varid(result_ncid, 'ze_grid', ze_grid_var_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+         status = nf_get_vara_double(result_ncid, ze_grid_var_id,              &
+     &                               (/ 1, current_step /),                    &
+     &                               (/ SIZE(this%ze_grid), 1 /),              &
+     &                               this%ze_grid)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      END IF
+
       IF (ASSOCIATED(this%sxrem_grid)) THEN
          status = nf_inq_varid(result_ncid, 'sxrem_grid',                      &
      &                         sxrem_grid_var_id)
@@ -1899,6 +2650,17 @@
      &                               (/ SIZE(this%sxrem_grid, 1),              &
      &                                  SIZE(this%sxrem_grid, 2), 1 /),        &
      &                               this%sxrem_grid)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      END IF
+
+      IF (ASSOCIATED(this%coosig_wgts)) THEN
+         status = nf_inq_varid(result_ncid, 'coosig_wgts',                     &
+     &                         coosig_w_var_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+         status = nf_get_vara_double(result_ncid, coosig_w_var_id,             &
+     &                               (/ 1, current_step /),                    &
+     &                               (/ SIZE(this%coosig_wgts), 1 /),          &
+     &                               this%coosig_wgts)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
       END IF
 
@@ -1954,6 +2716,8 @@
      &                  recon_comm, error)
          CALL MPI_BCAST(this%te_grid, grid_size, MPI_REAL8, 0,                 &
      &                  recon_comm, error)
+         CALL MPI_BCAST(this%ze_grid, grid_size, MPI_REAL8, 0,                 &
+     &                  recon_comm, error)
       END IF
 
       CALL profiler_set_stop_time('model_sync_state', start_time)
@@ -2005,6 +2769,8 @@
      &                     0, mpi_rank, recon_comm, error)
             CALL MPI_SSEND(this%te_grid, grid_size, MPI_REAL8, 0,              &
      &                     mpi_rank, recon_comm, error)
+            CALL MPI_SSEND(this%ze_grid, grid_size, MPI_REAL8, 0,              &
+     &                     mpi_rank, recon_comm, error)
 
          ELSE IF (mpi_rank .eq. 0) THEN
 
@@ -2015,6 +2781,8 @@
      &                    index, index, recon_comm, MPI_STATUS_IGNORE,         &
      &                    error)
             CALL MPI_RECV(this%te_grid, grid_size, MPI_REAL8, index,           &
+     &                    index, recon_comm, MPI_STATUS_IGNORE, error)
+            CALL MPI_RECV(this%ze_grid, grid_size, MPI_REAL8, index,           &
      &                    index, recon_comm, MPI_STATUS_IGNORE, error)
 
          END IF

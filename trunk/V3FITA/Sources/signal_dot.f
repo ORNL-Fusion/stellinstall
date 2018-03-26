@@ -48,8 +48,8 @@
 !*******************************************************************************
       PUBLIC  :: signal_dot_open, signal_dot_close,                            &
      &           signal_dot_parse_chord, signal_dot_read_keyword,              &
-     &           signal_dot_parse_real
-      PRIVATE :: signal_dot_check_status, signal_dot_read_line
+     &           signal_dot_parse_real, signal_dot_read_line
+      PRIVATE :: signal_dot_check_status
 
       CONTAINS
 !*******************************************************************************
@@ -314,6 +314,46 @@
      &                             'Error ', message)
 
       CALL profiler_set_stop_time('signal_dot_parse_3_real', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Parse a single integer from a diagnostic dot file.
+!>
+!>  Reads a single integer from the diagnostic dot file. This is used to be able
+!>  to get extra information about a diagnostic in the diagnostic dot file.
+!>
+!>  @param[inout] signal_dot_file_ref An instance of a @ref signal_dot_file
+!>                                    object.
+!>  @param[in]    message             Error message to report back if there was
+!>                                    a problem.
+!>  @returns The parsed integer value.
+!-------------------------------------------------------------------------------
+      FUNCTION signal_dot_parse_int(signal_dot_file_ref, message)
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER                               :: signal_dot_parse_int
+      TYPE (signal_dot_file), INTENT(inout) :: signal_dot_file_ref
+      CHARACTER (len=*), INTENT(in)         :: message
+
+!  local variables
+      INTEGER                               :: status
+      CHARACTER (len=signal_dot_line_len)   :: line
+      REAL (rprec)                          :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+!  Read the start position.
+      line = adjustl(signal_dot_read_line(signal_dot_file_ref,                 &
+     &                                    'Error ', message))
+!  Reread the line, looking for a single real
+      READ(line, *, iostat=status) signal_dot_parse_int
+      CALL signal_dot_check_status(status, signal_dot_file_ref,                &
+     &                             'Error ', message)
+
+      CALL profiler_set_stop_time('signal_dot_parse_int', start_time)
 
       END FUNCTION
 

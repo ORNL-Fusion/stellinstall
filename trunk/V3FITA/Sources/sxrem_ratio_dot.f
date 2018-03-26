@@ -137,7 +137,7 @@
 
 !  Open up the 'thscte.' file
       sxrem_ratio_dot_file_ref = signal_dot_open(TRIM(sxrem_ratio_file),            &
-     &                                           "sxrem_ratio")
+     &                                           'sxrem_ratio')
 
 !  Infinite Loop
 !  Character variable line should be defined on entry

@@ -189,7 +189,7 @@ sdo_s_spec_imax(7) = 40,
 sdo_s_spec_floor(7) = 0.1,
 sdo_s_spec_fraction(7) = 0.01,
 
-n_prior = 8,
+n_prior = 9,
 
 sdo_data_a(41) = 1.0,
 prior_name(1) = 'pp_ne_prior',
@@ -263,6 +263,15 @@ sdo_s_spec_imax(15) = 48,
 sdo_s_spec_floor(15) = 0.01,
 sdo_s_spec_fraction(15) = 0.01,
 
-n_sdata_o = 48,
+sdo_data_a(49) = 1.0,
+prior_name(9) = 'signal_factor_prior',
+prior_param_name(9) = 'signal_factor',
+prior_indices(9,1) = 1,
+sdo_s_spec_imin(16) = 49,
+sdo_s_spec_imax(16) = 49,
+sdo_s_spec_floor(16) = 0.0001,
+sdo_s_spec_fraction(16) = 0.0001,
+
+n_sdata_o = 49,
 
 &END

@@ -104,6 +104,15 @@
      &                    diagnostic_construct_ece
       END INTERFACE
 
+!-------------------------------------------------------------------------------
+!>  Interface to get the guassian process kernel values.
+!-------------------------------------------------------------------------------
+      INTERFACE diagnostic_get_gp
+         MODULE PROCEDURE diagnostic_get_gp_i,                                 &
+     &                    diagnostic_get_gp_s,                                 &
+     &                    diagnostic_get_gp_x
+      END INTERFACE
+
       CONTAINS
 
 !*******************************************************************************
@@ -600,6 +609,213 @@
       END SELECT
 
       CALL profiler_set_stop_time('diagnostic_get_header', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the guassian process kernel for a diagnostic and a position.
+!>
+!>  This method is meant to be overwritten by a subclass method. As a result,
+!>  returns the get_gp method of the subclass instance @ref diagnostic_class was
+!>  constructed with. Only diagnostics that use te, ne, or sxrem profile have a
+!>  valid implementation.
+!>
+!>  @see sxrem::sxrem_get_gp_i
+!>  @see intpol::intpol_get_gp_i
+!>  @see thomson::thomson_get_gp_i
+!>  @see ece::ece_get_gp_i
+!>
+!>  @param[in] this         A @ref diagnostic_class instance.
+!>  @param[in] a_model      A @ref model_class instance.
+!>  @param[in] i            Index of the position for the kernel.
+!>  @param[in] scale_factor Factor to scale the modeled signal.
+!>  @returns Kernel value for the position and the signal.
+!-------------------------------------------------------------------------------
+      FUNCTION diagnostic_get_gp_i(this, a_model, i, scale_factor)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                        :: diagnostic_get_gp_i
+      TYPE (diagnostic_class), INTENT(in) :: this
+      TYPE (model_class), INTENT(in)      :: a_model
+      INTEGER, INTENT(in)                 :: i
+      REAL (rprec), INTENT(in)            :: scale_factor
+
+!  local variables
+      REAL (rprec)                        :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE(this%type)
+
+         CASE (diagnostic_sxrem_type)
+            diagnostic_get_gp_i = sxrem_get_gp(this%sxrem, a_model, i,         &
+     &                                         scale_factor)
+
+         CASE (diagnostic_intpol_type)
+            diagnostic_get_gp_i = intpol_get_gp(this%intpol, a_model, i,       &
+     &                                          scale_factor)
+
+         CASE (diagnostic_thomson_type)
+            diagnostic_get_gp_i = thomson_get_gp(this%thomson, a_model,        &
+     &                                           i, scale_factor)
+
+         CASE (diagnostic_ece_type)
+            diagnostic_get_gp_i = ece_get_gp(this%ece, a_model, i,             &
+     &                                       scale_factor)
+
+         CASE DEFAULT
+            diagnostic_get_gp_i = 0.0
+
+      END SELECT
+
+      CALL profiler_set_stop_time('diagnostic_get_gp_i', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the guassian process kernel for a diagnostic and a signal.
+!>
+!>  This method is meant to be overwritten by a subclass method. As a result,
+!>  returns the get_gp method of the subclass instance @ref diagnostic_class was
+!>  constructed with. Only diagnostics that use te, ne, or sxrem profile have a
+!>  valid implementation. The second signal was cast to a void pointer so it can
+!>  be send to the subclass instance.
+!>
+!>  @see sxrem::sxrem_get_gp_s
+!>  @see intpol::intpol_get_gp_s
+!>  @see thomson::thomson_get_gp_s
+!>  @see ece::ece_get_gp_s
+!>
+!>  @param[in] this         A @ref diagnostic_class instance.
+!>  @param[in] a_model      A @ref model_class instance.
+!>  @param[in] context      A @ref signal_class instance.
+!>  @param     callback     Function pointer to call back to signal module.
+!>  @param[in] scale_factor Factor to scale the modeled signal.
+!>  @returns Kernel value for the position and the signal.
+!-------------------------------------------------------------------------------
+      FUNCTION diagnostic_get_gp_s(this, a_model, context, callback,           &
+     &                             scale_factor)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                        :: diagnostic_get_gp_s
+      TYPE (diagnostic_class), INTENT(in) :: this
+      TYPE (model_class), INTENT(in)      :: a_model
+      CHARACTER (len=1), INTENT(in)       :: context(:)
+      INTERFACE
+         FUNCTION callback(context, xcart, dxcart, length, dx)
+         USE stel_kinds
+         REAL (rprec)                           :: callback
+         CHARACTER (len=1), INTENT(in)          :: context(:)
+         REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
+         REAL (rprec), DIMENSION(3), INTENT(in) :: dxcart
+         REAL (rprec), INTENT(in)               :: length
+         REAL (rprec), INTENT(in)               :: dx
+         END FUNCTION
+      END INTERFACE
+      REAL (rprec), INTENT(in)            :: scale_factor
+
+!  local variables
+      REAL (rprec)                        :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE(this%type)
+
+         CASE (diagnostic_sxrem_type)
+            diagnostic_get_gp_s = sxrem_get_gp(this%sxrem, a_model,            &
+     &                                         context, callback,              &
+     &                                         scale_factor)
+
+         CASE (diagnostic_intpol_type)
+            diagnostic_get_gp_s = intpol_get_gp(this%intpol, a_model,          &
+     &                                          context, callback,             &
+     &                                          scale_factor)
+
+         CASE (diagnostic_thomson_type)
+            diagnostic_get_gp_s = thomson_get_gp(this%thomson, context,        &
+     &                                           callback, scale_factor)
+
+         CASE (diagnostic_ece_type)
+            diagnostic_get_gp_s = ece_get_gp(this%ece, a_model,                &
+     &                                       context, callback,                &
+     &                                       scale_factor)
+
+         CASE DEFAULT
+            diagnostic_get_gp_s = 0.0
+
+      END SELECT
+
+      CALL profiler_set_stop_time('diagnostic_get_gp_s', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the guassian process kernel for a diagnostic and a cartesian
+!>  position.
+!>
+!>  This method is meant to be overwritten by a subclass method. As a result,
+!>  returns the get_gp method of the subclass instance @ref diagnostic_class was
+!>  constructed with. Only diagnostics that use te, ne, or sxrem profile have a
+!>  valid implementation.
+!>
+!>  @see sxrem::sxrem_get_gp_x
+!>  @see intpol::intpol_get_gp_x
+!>  @see thomson::thomson_get_gp_x
+!>  @see ece::ece_get_gp_x
+!>
+!>  @param[in] this         A @ref diagnostic_class instance.
+!>  @param[in] a_model      A @ref model_class instance.
+!>  @param[in] x_cart       The cartesian position of to get the kernel at.
+!>  @param[in] scale_factor Factor to scale the modeled signal.
+!>  @returns Kernel value for position and the signal.
+!-------------------------------------------------------------------------------
+      FUNCTION diagnostic_get_gp_x(this, a_model, x_cart, scale_factor)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: diagnostic_get_gp_x
+      TYPE (diagnostic_class), INTENT(in)    :: this
+      TYPE (model_class), INTENT(in)         :: a_model
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      REAL (rprec), INTENT(in)               :: scale_factor
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE(this%type)
+
+         CASE (diagnostic_sxrem_type)
+            diagnostic_get_gp_x = sxrem_get_gp(this%sxrem, a_model,            &
+     &                                         x_cart, scale_factor)
+
+         CASE (diagnostic_intpol_type)
+            diagnostic_get_gp_x = intpol_get_gp(this%intpol, a_model,          &
+     &                                          x_cart, scale_factor)
+
+         CASE (diagnostic_thomson_type)
+            diagnostic_get_gp_x = thomson_get_gp(this%thomson, a_model,        &
+     &                                           x_cart, scale_factor)
+
+         CASE (diagnostic_ece_type)
+            diagnostic_get_gp_x = ece_get_gp(this%ece, a_model,                &
+     &                                       x_cart, scale_factor)
+
+         CASE DEFAULT
+            diagnostic_get_gp_x = 0.0
+
+      END SELECT
+
+      CALL profiler_set_stop_time('diagnostic_get_gp_x', start_time)
 
       END FUNCTION
 

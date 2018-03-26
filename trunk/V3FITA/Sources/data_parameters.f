@@ -47,6 +47,13 @@
 !>  Directory string length.
       INTEGER, PARAMETER           :: dir_prefix_len = 14
 
+!>  Maximum sxrem profiles. Warning do not change this value before  reading
+!>  @ref model_state::model_state_sxrem_flag.
+      INTEGER, PARAMETER :: max_sxrem_profiles = 10
+!>  Maximum number of Gaussian Process signals. Total number of auxillary
+!>  profiles.
+      INTEGER, PARAMETER :: max_gaussprocess = 2 + max_sxrem_profiles
+
       CONTAINS
 !*******************************************************************************
 !  UTILITY SUBROUTINES

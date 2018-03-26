@@ -60,6 +60,15 @@
          MODULE PROCEDURE prior_construct_gaussian
       END INTERFACE
 
+!-------------------------------------------------------------------------------
+!>  Interface to get the guassian process kernel values.
+!-------------------------------------------------------------------------------
+      INTERFACE prior_get_gp
+         MODULE PROCEDURE prior_get_gp_i,                                      &
+     &                    prior_get_gp_s,                                      &
+     &                    prior_get_gp_x
+      END INTERFACE
+
       CONTAINS
 !*******************************************************************************
 !  CONSTRUCTION SUBROUTINES
@@ -283,6 +292,159 @@
       END SELECT
 
       CALL profiler_set_stop_time('prior_get_prior_type', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the guassian process kernel for a prior and a position.
+!>
+!>  This method is meant to be overwritten by a subclass method. As a result,
+!>  returns the get_gp method of the subclass instance @ref prior_class was
+!>  constructed with.
+!>
+!>  @see prior_gaussian::prior_gaussian_get_gp_i
+!>
+!>  @param[in] this         A @ref prior_class instance.
+!>  @param[in] a_model      A @ref model_class instance.
+!>  @param[in] i            Index of the position for the kernel.
+!>  @param[in] scale_factor Factor to scale the modeled signal.
+!>  @returns Kernel value for the position and the signal.
+!-------------------------------------------------------------------------------
+      FUNCTION prior_get_gp_i(this, a_model, i, scale_factor)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                   :: prior_get_gp_i
+      TYPE (prior_class), INTENT(in) :: this
+      TYPE (model_class), INTENT(in) :: a_model
+      INTEGER, INTENT(in)            :: i
+      REAL (rprec), INTENT(in)       :: scale_factor
+
+!  local variables
+      REAL (rprec)                   :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE(this%type)
+
+         CASE (prior_gaussian_type)
+            prior_get_gp_i = prior_gaussian_get_gp(this%gaussian,              &
+     &                                             a_model, i,                 &
+     &                                             scale_factor)
+
+         CASE DEFAULT
+            prior_get_gp_i = 0.0
+
+      END SELECT
+
+      CALL profiler_set_stop_time('prior_get_gp_i', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the guassian process kernel for a prior and a signal.
+!>
+!>  This method is meant to be overwritten by a subclass method. As a result,
+!>  returns the get_gp method of the subclass instance @ref prior_class was
+!>  constructed with. The second signal was cast to a void pointer so it can be
+!>  send to the subclass instance.
+!>
+!>  @see prior_gaussian::prior_gaussian_get_gp_s
+!>
+!>  @param[in] this         A @ref prior_class instance.
+!>  @param[in] context      A @ref signal_class instance.
+!>  @param     callback     Function pointer to call back to signal module.
+!>  @param[in] scale_factor Factor to scale the modeled signal.
+!>  @returns Kernel value for the position and the signal.
+!-------------------------------------------------------------------------------
+      FUNCTION prior_get_gp_s(this, context, callback, scale_factor)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                     :: prior_get_gp_s
+      TYPE (prior_class), INTENT(in)   :: this
+      CHARACTER (len=1), INTENT(in)    :: context(:)
+      INTERFACE
+         FUNCTION callback(context, index)
+         USE stel_kinds
+         REAL (rprec)                  :: callback
+         CHARACTER (len=1), INTENT(in) :: context(:)
+         INTEGER, INTENT(in)           :: index
+         END FUNCTION
+      END INTERFACE
+      REAL (rprec), INTENT(in)         :: scale_factor
+
+!  local variables
+      REAL (rprec)                     :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE(this%type)
+
+         CASE (prior_gaussian_type)
+            prior_get_gp_s = prior_gaussian_get_gp(this%gaussian,              &
+     &                                             context, callback,          &
+     &                                             scale_factor)
+
+         CASE DEFAULT
+            prior_get_gp_s = 0.0
+
+      END SELECT
+
+      CALL profiler_set_stop_time('prior_get_gp_s', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the guassian process kernel for a prior and a cartesian
+!>  position.
+!>
+!>  This method is meant to be overwritten by a subclass method. As a result,
+!>  returns the get_gp method of the subclass instance @ref prior_class was
+!>  constructed with.
+!>
+!>  @see prior_gaussian::prior_gaussian_get_gp_x
+!>
+!>  @param[in] this         A @ref prior_class instance.
+!>  @param[in] a_model      A @ref model_class instance.
+!>  @param[in] x_cart       The cartesian position of to get the kernel at.
+!>  @param[in] scale_factor Factor to scale the modeled signal.
+!>  @returns Kernel value for position and the signal.
+!-------------------------------------------------------------------------------
+      FUNCTION prior_get_gp_x(this, a_model, x_cart, scale_factor)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: prior_get_gp_x
+      TYPE (prior_class), INTENT(in)         :: this
+      TYPE (model_class), INTENT(in)         :: a_model
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      REAL (rprec), INTENT(in)               :: scale_factor
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE(this%type)
+
+         CASE (prior_gaussian_type)
+            prior_get_gp_x = prior_gaussian_get_gp(this%gaussian,              &
+     &                                             a_model, x_cart,            &
+     &                                             scale_factor)
+
+         CASE DEFAULT
+            prior_get_gp_x = 0.0
+
+      END SELECT
+
+      CALL profiler_set_stop_time('prior_get_gp_x', start_time)
 
       END FUNCTION
 
