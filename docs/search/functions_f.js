@@ -13,10 +13,16 @@ var searchData=
   ['thomson_5fconstruct_5fp',['thomson_construct_p',['../namespacethomson.html#ac5d43a2e6cf253c5d6cacc022d093b32',1,'thomson']]],
   ['thomson_5fconstruct_5fte',['thomson_construct_te',['../namespacethomson.html#a78327d44337143818c77c9827dd3a0b6',1,'thomson']]],
   ['thomson_5fdestruct',['thomson_destruct',['../namespacethomson.html#ad46f3991fb572fc3bf469c7b65ab2513',1,'thomson']]],
+  ['thomson_5fget_5fgp_5fi',['thomson_get_gp_i',['../interfacethomson_1_1thomson__get__gp.html#a0845515097ad8a8c16fc3e171ed28e25',1,'thomson::thomson_get_gp::thomson_get_gp_i()'],['../namespacethomson.html#aead2da91af522db6f84ab009f66b86e8',1,'thomson::thomson_get_gp_i()']]],
+  ['thomson_5fget_5fgp_5fs',['thomson_get_gp_s',['../namespacethomson.html#a964c91887dba27ff4affa4c476c6779d',1,'thomson']]],
+  ['thomson_5fget_5fgp_5fx',['thomson_get_gp_x',['../namespacethomson.html#a272d629e95ffbb8c7c336896d3233604',1,'thomson']]],
   ['thomson_5fget_5fmodeled_5fsignal',['thomson_get_modeled_signal',['../namespacethomson.html#aedab27efa0a95ff20fa406f7130e8388',1,'thomson']]],
   ['thomson_5fget_5fsignal_5ftype',['thomson_get_signal_type',['../namespacethomson.html#a062923c0803870f1d09707380c7deb1a',1,'thomson']]],
   ['thscte_5fdot_5fparse_5fchord',['thscte_dot_parse_chord',['../namespacethscte__dot.html#ab9e730365dde975e8b4017695e36b7bf',1,'thscte_dot']]],
   ['thscte_5fdot_5fread',['thscte_dot_read',['../namespacethscte__dot.html#a223d027effdcec8a8c191370fafefecd',1,'thscte_dot']]],
   ['timecountinit',['timecountinit',['../namespaceblocktridiagonalsolver__s.html#a7e4f58f949684033bc62780ed6bd4c1b',1,'blocktridiagonalsolver_s::timecountinit()'],['../namespaceblocktridiagonalsolver.html#af61a70927de3a83b37424b8e60a795cd',1,'blocktridiagonalsolver::timecountinit()']]],
-  ['timecountprint',['timecountprint',['../namespaceblocktridiagonalsolver__s.html#a517a3681901b4c7b2b9a3e7be6270358',1,'blocktridiagonalsolver_s::timecountprint()'],['../namespaceblocktridiagonalsolver.html#af5dc3933d8ff5ace49198e76c11b87cc',1,'blocktridiagonalsolver::timecountprint()']]]
+  ['timecountprint',['timecountprint',['../namespaceblocktridiagonalsolver__s.html#a517a3681901b4c7b2b9a3e7be6270358',1,'blocktridiagonalsolver_s::timecountprint()'],['../namespaceblocktridiagonalsolver.html#af5dc3933d8ff5ace49198e76c11b87cc',1,'blocktridiagonalsolver::timecountprint()']]],
+  ['toupper_5fforces',['toupper_forces',['../namespacequantities.html#a39d648d1f37870f257f3aafddb5d52b5',1,'quantities']]],
+  ['two_5fpower',['two_power',['../namespacefunctions.html#ac12f372c3f87a33cef53253787547dfa',1,'functions']]],
+  ['two_5fpower_5fgs',['two_power_gs',['../namespacefunctions.html#a55f92753ee82d0cb0e6622462022debf',1,'functions']]]
 ];

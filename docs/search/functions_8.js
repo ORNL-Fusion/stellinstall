@@ -21,6 +21,7 @@ var searchData=
   ['line_5fseg_5ftest',['line_seg_test',['../namespaceline__segment.html#ad646e194dc6269ad6d052e6a7689b7c8',1,'line_segment']]],
   ['linesearch',['linesearch',['../namespaceshared__functions.html#a61e8b9047c8d56be66ec7ff0c7ca38c4',1,'shared_functions']]],
   ['linmin',['linmin',['../namespacef1dim__mod.html#a692c8e58cc18aa004a0e708a3fa77100',1,'f1dim_mod']]],
+  ['lorentz',['lorentz',['../namespacesiesta__force.html#a108a52a51a38a059873aa94f15e9765c',1,'siesta_force']]],
   ['lr2gr',['lr2gr',['../namespaceblocktridiagonalsolver__s.html#a28eddc1f764e0eaf9b4b2b2ad6b48280',1,'blocktridiagonalsolver_s::lr2gr()'],['../namespaceblocktridiagonalsolver.html#a88e831d590eb7abac76c038a2af00fe6',1,'blocktridiagonalsolver::lr2gr()']]],
   ['lr2rank',['lr2rank',['../namespaceblocktridiagonalsolver__s.html#a061b3edd1ae41a4ad97e28f66656d750',1,'blocktridiagonalsolver_s::lr2rank()'],['../namespaceblocktridiagonalsolver.html#ac0e2835282996e621ad51a99d16a0a54',1,'blocktridiagonalsolver::lr2rank()']]]
 ];

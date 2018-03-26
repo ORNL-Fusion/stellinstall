@@ -90,7 +90,8 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   <div class="summary">
 <a href="#nested-classes">Data Types</a> &#124;
 <a href="#namespaces">Modules</a> &#124;
-<a href="#func-members">Functions/Subroutines</a>  </div>
+<a href="#func-members">Functions/Subroutines</a> &#124;
+<a href="#var-members">Variables</a>  </div>
   <div class="headertitle">
 <div class="title">prior_gaussian.f File Reference</div>  </div>
 </div><!--header-->
@@ -105,6 +106,9 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 Data Types</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">type &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structprior__gaussian_1_1prior__gaussian__class.html">prior_gaussian::prior_gaussian_class</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Base class representing a prior_guassian signal.  <a href="structprior__gaussian_1_1prior__gaussian__class.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfaceprior__gaussian_1_1prior__gaussian__get__gp.html">prior_gaussian::prior_gaussian_get_gp</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface to get the guassian process kernel values.  <a href="interfaceprior__gaussian_1_1prior__gaussian__get__gp.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="namespaces"></a>
@@ -127,9 +131,37 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:a1666a591bfdb673bb81e78ee8e28f756"><td class="memItemLeft" align="right" valign="top">character(len=data_name_length) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceprior__gaussian.html#a1666a591bfdb673bb81e78ee8e28f756">prior_gaussian::prior_gaussian_get_signal_type</a> (this)</td></tr>
 <tr class="memdesc:a1666a591bfdb673bb81e78ee8e28f756"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets a discription of the prior type.  <a href="namespaceprior__gaussian.html#a1666a591bfdb673bb81e78ee8e28f756">More...</a><br /></td></tr>
 <tr class="separator:a1666a591bfdb673bb81e78ee8e28f756"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3d2853cf6298568da02c004ceb2f5f80"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceprior__gaussian.html#a3d2853cf6298568da02c004ceb2f5f80">prior_gaussian::prior_gaussian_get_gp_i</a> (this, a_model, i, scale_factor)</td></tr>
+<tr class="memdesc:a3d2853cf6298568da02c004ceb2f5f80"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the guassian process kernel for a prior signal and a position.  <a href="namespaceprior__gaussian.html#a3d2853cf6298568da02c004ceb2f5f80">More...</a><br /></td></tr>
+<tr class="separator:a3d2853cf6298568da02c004ceb2f5f80"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab43356426d935bb6a525db9d0d0bb72d"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceprior__gaussian.html#ab43356426d935bb6a525db9d0d0bb72d">prior_gaussian::prior_gaussian_get_gp_s</a> (this, context, callback,                            </td></tr>
+<tr class="memdesc:ab43356426d935bb6a525db9d0d0bb72d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the guassian process kernel for a prior signal and a signal.  <a href="namespaceprior__gaussian.html#ab43356426d935bb6a525db9d0d0bb72d">More...</a><br /></td></tr>
+<tr class="separator:ab43356426d935bb6a525db9d0d0bb72d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a43373b8a1ed98a465fe7ef26de520975"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceprior__gaussian.html#a43373b8a1ed98a465fe7ef26de520975">prior_gaussian::prior_gaussian_get_gp_x</a> (this, a_model, x_cart,                                </td></tr>
+<tr class="memdesc:a43373b8a1ed98a465fe7ef26de520975"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the guassian process kernel for a prior signal and a cartesian position.  <a href="namespaceprior__gaussian.html#a43373b8a1ed98a465fe7ef26de520975">More...</a><br /></td></tr>
+<tr class="separator:a43373b8a1ed98a465fe7ef26de520975"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2cbb0da54d0d2221bba2917e3d94099b"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceprior__gaussian.html#a2cbb0da54d0d2221bba2917e3d94099b">prior_gaussian::prior_gaussian_write_auxiliary</a> (this, iou, a_model)</td></tr>
 <tr class="memdesc:a2cbb0da54d0d2221bba2917e3d94099b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Write out auxiliary signal information to an output file.  <a href="namespaceprior__gaussian.html#a2cbb0da54d0d2221bba2917e3d94099b">More...</a><br /></td></tr>
 <tr class="separator:a2cbb0da54d0d2221bba2917e3d94099b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
+Variables</h2></td></tr>
+<tr class="memitem:aef7d45ab74bceb6d249db78c20faecaf"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aef7d45ab74bceb6d249db78c20faecaf"></a>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceprior__gaussian.html#aef7d45ab74bceb6d249db78c20faecaf">prior_gaussian::prior_gaussian_no_type</a> = -1</td></tr>
+<tr class="memdesc:aef7d45ab74bceb6d249db78c20faecaf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type descriptor for <a class="el" href="namespaceprior__gaussian.html" title="Defines the base class of the type prior_gaussian_class. This class implements priors of the type...">prior_gaussian</a> no type. <br /></td></tr>
+<tr class="separator:aef7d45ab74bceb6d249db78c20faecaf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a565f7459f64faf2f7fd055b15481dcb8"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a565f7459f64faf2f7fd055b15481dcb8"></a>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceprior__gaussian.html#a565f7459f64faf2f7fd055b15481dcb8">prior_gaussian::prior_gaussian_te_type</a> = 0</td></tr>
+<tr class="memdesc:a565f7459f64faf2f7fd055b15481dcb8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type descriptor for <a class="el" href="namespaceprior__gaussian.html" title="Defines the base class of the type prior_gaussian_class. This class implements priors of the type...">prior_gaussian</a> type measureing temperature. <br /></td></tr>
+<tr class="separator:a565f7459f64faf2f7fd055b15481dcb8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad100872c35e42bee706421306171e944"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad100872c35e42bee706421306171e944"></a>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceprior__gaussian.html#ad100872c35e42bee706421306171e944">prior_gaussian::prior_gaussian_ne_type</a> = 1</td></tr>
+<tr class="memdesc:ad100872c35e42bee706421306171e944"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type descriptor for <a class="el" href="namespaceprior__gaussian.html" title="Defines the base class of the type prior_gaussian_class. This class implements priors of the type...">prior_gaussian</a> type measureing denisty. <br /></td></tr>
+<tr class="separator:ad100872c35e42bee706421306171e944"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3c468af9f5a1000569a45440e365eea8"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a3c468af9f5a1000569a45440e365eea8"></a>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceprior__gaussian.html#a3c468af9f5a1000569a45440e365eea8">prior_gaussian::prior_gaussian_sxrem_type</a> = 2</td></tr>
+<tr class="memdesc:a3c468af9f5a1000569a45440e365eea8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type descriptor for <a class="el" href="namespaceprior__gaussian.html" title="Defines the base class of the type prior_gaussian_class. This class implements priors of the type...">prior_gaussian</a> type measureing soft x-ray emission. <br /></td></tr>
+<tr class="separator:a3c468af9f5a1000569a45440e365eea8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Contains module <a class="el" href="namespaceprior__gaussian.html" title="Defines the base class of the type prior_gaussian_class. This class implements priors of the type...">prior_gaussian</a>. </p>
@@ -138,7 +170,7 @@ Functions/Subroutines</h2></td></tr>
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Nov 28 2017 10:22:17 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Mon Mar 26 2018 17:40:02 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

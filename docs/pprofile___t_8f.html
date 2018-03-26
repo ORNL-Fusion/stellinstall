@@ -110,6 +110,9 @@ Data Types</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">type &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structpprofile__t_1_1pprofile__pointer.html">pprofile_t::pprofile_pointer</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pointer to a pprofile object. Used for creating arrays of pprofile pointers. This is needed because fortran does not allow arrays of pointers directly.  <a href="structpprofile__t_1_1pprofile__pointer.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacepprofile__t_1_1pprofile__get__gp.html">pprofile_t::pprofile_get_gp</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface for the guassian process kernel values.  <a href="interfacepprofile__t_1_1pprofile__get__gp.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="namespaces"></a>
 Modules</h2></td></tr>
@@ -119,24 +122,45 @@ Modules</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions/Subroutines</h2></td></tr>
-<tr class="memitem:a1662a3c8bea77b59edb8e44851a5ff2a"><td class="memItemLeft" align="right" valign="top">type(pprofile_class) function, pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepprofile__t.html#a1662a3c8bea77b59edb8e44851a5ff2a">pprofile_t::pprofile_construct</a> (p_type_arg, b_arg, as_arg, af_arg)</td></tr>
-<tr class="memdesc:a1662a3c8bea77b59edb8e44851a5ff2a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a <a class="el" href="structpprofile__t_1_1pprofile__class.html">pprofile_class</a>.  <a href="namespacepprofile__t.html#a1662a3c8bea77b59edb8e44851a5ff2a">More...</a><br /></td></tr>
-<tr class="separator:a1662a3c8bea77b59edb8e44851a5ff2a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a45835368dd7de7eb34d2108fea0002c4"><td class="memItemLeft" align="right" valign="top">type(pprofile_class) function, pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepprofile__t.html#a45835368dd7de7eb34d2108fea0002c4">pprofile_t::pprofile_construct</a> (p_type, b, as, af)</td></tr>
+<tr class="memdesc:a45835368dd7de7eb34d2108fea0002c4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a <a class="el" href="structpprofile__t_1_1pprofile__class.html">pprofile_class</a>.  <a href="namespacepprofile__t.html#a45835368dd7de7eb34d2108fea0002c4">More...</a><br /></td></tr>
+<tr class="separator:a45835368dd7de7eb34d2108fea0002c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a10f804e2272a8795fe7a843dfd4b0d63"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepprofile__t.html#a10f804e2272a8795fe7a843dfd4b0d63">pprofile_t::pprofile_destruct</a> (this)</td></tr>
 <tr class="memdesc:a10f804e2272a8795fe7a843dfd4b0d63"><td class="mdescLeft">&#160;</td><td class="mdescRight">Deconstruct a <a class="el" href="structpprofile__t_1_1pprofile__class.html">pprofile_class</a> object.  <a href="namespacepprofile__t.html#a10f804e2272a8795fe7a843dfd4b0d63">More...</a><br /></td></tr>
 <tr class="separator:a10f804e2272a8795fe7a843dfd4b0d63"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a83b74f622b4bf4fdc5ae2c9f329b6898"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepprofile__t.html#a83b74f622b4bf4fdc5ae2c9f329b6898">pprofile_t::pprofile_get_value</a> (this, s_arg)</td></tr>
-<tr class="memdesc:a83b74f622b4bf4fdc5ae2c9f329b6898"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the value of a profile at a radial position.  <a href="namespacepprofile__t.html#a83b74f622b4bf4fdc5ae2c9f329b6898">More...</a><br /></td></tr>
-<tr class="separator:a83b74f622b4bf4fdc5ae2c9f329b6898"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a67321cec5bcbf0cec1d23ee904347804"><td class="memItemLeft" align="right" valign="top">character(len=p_type_len) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepprofile__t.html#a67321cec5bcbf0cec1d23ee904347804">pprofile_t::pprofile_get_p_type_name</a> (this)</td></tr>
-<tr class="memdesc:a67321cec5bcbf0cec1d23ee904347804"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the name of the profile type.  <a href="namespacepprofile__t.html#a67321cec5bcbf0cec1d23ee904347804">More...</a><br /></td></tr>
-<tr class="separator:a67321cec5bcbf0cec1d23ee904347804"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aeff18f2ba94083ded9d51ea20a7e8ee3"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepprofile__t.html#aeff18f2ba94083ded9d51ea20a7e8ee3">pprofile_t::pprofile_get_value</a> (this, s_arg)</td></tr>
+<tr class="memdesc:aeff18f2ba94083ded9d51ea20a7e8ee3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the value of a profile at a radial position.  <a href="namespacepprofile__t.html#aeff18f2ba94083ded9d51ea20a7e8ee3">More...</a><br /></td></tr>
+<tr class="separator:aeff18f2ba94083ded9d51ea20a7e8ee3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a462ecc1cd34de4137adc99ce5f409df1"><td class="memItemLeft" align="right" valign="top">character(len=p_type_len) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepprofile__t.html#a462ecc1cd34de4137adc99ce5f409df1">pprofile_t::pprofile_get_p_type_name</a> (this)</td></tr>
+<tr class="memdesc:a462ecc1cd34de4137adc99ce5f409df1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the name of the profile type.  <a href="namespacepprofile__t.html#a462ecc1cd34de4137adc99ce5f409df1">More...</a><br /></td></tr>
+<tr class="separator:a462ecc1cd34de4137adc99ce5f409df1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4a8b9c655983bbaec1274a7a724f638e"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepprofile__t.html#a4a8b9c655983bbaec1274a7a724f638e">pprofile_t::pprofile_get_gp_ij</a> (this, i, j)</td></tr>
+<tr class="memdesc:a4a8b9c655983bbaec1274a7a724f638e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the guassian process kernel value for the two as indicies.  <a href="namespacepprofile__t.html#a4a8b9c655983bbaec1274a7a724f638e">More...</a><br /></td></tr>
+<tr class="separator:a4a8b9c655983bbaec1274a7a724f638e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a21ef1957521ac33d669105dda3c0c1a0"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepprofile__t.html#a21ef1957521ac33d669105dda3c0c1a0">pprofile_t::pprofile_get_gp_pi</a> (this, p, i)</td></tr>
+<tr class="memdesc:a21ef1957521ac33d669105dda3c0c1a0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the guassian process kernel value for the point and index.  <a href="namespacepprofile__t.html#a21ef1957521ac33d669105dda3c0c1a0">More...</a><br /></td></tr>
+<tr class="separator:a21ef1957521ac33d669105dda3c0c1a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af30a8e6d63ca54c1274afa9e0f157c08"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepprofile__t.html#af30a8e6d63ca54c1274afa9e0f157c08">pprofile_t::pprofile_get_gp_pp</a> (this, p1, p2)</td></tr>
+<tr class="memdesc:af30a8e6d63ca54c1274afa9e0f157c08"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the guassian process kernel value for two points.  <a href="namespacepprofile__t.html#af30a8e6d63ca54c1274afa9e0f157c08">More...</a><br /></td></tr>
+<tr class="separator:af30a8e6d63ca54c1274afa9e0f157c08"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4d32fc72b372b92d05c02cf49e498003"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepprofile__t.html#a4d32fc72b372b92d05c02cf49e498003">pprofile_t::pprofile_write</a> (this, id, iou)</td></tr>
 <tr class="memdesc:a4d32fc72b372b92d05c02cf49e498003"><td class="mdescLeft">&#160;</td><td class="mdescRight">Write out the profile to an output file.  <a href="namespacepprofile__t.html#a4d32fc72b372b92d05c02cf49e498003">More...</a><br /></td></tr>
 <tr class="separator:a4d32fc72b372b92d05c02cf49e498003"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af1936f32c455004fea58c096ff34824a"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepprofile__t.html#af1936f32c455004fea58c096ff34824a">pprofile_t::pprofile_save_state</a> (this)</td></tr>
+<tr class="memdesc:af1936f32c455004fea58c096ff34824a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Save the internal state of the profile.  <a href="namespacepprofile__t.html#af1936f32c455004fea58c096ff34824a">More...</a><br /></td></tr>
+<tr class="separator:af1936f32c455004fea58c096ff34824a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a57fba41e433baa71fc8a1cad5c7bb3cc"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepprofile__t.html#a57fba41e433baa71fc8a1cad5c7bb3cc">pprofile_t::pprofile_reset_state</a> (this)</td></tr>
+<tr class="memdesc:a57fba41e433baa71fc8a1cad5c7bb3cc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reset the internal state of the profile.  <a href="namespacepprofile__t.html#a57fba41e433baa71fc8a1cad5c7bb3cc">More...</a><br /></td></tr>
+<tr class="separator:a57fba41e433baa71fc8a1cad5c7bb3cc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a58bdde967f3ba25669a47f12ddde05a3"><td class="memItemLeft" align="right" valign="top">integer function, private&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepprofile__t.html#a58bdde967f3ba25669a47f12ddde05a3">pprofile_t::findmaxindex</a> (s_array)</td></tr>
 <tr class="memdesc:a58bdde967f3ba25669a47f12ddde05a3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Finds the index of the maximum radial position.  <a href="namespacepprofile__t.html#a58bdde967f3ba25669a47f12ddde05a3">More...</a><br /></td></tr>
 <tr class="separator:a58bdde967f3ba25669a47f12ddde05a3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abc9605e5463c1559316fa5b38d708330"><td class="memItemLeft" align="right" valign="top">pure real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepprofile__t.html#abc9605e5463c1559316fa5b38d708330">pprofile_t::pprofile_gp_1d_sqexp_k</a> (this, p1, p2)</td></tr>
+<tr class="memdesc:abc9605e5463c1559316fa5b38d708330"><td class="mdescLeft">&#160;</td><td class="mdescRight">Evaluate the one dimensional squared exponential kernel.  <a href="namespacepprofile__t.html#abc9605e5463c1559316fa5b38d708330">More...</a><br /></td></tr>
+<tr class="separator:abc9605e5463c1559316fa5b38d708330"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a067ecbe88c417aeec34a6c034695f0ff"><td class="memItemLeft" align="right" valign="top">pure real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepprofile__t.html#a067ecbe88c417aeec34a6c034695f0ff">pprofile_t::pprofile_gp_1d_sqexp_ln_k</a> (this, p1, p2)</td></tr>
+<tr class="memdesc:a067ecbe88c417aeec34a6c034695f0ff"><td class="mdescLeft">&#160;</td><td class="mdescRight">Evaluate the one dimensional squared exponential kernel.  <a href="namespacepprofile__t.html#a067ecbe88c417aeec34a6c034695f0ff">More...</a><br /></td></tr>
+<tr class="separator:a067ecbe88c417aeec34a6c034695f0ff"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
@@ -188,6 +212,14 @@ integer, parameter, private&#160;</td><td class="memItemRight" valign="bottom"><
 integer, parameter, private&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepprofile__t.html#aff4f2a116f9c8854c08df9f7a03edc24">pprofile_t::pprofile_two_power_r_type</a> = 6</td></tr>
 <tr class="memdesc:aff4f2a116f9c8854c08df9f7a03edc24"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reverse Two Power profile type. <br /></td></tr>
 <tr class="separator:aff4f2a116f9c8854c08df9f7a03edc24"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad8a647776573ec5fa82acbc6f70411b5"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad8a647776573ec5fa82acbc6f70411b5"></a>
+integer, parameter, private&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepprofile__t.html#ad8a647776573ec5fa82acbc6f70411b5">pprofile_t::pprofile_gp_1d_sexp_type</a> = 7</td></tr>
+<tr class="memdesc:ad8a647776573ec5fa82acbc6f70411b5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Guassian process profile 1D square exponetal type. <br /></td></tr>
+<tr class="separator:ad8a647776573ec5fa82acbc6f70411b5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:accf666aecde7f656119f052ce2d77bbe"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="accf666aecde7f656119f052ce2d77bbe"></a>
+integer, parameter, private&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepprofile__t.html#accf666aecde7f656119f052ce2d77bbe">pprofile_t::pprofile_gp_1d_ln_sexp_type</a> = 8</td></tr>
+<tr class="memdesc:accf666aecde7f656119f052ce2d77bbe"><td class="mdescLeft">&#160;</td><td class="mdescRight">Guassian process profile 1D square exponetal with the ln of sigma x type. <br /></td></tr>
+<tr class="separator:accf666aecde7f656119f052ce2d77bbe"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Contains module pprofile_T. </p>
@@ -196,7 +228,7 @@ integer, parameter, private&#160;</td><td class="memItemRight" valign="bottom"><
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Nov 28 2017 10:22:17 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Mon Mar 26 2018 17:40:02 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

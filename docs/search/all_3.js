@@ -27,8 +27,8 @@ var searchData=
   ['diagnostic_5fcdf_5fread',['diagnostic_cdf_read',['../interfacediagnostic__cdf_1_1diagnostic__cdf__read.html',1,'diagnostic_cdf']]],
   ['diagnostic_5fcdf_5fwrite',['diagnostic_cdf_write',['../interfacediagnostic__cdf_1_1diagnostic__cdf__write.html',1,'diagnostic_cdf']]],
   ['diagnostic_5fclass',['diagnostic_class',['../structdiagnostic_1_1diagnostic__class.html',1,'diagnostic']]],
-  ['diagnostic_5fconstruct',['diagnostic_construct',['../interfacediagnostic__t_1_1diagnostic__construct.html',1,'diagnostic_t']]],
   ['diagnostic_5fconstruct',['diagnostic_construct',['../interfacediagnostic_1_1diagnostic__construct.html',1,'diagnostic']]],
+  ['diagnostic_5fconstruct',['diagnostic_construct',['../interfacediagnostic__t_1_1diagnostic__construct.html',1,'diagnostic_t']]],
   ['diagnostic_5fconstruct_5fece',['diagnostic_construct_ece',['../namespacediagnostic.html#a83d8a102e934945610f1840743da09bb',1,'diagnostic']]],
   ['diagnostic_5fconstruct_5fextcurz',['diagnostic_construct_extcurz',['../namespacediagnostic.html#aad525d6bd422128fe6de26ea0bb5171c',1,'diagnostic']]],
   ['diagnostic_5fconstruct_5fintpol',['diagnostic_construct_intpol',['../namespacediagnostic.html#a6d4f3718457256077f7714e102f38470',1,'diagnostic']]],
@@ -57,6 +57,10 @@ var searchData=
   ['diagnostic_5fdot_5fparse_5fs_5frogowski',['diagnostic_dot_parse_s_rogowski',['../namespacediagnostic__dot.html#a36dda260fc15b6fe2bbec117ac2758ac',1,'diagnostic_dot']]],
   ['diagnostic_5fece_5ftype',['diagnostic_ece_type',['../namespacediagnostic.html#a565c0dd41230bfe595f5ef6c256c0aa7',1,'diagnostic']]],
   ['diagnostic_5fextcurz_5ftype',['diagnostic_extcurz_type',['../namespacediagnostic.html#afca5fb6773f822ca3f5dbb9bc8b96f60',1,'diagnostic']]],
+  ['diagnostic_5fget_5fgp',['diagnostic_get_gp',['../interfacediagnostic_1_1diagnostic__get__gp.html',1,'diagnostic']]],
+  ['diagnostic_5fget_5fgp_5fi',['diagnostic_get_gp_i',['../interfacediagnostic_1_1diagnostic__get__gp.html#afeac81d4ea36fd57037fc26f2bf71de3',1,'diagnostic::diagnostic_get_gp::diagnostic_get_gp_i()'],['../namespacediagnostic.html#a1fa7d303042830e03981890251046add',1,'diagnostic::diagnostic_get_gp_i()']]],
+  ['diagnostic_5fget_5fgp_5fs',['diagnostic_get_gp_s',['../namespacediagnostic.html#a1e9fbbe19b50a54bc57100b6ca812acf',1,'diagnostic']]],
+  ['diagnostic_5fget_5fgp_5fx',['diagnostic_get_gp_x',['../namespacediagnostic.html#a57b309362884012e74ebb59b6be7002e',1,'diagnostic']]],
   ['diagnostic_5fget_5fheader',['diagnostic_get_header',['../namespacediagnostic.html#a042c3f05940718762f11b4e35521299f',1,'diagnostic']]],
   ['diagnostic_5fget_5fmodeled_5fsignal',['diagnostic_get_modeled_signal',['../namespacediagnostic.html#a38cf2d7b519ebb2b78a6de547c1472d7',1,'diagnostic']]],
   ['diagnostic_5fget_5fsignal_5ftype',['diagnostic_get_signal_type',['../namespacediagnostic.html#af668d7f5c2bf3d538b9b78c261b87242',1,'diagnostic']]],
@@ -90,5 +94,6 @@ var searchData=
   ['dv_5fa',['dv_a',['../structsiesta__equilibrium_1_1siesta__magnetic__cache.html#ade9d3157a711642640d78f7eaac70cd1',1,'siesta_equilibrium::siesta_magnetic_cache::dv_a()'],['../structvmec__equilibrium_1_1vmec__magnetic__cache.html#a9dcb43ceee77239e47c13cdaba052f2e',1,'vmec_equilibrium::vmec_magnetic_cache::dv_a()']]],
   ['dv_5ffull',['dv_full',['../structsiesta__equilibrium_1_1siesta__magnetic__cache.html#aee59bab054898085edcb9767060426aa',1,'siesta_equilibrium::siesta_magnetic_cache::dv_full()'],['../structvmec__equilibrium_1_1vmec__magnetic__cache.html#a309349ce33bf6d76d1ef6705eba6f7f6',1,'vmec_equilibrium::vmec_magnetic_cache::dv_full()']]],
   ['dvol',['dvol',['../structprimed__grid_1_1primed__grid__class.html#a322d3ed6f0cc2886813d36482786dfb6',1,'primed_grid::primed_grid_class']]],
+  ['dx',['dx',['../structintegration__path_1_1path__int__class.html#afb1e301a9bb1762d6eafc05b100a651e',1,'integration_path::path_int_class']]],
   ['dz',['dz',['../structm__grid_1_1m__grid__class.html#a5c1eff0d2c7e5f482bcd24d882e71214',1,'m_grid::m_grid_class::dz()'],['../structlimiter__grid_1_1limiter__grid__class.html#ab6e4e4d991497f32d6dd5d6bd9f02edc',1,'limiter_grid::limiter_grid_class::dz()']]]
 ];

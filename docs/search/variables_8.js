@@ -1,5 +1,6 @@
 var searchData=
 [
+  ['i',['i',['../structintpol_1_1intpol__gp__context__i.html#aa342302a3f6827abf7cb5cfd3fe0befe',1,'intpol::intpol_gp_context_i::i()'],['../structsxrem_1_1sxrem__gp__context__i.html#adb6a8ec350d9df87bb90fb4bd51e3e38',1,'sxrem::sxrem_gp_context_i::i()']]],
   ['i_5fline',['i_line',['../structsignal__dot_1_1signal__dot__file.html#ad7696372aa4ffe18149b4a784e461042',1,'signal_dot::signal_dot_file']]],
   ['id_5fname',['id_name',['../structdiagnostic__dot_1_1diagnostic__dot__coil.html#ab8cfb1be0c4862cf92f453c8920783a1',1,'diagnostic_dot::diagnostic_dot_coil']]],
   ['idrfun',['idrfun',['../namespacev3rfun__input.html#a2b6391cd287060ef0230ca7aeea3c8fc',1,'v3rfun_input']]],
@@ -8,6 +9,10 @@ var searchData=
   ['in_5fdegrees',['in_degrees',['../structintpol_1_1intpol__class.html#a77d3ac389223a67672f4bc4c01a70d6a',1,'intpol::intpol_class']]],
   ['indices',['indices',['../structprior__gaussian_1_1prior__gaussian__class.html#a940991b9e09e9b7a32ceba787bde0e14',1,'prior_gaussian::prior_gaussian_class::indices()'],['../structsxrem__ratio_1_1sxrem__ratio__class.html#aa627980da653db3f9a045b0873c4a630',1,'sxrem_ratio::sxrem_ratio_class::indices()'],['../structv3fit__params_1_1param__locking__class.html#a5c3aae6762db6b32c8663414cc101c0f',1,'v3fit_params::param_locking_class::indices()'],['../structv3fit__params_1_1param__class.html#a49d29b2f4a7d9073065fa6de1fbf4bf3',1,'v3fit_params::param_class::indices()']]],
   ['inductance',['inductance',['../structmagnetic__response_1_1magnetic__response__class.html#a58b640b0e3a5d2d28dfa27da28562a6a',1,'magnetic_response::magnetic_response_class']]],
+  ['int_5fmethod',['int_method',['../namespacev3fit__input.html#a90fc95d90dface3a816634e091b7d0c3',1,'v3fit_input']]],
+  ['int_5fnum_5fpoints',['int_num_points',['../namespacev3fit__input.html#a1b604b7bf86240e95222db1c854b0aee',1,'v3fit_input']]],
+  ['int_5fparams',['int_params',['../structmodel_1_1model__class.html#ac68337bbd23de398d0ab788b14fc67f1',1,'model::model_class']]],
+  ['int_5fsize',['int_size',['../namespacev3fit__input.html#a21885f2c19e871826a9de0b86409479a',1,'v3fit_input']]],
   ['intpol',['intpol',['../structdiagnostic_1_1diagnostic__class.html#a6722970f698ca1c9ff78c6cce7409bfb',1,'diagnostic::diagnostic_class']]],
   ['intpol_5findex',['intpol_index',['../structv3fit__context_1_1v3fit__context__class.html#accc4e8e1160a2911d33ee3e36b829632',1,'v3fit_context::v3fit_context_class']]],
   ['intpol_5finterferometry_5ftype',['intpol_interferometry_type',['../namespaceintpol.html#a0137082c37f81650998ca57aa707e162',1,'intpol']]],

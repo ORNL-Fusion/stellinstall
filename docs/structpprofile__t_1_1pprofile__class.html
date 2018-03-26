@@ -105,34 +105,38 @@ Public Attributes</h2></td></tr>
 integer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structpprofile__t_1_1pprofile__class.html#a0b46f577c29bf1d7727d9acdee5be529">p_type</a> = <a class="el" href="namespacepprofile__t.html#ac528b3ce03bd85f7ec0c640cc0b9d472">pprofile_none_type</a></td></tr>
 <tr class="memdesc:a0b46f577c29bf1d7727d9acdee5be529"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parameterized profile type. <br /></td></tr>
 <tr class="separator:a0b46f577c29bf1d7727d9acdee5be529"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a75abfc91fb98cc328de2773efd3f40e3"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a75abfc91fb98cc328de2773efd3f40e3"></a>
-real(rprec), dimension(ilb_b:iub_b)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structpprofile__t_1_1pprofile__class.html#a75abfc91fb98cc328de2773efd3f40e3">b</a> = 0.0</td></tr>
-<tr class="memdesc:a75abfc91fb98cc328de2773efd3f40e3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Array of coefficients for the functional profiles. <br /></td></tr>
-<tr class="separator:a75abfc91fb98cc328de2773efd3f40e3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a30c965d1c8664a8d7ca2da176ca4bf94"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a30c965d1c8664a8d7ca2da176ca4bf94"></a>
-real(rprec), dimension(<a class="el" href="namespacepprofile__t.html#a051c0f0cb6180d07046287ca81845e07">iub_asf</a>)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structpprofile__t_1_1pprofile__class.html#a30c965d1c8664a8d7ca2da176ca4bf94">as</a> = 0.0</td></tr>
-<tr class="memdesc:a30c965d1c8664a8d7ca2da176ca4bf94"><td class="mdescLeft">&#160;</td><td class="mdescRight">Array of radial position values for the segmented profiles. <br /></td></tr>
-<tr class="separator:a30c965d1c8664a8d7ca2da176ca4bf94"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5cf7959c9ae0d7eebae02816229e8925"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5cf7959c9ae0d7eebae02816229e8925"></a>
-real(rprec), dimension(<a class="el" href="namespacepprofile__t.html#a051c0f0cb6180d07046287ca81845e07">iub_asf</a>)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structpprofile__t_1_1pprofile__class.html#a5cf7959c9ae0d7eebae02816229e8925">af</a> = 0.0</td></tr>
-<tr class="memdesc:a5cf7959c9ae0d7eebae02816229e8925"><td class="mdescLeft">&#160;</td><td class="mdescRight">Array of profile values for the segmented profiles. <br /></td></tr>
-<tr class="separator:a5cf7959c9ae0d7eebae02816229e8925"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af05580e2ec73c7d8098259d97bc22c22"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af05580e2ec73c7d8098259d97bc22c22"></a>
+real(rprec), dimension(ilb_b:iub_b)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structpprofile__t_1_1pprofile__class.html#af05580e2ec73c7d8098259d97bc22c22">b</a> = 0.0</td></tr>
+<tr class="memdesc:af05580e2ec73c7d8098259d97bc22c22"><td class="mdescLeft">&#160;</td><td class="mdescRight">Array of coefficients for the functional profiles. <br /></td></tr>
+<tr class="separator:af05580e2ec73c7d8098259d97bc22c22"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a93f23406d8927e7b19a6570f8ee4becb"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a93f23406d8927e7b19a6570f8ee4becb"></a>
+real(rprec), dimension(:), pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structpprofile__t_1_1pprofile__class.html#a93f23406d8927e7b19a6570f8ee4becb">as</a> =&gt; null()</td></tr>
+<tr class="memdesc:a93f23406d8927e7b19a6570f8ee4becb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Array of radial position values for the segmented profiles. <br /></td></tr>
+<tr class="separator:a93f23406d8927e7b19a6570f8ee4becb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8e7c9cbd88e4e2941e041365c593ec69"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a8e7c9cbd88e4e2941e041365c593ec69"></a>
+real(rprec), dimension(:), pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structpprofile__t_1_1pprofile__class.html#a8e7c9cbd88e4e2941e041365c593ec69">af</a> =&gt; null()</td></tr>
+<tr class="memdesc:a8e7c9cbd88e4e2941e041365c593ec69"><td class="mdescLeft">&#160;</td><td class="mdescRight">Array of profile values for the segmented profiles. <br /></td></tr>
+<tr class="separator:a8e7c9cbd88e4e2941e041365c593ec69"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6aa9f28a49c8bbd40180b4423974d9fd"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6aa9f28a49c8bbd40180b4423974d9fd"></a>
 integer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structpprofile__t_1_1pprofile__class.html#a6aa9f28a49c8bbd40180b4423974d9fd">maxsplineindex</a> = 1</td></tr>
 <tr class="memdesc:a6aa9f28a49c8bbd40180b4423974d9fd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Index of the last segemented value. <br /></td></tr>
 <tr class="separator:a6aa9f28a49c8bbd40180b4423974d9fd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1f043520851b656c494842e2a9a7bd15"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a1f043520851b656c494842e2a9a7bd15"></a>
+real(rprec), dimension(:), pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structpprofile__t_1_1pprofile__class.html#a1f043520851b656c494842e2a9a7bd15">cache</a> =&gt; null()</td></tr>
+<tr class="memdesc:a1f043520851b656c494842e2a9a7bd15"><td class="mdescLeft">&#160;</td><td class="mdescRight">Cached value of the af array. <br /></td></tr>
+<tr class="separator:a1f043520851b656c494842e2a9a7bd15"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Base class representing a parameterized profile. </p>
 
-<p>Definition at line <a class="el" href="pprofile___t_8f_source.html#l00123">123</a> of file <a class="el" href="pprofile___t_8f_source.html">pprofile_T.f</a>.</p>
+<p>Definition at line <a class="el" href="pprofile___t_8f_source.html#l00139">139</a> of file <a class="el" href="pprofile___t_8f_source.html">pprofile_T.f</a>.</p>
 </div><hr/>The documentation for this type was generated from the following file:<ul>
 <li>/Users/m4c/repo/trunk/V3FITA/Sources/<a class="el" href="pprofile___t_8f_source.html">pprofile_T.f</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Nov 28 2017 10:22:18 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Mon Mar 26 2018 17:40:04 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

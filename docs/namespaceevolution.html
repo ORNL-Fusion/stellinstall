@@ -107,12 +107,16 @@ subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href
 <tr class="memdesc:ae946c887aee3d4b139ce34baf770b8e0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initializes variables and pointers prior to calling evolve. <br /></td></tr>
 <tr class="separator:ae946c887aee3d4b139ce34baf770b8e0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3c5e3b0fa31ea6be4fa7909f1921fd90"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceevolution.html#a3c5e3b0fa31ea6be4fa7909f1921fd90">init_ptrs</a> (xtarget, ptr1, ptr2, ptr3, ptr4, ptr5, ptr6)</td></tr>
-<tr class="memdesc:a3c5e3b0fa31ea6be4fa7909f1921fd90"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initializes pointers for xc (dependent variables) and gc (force) arrays.  <a href="#a3c5e3b0fa31ea6be4fa7909f1921fd90">More...</a><br /></td></tr>
+<tr class="memdesc:a3c5e3b0fa31ea6be4fa7909f1921fd90"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initializes pointers for xc (displacement variables) and gc (force) arrays.  <a href="#a3c5e3b0fa31ea6be4fa7909f1921fd90">More...</a><br /></td></tr>
 <tr class="separator:a3c5e3b0fa31ea6be4fa7909f1921fd90"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae711f2b15204355c611e155585613d97"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ae711f2b15204355c611e155585613d97"></a>
 subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceevolution.html#ae711f2b15204355c611e155585613d97">evolve</a></td></tr>
 <tr class="memdesc:ae711f2b15204355c611e155585613d97"><td class="mdescLeft">&#160;</td><td class="mdescRight">Evolves one step toward MHD equilibrium. <br /></td></tr>
 <tr class="separator:ae711f2b15204355c611e155585613d97"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aee67ee5f9152b6795cffc29a2327b599"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aee67ee5f9152b6795cffc29a2327b599"></a>
+subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceevolution.html#aee67ee5f9152b6795cffc29a2327b599">write_bounds</a> (vsupXmn, fsubXmn, vlabel, flabel)</td></tr>
+<tr class="memdesc:aee67ee5f9152b6795cffc29a2327b599"><td class="mdescLeft">&#160;</td><td class="mdescRight">Writes maximum values for velocity/forces and radial,m,n, locations. <br /></td></tr>
+<tr class="separator:aee67ee5f9152b6795cffc29a2327b599"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1fee92a34a5cf33d27b6ad32cae480ef"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a1fee92a34a5cf33d27b6ad32cae480ef"></a>
 subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceevolution.html#a1fee92a34a5cf33d27b6ad32cae480ef">conjugate_grad</a> (ftol)</td></tr>
 <tr class="memdesc:a1fee92a34a5cf33d27b6ad32cae480ef"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parallel routine to evolve state toward equilibrium, using Conjugate Gradients. <br /></td></tr>
@@ -135,10 +139,6 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceevolution.html#a103e1de71de4ceb6c351593beea2e160">ncongrad_steps</a> = 100</td></tr>
 <tr class="memdesc:a103e1de71de4ceb6c351593beea2e160"><td class="mdescLeft">&#160;</td><td class="mdescRight">max number of conj grad steps <br /></td></tr>
 <tr class="separator:a103e1de71de4ceb6c351593beea2e160"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a307b32c6e601f008ee9e3ca8c188cfb6"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a307b32c6e601f008ee9e3ca8c188cfb6"></a>
-logical, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceevolution.html#a307b32c6e601f008ee9e3ca8c188cfb6">l_hess_sym</a> =.FALSE.</td></tr>
-<tr class="memdesc:a307b32c6e601f008ee9e3ca8c188cfb6"><td class="mdescLeft">&#160;</td><td class="mdescRight">forces symmetrization of Hessian if TRUE <br /></td></tr>
-<tr class="separator:a307b32c6e601f008ee9e3ca8c188cfb6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4dbc81c69b7b28fcc07b0db6efe43777"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a4dbc81c69b7b28fcc07b0db6efe43777"></a>
 logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceevolution.html#a4dbc81c69b7b28fcc07b0db6efe43777">l_epar</a></td></tr>
 <tr class="memdesc:a4dbc81c69b7b28fcc07b0db6efe43777"><td class="mdescLeft">&#160;</td><td class="mdescRight">=TRUE when applying parallel tearing perturbations <br /></td></tr>
@@ -246,7 +246,7 @@ integer(kind=selected_int_kind(10)), dimension(1048)&#160;</td><td class="memIte
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="evolution_8f90_source.html#l00108">108</a> of file <a class="el" href="evolution_8f90_source.html">evolution.f90</a>.</p>
+<p>Definition at line <a class="el" href="evolution_8f90_source.html#l00114">114</a> of file <a class="el" href="evolution_8f90_source.html">evolution.f90</a>.</p>
 
 </div>
 </div>
@@ -283,7 +283,7 @@ integer(kind=selected_int_kind(10)), dimension(1048)&#160;</td><td class="memIte
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="evolution_8f90_source.html#l00052">52</a> of file <a class="el" href="evolution_8f90_source.html">evolution.f90</a>.</p>
+<p>Definition at line <a class="el" href="evolution_8f90_source.html#l00051">51</a> of file <a class="el" href="evolution_8f90_source.html">evolution.f90</a>.</p>
 
 </div>
 </div>
@@ -341,10 +341,10 @@ integer(kind=selected_int_kind(10)), dimension(1048)&#160;</td><td class="memIte
       </table>
 </div><div class="memdoc">
 
-<p>Initializes pointers for xc (dependent variables) and gc (force) arrays. </p>
+<p>Initializes pointers for xc (displacement variables) and gc (force) arrays. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">xtarget</td><td>input 3D, 2 3-component arrays</td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">xtarget</td><td>input 3D, ndims-component arrays</td></tr>
     <tr><td class="paramdir"></td><td class="paramname">ptr4</td><td>1st (s) array subsection (lasym=F,T)</td></tr>
     <tr><td class="paramdir"></td><td class="paramname">ptr5</td><td>2nd (u) array subsection</td></tr>
     <tr><td class="paramdir"></td><td class="paramname">ptr6</td><td>3rd (v) array subsection </td></tr>
@@ -352,14 +352,14 @@ integer(kind=selected_int_kind(10)), dimension(1048)&#160;</td><td class="memIte
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="evolution_8f90_source.html#l00265">265</a> of file <a class="el" href="evolution_8f90_source.html">evolution.f90</a>.</p>
+<p>Definition at line <a class="el" href="evolution_8f90_source.html#l00270">270</a> of file <a class="el" href="evolution_8f90_source.html">evolution.f90</a>.</p>
 
 </div>
 </div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Nov 28 2017 10:22:17 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Mon Mar 26 2018 17:40:03 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

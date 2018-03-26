@@ -18,5 +18,6 @@ var searchData=
   ['fletcher_5freeves',['fletcher_reeves',['../namespacef1dim__mod.html#a2a65481cee519ad72674cee95c616865',1,'f1dim_mod']]],
   ['forwardsolve',['forwardsolve',['../namespaceblocktridiagonalsolver__s.html#a6af7ba06cb1dd0dd3343ac1bf5d70425',1,'blocktridiagonalsolver_s::forwardsolve()'],['../namespaceblocktridiagonalsolver.html#a71c7cd77b88f69d66d1f8530da364d37',1,'blocktridiagonalsolver::forwardsolve()']]],
   ['forwardupdateb',['forwardupdateb',['../namespaceblocktridiagonalsolver__s.html#a973983b97b99197eabb25e3cb8fc8349',1,'blocktridiagonalsolver_s::forwardupdateb()'],['../namespaceblocktridiagonalsolver.html#ae6f08183c5553e738dee3cffa5210dd5',1,'blocktridiagonalsolver::forwardupdateb()']]],
-  ['funct_5fisland',['funct_island',['../namespaceshared__functions.html#acf4798ab31263a8a1958a5d83da6cadc',1,'shared_functions']]]
+  ['funct_5fisland',['funct_island',['../namespaceshared__functions.html#acf4798ab31263a8a1958a5d83da6cadc',1,'shared_functions']]],
+  ['function_5ftest',['function_test',['../namespacefunctions.html#a4b77cadc047047e5d4ad957eef187b7d',1,'functions']]]
 ];

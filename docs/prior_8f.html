@@ -110,6 +110,9 @@ Data Types</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfaceprior_1_1prior__construct.html">prior::prior_construct</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface for the construction of <a class="el" href="structprior_1_1prior__class.html">prior_class</a> types using <a class="el" href="interfaceprior_1_1prior__construct.html#a4360be82cf3aa41903d429731e86c129">prior_construct_gaussian</a>.  <a href="interfaceprior_1_1prior__construct.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfaceprior_1_1prior__get__gp.html">prior::prior_get_gp</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface to get the guassian process kernel values.  <a href="interfaceprior_1_1prior__get__gp.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="namespaces"></a>
 Modules</h2></td></tr>
@@ -137,6 +140,15 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:ac89abe5d617ed2dc3166f91b1e40a69c"><td class="memItemLeft" align="right" valign="top">character(len=data_name_length) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceprior.html#ac89abe5d617ed2dc3166f91b1e40a69c">prior::prior_get_prior_type</a> (this)</td></tr>
 <tr class="memdesc:ac89abe5d617ed2dc3166f91b1e40a69c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets a discription of the prior type.  <a href="namespaceprior.html#ac89abe5d617ed2dc3166f91b1e40a69c">More...</a><br /></td></tr>
 <tr class="separator:ac89abe5d617ed2dc3166f91b1e40a69c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a39af975b9916b4358d425a8e634b7bee"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceprior.html#a39af975b9916b4358d425a8e634b7bee">prior::prior_get_gp_i</a> (this, a_model, i, scale_factor)</td></tr>
+<tr class="memdesc:a39af975b9916b4358d425a8e634b7bee"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the guassian process kernel for a prior and a position.  <a href="namespaceprior.html#a39af975b9916b4358d425a8e634b7bee">More...</a><br /></td></tr>
+<tr class="separator:a39af975b9916b4358d425a8e634b7bee"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab1b872947c826f545d3dba2d4b246b28"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceprior.html#ab1b872947c826f545d3dba2d4b246b28">prior::prior_get_gp_s</a> (this, context, callback, scale_factor)</td></tr>
+<tr class="memdesc:ab1b872947c826f545d3dba2d4b246b28"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the guassian process kernel for a prior and a signal.  <a href="namespaceprior.html#ab1b872947c826f545d3dba2d4b246b28">More...</a><br /></td></tr>
+<tr class="separator:ab1b872947c826f545d3dba2d4b246b28"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a278fa524cc121d5ee5a9b158b3207c19"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceprior.html#a278fa524cc121d5ee5a9b158b3207c19">prior::prior_get_gp_x</a> (this, a_model, x_cart, scale_factor)</td></tr>
+<tr class="memdesc:a278fa524cc121d5ee5a9b158b3207c19"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the guassian process kernel for a prior and a cartesian position.  <a href="namespaceprior.html#a278fa524cc121d5ee5a9b158b3207c19">More...</a><br /></td></tr>
+<tr class="separator:a278fa524cc121d5ee5a9b158b3207c19"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a89aec9620da7cff96aa976298baee2f9"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceprior.html#a89aec9620da7cff96aa976298baee2f9">prior::prior_write_auxiliary</a> (this, iou, index, a_model)</td></tr>
 <tr class="memdesc:a89aec9620da7cff96aa976298baee2f9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Write out auxiliary signal information to an output file.  <a href="namespaceprior.html#a89aec9620da7cff96aa976298baee2f9">More...</a><br /></td></tr>
 <tr class="separator:a89aec9620da7cff96aa976298baee2f9"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -159,7 +171,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Nov 28 2017 10:22:17 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Mon Mar 26 2018 17:40:02 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

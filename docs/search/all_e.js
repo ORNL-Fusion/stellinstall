@@ -2,7 +2,7 @@ var searchData=
 [
   ['observed',['observed',['../structsignal_1_1signal__class.html#aa5950221a08dd382a96b139e4ddafb32',1,'signal::signal_class']]],
   ['observed_5fsigma',['observed_sigma',['../structsignal_1_1signal__class.html#a10a2ce7dcc4fa80ba85d732c2b41336f',1,'signal::signal_class']]],
-  ['offset',['offset',['../namespaceline__segment.html#a0cf0121553fa4a68435b32d108a07939',1,'line_segment']]],
+  ['offset',['offset',['../structbmw__parallel__context_1_1bmw__parallel__context__class.html#a0fb1d6fe9d80ca447889ee89487cadf6',1,'bmw_parallel_context::bmw_parallel_context_class::offset()'],['../namespaceline__segment.html#a0cf0121553fa4a68435b32d108a07939',1,'line_segment::offset()']]],
   ['ofu',['ofu',['../namespaceblocktridiagonalsolver__s.html#aff60dbb9b188eee603b48570b747ec70',1,'blocktridiagonalsolver_s::ofu()'],['../namespaceblocktridiagonalsolver.html#a76d4eaa74a8673aac4a134db88b2e1b1',1,'blocktridiagonalsolver::ofu()']]],
   ['omega',['omega',['../structmse_1_1mse__class.html#abf55280b982c9b99ac7ad87f628429de',1,'mse::mse_class']]],
   ['on_5fedge',['on_edge',['../structlimiter_1_1limiter__class.html#acc47d59bce2c2ac652f7fe31a5188c1a',1,'limiter::limiter_class']]],

@@ -1,6 +1,7 @@
 var searchData=
 [
   ['gather_5farray',['gather_array',['../interfacehessian_1_1gather__array.html',1,'hessian']]],
+  ['gaussp_5fclass',['gaussp_class',['../structsignal_1_1gaussp__class.html',1,'signal']]],
   ['genxpkg',['genxpkg',['../interfacepspline__calls_1_1genxpkg.html',1,'pspline_calls']]],
   ['geometric_5fclass',['geometric_class',['../structgeometric_1_1geometric__class.html',1,'geometric']]],
   ['geometric_5fconstruct',['geometric_construct',['../interfacegeometric_1_1geometric__construct.html',1,'geometric']]],

@@ -102,7 +102,9 @@ Dimensions</h1>
 <tr>
 <td width="20%"><code>model_grid_size</code></td><td width="50%">Size of the radial profile grids</td><td width="30%"><a class="el" href="namespaceequilibrium.html#a5e269ab9a6543c2c2dd4900ae96c19b8">equilibrium::equilibrium_get_grid_size</a> </td></tr>
 <tr>
-<td width="20%"><code>model_num_sxrem</code></td><td width="50%">Number of soft x-ray emissivity profiles.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a49dfa7a9aa91776ed19b56854321ec64">v3fit_input::v3fit_max_sxrem_profiles</a> </td></tr>
+<td width="20%"><code>model_num_sxrem</code></td><td width="50%">Number of soft x-ray emissivity profiles.</td><td width="30%">v3fit_input::v3fit_max_sxrem_profiles </td></tr>
+<tr>
+<td width="20%"><code>model_num_coosig_w</code></td><td width="50%">Number of combination signal weights.</td><td width="30%"><a class="el" href="structmodel_1_1model__class.html#a631c6dc717db9be92f2a4054283e2627">model::model_class::coosig_wgts</a> </td></tr>
 </table>
 <h1><a class="anchor" id="result_file_model_var_sec"></a>
 Variables</h1>
@@ -116,6 +118,8 @@ Variables</h1>
 <tr>
 <td width="20%"><code>model_te_type (string_len)</code></td><td width="50%">Discription of the electron temperature model.</td><td width="30%"><a class="el" href="structmodel_1_1model__class.html#a643ab844758277b242ebde4524cbf2a6">model::model_class::te_type</a> </td></tr>
 <tr>
+<td width="20%"><code>model_ze_type (string_len)</code></td><td width="50%">Discription of the effective charge model.</td><td width="30%"><a class="el" href="structmodel_1_1model__class.html#a12465231eac2cd87a18ef57d9a19a831">model::model_class::ze_type</a> </td></tr>
+<tr>
 <td width="20%"><code>model_sxrem_type (string_len, model_num_sxrem)</code></td><td width="50%">Discription of the soft x-ray emissivity model.</td><td width="30%"><a class="el" href="structmodel_1_1model__class.html#ab51bbd264336563e4acece72fb009430">model::model_class::sxrem_type</a> </td></tr>
 <tr>
 <td width="20%"><code>ne_unit (maxnsteps)</code></td><td width="50%">Electron density unit scaling</td><td width="30%"><a class="el" href="structmodel_1_1model__class.html#ace2ede44f1e935e64dc731326d85b009">model::model_class::ne_unit</a> </td></tr>
@@ -124,7 +128,11 @@ Variables</h1>
 <tr>
 <td width="20%"><code>te_min (maxnsteps)</code></td><td width="50%">Minimum electron temperature</td><td width="30%"><a class="el" href="structmodel_1_1model__class.html#ae4e71bd5e8b60924c3c289b7dcbd3410">model::model_class::te_min</a> </td></tr>
 <tr>
+<td width="20%"><code>ze_min (maxnsteps)</code></td><td width="50%">Minimum effective charge</td><td width="30%"><a class="el" href="structmodel_1_1model__class.html#a9e172b171a7d71ab91edca43cfe7e086">model::model_class::ze_min</a> </td></tr>
+<tr>
 <td width="20%"><code>pressure_fraction (maxnsteps)</code></td><td width="50%">Fractional Pressure</td><td width="30%"><a class="el" href="structmodel_1_1model__class.html#abcc0d9be14123f800b8fec2ed2dda034">model::model_class::pressure_fraction</a> </td></tr>
+<tr>
+<td width="20%"><code>coosig_wgts (num_wgts, maxnsteps)</code></td><td width="50%">Combination Signal Weights</td><td width="30%"><a class="el" href="structmodel_1_1model__class.html#a631c6dc717db9be92f2a4054283e2627">model::model_class::coosig_wgts</a> </td></tr>
 </table>
 <h2><a class="anchor" id="result_file_model_grid_sec"></a>
 Model Profiles</h2>
@@ -134,12 +142,14 @@ Model Profiles</h2>
 <tr>
 <td width="20%"><code>te_grid (model_grid_size, maxnsteps)</code></td><td width="50%">Radial profile of the electron temperature</td><td width="30%"><a class="el" href="structmodel_1_1model__class.html#a9aeefdd06df09cf6343f105c02e13556">model::model_class::te_grid</a> </td></tr>
 <tr>
+<td width="20%"><code>ze_grid (model_grid_size, maxnsteps)</code></td><td width="50%">Radial profile of the effective charge</td><td width="30%"><a class="el" href="structmodel_1_1model__class.html#aeb2cf506fff9866d4654ffb27c18e636">model::model_class::ze_grid</a> </td></tr>
+<tr>
 <td width="20%"><code>sxrem_grid (model_grid_size, model_num_sxrem, maxnsteps)</code></td><td width="50%">Radial profile of the soft x-ray emissivity</td><td width="30%"><a class="el" href="structmodel_1_1model__class.html#a2ef64f2a8cc0059e1539ce915434d50d">model::model_class::sxrem_grid</a> </td></tr>
 </table>
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Nov 28 2017 10:22:17 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Mon Mar 26 2018 17:40:03 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

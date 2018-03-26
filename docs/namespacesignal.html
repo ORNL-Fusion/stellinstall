@@ -92,7 +92,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </div><!--header-->
 <div class="contents">
 
-<p>Defines the base class of the type <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> and the base class of <a class="el" href="structsignal_1_1combination__class.html">combination_class</a>.  
+<p>Defines the base class of the type <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> and the base class of <a class="el" href="structsignal_1_1combination__class.html">combination_class</a> and <a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a>.  
 <a href="#details">More...</a></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
@@ -100,11 +100,20 @@ Data Types</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">type &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structsignal_1_1combination__class.html">combination_class</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Base class representing a combination signal.  <a href="structsignal_1_1combination__class.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">type &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Base class representing a gaussian process signal.  <a href="structsignal_1_1gaussp__class.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">type &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structsignal_1_1signal__class.html">signal_class</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Base class representing a signal.  <a href="structsignal_1_1signal__class.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacesignal_1_1signal__construct.html">signal_construct</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface for the construction of <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> types using <a class="el" href="namespacesignal.html#a40aabd3af988bc8a541b994d9bc8eb8a">signal_construct_diagnostic</a>, <a class="el" href="namespacesignal.html#a93517a6e879a0fc293f336757f6bf206">signal_construct_geometric</a>, <a class="el" href="namespacesignal.html#a9684aa00c1894451b55bb97f3bd016a2">signal_construct_combination</a> or <a class="el" href="namespacesignal.html#a3fe1fcc27bc02ed7e06fa6507ebad706">signal_construct_diagnostic_netcdf</a>.  <a href="interfacesignal_1_1signal__construct.html#details">More...</a><br /></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface for the construction of <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> types using <a class="el" href="namespacesignal.html#a40aabd3af988bc8a541b994d9bc8eb8a">signal_construct_diagnostic</a>, <a class="el" href="namespacesignal.html#a93517a6e879a0fc293f336757f6bf206">signal_construct_geometric</a>, <a class="el" href="namespacesignal.html#a9684aa00c1894451b55bb97f3bd016a2">signal_construct_combination</a>, <a class="el" href="namespacesignal.html#a200d09a0310f390e8c20108a2e70af79">signal_construct_gaussp</a>, or <a class="el" href="namespacesignal.html#a3fe1fcc27bc02ed7e06fa6507ebad706">signal_construct_diagnostic_netcdf</a>.  <a href="interfacesignal_1_1signal__construct.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacesignal_1_1signal__get__gp.html">signal_get_gp</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface to get the guassian process kernel values.  <a href="interfacesignal_1_1signal__get__gp.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">type &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structsignal_1_1signal__gp__context.html">signal_gp_context</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Structure to hold all memory needed to be sent to the guassian process callback function.  <a href="structsignal_1_1signal__gp__context.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">type &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structsignal_1_1signal__pointer.html">signal_pointer</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pointer to a signal object. Used for creating arrays of signal pointers. This is needed because fortran does not allow arrays of pointers directly.  <a href="structsignal_1_1signal__pointer.html#details">More...</a><br /></td></tr>
@@ -125,11 +134,14 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memdesc:aaf41163c0e25511a22950e55c8d02061"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> containing a <a class="el" href="namespaceprior.html">prior</a> object.  <a href="#aaf41163c0e25511a22950e55c8d02061">More...</a><br /></td></tr>
 <tr class="separator:aaf41163c0e25511a22950e55c8d02061"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9080006002558a43ad8b984269d896bd"><td class="memItemLeft" align="right" valign="top">type(<a class="el" href="structsignal_1_1signal__class.html">signal_class</a>) function, pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#a9080006002558a43ad8b984269d896bd">signal_construct_feedback</a> (feedback_object, s_name,                        </td></tr>
-<tr class="memdesc:a9080006002558a43ad8b984269d896bd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> containing a <a class="el" href="namespaceprior.html">prior</a> object.  <a href="#a9080006002558a43ad8b984269d896bd">More...</a><br /></td></tr>
+<tr class="memdesc:a9080006002558a43ad8b984269d896bd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> containing a <a class="el" href="namespacefeedback.html">feedback</a> object.  <a href="#a9080006002558a43ad8b984269d896bd">More...</a><br /></td></tr>
 <tr class="separator:a9080006002558a43ad8b984269d896bd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9684aa00c1894451b55bb97f3bd016a2"><td class="memItemLeft" align="right" valign="top">type(<a class="el" href="structsignal_1_1signal__class.html">signal_class</a>) function, pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#a9684aa00c1894451b55bb97f3bd016a2">signal_construct_combination</a> (combination_object, s_name,            </td></tr>
 <tr class="memdesc:a9684aa00c1894451b55bb97f3bd016a2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> containing a <a class="el" href="structsignal_1_1combination__class.html">combination_class</a> object.  <a href="#a9684aa00c1894451b55bb97f3bd016a2">More...</a><br /></td></tr>
 <tr class="separator:a9684aa00c1894451b55bb97f3bd016a2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a200d09a0310f390e8c20108a2e70af79"><td class="memItemLeft" align="right" valign="top">type(<a class="el" href="structsignal_1_1signal__class.html">signal_class</a>) function, pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#a200d09a0310f390e8c20108a2e70af79">signal_construct_gaussp</a> (gaussp_object, s_name, l_name,                </td></tr>
+<tr class="memdesc:a200d09a0310f390e8c20108a2e70af79"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> containing a <a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a> object.  <a href="#a200d09a0310f390e8c20108a2e70af79">More...</a><br /></td></tr>
+<tr class="separator:a200d09a0310f390e8c20108a2e70af79"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3fe1fcc27bc02ed7e06fa6507ebad706"><td class="memItemLeft" align="right" valign="top">type(<a class="el" href="structsignal_1_1signal__class.html">signal_class</a>) function, pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#a3fe1fcc27bc02ed7e06fa6507ebad706">signal_construct_diagnostic_netcdf</a> (diagnostic_object,                  </td></tr>
 <tr class="memdesc:a3fe1fcc27bc02ed7e06fa6507ebad706"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> containing a <a class="el" href="namespacediagnostic.html">diagnostic</a> object.  <a href="#a3fe1fcc27bc02ed7e06fa6507ebad706">More...</a><br /></td></tr>
 <tr class="separator:a3fe1fcc27bc02ed7e06fa6507ebad706"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -157,6 +169,15 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:a85f7f9917dee5ed1b9e34f79aa2c0559"><td class="memItemLeft" align="right" valign="top">function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#a85f7f9917dee5ed1b9e34f79aa2c0559">signal_get_header</a> (this)</td></tr>
 <tr class="memdesc:a85f7f9917dee5ed1b9e34f79aa2c0559"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets a discription of the model and model sigma array indices.  <a href="#a85f7f9917dee5ed1b9e34f79aa2c0559">More...</a><br /></td></tr>
 <tr class="separator:a85f7f9917dee5ed1b9e34f79aa2c0559"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a213b8c96e1e8dbdf485dff6f7289ca79"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#a213b8c96e1e8dbdf485dff6f7289ca79">signal_get_gp_i</a> (this, a_model, i)</td></tr>
+<tr class="memdesc:a213b8c96e1e8dbdf485dff6f7289ca79"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the guassian process kernel for a signal and a position.  <a href="#a213b8c96e1e8dbdf485dff6f7289ca79">More...</a><br /></td></tr>
+<tr class="separator:a213b8c96e1e8dbdf485dff6f7289ca79"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a262f5477f92f37f2eb6260c7642b85d1"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#a262f5477f92f37f2eb6260c7642b85d1">signal_get_gp_s</a> (this, a_model, signal)</td></tr>
+<tr class="memdesc:a262f5477f92f37f2eb6260c7642b85d1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the guassian process kernel for a signal and a signal.  <a href="#a262f5477f92f37f2eb6260c7642b85d1">More...</a><br /></td></tr>
+<tr class="separator:a262f5477f92f37f2eb6260c7642b85d1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a768aeb31468c8b636016c99139fe0855"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#a768aeb31468c8b636016c99139fe0855">signal_get_gp_x</a> (this, a_model, x_cart)</td></tr>
+<tr class="memdesc:a768aeb31468c8b636016c99139fe0855"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the guassian process kernel for a signal and cartesian position.  <a href="#a768aeb31468c8b636016c99139fe0855">More...</a><br /></td></tr>
+<tr class="separator:a768aeb31468c8b636016c99139fe0855"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a50e9ee1ee19308a6af369824194e64ac"><td class="memItemLeft" align="right" valign="top">character(len=data_short_name_length) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#a50e9ee1ee19308a6af369824194e64ac">signal_make_short_name</a> (name, index)</td></tr>
 <tr class="memdesc:a50e9ee1ee19308a6af369824194e64ac"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate a short name by appending an index.  <a href="#a50e9ee1ee19308a6af369824194e64ac">More...</a><br /></td></tr>
 <tr class="separator:a50e9ee1ee19308a6af369824194e64ac"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -169,21 +190,30 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:ae40bcae556e7b36ae9159493e0a3370d"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#ae40bcae556e7b36ae9159493e0a3370d">signals_write_auxiliary</a> (this, iou, index, a_model)</td></tr>
 <tr class="memdesc:ae40bcae556e7b36ae9159493e0a3370d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Write out any auxiliary signal information to an output file.  <a href="#ae40bcae556e7b36ae9159493e0a3370d">More...</a><br /></td></tr>
 <tr class="separator:ae40bcae556e7b36ae9159493e0a3370d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a91a546821ae5985514bd105002889ef9"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#a91a546821ae5985514bd105002889ef9">signal_kll_callback_p</a> (context, xcart, dxcart, length, dx)</td></tr>
+<tr class="memdesc:a91a546821ae5985514bd105002889ef9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Call back function to generate the kll kernal matrix.  <a href="#a91a546821ae5985514bd105002889ef9">More...</a><br /></td></tr>
+<tr class="separator:a91a546821ae5985514bd105002889ef9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab12dd491d492f1104ffaa77bf8ebe153"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#ab12dd491d492f1104ffaa77bf8ebe153">signal_kll_callback_i</a> (context, index)</td></tr>
+<tr class="memdesc:ab12dd491d492f1104ffaa77bf8ebe153"><td class="mdescLeft">&#160;</td><td class="mdescRight">Call back function to generate the kll kernal matrix.  <a href="#ab12dd491d492f1104ffaa77bf8ebe153">More...</a><br /></td></tr>
+<tr class="separator:ab12dd491d492f1104ffaa77bf8ebe153"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8b8fe41ae801402fc14b99b87c8d8c1d"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#a8b8fe41ae801402fc14b99b87c8d8c1d">signal_write_step_data</a> (this, a_model, result_ncid,                    </td></tr>
 <tr class="memdesc:a8b8fe41ae801402fc14b99b87c8d8c1d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Write out the signal data for a step to the result netcdf file.  <a href="#a8b8fe41ae801402fc14b99b87c8d8c1d">More...</a><br /></td></tr>
 <tr class="separator:a8b8fe41ae801402fc14b99b87c8d8c1d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ade7bed9871394e4ee815fb072eb01d53"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#ade7bed9871394e4ee815fb072eb01d53">signal_sync_child</a> (this, index, recon_comm)</td></tr>
 <tr class="memdesc:ade7bed9871394e4ee815fb072eb01d53"><td class="mdescLeft">&#160;</td><td class="mdescRight">Syncronize a child signal state to the parent.  <a href="#ade7bed9871394e4ee815fb072eb01d53">More...</a><br /></td></tr>
 <tr class="separator:ade7bed9871394e4ee815fb072eb01d53"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a59e74c72b6c7947bee1a9d3c72dd6645"><td class="memItemLeft" align="right" valign="top">type(<a class="el" href="structsignal_1_1combination__class.html">combination_class</a>) function, pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#a59e74c72b6c7947bee1a9d3c72dd6645">combination_construct</a> (n_signals, combination_type)</td></tr>
-<tr class="memdesc:a59e74c72b6c7947bee1a9d3c72dd6645"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a <a class="el" href="structsignal_1_1combination__class.html">combination_class</a>.  <a href="#a59e74c72b6c7947bee1a9d3c72dd6645">More...</a><br /></td></tr>
-<tr class="separator:a59e74c72b6c7947bee1a9d3c72dd6645"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a415bc5562cf09c2fc8dda9dcaeb75e54"><td class="memItemLeft" align="right" valign="top">type(<a class="el" href="structsignal_1_1combination__class.html">combination_class</a>) function, pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#a415bc5562cf09c2fc8dda9dcaeb75e54">combination_construct</a> (n_signals, combination_type,                        </td></tr>
+<tr class="memdesc:a415bc5562cf09c2fc8dda9dcaeb75e54"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a <a class="el" href="structsignal_1_1combination__class.html">combination_class</a>.  <a href="#a415bc5562cf09c2fc8dda9dcaeb75e54">More...</a><br /></td></tr>
+<tr class="separator:a415bc5562cf09c2fc8dda9dcaeb75e54"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad82c507e4ddedab54792580fc1622497"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#ad82c507e4ddedab54792580fc1622497">combination_destruct</a> (this)</td></tr>
 <tr class="memdesc:ad82c507e4ddedab54792580fc1622497"><td class="mdescLeft">&#160;</td><td class="mdescRight">Deconstruct a <a class="el" href="structsignal_1_1combination__class.html">combination_class</a> object.  <a href="#ad82c507e4ddedab54792580fc1622497">More...</a><br /></td></tr>
 <tr class="separator:ad82c507e4ddedab54792580fc1622497"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa4d42eeb271034a6a6f05252c92431a9"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#aa4d42eeb271034a6a6f05252c92431a9">combination_set_signal</a> (this, signal, a, index)</td></tr>
 <tr class="memdesc:aa4d42eeb271034a6a6f05252c92431a9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the object and coefficient for an index.  <a href="#aa4d42eeb271034a6a6f05252c92431a9">More...</a><br /></td></tr>
 <tr class="separator:aa4d42eeb271034a6a6f05252c92431a9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a835506c310b2b2c0b78219db1841e6d7"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#a835506c310b2b2c0b78219db1841e6d7">combination_set_weight</a> (this, a_model)</td></tr>
+<tr class="memdesc:a835506c310b2b2c0b78219db1841e6d7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sets the weight factors from from the weight index.  <a href="#a835506c310b2b2c0b78219db1841e6d7">More...</a><br /></td></tr>
+<tr class="separator:a835506c310b2b2c0b78219db1841e6d7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab316aec040ea6ab927ade09ba58dad3b"><td class="memItemLeft" align="right" valign="top">real(rprec) function, dimension(4)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#ab316aec040ea6ab927ade09ba58dad3b">combination_get_modeled_signal</a> (this, a_model, sigma,                    </td></tr>
 <tr class="memdesc:ab316aec040ea6ab927ade09ba58dad3b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculates the modeled signal.  <a href="#ab316aec040ea6ab927ade09ba58dad3b">More...</a><br /></td></tr>
 <tr class="separator:ab316aec040ea6ab927ade09ba58dad3b"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -196,6 +226,27 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:abd6e0ff4c80dfad8059d9da3282b967f"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#abd6e0ff4c80dfad8059d9da3282b967f">combination_write_auxiliary</a> (this, iou, index)</td></tr>
 <tr class="memdesc:abd6e0ff4c80dfad8059d9da3282b967f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Write out auxiliary signal information to an output file.  <a href="#abd6e0ff4c80dfad8059d9da3282b967f">More...</a><br /></td></tr>
 <tr class="separator:abd6e0ff4c80dfad8059d9da3282b967f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab599d7d38431eb0e426819669b1febba"><td class="memItemLeft" align="right" valign="top">type(<a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a>) function, pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#ab599d7d38431eb0e426819669b1febba">gaussp_construct</a> (n_signals, eq, gaussp_type,                                    </td></tr>
+<tr class="memdesc:ab599d7d38431eb0e426819669b1febba"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a <a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a>.  <a href="#ab599d7d38431eb0e426819669b1febba">More...</a><br /></td></tr>
+<tr class="separator:ab599d7d38431eb0e426819669b1febba"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6e3d8ebbc88349ee10ec650b4718edde"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#a6e3d8ebbc88349ee10ec650b4718edde">gaussp_destruct</a> (this)</td></tr>
+<tr class="memdesc:a6e3d8ebbc88349ee10ec650b4718edde"><td class="mdescLeft">&#160;</td><td class="mdescRight">Deconstruct a <a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a> object.  <a href="#a6e3d8ebbc88349ee10ec650b4718edde">More...</a><br /></td></tr>
+<tr class="separator:a6e3d8ebbc88349ee10ec650b4718edde"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6854437d5c7b82bd5855f59c44cd7db8"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#a6854437d5c7b82bd5855f59c44cd7db8">gaussp_set_signal</a> (this, signal, index)</td></tr>
+<tr class="memdesc:a6854437d5c7b82bd5855f59c44cd7db8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the object and coefficient for an index.  <a href="#a6854437d5c7b82bd5855f59c44cd7db8">More...</a><br /></td></tr>
+<tr class="separator:a6854437d5c7b82bd5855f59c44cd7db8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a853d44800e52783d10259098cd43f0e8"><td class="memItemLeft" align="right" valign="top">real(rprec) function, dimension(4)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#a853d44800e52783d10259098cd43f0e8">gaussp_get_modeled_signal</a> (this, a_model, sigma,                              </td></tr>
+<tr class="memdesc:a853d44800e52783d10259098cd43f0e8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculates the modeled signal.  <a href="#a853d44800e52783d10259098cd43f0e8">More...</a><br /></td></tr>
+<tr class="separator:a853d44800e52783d10259098cd43f0e8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a551dc45e9139781ecc7401521dfb80a2"><td class="memItemLeft" align="right" valign="top">character(len=data_name_length) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#a551dc45e9139781ecc7401521dfb80a2">gaussp_get_signal_type</a> (this)</td></tr>
+<tr class="memdesc:a551dc45e9139781ecc7401521dfb80a2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets a discription of the gaussian process type.  <a href="#a551dc45e9139781ecc7401521dfb80a2">More...</a><br /></td></tr>
+<tr class="separator:a551dc45e9139781ecc7401521dfb80a2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5ab421d78927e3503dfa2b80c451557d"><td class="memItemLeft" align="right" valign="top">function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#a5ab421d78927e3503dfa2b80c451557d">gaussp_get_header</a> (this)</td></tr>
+<tr class="memdesc:a5ab421d78927e3503dfa2b80c451557d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets a discription of the model and model sigma array indices.  <a href="#a5ab421d78927e3503dfa2b80c451557d">More...</a><br /></td></tr>
+<tr class="separator:a5ab421d78927e3503dfa2b80c451557d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a84c724fb1ffcdbbe3965a0bfcc9871f3"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#a84c724fb1ffcdbbe3965a0bfcc9871f3">gaussp_write_auxiliary</a> (this, iou, index)</td></tr>
+<tr class="memdesc:a84c724fb1ffcdbbe3965a0bfcc9871f3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Write out auxiliary signal information to an output file.  <a href="#a84c724fb1ffcdbbe3965a0bfcc9871f3">More...</a><br /></td></tr>
+<tr class="separator:a84c724fb1ffcdbbe3965a0bfcc9871f3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
@@ -223,8 +274,12 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#aa9cec11b05b4a7068e302304acd1c3ee">signal_combination_type</a> = 4</td></tr>
 <tr class="memdesc:aa9cec11b05b4a7068e302304acd1c3ee"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type descriptor for the <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> subclass <a class="el" href="structsignal_1_1combination__class.html">combination_class</a>. <br /></td></tr>
 <tr class="separator:aa9cec11b05b4a7068e302304acd1c3ee"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad1e8b292559527d1fdce07f1a8de5261"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad1e8b292559527d1fdce07f1a8de5261"></a>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#ad1e8b292559527d1fdce07f1a8de5261">signal_gaussp_type</a> = 5</td></tr>
+<tr class="memdesc:ad1e8b292559527d1fdce07f1a8de5261"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type descriptor for the <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> subclass <a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a>. <br /></td></tr>
+<tr class="separator:ad1e8b292559527d1fdce07f1a8de5261"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1d4a254238768ea298a71567b509db66"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a1d4a254238768ea298a71567b509db66"></a>
-integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#a1d4a254238768ea298a71567b509db66">combination_type_length</a> = 3</td></tr>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#a1d4a254238768ea298a71567b509db66">combination_type_length</a> = 4</td></tr>
 <tr class="memdesc:a1d4a254238768ea298a71567b509db66"><td class="mdescLeft">&#160;</td><td class="mdescRight">Maximum length of the combination type descritpion string. <br /></td></tr>
 <tr class="separator:a1d4a254238768ea298a71567b509db66"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2a0424134ad38ac9df85be0bb797f100"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a2a0424134ad38ac9df85be0bb797f100"></a>
@@ -243,14 +298,38 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#a0343db3450922692631ae33a042d8a63">combination_min</a> = 2</td></tr>
 <tr class="memdesc:a0343db3450922692631ae33a042d8a63"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type descriptor for combination type min. <br /></td></tr>
 <tr class="separator:a0343db3450922692631ae33a042d8a63"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adb49d45fc37b7b65a849e60911a8438d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="adb49d45fc37b7b65a849e60911a8438d"></a>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#adb49d45fc37b7b65a849e60911a8438d">combination_wavg</a> = 3</td></tr>
+<tr class="memdesc:adb49d45fc37b7b65a849e60911a8438d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type descriptor for combination type weighted average. <br /></td></tr>
+<tr class="separator:adb49d45fc37b7b65a849e60911a8438d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a16f00d518582d0e7553f03bcf4556cc1"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a16f00d518582d0e7553f03bcf4556cc1"></a>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#a16f00d518582d0e7553f03bcf4556cc1">gaussp_type_length</a> = 10</td></tr>
+<tr class="memdesc:a16f00d518582d0e7553f03bcf4556cc1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Maximum length of the gaussp type descritpion string. <br /></td></tr>
+<tr class="separator:a16f00d518582d0e7553f03bcf4556cc1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a54bed309bfc0c4cd8488e59bcde7d744"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a54bed309bfc0c4cd8488e59bcde7d744"></a>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#a54bed309bfc0c4cd8488e59bcde7d744">gaussp_no_type</a> = -1</td></tr>
+<tr class="memdesc:a54bed309bfc0c4cd8488e59bcde7d744"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type descriptor for the gaussian process type no type. <br /></td></tr>
+<tr class="separator:a54bed309bfc0c4cd8488e59bcde7d744"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab50c1bc0b5968ab7d6d4239f2d62b31c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ab50c1bc0b5968ab7d6d4239f2d62b31c"></a>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#ab50c1bc0b5968ab7d6d4239f2d62b31c">gaussp_sxrem_type</a> = 0</td></tr>
+<tr class="memdesc:ab50c1bc0b5968ab7d6d4239f2d62b31c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type descriptor for the gaussian process sxrem type. <br /></td></tr>
+<tr class="separator:ab50c1bc0b5968ab7d6d4239f2d62b31c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a450796bc79529ac420aaf321b3809f1e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a450796bc79529ac420aaf321b3809f1e"></a>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#a450796bc79529ac420aaf321b3809f1e">gaussp_te_type</a> = 1</td></tr>
+<tr class="memdesc:a450796bc79529ac420aaf321b3809f1e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type descriptor for the gaussian process te type. <br /></td></tr>
+<tr class="separator:a450796bc79529ac420aaf321b3809f1e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a26855e5917965458d06bdefc9ce1f67a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a26855e5917965458d06bdefc9ce1f67a"></a>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesignal.html#a26855e5917965458d06bdefc9ce1f67a">gaussp_ne_type</a> = 2</td></tr>
+<tr class="memdesc:a26855e5917965458d06bdefc9ce1f67a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type descriptor for the gaussian process ne type. <br /></td></tr>
+<tr class="separator:a26855e5917965458d06bdefc9ce1f67a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Defines the base class of the type <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> and the base class of <a class="el" href="structsignal_1_1combination__class.html">combination_class</a>. </p>
-<dl class="section user"><dt></dt><dd>signal Sub Classes: <a class="el" href="namespacediagnostic.html">diagnostic</a>, <a class="el" href="namespacegeometric.html">geometric</a>, <a class="el" href="namespaceprior.html">prior</a>, <a class="el" href="structsignal_1_1combination__class.html">combination_class</a></dd></dl>
-<dl class="section user"><dt></dt><dd>combination Super Class: <a class="el" href="namespacesignal.html">signal</a></dd></dl>
-<dl class="section note"><dt>Note</dt><dd>Combination is defined in the signal module to avoid a circular module dependency. </dd></dl>
+<div class="textblock"><p>Defines the base class of the type <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> and the base class of <a class="el" href="structsignal_1_1combination__class.html">combination_class</a> and <a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a>. </p>
+<dl class="section user"><dt></dt><dd>signal Sub Classes: <a class="el" href="namespacediagnostic.html">diagnostic</a>, <a class="el" href="namespacegeometric.html">geometric</a>, <a class="el" href="namespaceprior.html">prior</a>, <a class="el" href="structsignal_1_1combination__class.html">combination_class</a>, <a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a></dd></dl>
+<dl class="section user"><dt></dt><dd>combination and gaussian process Super Class: <a class="el" href="namespacesignal.html">signal</a></dd></dl>
+<dl class="section note"><dt>Note</dt><dd>Combination and Gaussian process are defined in the signal module to avoid a circular module dependency. </dd></dl>
 </div><h2 class="groupheader">Function/Subroutine Documentation</h2>
-<a class="anchor" id="a59e74c72b6c7947bee1a9d3c72dd6645"></a>
+<a class="anchor" id="a415bc5562cf09c2fc8dda9dcaeb75e54"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -279,13 +358,14 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">n_signals</td><td>Number of signals in this combination. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">combination_type</td><td>The method to combine the signals. Possible value are <a class="el" href="namespacesignal.html#a354c0753d0a8f5fb28f7b84886f4603d">combination_sum</a>, <a class="el" href="namespacesignal.html#a7342da1a1fc568377a192671f8731a16">combination_max</a> and @ ref combination_min </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">combination_type</td><td>The method to combine the signals. Possible values are <a class="el" href="namespacesignal.html#a354c0753d0a8f5fb28f7b84886f4603d">combination_sum</a>, <a class="el" href="namespacesignal.html#a7342da1a1fc568377a192671f8731a16">combination_max</a>, @ ref combination_min and <a class="el" href="namespacesignal.html#adb49d45fc37b7b65a849e60911a8438d">combination_wavg</a> </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">wgt_index</td><td>Index number of the average weighting. </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed <a class="el" href="structsignal_1_1combination__class.html">combination_class</a> object. </dd></dl>
 
-<p>Definition at line <a class="el" href="signal_8f_source.html#l01302">1302</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p>Definition at line <a class="el" href="signal_8f_source.html#l01755">1755</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -313,7 +393,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section note"><dt>Note</dt><dd>The destructors of the signals in the signal array are not called her because the combination signals do not own the memory for those signals. </dd></dl>
 
-<p>Definition at line <a class="el" href="signal_8f_source.html#l01352">1352</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p>Definition at line <a class="el" href="signal_8f_source.html#l01817">1817</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -341,7 +421,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A string describing the model and model sigma array indices. </dd></dl>
 
-<p>Definition at line <a class="el" href="signal_8f_source.html#l01551">1551</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p>Definition at line <a class="el" href="signal_8f_source.html#l02063">2063</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -352,13 +432,13 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
         <tr>
           <td class="memname">real (rprec) function, dimension(4) signal::combination_get_modeled_signal </td>
           <td>(</td>
-          <td class="paramtype">type (<a class="el" href="structsignal_1_1combination__class.html">combination_class</a>), intent(in)&#160;</td>
+          <td class="paramtype">type (<a class="el" href="structsignal_1_1combination__class.html">combination_class</a>), intent(inout)&#160;</td>
           <td class="paramname"><em>this</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">type (<a class="el" href="structmodel_1_1model__class.html">model_class</a>), intent(in)&#160;</td>
+          <td class="paramtype">type (<a class="el" href="structmodel_1_1model__class.html">model_class</a>), intent(inout)&#160;</td>
           <td class="paramname"><em>a_model</em>, </td>
         </tr>
         <tr>
@@ -380,7 +460,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">this</td><td>A <a class="el" href="structsignal_1_1combination__class.html">combination_class</a> instance. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_model</td><td>A <a class="el" href="namespacemodel.html">model</a> instance. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">a_model</td><td>A <a class="el" href="namespacemodel.html">model</a> instance. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">sigma</td><td>The modeled sigma. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">last_value</td><td>Last good value in case the signal did not change. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">scale_factor</td><td>Factor to scale the modeled signal. </td></tr>
@@ -389,7 +469,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The model value. </dd></dl>
 
-<p>Definition at line <a class="el" href="signal_8f_source.html#l01429">1429</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p>Definition at line <a class="el" href="signal_8f_source.html#l01922">1922</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -417,7 +497,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A string describing the magnetic type. </dd></dl>
 
-<p>Definition at line <a class="el" href="signal_8f_source.html#l01511">1511</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p>Definition at line <a class="el" href="signal_8f_source.html#l02020">2020</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -469,7 +549,45 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section note"><dt>Note</dt><dd>Only signals that were created before this combination can be added. Otherwise there it will creat an infinitely recursive loop in <a class="el" href="namespacesignal.html#ab316aec040ea6ab927ade09ba58dad3b">combination_get_modeled_signal</a> </dd></dl>
 
-<p>Definition at line <a class="el" href="signal_8f_source.html#l01390">1390</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p>Definition at line <a class="el" href="signal_8f_source.html#l01855">1855</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a835506c310b2b2c0b78219db1841e6d7"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">subroutine signal::combination_set_weight </td>
+          <td>(</td>
+          <td class="paramtype">type (<a class="el" href="structsignal_1_1combination__class.html">combination_class</a>), intent(inout)&#160;</td>
+          <td class="paramname"><em>this</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">type (<a class="el" href="structmodel_1_1model__class.html">model_class</a>), intent(in)&#160;</td>
+          <td class="paramname"><em>a_model</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Sets the weight factors from from the weight index. </p>
+<p>Only assumed valid when the combination type is weighted average. This also assumes that the average of only two signals.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">this</td><td>A <a class="el" href="structsignal_1_1combination__class.html">combination_class</a> instance. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_model</td><td>A <a class="el" href="namespacemodel.html">model</a> instance. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p>Definition at line <a class="el" href="signal_8f_source.html#l01887">1887</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -514,7 +632,278 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="signal_8f_source.html#l01590">1590</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p>Definition at line <a class="el" href="signal_8f_source.html#l02102">2102</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="ab599d7d38431eb0e426819669b1febba"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">type (<a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a>) function, pointer signal::gaussp_construct </td>
+          <td>(</td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
+          <td class="paramname"><em>n_signals</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">type (<a class="el" href="structequilibrium_1_1equilibrium__class.html">equilibrium_class</a>), intent(in), pointer&#160;</td>
+          <td class="paramname"><em>eq</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">character (len=<a class="el" href="namespacesignal.html#a16f00d518582d0e7553f03bcf4556cc1">gaussp_type_length</a>), intent(in)&#160;</td>
+          <td class="paramname"><em>gaussp_type</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Construct a <a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a>. </p>
+<p>Allocates memory and initializes a <a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a> object. This just allocates the gaussp_class::signals, gaussp_class::a array, and matrixices for the GP computataion. The indices of these arrays are set by <a class="el" href="namespacesignal.html#a6854437d5c7b82bd5855f59c44cd7db8">gaussp_set_signal</a>, and the matrices are calculated in <a class="el" href="namespacesignal.html#a853d44800e52783d10259098cd43f0e8">gaussp_get_modeled_signal</a></p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">n_signals</td><td>Number of signals in this gaussian process. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">eq</td><td>Pointer to the <a class="el" href="structequilibrium_1_1equilibrium__class.html">equilibrium::equilibrium_class</a> model. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">gaussp_type</td><td>The type of profile modeled by the gaussian process. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">profile_index</td><td>Index of the profile of the sxrem profile. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">choleskey_fac</td><td>Value added to diagnoal element to ensure K is PSD. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed <a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a> object. </dd></dl>
+
+<p>Definition at line <a class="el" href="signal_8f_source.html#l02168">2168</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a6e3d8ebbc88349ee10ec650b4718edde"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">subroutine signal::gaussp_destruct </td>
+          <td>(</td>
+          <td class="paramtype">type (<a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a>), pointer&#160;</td>
+          <td class="paramname"><em>this</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Deconstruct a <a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a> object. </p>
+<p>Deallocates memory and uninitializes a <a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a> object.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">this</td><td>A <a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a> instance. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section note"><dt>Note</dt><dd>The destructors of the signals in the signal array are not called her because the gaussian process signals do not own the memory for those signals. </dd></dl>
+
+<p>Definition at line <a class="el" href="signal_8f_source.html#l02239">2239</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a5ab421d78927e3503dfa2b80c451557d"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">function signal::gaussp_get_header </td>
+          <td>(</td>
+          <td class="paramtype">type (<a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a>), intent(in)&#160;</td>
+          <td class="paramname"><em>this</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Gets a discription of the model and model sigma array indices. </p>
+<p>Returns a description of the array indices for use when writting output files.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">this</td><td>A <a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a> instance. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>A string describing the model and model sigma array indices. </dd></dl>
+
+<p>Definition at line <a class="el" href="signal_8f_source.html#l02548">2548</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a853d44800e52783d10259098cd43f0e8"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">real (rprec) function, dimension(4) signal::gaussp_get_modeled_signal </td>
+          <td>(</td>
+          <td class="paramtype">type (<a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a>), intent(inout)&#160;</td>
+          <td class="paramname"><em>this</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">type (<a class="el" href="structmodel_1_1model__class.html">model_class</a>), intent(inout)&#160;</td>
+          <td class="paramname"><em>a_model</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real (rprec), dimension(4), intent(out)&#160;</td>
+          <td class="paramname"><em>sigma</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Calculates the modeled signal. </p>
+<p>This method uses a gaussian process to set a model using the the signals pointed in the gaussp_class::signals array. It then returns the evidence.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">this</td><td>A <a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a> instance. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">a_model</td><td>A <a class="el" href="namespacemodel.html">model</a> instance. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">sigma</td><td>The modeled sigma. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">last_value</td><td>Last good value in case the signal did not change. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">scale_factor</td><td>Factor to scale the modeled signal. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The model value. </dd></dl>
+
+<p>Definition at line <a class="el" href="signal_8f_source.html#l02336">2336</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a551dc45e9139781ecc7401521dfb80a2"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">character (len=data_name_length) function signal::gaussp_get_signal_type </td>
+          <td>(</td>
+          <td class="paramtype">type (<a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a>), intent(in)&#160;</td>
+          <td class="paramname"><em>this</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Gets a discription of the gaussian process type. </p>
+<p>Returns a description of the gaussian process for use when writting output files.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">this</td><td>A <a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a> instance. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>A string describing the gaussian process type. </dd></dl>
+
+<p>Definition at line <a class="el" href="signal_8f_source.html#l02505">2505</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a6854437d5c7b82bd5855f59c44cd7db8"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">subroutine signal::gaussp_set_signal </td>
+          <td>(</td>
+          <td class="paramtype">type (<a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a>), intent(inout)&#160;</td>
+          <td class="paramname"><em>this</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">type (<a class="el" href="structsignal_1_1signal__class.html">signal_class</a>), pointer&#160;</td>
+          <td class="paramname"><em>signal</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
+          <td class="paramname"><em>index</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Set the object and coefficient for an index. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">this</td><td>A <a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a> instance. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">signal</td><td>A <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> instance. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a</td><td>A weight for the signal </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">index</td><td>The index to place the gaussp <a class="el" href="namespacesignal.html">signal</a>. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section note"><dt>Note</dt><dd>Only signals that were created before this gaussian process can be added. Otherwise it will creat an infinitely recursive loop in <a class="el" href="namespacesignal.html#a853d44800e52783d10259098cd43f0e8">gaussp_get_modeled_signal</a> </dd></dl>
+
+<p>Definition at line <a class="el" href="signal_8f_source.html#l02297">2297</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a84c724fb1ffcdbbe3965a0bfcc9871f3"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">subroutine signal::gaussp_write_auxiliary </td>
+          <td>(</td>
+          <td class="paramtype">type (<a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a>), intent(in)&#160;</td>
+          <td class="paramname"><em>this</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
+          <td class="paramname"><em>iou</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
+          <td class="paramname"><em>index</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Write out auxiliary signal information to an output file. </p>
+<p>Writes out the s_name and coefficient of the gaussp signals.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">this</td><td>A <a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a> instance. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">iou</td><td>A input/output representing the file to write to. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">index</td><td>A index of this signal. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p>Definition at line <a class="el" href="signal_8f_source.html#l02587">2587</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -559,7 +948,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> object. </dd></dl>
 
-<p>Definition at line <a class="el" href="signal_8f_source.html#l00434">434</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p>Definition at line <a class="el" href="signal_8f_source.html#l00523">523</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -604,7 +993,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> object. </dd></dl>
 
-<p>Definition at line <a class="el" href="signal_8f_source.html#l00241">241</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p>Definition at line <a class="el" href="signal_8f_source.html#l00330">330</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -637,7 +1026,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> object. </dd></dl>
 
-<p>Definition at line <a class="el" href="signal_8f_source.html#l00481">481</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p>Definition at line <a class="el" href="signal_8f_source.html#l00649">649</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -665,7 +1054,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
       </table>
 </div><div class="memdoc">
 
-<p>Construct a <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> containing a <a class="el" href="namespaceprior.html">prior</a> object. </p>
+<p>Construct a <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> containing a <a class="el" href="namespacefeedback.html">feedback</a> object. </p>
 <p>Allocates memory and initializes a <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> object.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -682,7 +1071,58 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> object. </dd></dl>
 
-<p>Definition at line <a class="el" href="signal_8f_source.html#l00384">384</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p>Definition at line <a class="el" href="signal_8f_source.html#l00473">473</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a200d09a0310f390e8c20108a2e70af79"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">type (<a class="el" href="structsignal_1_1signal__class.html">signal_class</a>) function, pointer signal::signal_construct_gaussp </td>
+          <td>(</td>
+          <td class="paramtype">type (<a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a>), pointer&#160;</td>
+          <td class="paramname"><em>gaussp_object</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">character(len=*), intent(in)&#160;</td>
+          <td class="paramname"><em>s_name</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">character(len=*), intent(in)&#160;</td>
+          <td class="paramname"><em>l_name</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Construct a <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> containing a <a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a> object. </p>
+<p>Allocates memory and initializes a <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> object.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">combination_object</td><td>An instance of a <a class="el" href="structsignal_1_1combination__class.html">combination_class</a> subclass. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">s_name</td><td>The short name of the signal. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">l_name</td><td>The short name of the signal. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">units</td><td>The units of the signal. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">observed</td><td>Observed value of the signal. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">sigma</td><td>Observed sigma of the signal. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">weight</td><td>Weight factor of the signal. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">index</td><td>Index of the model signal scale factor. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> object. </dd></dl>
+
+<p>Definition at line <a class="el" href="signal_8f_source.html#l00573">573</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -727,7 +1167,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> object. </dd></dl>
 
-<p>Definition at line <a class="el" href="signal_8f_source.html#l00289">289</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p>Definition at line <a class="el" href="signal_8f_source.html#l00378">378</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -784,7 +1224,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> object. </dd></dl>
 
-<p>Definition at line <a class="el" href="signal_8f_source.html#l00180">180</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p>Definition at line <a class="el" href="signal_8f_source.html#l00269">269</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -835,7 +1275,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> object. </dd></dl>
 
-<p>Definition at line <a class="el" href="signal_8f_source.html#l00337">337</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p>Definition at line <a class="el" href="signal_8f_source.html#l00426">426</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -862,7 +1302,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="signal_8f_source.html#l00529">529</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p>Definition at line <a class="el" href="signal_8f_source.html#l00697">697</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -879,7 +1319,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">type (<a class="el" href="structmodel_1_1model__class.html">model_class</a>), intent(in)&#160;</td>
+          <td class="paramtype">type (<a class="el" href="structmodel_1_1model__class.html">model_class</a>), intent(inout)&#160;</td>
           <td class="paramname"><em>a_model</em>, </td>
         </tr>
         <tr>
@@ -906,8 +1346,8 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 <p>Gets the e contribution of an individual signal. e = SQRT(W)*(O - M)/SQRT(sigma_o^2 + sigma_m^2)</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">this</td><td>A diagnostic_class instance. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_model</td><td>A <a class="el" href="namespacemodel.html">model</a> instance. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">this</td><td>A diagnostic_class instance. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">a_model</td><td>A <a class="el" href="namespacemodel.html">model</a> instance. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">use_cache</td><td>If the signals have been already calculated this should be false. Otherwise set to true. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">last_value</td><td>Last good value in case the signal did not change. </td></tr>
   </table>
@@ -915,7 +1355,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The e value. </dd></dl>
 
-<p>Definition at line <a class="el" href="signal_8f_source.html#l00774">774</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p>Definition at line <a class="el" href="signal_8f_source.html#l00956">956</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -932,7 +1372,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">type (<a class="el" href="structmodel_1_1model__class.html">model_class</a>), intent(in)&#160;</td>
+          <td class="paramtype">type (<a class="el" href="structmodel_1_1model__class.html">model_class</a>), intent(inout)&#160;</td>
           <td class="paramname"><em>a_model</em>, </td>
         </tr>
         <tr>
@@ -959,8 +1399,8 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 <p>Gets the g^2 contribution of an individual signal. g^2 = W*(O - M)^2/(sigma_o^2 + sigma_m^2) = e*e</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">this</td><td>A diagnostic_class instance. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_model</td><td>A <a class="el" href="namespacemodel.html">model</a> instance. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">this</td><td>A diagnostic_class instance. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">a_model</td><td>A <a class="el" href="namespacemodel.html">model</a> instance. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">use_cache</td><td>If the signals have been already calculated this should be false. Otherwise set to true. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">last_value</td><td>Last good value in case the signal did not change. </td></tr>
   </table>
@@ -968,7 +1408,148 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The g^2 value. </dd></dl>
 
-<p>Definition at line <a class="el" href="signal_8f_source.html#l00735">735</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p>Definition at line <a class="el" href="signal_8f_source.html#l00917">917</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a213b8c96e1e8dbdf485dff6f7289ca79"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">real (rprec) function signal::signal_get_gp_i </td>
+          <td>(</td>
+          <td class="paramtype">type (<a class="el" href="structsignal_1_1signal__class.html">signal_class</a>), intent(in)&#160;</td>
+          <td class="paramname"><em>this</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">type (<a class="el" href="structmodel_1_1model__class.html">model_class</a>), intent(in)&#160;</td>
+          <td class="paramname"><em>a_model</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
+          <td class="paramname"><em>i</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Gets the guassian process kernel for a signal and a position. </p>
+<p>This method is meant to be overwritten by a subclass method. As a result, returns the get_header method of the subclass instance <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> was constructed with. Only <a class="el" href="namespacediagnostic.html">diagnostic</a> signals have an implementation.</p>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="namespacediagnostic.html#a1fa7d303042830e03981890251046add" title="Gets the guassian process kernel for a diagnostic and a position. ">diagnostic::diagnostic_get_gp_i</a></dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">this</td><td>A <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> instance. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_model</td><td>A model_class instance. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">i</td><td>Index of the position for the kernel. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Kernel value for the position and the signal. </dd></dl>
+
+<p>Definition at line <a class="el" href="signal_8f_source.html#l01165">1165</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a262f5477f92f37f2eb6260c7642b85d1"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">real (rprec) function signal::signal_get_gp_s </td>
+          <td>(</td>
+          <td class="paramtype">type (<a class="el" href="structsignal_1_1signal__class.html">signal_class</a>), intent(in)&#160;</td>
+          <td class="paramname"><em>this</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">type (<a class="el" href="structmodel_1_1model__class.html">model_class</a>), intent(in), target&#160;</td>
+          <td class="paramname"><em>a_model</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">type (<a class="el" href="structsignal_1_1signal__class.html">signal_class</a>), intent(in), target&#160;</td>
+          <td class="paramname"><em>signal</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Gets the guassian process kernel for a signal and a signal. </p>
+<p>This method is meant to be overwritten by a subclass method. As a result, returns the get_header method of the subclass instance <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> was constructed with. Only <a class="el" href="namespacediagnostic.html">diagnostic</a> signals have an implementation. The second signal is cast to a void pointer so it can be send to the subclass instance.</p>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="namespacediagnostic.html#a1e9fbbe19b50a54bc57100b6ca812acf" title="Gets the guassian process kernel for a diagnostic and a signal. ">diagnostic::diagnostic_get_gp_s</a></dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">this</td><td>A <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> instance. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_model</td><td>A model_class instance. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">signal</td><td>A <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> instance for the second signal. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Kernel value for the signal and the signal. </dd></dl>
+
+<p>Definition at line <a class="el" href="signal_8f_source.html#l01220">1220</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a768aeb31468c8b636016c99139fe0855"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">real (rprec) function signal::signal_get_gp_x </td>
+          <td>(</td>
+          <td class="paramtype">type (<a class="el" href="structsignal_1_1signal__class.html">signal_class</a>), intent(in)&#160;</td>
+          <td class="paramname"><em>this</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">type (<a class="el" href="structmodel_1_1model__class.html">model_class</a>), intent(in)&#160;</td>
+          <td class="paramname"><em>a_model</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real (rprec), dimension(3), intent(in)&#160;</td>
+          <td class="paramname"><em>x_cart</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Gets the guassian process kernel for a signal and cartesian position. </p>
+<p>This method is meant to be overwritten by a subclass method. As a result, returns the get_header method of the subclass instance <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> was constructed with. Only <a class="el" href="namespacediagnostic.html">diagnostic</a> signals have an implementation.</p>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="namespacediagnostic.html#a57b309362884012e74ebb59b6be7002e" title="Gets the guassian process kernel for a diagnostic and a cartesian position. ">diagnostic::diagnostic_get_gp_x</a></dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">this</td><td>A <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> instance. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">a_model</td><td>A model_class instance. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">x_cart</td><td>The cartesian position of to get the kernel at. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Kernel value for position and the signal. </dd></dl>
+
+<p>Definition at line <a class="el" href="signal_8f_source.html#l01290">1290</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -987,14 +1568,16 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </div><div class="memdoc">
 
 <p>Gets a discription of the model and model sigma array indices. </p>
-<p>This method is meant to be overwritten by a subclass method. As a result, returns the get_header method of the subclass instance diagnostic_class was constructed with.</p>
+<p>This method is meant to be overwritten by a subclass method. As a result, returns the get_header method of the subclass instance <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> was constructed with.</p>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="namespacediagnostic.html#a042c3f05940718762f11b4e35521299f" title="Gets a discription of the model and model sigma array indices. ">diagnostic::diagnostic_get_header</a> </dd>
 <dd>
 <a class="el" href="namespacegeometric.html#ad385e8bf9fa573154a446af9ffc43f08" title="Gets a discription of the model and model sigma array indices. ">geometric::geometric_get_header</a> </dd>
 <dd>
 <a class="el" href="namespaceprior.html#a07cac84e2160ad22bcc0c53733502f8c" title="Gets a discription of the model and model sigma array indices. ">prior::prior_get_header</a> </dd>
 <dd>
-<a class="el" href="namespacesignal.html#ae1fd2b34f785c4f857b5d1d6ae62e424" title="Gets a discription of the model and model sigma array indices. ">combination_get_header</a></dd></dl>
+<a class="el" href="namespacesignal.html#ae1fd2b34f785c4f857b5d1d6ae62e424" title="Gets a discription of the model and model sigma array indices. ">combination_get_header</a> </dd>
+<dd>
+<a class="el" href="namespacesignal.html#a5ab421d78927e3503dfa2b80c451557d" title="Gets a discription of the model and model sigma array indices. ">gaussp_get_header</a></dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">this</td><td>A <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> instance. </td></tr>
@@ -1003,7 +1586,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A string describing the model and model sigma array indices. </dd></dl>
 
-<p>Definition at line <a class="el" href="signal_8f_source.html#l00921">921</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p>Definition at line <a class="el" href="signal_8f_source.html#l01109">1109</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -1020,7 +1603,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">type (<a class="el" href="structmodel_1_1model__class.html">model_class</a>), intent(in)&#160;</td>
+          <td class="paramtype">type (<a class="el" href="structmodel_1_1model__class.html">model_class</a>), intent(inout)&#160;</td>
           <td class="paramname"><em>a_model</em>, </td>
         </tr>
         <tr>
@@ -1045,11 +1628,13 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 <dd>
 <a class="el" href="namespaceprior.html#ae55a68debfab50f9020c7c3a61dbcee0" title="Calculates the modeled signal. ">prior::prior_get_modeled_signal</a> </dd>
 <dd>
-<a class="el" href="namespacesignal.html#ab316aec040ea6ab927ade09ba58dad3b" title="Calculates the modeled signal. ">combination_get_modeled_signal</a></dd></dl>
+<a class="el" href="namespacesignal.html#ab316aec040ea6ab927ade09ba58dad3b" title="Calculates the modeled signal. ">combination_get_modeled_signal</a> </dd>
+<dd>
+<a class="el" href="namespacesignal.html#a853d44800e52783d10259098cd43f0e8" title="Calculates the modeled signal. ">gaussp_get_modeled_signal</a></dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in,out]</td><td class="paramname">this</td><td>A diagnostic_class instance. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_model</td><td>A <a class="el" href="namespacemodel.html">model</a> instance. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">a_model</td><td>A <a class="el" href="namespacemodel.html">model</a> instance. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">sigma</td><td>The modeled sigma. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">use_cache</td><td>If false calculate the signal and sigma and write them them to the cache. Otherwise read from the cache without recalculating the signal. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">last_value</td><td>Last good value in case the signal did not change. </td></tr>
@@ -1058,7 +1643,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The model value. </dd></dl>
 
-<p>Definition at line <a class="el" href="signal_8f_source.html#l00602">602</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p>Definition at line <a class="el" href="signal_8f_source.html#l00776">776</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -1098,7 +1683,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The observed value. </dd></dl>
 
-<p>Definition at line <a class="el" href="signal_8f_source.html#l00691">691</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p>Definition at line <a class="el" href="signal_8f_source.html#l00873">873</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -1127,7 +1712,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 <dl class="section return"><dt>Returns</dt><dd>The e value. </dd></dl>
 <dl class="section note"><dt>Note</dt><dd>this assumes that modeled sigma value has already been cached by a call to <a class="el" href="namespacesignal.html#afc43035be6c36d40f88e05d991777a5a">signal_get_modeled_signal</a> </dd></dl>
 
-<p>Definition at line <a class="el" href="signal_8f_source.html#l00827">827</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p>Definition at line <a class="el" href="signal_8f_source.html#l01009">1009</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -1153,7 +1738,9 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 <dd>
 <a class="el" href="namespaceprior.html#ab2431a9ad1eba0792f32c1e1eeb51818" title="Gets a discription of the prior type. ">prior::prior_get_signal_type</a> </dd>
 <dd>
-<a class="el" href="namespacesignal.html#ad814b8b55f4f8acc911dc6de9930ab1a" title="Gets a discription of the combination type. ">combination_get_signal_type</a></dd></dl>
+<a class="el" href="namespacesignal.html#ad814b8b55f4f8acc911dc6de9930ab1a" title="Gets a discription of the combination type. ">combination_get_signal_type</a> </dd>
+<dd>
+<a class="el" href="namespacesignal.html#a551dc45e9139781ecc7401521dfb80a2" title="Gets a discription of the gaussian process type. ">gaussp_get_signal_type</a></dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">this</td><td>A <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> instance. </td></tr>
@@ -1162,7 +1749,106 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A string describing the signal type. </dd></dl>
 
-<p>Definition at line <a class="el" href="signal_8f_source.html#l00864">864</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p>Definition at line <a class="el" href="signal_8f_source.html#l01047">1047</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="ab12dd491d492f1104ffaa77bf8ebe153"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">real (rprec) function signal::signal_kll_callback_i </td>
+          <td>(</td>
+          <td class="paramtype">character (len=1), dimension(:), intent(in)&#160;</td>
+          <td class="paramname"><em>context</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
+          <td class="paramname"><em>index</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Call back function to generate the kll kernal matrix. </p>
+<p>This is callback function is needed so that the ith signal can call the j signal. Need to pass the <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> as a void pointer otherwise there is a circular dependancy.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">context</td><td>A <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> instance. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">index</td><td>Index of the first position. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The kernel value for the position and the signal. </dd></dl>
+
+<p>Definition at line <a class="el" href="signal_8f_source.html#l01569">1569</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a91a546821ae5985514bd105002889ef9"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">real (rprec) function signal::signal_kll_callback_p </td>
+          <td>(</td>
+          <td class="paramtype">character (len=1), dimension(:), intent(in)&#160;</td>
+          <td class="paramname"><em>context</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real (rprec), dimension(3), intent(in)&#160;</td>
+          <td class="paramname"><em>xcart</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real (rprec), dimension(3), intent(in)&#160;</td>
+          <td class="paramname"><em>dxcart</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real (rprec), intent(in)&#160;</td>
+          <td class="paramname"><em>length</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real (rprec), intent(in)&#160;</td>
+          <td class="paramname"><em>dx</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Call back function to generate the kll kernal matrix. </p>
+<p>This is callback function is needed so that the ith signal can call the j signal. Need to pass the <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> as a void pointer otherwise there is a circular dependancy.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">context</td><td>A <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> instance. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">xcart</td><td>The integration point. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">dxcart</td><td>A vector change in path. Not used in this function. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">length</td><td>Length along the integration. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">dx</td><td>A scalar change in path. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The kernel value for the position and the signal. </dd></dl>
+
+<p>Definition at line <a class="el" href="signal_8f_source.html#l01530">1530</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -1201,7 +1887,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A string an appended string. </dd></dl>
 
-<p>Definition at line <a class="el" href="signal_8f_source.html#l00972">972</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p>Definition at line <a class="el" href="signal_8f_source.html#l01342">1342</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -1246,7 +1932,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="signal_8f_source.html#l01242">1242</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p>Definition at line <a class="el" href="signal_8f_source.html#l01693">1693</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -1275,7 +1961,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">type (<a class="el" href="structmodel_1_1model__class.html">model_class</a>), intent(in)&#160;</td>
+          <td class="paramtype">type (<a class="el" href="structmodel_1_1model__class.html">model_class</a>), intent(inout)&#160;</td>
           <td class="paramname"><em>a_model</em>&#160;</td>
         </tr>
         <tr>
@@ -1293,13 +1979,13 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
     <tr><td class="paramdir">[in,out]</td><td class="paramname">this</td><td>A diagnostic_class instance. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">iou</td><td>A input/output representing the file to write to. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">index</td><td>A index of a signal. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_model</td><td>The equilibrium model. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">a_model</td><td>The equilibrium model. </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section note"><dt>Note</dt><dd>This assumes that signals have already been calculated. The model isn't used by signal_get_g2 since it is reading from the cache but must be passed in anyway. </dd></dl>
 
-<p>Definition at line <a class="el" href="signal_8f_source.html#l01016">1016</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p>Definition at line <a class="el" href="signal_8f_source.html#l01386">1386</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -1338,7 +2024,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section note"><dt>Note</dt><dd>This should only be called when the type of signal changes. </dd></dl>
 
-<p>Definition at line <a class="el" href="signal_8f_source.html#l01068">1068</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p>Definition at line <a class="el" href="signal_8f_source.html#l01438">1438</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -1355,7 +2041,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">type (<a class="el" href="structmodel_1_1model__class.html">model_class</a>), intent(in)&#160;</td>
+          <td class="paramtype">type (<a class="el" href="structmodel_1_1model__class.html">model_class</a>), intent(inout)&#160;</td>
           <td class="paramname"><em>a_model</em>, </td>
         </tr>
         <tr>
@@ -1377,7 +2063,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in,out]</td><td class="paramname">this</td><td>A diagnostic_class instance. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">a_model</td><td>The equilibrium model. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">a_model</td><td>The equilibrium model. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">result_ncid</td><td>A NetCDF id of the result file. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">current_step</td><td>The surrent reconstruction step. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">index</td><td>A index of a signal. </td></tr>
@@ -1388,7 +2074,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section note"><dt>Note</dt><dd>This assumes that signals have already been calculated. The model isn't used by signal_get_g2 since it is reading from the cache but must be passed in anyway. </dd></dl>
 
-<p>Definition at line <a class="el" href="signal_8f_source.html#l01161">1161</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p>Definition at line <a class="el" href="signal_8f_source.html#l01612">1612</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -1430,7 +2116,9 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 
 <p>Write out any auxiliary signal information to an output file. </p>
 <p>This method is meant to be overwritten by a subclass method if need be. As a result, returns the write_auxiliary method of the subclass instance <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> was constructed with. Otherwise uses the default. nothing is written.</p>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="namespacesignal.html#abd6e0ff4c80dfad8059d9da3282b967f" title="Write out auxiliary signal information to an output file. ">combination_write_auxiliary</a></dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="namespacesignal.html#abd6e0ff4c80dfad8059d9da3282b967f" title="Write out auxiliary signal information to an output file. ">combination_write_auxiliary</a> </dd>
+<dd>
+<a class="el" href="namespacesignal.html#a84c724fb1ffcdbbe3965a0bfcc9871f3" title="Write out auxiliary signal information to an output file. ">gaussp_write_auxiliary</a></dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">this</td><td>A <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> instance. </td></tr>
@@ -1441,14 +2129,14 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="signal_8f_source.html#l01107">1107</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p>Definition at line <a class="el" href="signal_8f_source.html#l01478">1478</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Nov 28 2017 10:22:18 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Mon Mar 26 2018 17:40:04 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

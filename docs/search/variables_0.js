@@ -8,10 +8,11 @@ var searchData=
   ['a_5fs_5fr',['a_s_r',['../structmagnetic__response_1_1magnetic__response__class.html#a76fd632be6dad4060b9c1fab0954754f',1,'magnetic_response::magnetic_response_class']]],
   ['a_5fs_5fz',['a_s_z',['../structmagnetic__response_1_1magnetic__response__class.html#a597aba4131b72b900cec3df87cd4aedb',1,'magnetic_response::magnetic_response_class']]],
   ['a_5fz',['a_z',['../structm__grid_1_1m__grid__class.html#ae2909ea0ab845f23ce36ec416667e2b5',1,'m_grid::m_grid_class::a_z()'],['../structunprimed__grid_1_1unprimed__grid__class.html#a924394d134e22c5632b1ba1e2814d430',1,'unprimed_grid::unprimed_grid_class::a_z()']]],
-  ['af',['af',['../structpprofile__t_1_1pprofile__class.html#a5cf7959c9ae0d7eebae02816229e8925',1,'pprofile_t::pprofile_class']]],
+  ['absc',['absc',['../structintegration__path_1_1path__int__class.html#a9c56b254d1218732c9634ae55c737dd8',1,'integration_path::path_int_class']]],
+  ['af',['af',['../structpprofile__t_1_1pprofile__class.html#a8e7c9cbd88e4e2941e041365c593ec69',1,'pprofile_t::pprofile_class']]],
   ['alpha',['alpha',['../structmse_1_1mse__class.html#a7e0bdbfc8e2b9b7740d634403c78e83a',1,'mse::mse_class']]],
   ['arz',['arz',['../structlimiter__iso__t_1_1limiter__iso.html#abe8d54aa503144ad3db3ceec484058be',1,'limiter_iso_t::limiter_iso']]],
-  ['as',['as',['../structpprofile__t_1_1pprofile__class.html#a30c965d1c8664a8d7ca2da176ca4bf94',1,'pprofile_t::pprofile_class']]],
+  ['as',['as',['../structpprofile__t_1_1pprofile__class.html#a93f23406d8927e7b19a6570f8ee4becb',1,'pprofile_t::pprofile_class']]],
   ['astep_5fmax',['astep_max',['../namespacev3fit__input.html#acb9417098adb81002267eb6a99f64562',1,'v3fit_input']]],
   ['average_5ftime',['average_time',['../structprofiler_1_1profiler__bucket.html#a942fc09c0e7ef9d4fe5bf707f12fe56d',1,'profiler::profiler_bucket']]]
 ];

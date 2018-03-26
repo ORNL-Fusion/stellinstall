@@ -104,7 +104,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
 Data Types</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">type &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structm__grid_1_1m__grid__class.html">m_grid::m_grid_class</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Base class representing a primed grid. This is grid the volume integral will be summed over.  <a href="structm__grid_1_1m__grid__class.html#details">More...</a><br /></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Base class representing a m grid. This is grid contains information about the vacuum fields.  <a href="structm__grid_1_1m__grid__class.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="namespaces"></a>
@@ -115,12 +115,18 @@ Modules</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions/Subroutines</h2></td></tr>
-<tr class="memitem:a3f5cd9448dccb87522e80fd13f5739aa"><td class="memItemLeft" align="right" valign="top">type(m_grid_class) function, pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacem__grid.html#a3f5cd9448dccb87522e80fd13f5739aa">m_grid::m_grid_construct</a> (mgrid_file_name)</td></tr>
-<tr class="memdesc:a3f5cd9448dccb87522e80fd13f5739aa"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a <a class="el" href="structm__grid_1_1m__grid__class.html">m_grid_class</a> object.  <a href="namespacem__grid.html#a3f5cd9448dccb87522e80fd13f5739aa">More...</a><br /></td></tr>
-<tr class="separator:a3f5cd9448dccb87522e80fd13f5739aa"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a84313e533e3c22f351dbe2edd30299aa"><td class="memItemLeft" align="right" valign="top">type(m_grid_class) function, pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacem__grid.html#a84313e533e3c22f351dbe2edd30299aa">m_grid::m_grid_construct</a> (mgrid_file_name, parallel)</td></tr>
+<tr class="memdesc:a84313e533e3c22f351dbe2edd30299aa"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a <a class="el" href="structm__grid_1_1m__grid__class.html">m_grid_class</a> object.  <a href="namespacem__grid.html#a84313e533e3c22f351dbe2edd30299aa">More...</a><br /></td></tr>
+<tr class="separator:a84313e533e3c22f351dbe2edd30299aa"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afc2241a933a92830d606b50ca1d5e5c8"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacem__grid.html#afc2241a933a92830d606b50ca1d5e5c8">m_grid::m_grid_destruct</a> (this)</td></tr>
 <tr class="memdesc:afc2241a933a92830d606b50ca1d5e5c8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Deconstruct a <a class="el" href="structm__grid_1_1m__grid__class.html">m_grid_class</a> object.  <a href="namespacem__grid.html#afc2241a933a92830d606b50ca1d5e5c8">More...</a><br /></td></tr>
 <tr class="separator:afc2241a933a92830d606b50ca1d5e5c8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a62165b48e4076f166acd40a1c6b41c11"><td class="memItemLeft" align="right" valign="top">pure subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacem__grid.html#a62165b48e4076f166acd40a1c6b41c11">m_grid::m_grid_interpolate</a> (this, r, phi, z, ar, ap, az)</td></tr>
+<tr class="memdesc:a62165b48e4076f166acd40a1c6b41c11"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interpolate the vector potential at a point.  <a href="namespacem__grid.html#a62165b48e4076f166acd40a1c6b41c11">More...</a><br /></td></tr>
+<tr class="separator:a62165b48e4076f166acd40a1c6b41c11"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8f073c0dd72c25135a69349132dea39e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a8f073c0dd72c25135a69349132dea39e"></a>
+pure real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><b>m_grid::m_grid_intf</b> (w1, w2, x)</td></tr>
+<tr class="separator:a8f073c0dd72c25135a69349132dea39e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Contains module <a class="el" href="namespacem__grid.html">m_grid</a>. </p>
@@ -129,7 +135,7 @@ Functions/Subroutines</h2></td></tr>
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Nov 28 2017 10:22:17 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Mon Mar 26 2018 17:40:02 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

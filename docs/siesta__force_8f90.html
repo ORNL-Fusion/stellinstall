@@ -104,52 +104,67 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="namespaces"></a>
 Modules</h2></td></tr>
 <tr class="memitem:namespacesiesta__force"><td class="memItemLeft" align="right" valign="top">module &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__force.html">siesta_force</a></td></tr>
-<tr class="memdesc:namespacesiesta__force"><td class="mdescLeft">&#160;</td><td class="mdescRight">Update the JxB - Grad(p) force balance. <br /></td></tr>
+<tr class="memdesc:namespacesiesta__force"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute the JxB - Grad(p) covariant force components. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions/Subroutines</h2></td></tr>
-<tr class="memitem:a02e0516a91fb8f6abcd965a1c5037c6c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a02e0516a91fb8f6abcd965a1c5037c6c"></a>
-subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__force.html#a02e0516a91fb8f6abcd965a1c5037c6c">siesta_force::update_force</a></td></tr>
-<tr class="memdesc:a02e0516a91fb8f6abcd965a1c5037c6c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parallel/Serial update MHD force on full radial mesh. <br /></td></tr>
-<tr class="separator:a02e0516a91fb8f6abcd965a1c5037c6c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a16dd1926fa5cdfc6d3a537ba93248158"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a16dd1926fa5cdfc6d3a537ba93248158"></a>
+subroutine, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__force.html#a16dd1926fa5cdfc6d3a537ba93248158">siesta_force::update_force</a></td></tr>
+<tr class="memdesc:a16dd1926fa5cdfc6d3a537ba93248158"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parallel/Serial update MHD forces on full radial mesh. <br /></td></tr>
+<tr class="separator:a16dd1926fa5cdfc6d3a537ba93248158"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1fe9c159a52351787dcfbd135bd6dfd0"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a1fe9c159a52351787dcfbd135bd6dfd0"></a>
-subroutine&#160;</td><td class="memItemRight" valign="bottom"><b>siesta_force::incfields</b> (jbsupsmnh, jbsupumnh, jbsupvmnh, jpmnh,</td></tr>
+subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__force.html#a1fe9c159a52351787dcfbd135bd6dfd0">siesta_force::incfields</a> (jbsupsmnh, jbsupumnh, jbsupvmnh, jpmnh,</td></tr>
+<tr class="memdesc:a1fe9c159a52351787dcfbd135bd6dfd0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute nonlinear or linearized contravariant magnetic field components and pressure in real space. <br /></td></tr>
 <tr class="separator:a1fe9c159a52351787dcfbd135bd6dfd0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a68fd7e5ada554d7410936a68adc7c099"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a68fd7e5ada554d7410936a68adc7c099"></a>
-subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__force.html#a68fd7e5ada554d7410936a68adc7c099">siesta_force::getmhdforce</a> (fsubsmnf, fsubumnf, fsubvmnf, ipar)</td></tr>
-<tr class="memdesc:a68fd7e5ada554d7410936a68adc7c099"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute covariant (sub) components of the MHD force in parallel. <br /></td></tr>
+<tr class="memitem:a108a52a51a38a059873aa94f15e9765c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a108a52a51a38a059873aa94f15e9765c"></a>
+subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__force.html#a108a52a51a38a059873aa94f15e9765c">siesta_force::lorentz</a> (bsupsijf, bsupuijf, bsupvijf,                              </td></tr>
+<tr class="memdesc:a108a52a51a38a059873aa94f15e9765c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute covariant (sub) eal-space components of the Lorentz K X B force. <br /></td></tr>
+<tr class="separator:a108a52a51a38a059873aa94f15e9765c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a68fd7e5ada554d7410936a68adc7c099"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__force.html#a68fd7e5ada554d7410936a68adc7c099">siesta_force::getmhdforce</a> (fsubsmnf, fsubumnf, fsubvmnf, ipar)</td></tr>
+<tr class="memdesc:a68fd7e5ada554d7410936a68adc7c099"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute covariant (sub) components of the MHD force J X B - grad p The MHD forces are sum of Lorentz and pressure gradient forces.  <a href="namespacesiesta__force.html#a68fd7e5ada554d7410936a68adc7c099">More...</a><br /></td></tr>
 <tr class="separator:a68fd7e5ada554d7410936a68adc7c099"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0369f42765e7aa8b517051b141db4ba8"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__force.html#a0369f42765e7aa8b517051b141db4ba8">siesta_force::get_force_harmonics</a> (pmnf,                                                      </td></tr>
-<tr class="memdesc:a0369f42765e7aa8b517051b141db4ba8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute harmonics of the MHD covariant force components.  <a href="namespacesiesta__force.html#a0369f42765e7aa8b517051b141db4ba8">More...</a><br /></td></tr>
-<tr class="separator:a0369f42765e7aa8b517051b141db4ba8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a13ac21552eeaf1816f8a8e63522f8554"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a13ac21552eeaf1816f8a8e63522f8554"></a>
-subroutine&#160;</td><td class="memItemRight" valign="bottom"><b>siesta_force::addpardamping</b> (f_smnf, f_umnf, f_vmnf, work, ipar)</td></tr>
-<tr class="separator:a13ac21552eeaf1816f8a8e63522f8554"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a70251239c3b0c47ca3f43cdf1ca79510"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a70251239c3b0c47ca3f43cdf1ca79510"></a>
+subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__force.html#a70251239c3b0c47ca3f43cdf1ca79510">siesta_force::initpardamping</a> (parscale)</td></tr>
+<tr class="memdesc:a70251239c3b0c47ca3f43cdf1ca79510"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute scaling factors for parallel flow damping. <br /></td></tr>
+<tr class="separator:a70251239c3b0c47ca3f43cdf1ca79510"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aed128caabf530d0296b9c2bdfd3f80d8"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__force.html#aed128caabf530d0296b9c2bdfd3f80d8">siesta_force::get_force_harmonics</a> (f_smnf, f_umnf, f_vmnf, ipar)</td></tr>
+<tr class="memdesc:aed128caabf530d0296b9c2bdfd3f80d8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Final computation of the MHD covariant Fourier force components. Add pressure gradients and parallel damping (to Hessian), and scale and print boundary values.  <a href="namespacesiesta__force.html#aed128caabf530d0296b9c2bdfd3f80d8">More...</a><br /></td></tr>
+<tr class="separator:aed128caabf530d0296b9c2bdfd3f80d8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8650ba364d62b078fa9f5de93588bfdf"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a8650ba364d62b078fa9f5de93588bfdf"></a>
+subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__force.html#a8650ba364d62b078fa9f5de93588bfdf">siesta_force::addpardamping</a> (f_smnf, f_umnf, f_vmnf,                            </td></tr>
+<tr class="memdesc:a8650ba364d62b078fa9f5de93588bfdf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add parallel flow damping terms to forces (for Hessian calculation) to suppress null space at resonances. <br /></td></tr>
+<tr class="separator:a8650ba364d62b078fa9f5de93588bfdf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
-<tr class="memitem:a7f6444d0e774abde2819570145769ba5"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a7f6444d0e774abde2819570145769ba5"></a>
-integer, private&#160;</td><td class="memItemRight" valign="bottom"><b>siesta_force::nsmin</b></td></tr>
-<tr class="separator:a7f6444d0e774abde2819570145769ba5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9c4266d71432c04a28efecce6e739ab3"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a9c4266d71432c04a28efecce6e739ab3"></a>
-integer, private&#160;</td><td class="memItemRight" valign="bottom"><b>siesta_force::nsmax</b></td></tr>
-<tr class="separator:a9c4266d71432c04a28efecce6e739ab3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad1f01bcbe8be77dd98b237f2f2b3cef1"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad1f01bcbe8be77dd98b237f2f2b3cef1"></a>
-integer, parameter, private&#160;</td><td class="memItemRight" valign="bottom"><b>siesta_force::isym</b> =0</td></tr>
-<tr class="separator:ad1f01bcbe8be77dd98b237f2f2b3cef1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a047487c8431c60e7f67ce9abb8dabc5c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a047487c8431c60e7f67ce9abb8dabc5c"></a>
-integer, parameter, private&#160;</td><td class="memItemRight" valign="bottom"><b>siesta_force::iasym</b> =1</td></tr>
-<tr class="separator:a047487c8431c60e7f67ce9abb8dabc5c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a10d852ae0a79e806f9a79c9271df002b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a10d852ae0a79e806f9a79c9271df002b"></a>
-integer, parameter, private&#160;</td><td class="memItemRight" valign="bottom"><b>siesta_force::m0</b> =0</td></tr>
-<tr class="separator:a10d852ae0a79e806f9a79c9271df002b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a431efd8525098bba5cb240f573f1e829"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a431efd8525098bba5cb240f573f1e829"></a>
-integer, parameter, private&#160;</td><td class="memItemRight" valign="bottom"><b>siesta_force::m1</b> =1</td></tr>
-<tr class="separator:a431efd8525098bba5cb240f573f1e829"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac704548ac8ccb9962d08d5315a4f6fce"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ac704548ac8ccb9962d08d5315a4f6fce"></a>
-integer, parameter, private&#160;</td><td class="memItemRight" valign="bottom"><b>siesta_force::m2</b> =2</td></tr>
-<tr class="separator:ac704548ac8ccb9962d08d5315a4f6fce"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a733bf4054b46b644f4b83efaf798840b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a733bf4054b46b644f4b83efaf798840b"></a>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><b>siesta_force::isym</b> =0</td></tr>
+<tr class="separator:a733bf4054b46b644f4b83efaf798840b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aaacccffa35494392f90bd141ef41aba2"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aaacccffa35494392f90bd141ef41aba2"></a>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><b>siesta_force::iasym</b> =1</td></tr>
+<tr class="separator:aaacccffa35494392f90bd141ef41aba2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acaca534ee0403eb3b2b04961053bdb9f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="acaca534ee0403eb3b2b04961053bdb9f"></a>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><b>siesta_force::m0</b> =0</td></tr>
+<tr class="separator:acaca534ee0403eb3b2b04961053bdb9f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a447bad4daef5a46a69d96a4df49336a0"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a447bad4daef5a46a69d96a4df49336a0"></a>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><b>siesta_force::m1</b> =1</td></tr>
+<tr class="separator:a447bad4daef5a46a69d96a4df49336a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac76cdacf2d745dbe983bbdb0ce88dca7"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ac76cdacf2d745dbe983bbdb0ce88dca7"></a>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><b>siesta_force::m2</b> =2</td></tr>
+<tr class="separator:ac76cdacf2d745dbe983bbdb0ce88dca7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a45dd85589505540aa1c73cadcad68cc0"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a45dd85589505540aa1c73cadcad68cc0"></a>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><b>siesta_force::n0</b> =0</td></tr>
+<tr class="separator:a45dd85589505540aa1c73cadcad68cc0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acf654d129e62b767233f0b0d07640890"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="acf654d129e62b767233f0b0d07640890"></a>
+integer&#160;</td><td class="memItemRight" valign="bottom"><b>siesta_force::nsmin</b></td></tr>
+<tr class="separator:acf654d129e62b767233f0b0d07640890"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af7b7277b74888237672859ce398cc1b8"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af7b7277b74888237672859ce398cc1b8"></a>
+integer&#160;</td><td class="memItemRight" valign="bottom"><b>siesta_force::nsmax</b></td></tr>
+<tr class="separator:af7b7277b74888237672859ce398cc1b8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a439c50c68f10b7868efddc5be29a7ece"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a439c50c68f10b7868efddc5be29a7ece"></a>
+real(dp), dimension(:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><b>siesta_force::pardamp</b></td></tr>
+<tr class="separator:a439c50c68f10b7868efddc5be29a7ece"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Contains the <a class="el" href="namespacesiesta__force.html">siesta_force</a> module. </p>
@@ -158,7 +173,7 @@ integer, parameter, private&#160;</td><td class="memItemRight" valign="bottom"><
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Nov 28 2017 10:22:17 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Mon Mar 26 2018 17:40:02 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

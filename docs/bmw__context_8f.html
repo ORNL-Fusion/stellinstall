@@ -107,6 +107,9 @@ Data Types</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">type &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structbmw__context_1_1bmw__context__class.html">bmw_context::bmw_context_class</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Base class representing a bmw context. This contains all memory needed to operate bmw.  <a href="structbmw__context_1_1bmw__context__class.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacebmw__context_1_1bmw__context__set__up__grid.html">bmw_context::bmw_context_set_up_grid</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface to set the unprimed grid.  <a href="interfacebmw__context_1_1bmw__context__set__up__grid.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="namespaces"></a>
 Modules</h2></td></tr>
@@ -122,14 +125,23 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:a8ee1d70848bb1bef3e65cc7da7001805"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacebmw__context.html#a8ee1d70848bb1bef3e65cc7da7001805">bmw_context::bmw_context_destruct</a> (this)</td></tr>
 <tr class="memdesc:a8ee1d70848bb1bef3e65cc7da7001805"><td class="mdescLeft">&#160;</td><td class="mdescRight">Deconstruct a <a class="el" href="structbmw__context_1_1bmw__context__class.html">bmw_context_class</a> object.  <a href="namespacebmw__context.html#a8ee1d70848bb1bef3e65cc7da7001805">More...</a><br /></td></tr>
 <tr class="separator:a8ee1d70848bb1bef3e65cc7da7001805"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0bedd2b8ceffaf720ec1106c1f4c0f35"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacebmw__context.html#a0bedd2b8ceffaf720ec1106c1f4c0f35">bmw_context::bmw_context_write</a> (this, result_file_name)</td></tr>
-<tr class="memdesc:a0bedd2b8ceffaf720ec1106c1f4c0f35"><td class="mdescLeft">&#160;</td><td class="mdescRight">Write NetCDF based result file.  <a href="namespacebmw__context.html#a0bedd2b8ceffaf720ec1106c1f4c0f35">More...</a><br /></td></tr>
-<tr class="separator:a0bedd2b8ceffaf720ec1106c1f4c0f35"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae7f6883c33175558c2505f7de8018ad0"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacebmw__context.html#ae7f6883c33175558c2505f7de8018ad0">bmw_context::bmw_context_set_up_grid_m</a> (this, p_start, p_end,                          </td></tr>
+<tr class="memdesc:ae7f6883c33175558c2505f7de8018ad0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the unprimed grid.  <a href="namespacebmw__context.html#ae7f6883c33175558c2505f7de8018ad0">More...</a><br /></td></tr>
+<tr class="separator:ae7f6883c33175558c2505f7de8018ad0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1a1615740317b49aa3cc1a2967b63286"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacebmw__context.html#a1a1615740317b49aa3cc1a2967b63286">bmw_context::bmw_context_set_up_grid_a</a> (this, r_grid, z_grid, dphi,              </td></tr>
+<tr class="memdesc:a1a1615740317b49aa3cc1a2967b63286"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the unprimed grid.  <a href="namespacebmw__context.html#a1a1615740317b49aa3cc1a2967b63286">More...</a><br /></td></tr>
+<tr class="separator:a1a1615740317b49aa3cc1a2967b63286"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a790d06a6e78808ce0f7dd3a08700575c"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacebmw__context.html#a790d06a6e78808ce0f7dd3a08700575c">bmw_context::bmw_context_init_nc</a> (this, result_file_name, parallel)</td></tr>
+<tr class="memdesc:a790d06a6e78808ce0f7dd3a08700575c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialize NetCDF based result file.  <a href="namespacebmw__context.html#a790d06a6e78808ce0f7dd3a08700575c">More...</a><br /></td></tr>
+<tr class="separator:a790d06a6e78808ce0f7dd3a08700575c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a05733762ffd48b52b7c3ed11fabdd367"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacebmw__context.html#a05733762ffd48b52b7c3ed11fabdd367">bmw_context::bmw_context_write</a> (this, result_file_name, parallel)</td></tr>
+<tr class="memdesc:a05733762ffd48b52b7c3ed11fabdd367"><td class="mdescLeft">&#160;</td><td class="mdescRight">Write NetCDF based result file.  <a href="namespacebmw__context.html#a05733762ffd48b52b7c3ed11fabdd367">More...</a><br /></td></tr>
+<tr class="separator:a05733762ffd48b52b7c3ed11fabdd367"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
 <tr class="memitem:a743c401df6cead2131573e6b002b2217"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a743c401df6cead2131573e6b002b2217"></a>
-integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacebmw__context.html#a743c401df6cead2131573e6b002b2217">bmw_context::series</a> = 1</td></tr>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacebmw__context.html#a743c401df6cead2131573e6b002b2217">bmw_context::series</a> = 2</td></tr>
 <tr class="memdesc:a743c401df6cead2131573e6b002b2217"><td class="mdescLeft">&#160;</td><td class="mdescRight">Version number. <br /></td></tr>
 <tr class="separator:a743c401df6cead2131573e6b002b2217"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
@@ -140,7 +152,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Nov 28 2017 10:22:17 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Mon Mar 26 2018 17:40:02 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

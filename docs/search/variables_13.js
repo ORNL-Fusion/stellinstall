@@ -2,7 +2,7 @@ var searchData=
 [
   ['u_5fbuffer',['u_buffer',['../structcompression_1_1compression__class.html#a3180e0c9e237ff91e0385f44c49da7ab',1,'compression::compression_class']]],
   ['unit_5fout',['unit_out',['../namespaceshared__data.html#a4ea632850995d16e455ac7d74bb2f808',1,'shared_data']]],
-  ['units',['units',['../structdiagnostic__dot_1_1diagnostic__dot__coil.html#a51eb238f0f1e9a3d8d7f771814a54f3c',1,'diagnostic_dot::diagnostic_dot_coil']]],
+  ['units',['units',['../structsignal_1_1signal__class.html#a7888c74513301e4bc98fad7eb6f78384',1,'signal::signal_class::units()'],['../structdiagnostic__dot_1_1diagnostic__dot__coil.html#a51eb238f0f1e9a3d8d7f771814a54f3c',1,'diagnostic_dot::diagnostic_dot_coil::units()']]],
   ['up_5fgrid',['up_grid',['../structbmw__context_1_1bmw__context__class.html#a2fd819a753387fa4ece59035fb419dd4',1,'bmw_context::bmw_context_class']]],
   ['use_5fcentral',['use_central',['../structreconstruction_1_1reconstruction__class.html#acca6fb41e9b6e7255e8217d573c04525',1,'reconstruction::reconstruction_class']]],
   ['use_5fcentral_5fdiff',['use_central_diff',['../namespacev3fit__input.html#ac89fb702d3a90ee7b9b20159ed912d82',1,'v3fit_input']]],

@@ -41,5 +41,6 @@ var searchData=
   ['dv_5fa',['dv_a',['../structsiesta__equilibrium_1_1siesta__magnetic__cache.html#ade9d3157a711642640d78f7eaac70cd1',1,'siesta_equilibrium::siesta_magnetic_cache::dv_a()'],['../structvmec__equilibrium_1_1vmec__magnetic__cache.html#a9dcb43ceee77239e47c13cdaba052f2e',1,'vmec_equilibrium::vmec_magnetic_cache::dv_a()']]],
   ['dv_5ffull',['dv_full',['../structsiesta__equilibrium_1_1siesta__magnetic__cache.html#aee59bab054898085edcb9767060426aa',1,'siesta_equilibrium::siesta_magnetic_cache::dv_full()'],['../structvmec__equilibrium_1_1vmec__magnetic__cache.html#a309349ce33bf6d76d1ef6705eba6f7f6',1,'vmec_equilibrium::vmec_magnetic_cache::dv_full()']]],
   ['dvol',['dvol',['../structprimed__grid_1_1primed__grid__class.html#a322d3ed6f0cc2886813d36482786dfb6',1,'primed_grid::primed_grid_class']]],
+  ['dx',['dx',['../structintegration__path_1_1path__int__class.html#afb1e301a9bb1762d6eafc05b100a651e',1,'integration_path::path_int_class']]],
   ['dz',['dz',['../structm__grid_1_1m__grid__class.html#a5c1eff0d2c7e5f482bcd24d882e71214',1,'m_grid::m_grid_class::dz()'],['../structlimiter__grid_1_1limiter__grid__class.html#ab6e4e4d991497f32d6dd5d6bd9f02edc',1,'limiter_grid::limiter_grid_class::dz()']]]
 ];

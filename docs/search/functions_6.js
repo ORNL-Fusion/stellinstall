@@ -1,11 +1,18 @@
 var searchData=
 [
+  ['gaussp_5fconstruct',['gaussp_construct',['../namespacesignal.html#ab599d7d38431eb0e426819669b1febba',1,'signal']]],
+  ['gaussp_5fdestruct',['gaussp_destruct',['../namespacesignal.html#a6e3d8ebbc88349ee10ec650b4718edde',1,'signal']]],
+  ['gaussp_5fget_5fheader',['gaussp_get_header',['../namespacesignal.html#a5ab421d78927e3503dfa2b80c451557d',1,'signal']]],
+  ['gaussp_5fget_5fmodeled_5fsignal',['gaussp_get_modeled_signal',['../namespacesignal.html#a853d44800e52783d10259098cd43f0e8',1,'signal']]],
+  ['gaussp_5fget_5fsignal_5ftype',['gaussp_get_signal_type',['../namespacesignal.html#a551dc45e9139781ecc7401521dfb80a2',1,'signal']]],
+  ['gaussp_5fset_5fsignal',['gaussp_set_signal',['../namespacesignal.html#a6854437d5c7b82bd5855f59c44cd7db8',1,'signal']]],
+  ['gaussp_5fwrite_5fauxiliary',['gaussp_write_auxiliary',['../namespacesignal.html#a84c724fb1ffcdbbe3965a0bfcc9871f3',1,'signal']]],
   ['geometric_5fconstruct_5flimiter',['geometric_construct_limiter',['../interfacegeometric_1_1geometric__construct.html#afaa5b435afd18e495e8969918f35cd82',1,'geometric::geometric_construct::geometric_construct_limiter()'],['../namespacegeometric.html#a01e6c60bda44d88c07a56e3cd781ea1a',1,'geometric::geometric_construct_limiter()']]],
   ['geometric_5fdestruct',['geometric_destruct',['../namespacegeometric.html#ac21ab98946ae7126450bc4433344aadb',1,'geometric']]],
   ['geometric_5fget_5fheader',['geometric_get_header',['../namespacegeometric.html#ad385e8bf9fa573154a446af9ffc43f08',1,'geometric']]],
   ['geometric_5fget_5fmodeled_5fsignal',['geometric_get_modeled_signal',['../namespacegeometric.html#a541e365eb2ebb5e9ea1fab71199c1a8f',1,'geometric']]],
   ['geometric_5fget_5fsignal_5ftype',['geometric_get_signal_type',['../namespacegeometric.html#a5c2fb802d22418d037a4a294327d6a04',1,'geometric']]],
-  ['get_5fforce_5fharmonics',['get_force_harmonics',['../namespacesiesta__force.html#a0369f42765e7aa8b517051b141db4ba8',1,'siesta_force']]],
+  ['get_5fforce_5fharmonics',['get_force_harmonics',['../namespacesiesta__force.html#aed128caabf530d0296b9c2bdfd3f80d8',1,'siesta_force']]],
   ['get_5findices',['get_indices',['../namespaceline__segment.html#a402413a673284040dfc472943c85c674',1,'line_segment']]],
   ['get_5fnext_5fkeyword',['get_next_keyword',['../main_8cpp.html#a2152c729889bdc6152cb1474257c65dd',1,'main.cpp']]],
   ['get_5fnormal',['get_normal',['../classvertex.html#ad670e51054c56741113b987884dc3948',1,'vertex::get_normal(const vertex &amp;v1, const vertex &amp;v2)'],['../classvertex.html#abab94d96ac92d414048e98852132f198',1,'vertex::get_normal(const vertex &amp;v1, const vertex &amp;v2, const vertex &amp;v3)']]],
@@ -19,6 +26,11 @@ var searchData=
   ['getmhdforce',['getmhdforce',['../namespacesiesta__force.html#a68fd7e5ada554d7410936a68adc7c099',1,'siesta_force']]],
   ['getsolutionvector',['getsolutionvector',['../namespaceblocktridiagonalsolver__s.html#af8fa42911638dd7f3a3432a2593b821a',1,'blocktridiagonalsolver_s::getsolutionvector()'],['../namespaceblocktridiagonalsolver.html#af752fb102d8f6a907aa050e2f259d198',1,'blocktridiagonalsolver::getsolutionvector()']]],
   ['getwmhd',['getwmhd',['../namespaceshared__functions.html#a521a673d0c0753c3dd66fdc49599d9d7',1,'shared_functions']]],
+  ['gmres_5ffun',['gmres_fun',['../gmres_8f90.html#ac0b53c543d50e87ef1d3a6d31d4dd058',1,'gmres']]],
+  ['gp_5ffunction_5fi',['gp_function_i',['../namespaceintpol.html#a55339f1a4846d41e59a97b41a29cb083',1,'intpol::gp_function_i()'],['../namespacesxrem.html#a869bd26eade573f767da3e6c2129fedd',1,'sxrem::gp_function_i()']]],
+  ['gp_5ffunction_5fx',['gp_function_x',['../namespaceintpol.html#a6db895e4911fe8f03b67f0f15fcc091a',1,'intpol::gp_function_x()'],['../namespacesxrem.html#a5f72530d5863278ff066b818a3a29e63',1,'sxrem::gp_function_x()']]],
   ['gr2lr',['gr2lr',['../namespaceblocktridiagonalsolver__s.html#a6e54e96b8937358a5aa51d74ca673c2f',1,'blocktridiagonalsolver_s::gr2lr()'],['../namespaceblocktridiagonalsolver.html#a3edec38a2107bba7b8cec1850eee6564',1,'blocktridiagonalsolver::gr2lr()']]],
-  ['gr2rank',['gr2rank',['../namespaceblocktridiagonalsolver__s.html#abb9038f5d87c23f37d87075b7cc744ed',1,'blocktridiagonalsolver_s::gr2rank()'],['../namespaceblocktridiagonalsolver.html#a13c198394f1aa4d28ac858e911fa77e9',1,'blocktridiagonalsolver::gr2rank()']]]
+  ['gr2rank',['gr2rank',['../namespaceblocktridiagonalsolver__s.html#abb9038f5d87c23f37d87075b7cc744ed',1,'blocktridiagonalsolver_s::gr2rank()'],['../namespaceblocktridiagonalsolver.html#a13c198394f1aa4d28ac858e911fa77e9',1,'blocktridiagonalsolver::gr2rank()']]],
+  ['guassian',['guassian',['../namespacefunctions.html#a1d779bbabde8a586a2325f3292570d31',1,'functions']]],
+  ['guassian_5fint',['guassian_int',['../namespacefunctions.html#a1e74db6c7b9d805d9ebae01445c6a146',1,'functions']]]
 ];

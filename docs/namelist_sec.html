@@ -84,7 +84,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="toc"><h3>Table of Contents</h3>
 <ul><li class="level1"><a href="#namelist_intro_sec">Introduction</a></li>
 <li class="level1"><a href="#namelist_var_sec">Namelist Variables</a><ul><li class="level2"><a href="#filename_sec">Filename variables</a><ul><li class="level3"><a href="#eq_filename_sec">Equilibrium Filename variables</a></li>
-<li class="level3"><a href="#signal_filename_sec">Singnal Filename variables</a></li>
+<li class="level3"><a href="#signal_filename_sec">Signal Filename variables</a></li>
 </ul>
 </li>
 <li class="level2"><a href="#size_sec">Array allocation sizes, numbers to allocate</a></li>
@@ -107,9 +107,11 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </ul>
 </li>
 <li class="level2"><a href="#prior_sec">Prior information</a></li>
+<li class="level2"><a href="#gp_sec">Guassian process signal variables</a></li>
 <li class="level2"><a href="#coosig_sec">COOSIG - Combination Of Other SIGnals NLI Variables</a></li>
 <li class="level2"><a href="#plasma_off_sec">Plasma Offset Section</a></li>
 <li class="level2"><a href="#recon_sec">Reconstruction step control NLI variables</a></li>
+<li class="level2"><a href="#int_sec">Integration parameters</a></li>
 <li class="level2"><a href="#xcdot_sec">VMEC zero out xcdot control</a></li>
 </ul>
 </li>
@@ -150,7 +152,7 @@ Equilibrium Filename variables</h3>
 <td width="20%"><code>siesta_restart_filename</code></td><td width="50%">File name for a siesta restart file.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a2d40e6ec26c58cffa367843b0491d5aa">v3fit_input::siesta_restart_filename</a> </td></tr>
 </table>
 <h3><a class="anchor" id="signal_filename_sec"></a>
-Singnal Filename variables</h3>
+Signal Filename variables</h3>
 <table  border="1px" width="80%">
 <tr>
 <td width="20%"><code>mdsig_list_filename</code></td><td width="50%">File name for list of MDSIG files.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a996b17010c59ba9bcccf546b259fbcc9">v3fit_input::mdsig_list_filename</a> </td></tr>
@@ -161,9 +163,9 @@ Singnal Filename variables</h3>
 <tr>
 <td width="20%"><code>ipch_dot_filename</code></td><td width="50%">File holding interferometry-polarimetry chord information. The file specification is described in the <a class="el" href="intpol_dot_sec.html">Inteferometry/Polarimetry Diagnostic Dot File</a>.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#ae1fe6c8994f39bfe0b7a5b2a576fccdb">v3fit_input::ipch_dot_filename</a> </td></tr>
 <tr>
-<td width="20%"><code>mse_dot_filename</code></td><td width="50%">File holding motional stark effect information. The file specification is described in the <a class="el" href="mse_dot_sec.html">Motional Stark Effect Diagnostic Dot File</a>.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a21c831b5d3eb6144de874851c67e9f93">v3fit_input::mse_dot_filename</a> </td></tr>
+<td width="20%"><code>mse_dot_filename</code></td><td width="50%">File holding motional stark effect information. The file specification is described in the mse_ratio_dot_sec.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a21c831b5d3eb6144de874851c67e9f93">v3fit_input::mse_dot_filename</a> </td></tr>
 <tr>
-<td width="20%"><code>ece_dot_filename</code></td><td width="50%">File holding motional stark effect information. The file specification is described in the <a class="el" href="ece_dot_sec.html">ECE Diagnostic Dot File</a>.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#af786af93e310aa065e95b891ae9cb5ab">v3fit_input::ece_dot_filename</a> </td></tr>
+<td width="20%"><code>ece_dot_filename</code></td><td width="50%">File holding electron cyclotron emission information. The file specification is described in the <a class="el" href="ece_dot_sec.html">ECE Diagnostic Dot File</a>.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#af786af93e310aa065e95b891ae9cb5ab">v3fit_input::ece_dot_filename</a> </td></tr>
 <tr>
 <td width="20%"><code>sxrem_ratio_dot_filename</code></td><td width="50%">File holding soft x-ray emissivity ratio information. The file specification is described in the <a class="el" href="sxrem_ratio_dot_sec.html">Soft X-ray Emissivity Ratio Dot File</a>.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#ab1c443867144c97b12aaafbee516fad4">v3fit_input::sxrem_ratio_dot_filename</a> </td></tr>
 <tr>
@@ -191,7 +193,7 @@ Task specification, work variables</h2>
 Model profile specification</h2>
 <table  border="1px" width="80%">
 <tr>
-<td width="20%"><code>pp_ne_ptype</code></td><td width="50%">Model electron density profile, parameterized profile type.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#acf084faed4cf0c1352fcb0ded4a9d525">v3fit_input::pp_ne_ptype</a> </td></tr>
+<td width="20%"><code>pp_ne_ptype</code></td><td width="50%">Model electron density profile, parameterized profile type. Valid profile types are defined in <a class="el" href="profile_sec.html">Profiles types.</a></td><td width="30%"><a class="el" href="namespacev3fit__input.html#acf084faed4cf0c1352fcb0ded4a9d525">v3fit_input::pp_ne_ptype</a> </td></tr>
 <tr>
 <td width="20%"><code>pp_ne_b</code></td><td width="50%">Array of b_coefficients for the electron density profile.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a5ebd8b58de885b8bd44779ef5bbadb12">v3fit_input::pp_ne_b</a> </td></tr>
 <tr>
@@ -199,7 +201,7 @@ Model profile specification</h2>
 <tr>
 <td width="20%"><code>pp_ne_af</code></td><td width="50%">Array of af_coefficients electron density splines.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a5fac45fcf9c6b115a7e4bb7cae7854c8">v3fit_input::pp_ne_af</a> </td></tr>
 <tr>
-<td width="20%"><code>pp_sxrem_ptype</code></td><td width="50%">Model soft x-ray emissivity profile, parameterized profile type.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#afbb75117e851be78b8e4360e7383c199">v3fit_input::pp_sxrem_ptype</a> </td></tr>
+<td width="20%"><code>pp_sxrem_ptype</code></td><td width="50%">Model soft x-ray emissivity profile, parameterized profile type. Valid profile types are defined in <a class="el" href="profile_sec.html">Profiles types.</a></td><td width="30%"><a class="el" href="namespacev3fit__input.html#afbb75117e851be78b8e4360e7383c199">v3fit_input::pp_sxrem_ptype</a> </td></tr>
 <tr>
 <td width="20%"><code>pp_sxrem_b</code></td><td width="50%">Array of b_coefficients for the soft x-ray emissivity profile. <b>DEPRECATED</b> <b></b> </td><td width="30%"><a class="el" href="namespacev3fit__input.html#a9cc45d9107490ae0070289782b75730c">v3fit_input::pp_sxrem_b</a> </td></tr>
 <tr>
@@ -209,21 +211,29 @@ Model profile specification</h2>
 <tr>
 <td width="20%"><code>num_sxrem_p</code></td><td width="50%">Number of soft x-ray emissivity profiles.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a2e2e535fc263699fec1e12f28860a658">v3fit_input::num_sxrem_p</a> </td></tr>
 <tr>
-<td width="20%"><code>pp_sxrem_ptype_a</code></td><td width="50%">Model soft x-ray emissivity profile, parameterized profile type.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a50e37fcef3127a07aa02110cafc8496b">v3fit_input::pp_sxrem_ptype_a</a> </td></tr>
+<td width="20%"><code>pp_sxrem_ptype_a</code></td><td width="50%">Model soft x-ray emissivity profile, parameterized profile type. Valid profile types are defined in <a class="el" href="profile_sec.html">Profiles types.</a></td><td width="30%"><a class="el" href="namespacev3fit__input.html#ac44e39737eeaa08518fcc237d4db83ff">v3fit_input::pp_sxrem_ptype_a</a> </td></tr>
 <tr>
-<td width="20%"><code>pp_sxrem_b_a</code></td><td width="50%">Array of b_coefficients for the soft x-ray emissivity profile.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#ad747fbf211b45be5e607af4ed883dbd3">v3fit_input::pp_sxrem_b_a</a> </td></tr>
+<td width="20%"><code>pp_sxrem_b_a</code></td><td width="50%">Array of b_coefficients for the soft x-ray emissivity profile.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#abc461ed4a3957e1e4f450c5f61011b9d">v3fit_input::pp_sxrem_b_a</a> </td></tr>
 <tr>
-<td width="20%"><code>pp_sxrem_as_a</code></td><td width="50%">Array of as_coefficients soft x-ray emissivity splines.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a5eb4dd295df5e0cb1d09a11b69f0befc">v3fit_input::pp_sxrem_as_a</a> </td></tr>
+<td width="20%"><code>pp_sxrem_as_a</code></td><td width="50%">Array of as_coefficients soft x-ray emissivity splines.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a499f4203b76175c919f656827e84b050">v3fit_input::pp_sxrem_as_a</a> </td></tr>
 <tr>
-<td width="20%"><code>pp_sxrem_af_a</code></td><td width="50%">Array of af_coefficients soft x-ray emissivity splines.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a09bac425fedbe0ad80de943b4c57a98e">v3fit_input::pp_sxrem_af_a</a> </td></tr>
+<td width="20%"><code>pp_sxrem_af_a</code></td><td width="50%">Array of af_coefficients soft x-ray emissivity splines.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#af9d99df5480b5043e77b21a9d6099da8">v3fit_input::pp_sxrem_af_a</a> </td></tr>
 <tr>
-<td width="20%"><code>pp_te_ptype</code></td><td width="50%">Model electron temperature profile, parameterized profile type.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#aa7d17618683967adb0bd8a5bdf9ff806">v3fit_input::pp_te_ptype</a> </td></tr>
+<td width="20%"><code>pp_te_ptype</code></td><td width="50%">Model electron temperature profile, parameterized profile type. Valid profile types are defined in <a class="el" href="profile_sec.html">Profiles types.</a></td><td width="30%"><a class="el" href="namespacev3fit__input.html#aa7d17618683967adb0bd8a5bdf9ff806">v3fit_input::pp_te_ptype</a> </td></tr>
 <tr>
 <td width="20%"><code>pp_te_b</code></td><td width="50%">Array of b_coefficients for the e-temperature profile.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#ad699c5f4f2865dc9f6be9660bebbbf1c">v3fit_input::pp_te_b</a> </td></tr>
 <tr>
 <td width="20%"><code>pp_te_as</code></td><td width="50%">Array of as_coefficients e-temperature splines.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a2adbf6ccd19859db9a684016c86e2a9a">v3fit_input::pp_te_as</a> </td></tr>
 <tr>
 <td width="20%"><code>pp_te_af</code></td><td width="50%">Array of af_coefficients e-temperature splines.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a5d3fc1eae19a61d96469c773e1f5c239">v3fit_input::pp_te_af</a> </td></tr>
+<tr>
+<td width="20%"><code>pp_ze_ptype</code></td><td width="50%">Model z effective profile, parameterized profile type. Valid profile types are defined in <a class="el" href="profile_sec.html">Profiles types.</a></td><td width="30%"><a class="el" href="namespacev3fit__input.html#a1c40b0cc05b3b25b03f819b2b62ff5c8">v3fit_input::pp_ze_ptype</a> </td></tr>
+<tr>
+<td width="20%"><code>pp_ze_b</code></td><td width="50%">Array of b_coefficients for the effective charge profile.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a6fbe34ed2fdd3fb2bbbc06469e761463">v3fit_input::pp_ze_b</a> </td></tr>
+<tr>
+<td width="20%"><code>pp_ze_as</code></td><td width="50%">Array of as_coefficients effective charge splines.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a08e31245c9fdc9c28dee4a15ceac4697">v3fit_input::pp_ze_as</a> </td></tr>
+<tr>
+<td width="20%"><code>pp_ze_af</code></td><td width="50%">Array of af_coefficients effectgive charge splines.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#ae837e66aae926826cade6a35ee322f80">v3fit_input::pp_ze_af</a> </td></tr>
 <tr>
 <td width="20%"><code>sxrem_te</code></td><td width="50%">Array of temperature points for the sxrem ratio function.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#ae012a2d7050755e3fa8f0b4075fa722f">v3fit_input::sxrem_te_a</a> </td></tr>
 <tr>
@@ -245,13 +255,16 @@ Model Specification Variables</h2>
 <li><code>'pp_ne'</code> Calculated from the parameterized profile pp_ne.</li>
 <li><code>'pp_te_p'</code> Calculated from the pp_te and the VMEC pressure</li>
 </ol>
-</td><td width="30%"><a class="el" href="namespacev3fit__input.html#af745a2d519ffade882e38c64e7b136da">v3fit_input::model_ne_type</a> </td></tr>
-<tr>
-<td width="20%"><code>model_sxrem_type</code></td><td width="50%"><p class="starttd">Character variable to specify how the Soft x-ray emissivity will be calculated by the model.</p><ol type="1">
-<li><code>'none'</code> Not part of the model.</li>
-<li><code>'pp_sxrem'</code> Calculated from the parameterized profile pp_sxrem.</li>
+</td><td width="30%"><a class="el" href="namespacev3fit__input.html#af745a2d519ffade882e38c64e7b136da">v3fit_input::model_ne_type</a> {model_ze_type, Character variable to specify how the effective charge will be calculated by the model.<ol type="1">
+<li><code>'none'</code> Not part of the model. Default value of 1.</li>
+<li><code>'pp_ze'</code> Calculated from the parameterized profile pp_ze. <a class="el" href="namespacev3fit__input.html#a53a03d6db38c0c0ed0b9783340ca4b6f" title="Specify how effective chagre is computed by the model. ">v3fit_input::model_ze_type</a>} </li>
 </ol>
-<p class="endtd"><b>DEPRECATED</b> <b></b> </p>
+</td></tr>
+<tr>
+<td width="20%"><code>model_sxrem_type</code></td><td width="50%">Character variable to specify how the Soft x-ray emissivity will be calculated by the model.<ol type="1">
+<li><code>'none'</code> Not part of the model.</li>
+<li><code>'pp_sxrem'</code> Calculated from the parameterized profile pp_sxrem. <b>DEPRECATED</b> <b></b> </li>
+</ol>
 </td><td width="30%"><a class="el" href="namespacev3fit__input.html#a31674b0ebbae407f94a99371be9b0636">v3fit_input::model_sxrem_type</a> </td></tr>
 <tr>
 <td width="20%"><code>model_sxrem_type_a</code></td><td width="50%">Character array to specify how the Soft x-ray emissivity will be calculated by the model.<ol type="1">
@@ -259,7 +272,7 @@ Model Specification Variables</h2>
 <li><code>'pp_sxrem'</code> Calculated from the parameterized profile pp_sxrem.</li>
 <li><code>'pp_sxrem_te_ne'</code> Calculated from pp_te and pp_ne.</li>
 </ol>
-</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a30dfd7e758eed6aaeeaad6bf9f41c5d5">v3fit_input::model_sxrem_type_a</a> </td></tr>
+</td><td width="30%"><a class="el" href="namespacev3fit__input.html#afa630ce3b00c409dfb57c00141d1aaa8">v3fit_input::model_sxrem_type_a</a> </td></tr>
 <tr>
 <td width="20%"><code>model_te_type</code></td><td width="50%">Character variable to specify how the e-temperature will be calculated by the model.<ol type="1">
 <li><code>'none'</code> Not part of the model.</li>
@@ -274,12 +287,18 @@ Model Specification Variables</h2>
 <tr>
 <td width="20%"><code>te_min</code></td><td width="50%">Minimum electron temperature, eV.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a084d31503aaa6c68d046a1d41a9eaf63">v3fit_input::te_min</a> </td></tr>
 <tr>
+<td width="20%"><code>ze_min</code></td><td width="50%">Minimum effective charge.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a9f0aa7db27d0addcd330538c254290e1">v3fit_input::ze_min</a> </td></tr>
+<tr>
+<td width="20%"><code>sxrem_min</code></td><td width="50%">Minimum soft x-ray emission.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#ac0fb1e3a467bb70bfcb7098781678eba">v3fit_input::sxrem_min</a> </td></tr>
+<tr>
 <td width="20%"><code>e_pressure_fraction</code></td><td width="50%">Electron pressure fraction of the total pressure. Used when model_te_type = 'pp_ne_vmec_p' or model_ne_type = 'pp_te_vmec_p'</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a5ed8f65dd06c73918ebfa04ede7b5fb1">v3fit_input::e_pressure_fraction</a> </td></tr>
 <tr>
 <td width="20%"><code>emission_file</code></td><td width="50%">Path to file defining the soft x-ray emission. <dl class="section see"><dt>See also</dt><dd><a class="el" href="emission_file_sec.html">Soft X-Ray Emission File Manual</a> </dd></dl>
 </td><td width="30%"><a class="el" href="namespacev3fit__input.html#a9b6bbdb8aafa7343b19b4ddba3c02512">v3fit_input::emission_file</a> </td></tr>
 <tr>
 <td width="20%"><code>ece_resonance_range</code></td><td width="50%">Range to find the ECE resonance within.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a5ea57408967601f98371a8a2f9985895">v3fit_input::ece_resonance_range</a> </td></tr>
+<tr>
+<td width="20%"><code>coosig_wgts</code></td><td width="50%">Array of combination signal weights.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a4fa5b11ba2b5ef8f1b1d967b35fbaa8a">v3fit_input::coosig_wgts</a> </td></tr>
 </table>
 <h2><a class="anchor" id="recon_con_sec"></a>
 Reconstruction constraints (DEPRECATED)</h2>
@@ -436,11 +455,11 @@ Magnetic signal specification</h3>
 Signal Factor Specification</h3>
 <table  border="1px" width="80%">
 <tr>
-<td width="20%"><code>sfactor_spec_imin</code></td><td width="50%">Array of minimum index values for specifying thomson scale factors</td><td width="30%">v3fit_input::sfactor_spec_imin </td></tr>
+<td width="20%"><code>sfactor_spec_imin</code></td><td width="50%">Array of minimum index values for specifying thomson scale factors</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a7d7388793df867a50aae96474807c9ae">v3fit_input::sfactor_spec_imin</a> </td></tr>
 <tr>
-<td width="20%"><code>sfactor_spec_imax</code></td><td width="50%">Array of minimum index values for specifying thomson scale factors</td><td width="30%">v3fit_input::sfactor_spec_imax </td></tr>
+<td width="20%"><code>sfactor_spec_imax</code></td><td width="50%">Array of minimum index values for specifying thomson scale factors</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a0c9e757dd5e7fc3203b6da6363cbd31b">v3fit_input::sfactor_spec_imax</a> </td></tr>
 <tr>
-<td width="20%"><code>sfactor_spec_fac</code></td><td width="50%">Array of minimum index values for specifying thomson scale factors</td><td width="30%">v3fit_input::sfactor_spec_fac </td></tr>
+<td width="20%"><code>sfactor_spec_fac</code></td><td width="50%">Array of minimum index values for specifying thomson scale factors</td><td width="30%"><a class="el" href="namespacev3fit__input.html#aeedb001946f7995fdb6e7549e4fc1729">v3fit_input::sfactor_spec_fac</a> </td></tr>
 </table>
 <h2><a class="anchor" id="magnetic_sec"></a>
 Magnetic signal parameters</h2>
@@ -508,6 +527,34 @@ Prior information</h2>
 <tr>
 <td width="20%"><code>prior_units</code></td><td width="50%">The units of the prior signal.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#ada19786a1d2a3762727c1ec3c46c7e40">v3fit_input::prior_units</a> </td></tr>
 </table>
+<h2><a class="anchor" id="gp_sec"></a>
+Guassian process signal variables</h2>
+<table  border="1px" width="80%">
+<tr>
+<td width="20%"><code>n_gpsig</code></td><td width="50%">Number of gaussian process signals.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a50b78b5eb212a0c3e4213977b6a90d4e">v3fit_input::n_gpsig</a> </td></tr>
+<tr>
+<td width="20%"><code>n_sig_gpsig</code></td><td width="50%">Number of signals in a gaussian process signal.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#abe9891425ecf48b5aca20628ca0c5b09">v3fit_input::n_sig_gpsig</a> </td></tr>
+<tr>
+<td width="20%"><code>gpsig_indices</code></td><td width="50%">Indices of the signals to include in the GP.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a7ab5efadbefd087f064242c3aff9ac6b">v3fit_input::gpsig_indices</a> </td></tr>
+<tr>
+<td width="20%"><code>gpsig_model_type</code></td><td width="50%">Gaussian process profile the guassian process uses.<ol type="1">
+<li><code>'none'</code> No profile.</li>
+<li><code>'te'</code> Temperature profile.</li>
+<li><code>'ne'</code> Denisty profile.</li>
+<li><code>'sxrem'</code> Soft X-ray profile.</li>
+</ol>
+</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a1ae5c05f0c345ed96e623167aed0dae4">v3fit_input::gpsig_model_type</a> </td></tr>
+<tr>
+<td width="20%"><code>gpsig_model_id</code></td><td width="50%">Profile index.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a337ca6769d1e68cc2e6cedb2a8754c95">v3fit_input::gpsig_model_id</a> </td></tr>
+<tr>
+<td width="20%"><code>gpsig_name</code></td><td width="50%">Name of the Gaussian Process.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#afb5cad4a87c520e3c6d823cdcc5ef016">v3fit_input::gpsig_name</a> </td></tr>
+<tr>
+<td width="20%"><code>gpsig_units</code></td><td width="50%">Units of the Gausssian Process</td><td width="30%"><a class="el" href="namespacev3fit__input.html#ad31505b84ea08a30d22da721272f3901">v3fit_input::gpsig_units</a> </td></tr>
+<tr>
+<td width="20%"><code>gp_cholesky_fact</code></td><td width="50%">The Gaussian process uses a cholesky decompositions to factor a matrix. It assumes that the matrix is positive def. Which is true analytically. This input can be used to add a small offset to the matrix to insure positive def.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a5242d2d8ea000f7202563cabc5739971">v3fit_input::gp_cholesky_fact</a> </td></tr>
+<tr>
+<td width="20%"><code>gp_chi2_offset</code></td><td width="50%">Offset added to the GP LOG EVIDENCE to insure that it is positive.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#aeaab79f4b336b2d00e8905917875592c">v3fit_input::gp_chi2_offset</a> </td></tr>
+</table>
 <h2><a class="anchor" id="coosig_sec"></a>
 COOSIG - Combination Of Other SIGnals NLI Variables</h2>
 <table  border="1px" width="80%">
@@ -518,18 +565,19 @@ COOSIG - Combination Of Other SIGnals NLI Variables</h2>
 <tr>
 <td width="20%"><code>coosig_indices</code></td><td width="50%">2d Integer Array of indices (to list of signals) for combinations. First index is for which new signal, second index is for terms in the combination</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a1b45c303a4a33d3aeb9e7c10f01a72e3">v3fit_input::coosig_indices</a> </td></tr>
 <tr>
-<td width="20%"><code>coosig_coeff</code></td><td width="50%">2d real array of coefficients for the combination (a's in the type)</td><td width="30%"><a class="el" href="namespacev3fit__input.html#ad2cccf80c02ca6ba2de6d4b8e2868606">v3fit_input::coosig_coeff</a> </td></tr>
-<tr>
-<td width="20%"><code>coosig_type</code></td><td width="50%">Character array of combination types<ol type="1">
+<td width="20%"><code>coosig_coeff</code></td><td width="50%">2d real array of coefficients for the combination (a's in the type)</td><td width="30%"><a class="el" href="namespacev3fit__input.html#ad2cccf80c02ca6ba2de6d4b8e2868606">v3fit_input::coosig_coeff</a> {coosig_type, Character array of combination types<ol type="1">
 <li><code>'sum'</code> - linear combination</li>
 <li><code>'max'</code> - maximum of weighted signals</li>
-<li><code>'min'</code> - minimum of weighted signals</li>
+<li><code>'min'</code> - minimum of weighted signals,</li>
+<li><code>'wavg'</code> - weighted average of two signal, <a class="el" href="namespacev3fit__input.html#a5f11fb1eaefb9e1baa4420405c09dff1" title="Combination type. ">v3fit_input::coosig_type</a>} </li>
 </ol>
-</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a5f11fb1eaefb9e1baa4420405c09dff1">v3fit_input::coosig_type</a> </td></tr>
+</td></tr>
 <tr>
 <td width="20%"><code>coosig_name</code></td><td width="50%">Character array of coosig names</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a6eca729d3823689fab757e1a110b83f5">v3fit_input::coosig_name</a> </td></tr>
 <tr>
 <td width="20%"><code>coosig_units</code></td><td width="50%">Character array of coosig units</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a059ccffdc9f208514515adb5748adc9f">v3fit_input::coosig_units</a> </td></tr>
+<tr>
+<td width="20%"><code>coosig_wgts_id</code></td><td width="50%">Array of coosig_wgt indexs</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a424222ecade94f218e98e9fdc5597c8a">v3fit_input::coosig_wgts_id</a> </td></tr>
 </table>
 <h2><a class="anchor" id="plasma_off_sec"></a>
 Plasma Offset Section</h2>
@@ -572,6 +620,21 @@ Reconstruction step control NLI variables</h2>
 <tr>
 <td width="20%"><code>use_central_diff</code></td><td width="50%">Use central difference for the jacobian derivatives.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#ac89fb702d3a90ee7b9b20159ed912d82">v3fit_input::use_central_diff</a> </td></tr>
 </table>
+<h2><a class="anchor" id="int_sec"></a>
+Integration parameters</h2>
+<table  border="1px" width="80%">
+<tr>
+<td width="20%"><code>int_method</code></td><td width="50%">Method of integration.<ol type="1">
+<li><code>'add'</code> - Simple added integration.</li>
+<li><code>'gleg'</code> - Gauss Legendre Quadrature.</li>
+<li><code>'hp_glep'</code> - hp Guass-Legendre quadrature.</li>
+</ol>
+</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a90fc95d90dface3a816634e091b7d0c3">v3fit_input::int_method</a> </td></tr>
+<tr>
+<td width="20%"><code>int_num_points</code></td><td width="50%">Sets number of nodes to use for the Gauss-legendre integration.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a1b604b7bf86240e95222db1c854b0aee">v3fit_input::int_num_points</a> </td></tr>
+<tr>
+<td width="20%"><code>int_size</code></td><td width="50%">Sets the integration step size.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a21885f2c19e871826a9de0b86409479a">v3fit_input::int_size</a> </td></tr>
+</table>
 <h2><a class="anchor" id="xcdot_sec"></a>
 VMEC zero out xcdot control</h2>
 <table  border="1px" width="80%">
@@ -592,7 +655,7 @@ Programmers Reference</h1>
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Nov 28 2017 10:22:17 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Mon Mar 26 2018 17:40:03 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

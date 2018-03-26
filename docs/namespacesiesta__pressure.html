@@ -98,7 +98,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 Functions/Subroutines</h2></td></tr>
 <tr class="memitem:ab4ff6dedbb8fd946ff14eefa93c92881"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ab4ff6dedbb8fd946ff14eefa93c92881"></a>
 subroutine, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__pressure.html#ab4ff6dedbb8fd946ff14eefa93c92881">update_pres</a></td></tr>
-<tr class="memdesc:ab4ff6dedbb8fd946ff14eefa93c92881"><td class="mdescLeft">&#160;</td><td class="mdescRight">Advance pressure from t to t+delta_t by updating jpmnc,sh (jacobh*presh) <br /></td></tr>
+<tr class="memdesc:ab4ff6dedbb8fd946ff14eefa93c92881"><td class="mdescLeft">&#160;</td><td class="mdescRight">Advance pressure on half radial grid from t to t+delta_t by updating jpmnc,sh (jacobh*presh) <br /></td></tr>
 <tr class="separator:ab4ff6dedbb8fd946ff14eefa93c92881"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab049095ab321b72515e5dce19151a5d0"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ab049095ab321b72515e5dce19151a5d0"></a>
 subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__pressure.html#ab049095ab321b72515e5dce19151a5d0">continuity</a> (djpmnh, ipar)</td></tr>
@@ -158,6 +158,12 @@ real(dp), dimension(:,:,:), allocatable&#160;</td><td class="memItemRight" valig
 <tr class="memitem:a17d8900629581f500e4d05f7d89fdeda"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a17d8900629581f500e4d05f7d89fdeda"></a>
 real(dp), dimension(:,:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><b>jvsupvijh</b></td></tr>
 <tr class="separator:a17d8900629581f500e4d05f7d89fdeda"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7728caafa8a2f81d72b8b1ae7a443786"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a7728caafa8a2f81d72b8b1ae7a443786"></a>
+real(dp), dimension(:,:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><b>pijf0_du</b></td></tr>
+<tr class="separator:a7728caafa8a2f81d72b8b1ae7a443786"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5a41fc6fbd148a85e8770b0332d4098d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5a41fc6fbd148a85e8770b0332d4098d"></a>
+real(dp), dimension(:,:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><b>pijf0_dv</b></td></tr>
+<tr class="separator:a5a41fc6fbd148a85e8770b0332d4098d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Module contained subroutines for updating pressure as part of the SIESTA project. </p>
@@ -182,7 +188,7 @@ real(dp), dimension(:,:,:), allocatable&#160;</td><td class="memItemRight" valig
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Nov 28 2017 10:22:18 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Mon Mar 26 2018 17:40:04 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

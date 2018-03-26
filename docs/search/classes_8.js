@@ -6,5 +6,8 @@ var searchData=
   ['init_5fvolint',['init_volint',['../interfacevirtual__casing__mod_1_1init__volint.html',1,'virtual_casing_mod']]],
   ['intpol_5fclass',['intpol_class',['../structintpol_1_1intpol__class.html',1,'intpol']]],
   ['intpol_5fconstruct',['intpol_construct',['../interfaceintpol_1_1intpol__construct.html',1,'intpol']]],
+  ['intpol_5fget_5fgp',['intpol_get_gp',['../interfaceintpol_1_1intpol__get__gp.html',1,'intpol']]],
+  ['intpol_5fgp_5fcontext_5fi',['intpol_gp_context_i',['../structintpol_1_1intpol__gp__context__i.html',1,'intpol']]],
+  ['intpol_5fgp_5fcontext_5fx',['intpol_gp_context_x',['../structintpol_1_1intpol__gp__context__x.html',1,'intpol']]],
   ['ipch_5fdesc',['ipch_desc',['../structipch__t_1_1ipch__desc.html',1,'ipch_t']]]
 ];

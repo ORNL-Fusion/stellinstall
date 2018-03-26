@@ -110,11 +110,23 @@ Data Types</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacemodel_1_1model__get__ne.html">model::model_get_ne</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface for the model density profile values.  <a href="interfacemodel_1_1model__get__ne.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacemodel_1_1model__get__gp__ne.html">model::model_get_gp_ne</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface for the model guassian process density profile values.  <a href="interfacemodel_1_1model__get__gp__ne.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacemodel_1_1model__get__te.html">model::model_get_te</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface for the model temperature profile values.  <a href="interfacemodel_1_1model__get__te.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacemodel_1_1model__get__gp__te.html">model::model_get_gp_te</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface for the mdoel guassian process temperature profile values.  <a href="interfacemodel_1_1model__get__gp__te.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacemodel_1_1model__get__ze.html">model::model_get_ze</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface for the model temperature profile values.  <a href="interfacemodel_1_1model__get__ze.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacemodel_1_1model__get__sxrem.html">model::model_get_sxrem</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface for the model soft x-ray emissivity profile values.  <a href="interfacemodel_1_1model__get__sxrem.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacemodel_1_1model__get__gp__sxrem.html">model::model_get_gp_sxrem</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface for the mdoel guassian process soft x-ray emissivity profile values.  <a href="interfacemodel_1_1model__get__gp__sxrem.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="namespaces"></a>
@@ -125,9 +137,9 @@ Modules</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions/Subroutines</h2></td></tr>
-<tr class="memitem:a8f3e0acd716e58db1843c3f65a44a109"><td class="memItemLeft" align="right" valign="top">type(model_class) function, pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a8f3e0acd716e58db1843c3f65a44a109">model::model_construct</a> (ne_type, sxrem_type, te_type,                                  </td></tr>
-<tr class="memdesc:a8f3e0acd716e58db1843c3f65a44a109"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a <a class="el" href="structmodel_1_1model__class.html">model_class</a> containing an <a class="el" href="namespaceequilibrium.html">equilibrium</a> object.  <a href="namespacemodel.html#a8f3e0acd716e58db1843c3f65a44a109">More...</a><br /></td></tr>
-<tr class="separator:a8f3e0acd716e58db1843c3f65a44a109"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac0af08f3c394a41a519e596aac1af182"><td class="memItemLeft" align="right" valign="top">type(model_class) function, pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#ac0af08f3c394a41a519e596aac1af182">model::model_construct</a> (ne_type, sxrem_type, te_type, ze_type,                </td></tr>
+<tr class="memdesc:ac0af08f3c394a41a519e596aac1af182"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a <a class="el" href="structmodel_1_1model__class.html">model_class</a> containing an <a class="el" href="namespaceequilibrium.html">equilibrium</a> object.  <a href="namespacemodel.html#ac0af08f3c394a41a519e596aac1af182">More...</a><br /></td></tr>
+<tr class="separator:ac0af08f3c394a41a519e596aac1af182"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2a265c388bc36a30cc61a1635f9353d6"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a2a265c388bc36a30cc61a1635f9353d6">model::model_destruct</a> (this)</td></tr>
 <tr class="memdesc:a2a265c388bc36a30cc61a1635f9353d6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Deconstruct a <a class="el" href="structmodel_1_1model__class.html">model_class</a> object.  <a href="namespacemodel.html#a2a265c388bc36a30cc61a1635f9353d6">More...</a><br /></td></tr>
 <tr class="separator:a2a265c388bc36a30cc61a1635f9353d6"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -146,18 +158,51 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:a3ca24f831d2002ee26314de823344ef6"><td class="memItemLeft" align="right" valign="top">character(len=data_name_length) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a3ca24f831d2002ee26314de823344ef6">model::model_get_param_name</a> (this, id)</td></tr>
 <tr class="memdesc:a3ca24f831d2002ee26314de823344ef6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the name of a model parameter.  <a href="namespacemodel.html#a3ca24f831d2002ee26314de823344ef6">More...</a><br /></td></tr>
 <tr class="separator:a3ca24f831d2002ee26314de823344ef6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae9f5014e55090d54e89563d33a415813"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#ae9f5014e55090d54e89563d33a415813">model::model_get_gp_ne_ij</a> (this, i, j)</td></tr>
+<tr class="memdesc:ae9f5014e55090d54e89563d33a415813"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the electron density gp kernel value for the two indicies.  <a href="namespacemodel.html#ae9f5014e55090d54e89563d33a415813">More...</a><br /></td></tr>
+<tr class="separator:ae9f5014e55090d54e89563d33a415813"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a322214757aa18279bce1c072d523b563"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a322214757aa18279bce1c072d523b563">model::model_get_gp_ne_pi</a> (this, x_cart, i)</td></tr>
+<tr class="memdesc:a322214757aa18279bce1c072d523b563"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the electron density gp kernel value for the position and index.  <a href="namespacemodel.html#a322214757aa18279bce1c072d523b563">More...</a><br /></td></tr>
+<tr class="separator:a322214757aa18279bce1c072d523b563"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a83e3312f26b3c4370474d176aec26a24"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a83e3312f26b3c4370474d176aec26a24">model::model_get_gp_ne_pp</a> (this, x_cart, y_cart)</td></tr>
+<tr class="memdesc:a83e3312f26b3c4370474d176aec26a24"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the electron density gp kernel value for the position and position.  <a href="namespacemodel.html#a83e3312f26b3c4370474d176aec26a24">More...</a><br /></td></tr>
+<tr class="separator:a83e3312f26b3c4370474d176aec26a24"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1be0e1afe0b9d73209fccaced1cb0436"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a1be0e1afe0b9d73209fccaced1cb0436">model::model_get_ne_cart</a> (this, x_cart)</td></tr>
 <tr class="memdesc:a1be0e1afe0b9d73209fccaced1cb0436"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the electron density at a cartesian position.  <a href="namespacemodel.html#a1be0e1afe0b9d73209fccaced1cb0436">More...</a><br /></td></tr>
 <tr class="separator:a1be0e1afe0b9d73209fccaced1cb0436"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a260fa5a433784c4f98167a5aa0e479a5"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a260fa5a433784c4f98167a5aa0e479a5">model::model_get_ne_radial</a> (this, r)</td></tr>
 <tr class="memdesc:a260fa5a433784c4f98167a5aa0e479a5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the electron density at a radial position.  <a href="namespacemodel.html#a260fa5a433784c4f98167a5aa0e479a5">More...</a><br /></td></tr>
 <tr class="separator:a260fa5a433784c4f98167a5aa0e479a5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1a925a4cac4f8ccf8fc3ce72184ea9a6"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a1a925a4cac4f8ccf8fc3ce72184ea9a6">model::model_get_gp_te_ij</a> (this, i, j)</td></tr>
+<tr class="memdesc:a1a925a4cac4f8ccf8fc3ce72184ea9a6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the electron temperature gp kernel value for the two indicies.  <a href="namespacemodel.html#a1a925a4cac4f8ccf8fc3ce72184ea9a6">More...</a><br /></td></tr>
+<tr class="separator:a1a925a4cac4f8ccf8fc3ce72184ea9a6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aad7ae3b13fa5cab9ae3ca39c616ac247"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#aad7ae3b13fa5cab9ae3ca39c616ac247">model::model_get_gp_te_pi</a> (this, x_cart, i)</td></tr>
+<tr class="memdesc:aad7ae3b13fa5cab9ae3ca39c616ac247"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the electron temperature gp kernel value for the position and index.  <a href="namespacemodel.html#aad7ae3b13fa5cab9ae3ca39c616ac247">More...</a><br /></td></tr>
+<tr class="separator:aad7ae3b13fa5cab9ae3ca39c616ac247"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac5f8281c5691b8c6fb46d239f6e5add3"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#ac5f8281c5691b8c6fb46d239f6e5add3">model::model_get_gp_te_pp</a> (this, x_cart, y_cart)</td></tr>
+<tr class="memdesc:ac5f8281c5691b8c6fb46d239f6e5add3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the electron temperature gp kernel value for the position and position.  <a href="namespacemodel.html#ac5f8281c5691b8c6fb46d239f6e5add3">More...</a><br /></td></tr>
+<tr class="separator:ac5f8281c5691b8c6fb46d239f6e5add3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abea4081e3dbf6e1f04898bf6a3e03f25"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#abea4081e3dbf6e1f04898bf6a3e03f25">model::model_get_te_cart</a> (this, x_cart)</td></tr>
 <tr class="memdesc:abea4081e3dbf6e1f04898bf6a3e03f25"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the electron temperature at a cartesian position.  <a href="namespacemodel.html#abea4081e3dbf6e1f04898bf6a3e03f25">More...</a><br /></td></tr>
 <tr class="separator:abea4081e3dbf6e1f04898bf6a3e03f25"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a125d3aa05cbe81640802d4e443e05fe6"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a125d3aa05cbe81640802d4e443e05fe6">model::model_get_te_radial</a> (this, r)</td></tr>
 <tr class="memdesc:a125d3aa05cbe81640802d4e443e05fe6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the electron temperature at a radial position.  <a href="namespacemodel.html#a125d3aa05cbe81640802d4e443e05fe6">More...</a><br /></td></tr>
 <tr class="separator:a125d3aa05cbe81640802d4e443e05fe6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6fc16b5f9c559707eee8205e21850ce1"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a6fc16b5f9c559707eee8205e21850ce1">model::model_get_ze_cart</a> (this, x_cart)</td></tr>
+<tr class="memdesc:a6fc16b5f9c559707eee8205e21850ce1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the effective charge at a cartesian position.  <a href="namespacemodel.html#a6fc16b5f9c559707eee8205e21850ce1">More...</a><br /></td></tr>
+<tr class="separator:a6fc16b5f9c559707eee8205e21850ce1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4c2bf3bbbf55f8a594f2fa65287bbf5e"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a4c2bf3bbbf55f8a594f2fa65287bbf5e">model::model_get_ze_radial</a> (this, r)</td></tr>
+<tr class="memdesc:a4c2bf3bbbf55f8a594f2fa65287bbf5e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the effective charge at a radial position.  <a href="namespacemodel.html#a4c2bf3bbbf55f8a594f2fa65287bbf5e">More...</a><br /></td></tr>
+<tr class="separator:a4c2bf3bbbf55f8a594f2fa65287bbf5e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8b1a92b704161db3a03beeebaa6701eb"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a8b1a92b704161db3a03beeebaa6701eb">model::model_get_gp_sxrem_ij</a> (this, i, j, index)</td></tr>
+<tr class="memdesc:a8b1a92b704161db3a03beeebaa6701eb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the soft x-ray emissivity gp kernel value for the two indicies.  <a href="namespacemodel.html#a8b1a92b704161db3a03beeebaa6701eb">More...</a><br /></td></tr>
+<tr class="separator:a8b1a92b704161db3a03beeebaa6701eb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa19addbe2bed2a528c8b8bf222707e86"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#aa19addbe2bed2a528c8b8bf222707e86">model::model_get_gp_sxrem_pi</a> (this, x_cart, i, index)</td></tr>
+<tr class="memdesc:aa19addbe2bed2a528c8b8bf222707e86"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the soft x-ray emissivity gp kernel value for the position and index.  <a href="namespacemodel.html#aa19addbe2bed2a528c8b8bf222707e86">More...</a><br /></td></tr>
+<tr class="separator:aa19addbe2bed2a528c8b8bf222707e86"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab832bb930b4890f10fc77dcaba12a6e9"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#ab832bb930b4890f10fc77dcaba12a6e9">model::model_get_gp_sxrem_pp</a> (this, x_cart, y_cart, index)</td></tr>
+<tr class="memdesc:ab832bb930b4890f10fc77dcaba12a6e9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the soft x-ray emissivity gp kernel value for the position and position.  <a href="namespacemodel.html#ab832bb930b4890f10fc77dcaba12a6e9">More...</a><br /></td></tr>
+<tr class="separator:ab832bb930b4890f10fc77dcaba12a6e9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afee0b0995d6fb4b7021336d13745e512"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#afee0b0995d6fb4b7021336d13745e512">model::model_get_sxrem_cart</a> (this, x_cart, index)</td></tr>
 <tr class="memdesc:afee0b0995d6fb4b7021336d13745e512"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the soft x-ray emissivity at a cartesian position.  <a href="namespacemodel.html#afee0b0995d6fb4b7021336d13745e512">More...</a><br /></td></tr>
 <tr class="separator:afee0b0995d6fb4b7021336d13745e512"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -165,7 +210,7 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memdesc:ab6613013e6047eab5cde6d6107dc65e6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the soft x-ray emissivity at a radial position.  <a href="namespacemodel.html#ab6613013e6047eab5cde6d6107dc65e6">More...</a><br /></td></tr>
 <tr class="separator:ab6613013e6047eab5cde6d6107dc65e6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac0c13b272f321765061b7ea58d78497e"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#ac0c13b272f321765061b7ea58d78497e">model::model_get_sxrem_ratio</a> (this, te)</td></tr>
-<tr class="memdesc:ac0c13b272f321765061b7ea58d78497e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the soft x-ray emissivity at a radial position.  <a href="namespacemodel.html#ac0c13b272f321765061b7ea58d78497e">More...</a><br /></td></tr>
+<tr class="memdesc:ac0c13b272f321765061b7ea58d78497e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the soft x-ray emissivity ratio.  <a href="namespacemodel.html#ac0c13b272f321765061b7ea58d78497e">More...</a><br /></td></tr>
 <tr class="separator:ac0c13b272f321765061b7ea58d78497e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a95306c7639e4da0cd4073425130e06db"><td class="memItemLeft" align="right" valign="top">character(len=data_name_length) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a95306c7639e4da0cd4073425130e06db">model::model_get_ne_type</a> (this)</td></tr>
 <tr class="memdesc:a95306c7639e4da0cd4073425130e06db"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the electron density type as a string.  <a href="namespacemodel.html#a95306c7639e4da0cd4073425130e06db">More...</a><br /></td></tr>
@@ -173,6 +218,9 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:a75ad061f96afc97aeb8b46b0c283036b"><td class="memItemLeft" align="right" valign="top">character(len=data_name_length) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a75ad061f96afc97aeb8b46b0c283036b">model::model_get_te_type</a> (this)</td></tr>
 <tr class="memdesc:a75ad061f96afc97aeb8b46b0c283036b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the electron temperature type as a string.  <a href="namespacemodel.html#a75ad061f96afc97aeb8b46b0c283036b">More...</a><br /></td></tr>
 <tr class="separator:a75ad061f96afc97aeb8b46b0c283036b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abb3a83f634add6557f3790592a7836dc"><td class="memItemLeft" align="right" valign="top">character(len=data_name_length) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#abb3a83f634add6557f3790592a7836dc">model::model_get_ze_type</a> (this)</td></tr>
+<tr class="memdesc:abb3a83f634add6557f3790592a7836dc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the effective charge type as a string.  <a href="namespacemodel.html#abb3a83f634add6557f3790592a7836dc">More...</a><br /></td></tr>
+<tr class="separator:abb3a83f634add6557f3790592a7836dc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af88bfde139873aee78ab9f9279998be4"><td class="memItemLeft" align="right" valign="top">character(len=data_name_length) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#af88bfde139873aee78ab9f9279998be4">model::model_get_sxrem_type</a> (this, index)</td></tr>
 <tr class="memdesc:af88bfde139873aee78ab9f9279998be4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the soft x-ray emissivity type as a string.  <a href="namespacemodel.html#af88bfde139873aee78ab9f9279998be4">More...</a><br /></td></tr>
 <tr class="separator:af88bfde139873aee78ab9f9279998be4"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -240,6 +288,10 @@ integer, parameter, private&#160;</td><td class="memItemRight" valign="bottom"><
 integer, parameter, private&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a7ace565642dcec6c9d8751ca55ee889b">model::model_te_ne_p_type</a> = 1</td></tr>
 <tr class="memdesc:a7ace565642dcec6c9d8751ca55ee889b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Electron temperature model is derived from the density and pressure. <br /></td></tr>
 <tr class="separator:a7ace565642dcec6c9d8751ca55ee889b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa15ffe1727444156ac6ac585df7405e2"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa15ffe1727444156ac6ac585df7405e2"></a>
+integer, parameter, private&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#aa15ffe1727444156ac6ac585df7405e2">model::model_ze_type</a> = 0</td></tr>
+<tr class="memdesc:aa15ffe1727444156ac6ac585df7405e2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Effective charge model. <br /></td></tr>
+<tr class="separator:aa15ffe1727444156ac6ac585df7405e2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a27009da4938ee0706157b3bad05bbf9d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a27009da4938ee0706157b3bad05bbf9d"></a>
 integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a27009da4938ee0706157b3bad05bbf9d">model::model_ne_unit_id</a> = 0</td></tr>
 <tr class="memdesc:a27009da4938ee0706157b3bad05bbf9d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parameter id for the electron density units. <br /></td></tr>
@@ -256,22 +308,34 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#ad2b6317fad31953186ed8f7a7fad9303">model::model_pressure_fraction_id</a> = 3</td></tr>
 <tr class="memdesc:ad2b6317fad31953186ed8f7a7fad9303"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parameter id for the electrion fraction of the pressure. <br /></td></tr>
 <tr class="separator:ad2b6317fad31953186ed8f7a7fad9303"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a36e70a1922b00ed72f14ca70727782ce"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a36e70a1922b00ed72f14ca70727782ce"></a>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a36e70a1922b00ed72f14ca70727782ce">model::model_sxrem_min_id</a> = 4</td></tr>
+<tr class="memdesc:a36e70a1922b00ed72f14ca70727782ce"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parameter id for the electrion fraction of the pressure. <br /></td></tr>
+<tr class="separator:a36e70a1922b00ed72f14ca70727782ce"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a25437a3fa32d82cbbd30726d8e8a03d7"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a25437a3fa32d82cbbd30726d8e8a03d7"></a>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a25437a3fa32d82cbbd30726d8e8a03d7">model::model_coosig_wgts_id</a> = 5</td></tr>
+<tr class="memdesc:a25437a3fa32d82cbbd30726d8e8a03d7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parameter id for the combination signal weights. <br /></td></tr>
+<tr class="separator:a25437a3fa32d82cbbd30726d8e8a03d7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0fac5822f775417cfde63cc60ba7fc95"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0fac5822f775417cfde63cc60ba7fc95"></a>
-integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a0fac5822f775417cfde63cc60ba7fc95">model::model_signal_factor_id</a> = 4</td></tr>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a0fac5822f775417cfde63cc60ba7fc95">model::model_signal_factor_id</a> = 6</td></tr>
 <tr class="memdesc:a0fac5822f775417cfde63cc60ba7fc95"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parameter id for the modeled signal scale factors. <br /></td></tr>
 <tr class="separator:a0fac5822f775417cfde63cc60ba7fc95"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8ec59b67723de5350e1243bd13d57308"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a8ec59b67723de5350e1243bd13d57308"></a>
-integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a8ec59b67723de5350e1243bd13d57308">model::model_ne_grid_id</a> = 5</td></tr>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a8ec59b67723de5350e1243bd13d57308">model::model_ne_grid_id</a> = 7</td></tr>
 <tr class="memdesc:a8ec59b67723de5350e1243bd13d57308"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parameter id for the electrion density grid. <br /></td></tr>
 <tr class="separator:a8ec59b67723de5350e1243bd13d57308"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a252cedeee618d79814de7327ef8838d1"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a252cedeee618d79814de7327ef8838d1"></a>
-integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a252cedeee618d79814de7327ef8838d1">model::model_te_grid_id</a> = 6</td></tr>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a252cedeee618d79814de7327ef8838d1">model::model_te_grid_id</a> = 8</td></tr>
 <tr class="memdesc:a252cedeee618d79814de7327ef8838d1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parameter id for the electrion temperature grid. <br /></td></tr>
 <tr class="separator:a252cedeee618d79814de7327ef8838d1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acd7336c016d4b58107cc3c8cf899fea9"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="acd7336c016d4b58107cc3c8cf899fea9"></a>
-integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#acd7336c016d4b58107cc3c8cf899fea9">model::model_sxrem_grid_id</a> = 7</td></tr>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#acd7336c016d4b58107cc3c8cf899fea9">model::model_sxrem_grid_id</a> = 9</td></tr>
 <tr class="memdesc:acd7336c016d4b58107cc3c8cf899fea9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parameter id for the soft x-ray emissivity grid. <br /></td></tr>
 <tr class="separator:acd7336c016d4b58107cc3c8cf899fea9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abf8473dd73c6fe4b0f9ee2bd243cd0f8"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="abf8473dd73c6fe4b0f9ee2bd243cd0f8"></a>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#abf8473dd73c6fe4b0f9ee2bd243cd0f8">model::model_ze_grid_id</a> = 10</td></tr>
+<tr class="memdesc:abf8473dd73c6fe4b0f9ee2bd243cd0f8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parameter id for the effective charge grid. <br /></td></tr>
+<tr class="separator:abf8473dd73c6fe4b0f9ee2bd243cd0f8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:adee0096c51cfba8e688b2e2f073ec866"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="adee0096c51cfba8e688b2e2f073ec866"></a>
 real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#adee0096c51cfba8e688b2e2f073ec866">model::ev_per_joule</a> = one/1.602e-19_rprec</td></tr>
 <tr class="memdesc:adee0096c51cfba8e688b2e2f073ec866"><td class="mdescLeft">&#160;</td><td class="mdescRight">Conversion from Joules to eV. <br /></td></tr>
@@ -284,7 +348,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Nov 28 2017 10:22:17 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Mon Mar 26 2018 17:40:02 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

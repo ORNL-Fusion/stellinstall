@@ -113,7 +113,8 @@ character(len=data_name_length)&#160;</td><td class="memItemRight" valign="botto
 <tr class="memdesc:aea71d7a16b18fb0970ddc2aa01e6b277"><td class="mdescLeft">&#160;</td><td class="mdescRight">Long name of the signal. <br /></td></tr>
 <tr class="separator:aea71d7a16b18fb0970ddc2aa01e6b277"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7888c74513301e4bc98fad7eb6f78384"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a7888c74513301e4bc98fad7eb6f78384"></a>
-character(len=data_short_name_length)&#160;</td><td class="memItemRight" valign="bottom"><b>units</b></td></tr>
+character(len=data_short_name_length)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structsignal_1_1signal__class.html#a7888c74513301e4bc98fad7eb6f78384">units</a></td></tr>
+<tr class="memdesc:a7888c74513301e4bc98fad7eb6f78384"><td class="mdescLeft">&#160;</td><td class="mdescRight">Physical units the signal measures. <br /></td></tr>
 <tr class="separator:a7888c74513301e4bc98fad7eb6f78384"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa5950221a08dd382a96b139e4ddafb32"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa5950221a08dd382a96b139e4ddafb32"></a>
 real(rprec)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structsignal_1_1signal__class.html#aa5950221a08dd382a96b139e4ddafb32">observed</a></td></tr>
@@ -159,12 +160,16 @@ integer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s
 <a class="el" href="structsignal_1_1signal__class.html#afcef903517afcf8dcb9bc3e8cdb13c80">type</a>(<a class="el" href="structsignal_1_1combination__class.html">combination_class</a>), pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structsignal_1_1signal__class.html#a918e7c237dfb23e48a56037cf5db5280">combination</a> =&gt; null()</td></tr>
 <tr class="memdesc:a918e7c237dfb23e48a56037cf5db5280"><td class="mdescLeft">&#160;</td><td class="mdescRight">An instance of a <a class="el" href="structsignal_1_1signal__class.html#a918e7c237dfb23e48a56037cf5db5280">combination</a> object. <br /></td></tr>
 <tr class="separator:a918e7c237dfb23e48a56037cf5db5280"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac2ce729dc20e1b1da096a71e1812edf4"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ac2ce729dc20e1b1da096a71e1812edf4"></a>
+<a class="el" href="structsignal_1_1signal__class.html#afcef903517afcf8dcb9bc3e8cdb13c80">type</a>(<a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a>), pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structsignal_1_1signal__class.html#ac2ce729dc20e1b1da096a71e1812edf4">gaussp</a> =&gt; null()</td></tr>
+<tr class="memdesc:ac2ce729dc20e1b1da096a71e1812edf4"><td class="mdescLeft">&#160;</td><td class="mdescRight">An instance of a <a class="el" href="structsignal_1_1signal__class.html#ac2ce729dc20e1b1da096a71e1812edf4">gaussp</a> object. <br /></td></tr>
+<tr class="separator:ac2ce729dc20e1b1da096a71e1812edf4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Base class representing a signal. </p>
-<dl class="section user"><dt>Sub Classes:</dt><dd><a class="el" href="namespacediagnostic.html">diagnostic</a>, <a class="el" href="namespacegeometric.html">geometric</a>, <a class="el" href="namespaceprior.html">prior</a>, <a class="el" href="structsignal_1_1combination__class.html">combination_class</a> </dd></dl>
+<dl class="section user"><dt>Sub Classes:</dt><dd><a class="el" href="namespacediagnostic.html">diagnostic</a>, <a class="el" href="namespacegeometric.html">geometric</a>, <a class="el" href="namespaceprior.html">prior</a>, <a class="el" href="structsignal_1_1combination__class.html">combination_class</a>, <a class="el" href="structsignal_1_1gaussp__class.html">gaussp_class</a> </dd></dl>
 
-<p>Definition at line <a class="el" href="signal_8f_source.html#l00076">76</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p>Definition at line <a class="el" href="signal_8f_source.html#l00098">98</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
 <a class="anchor" id="afcef903517afcf8dcb9bc3e8cdb13c80"></a>
 <div class="memitem">
@@ -181,11 +186,12 @@ integer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s
 <li><a class="el" href="namespacesignal.html#a77cda1b4cbcb51854159d6c5e39c307a">signal_no_type</a></li>
 <li><a class="el" href="namespacesignal.html#a408d32cbfe7ccbb482e486f113a8a6a2">signal_diagnostic_type</a>,</li>
 <li><a class="el" href="namespacesignal.html#aa158ea5f48fcf7abd7229b072153149b">signal_geometric_type</a></li>
-<li><a class="el" href="namespacesignal.html#aa9cec11b05b4a7068e302304acd1c3ee">signal_combination_type</a> </li>
+<li><a class="el" href="namespacesignal.html#aa9cec11b05b4a7068e302304acd1c3ee">signal_combination_type</a></li>
+<li><a class="el" href="namespacesignal.html#ad1e8b292559527d1fdce07f1a8de5261">signal_gaussp_type</a> </li>
 </ul>
 </dd></dl>
 
-<p>Definition at line <a class="el" href="signal_8f_source.html#l00083">83</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p>Definition at line <a class="el" href="signal_8f_source.html#l00106">106</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -195,7 +201,7 @@ integer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Nov 28 2017 10:22:18 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Mon Mar 26 2018 17:40:04 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

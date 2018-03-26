@@ -117,8 +117,12 @@ type(pprofile_class), pointer&#160;</td><td class="memItemRight" valign="bottom"
 type(pprofile_class), pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structvmec__equilibrium_1_1vmec__class.html#a0dfd08d4f237fae503c7b27513cfee02">te</a> =&gt; null()</td></tr>
 <tr class="memdesc:a0dfd08d4f237fae503c7b27513cfee02"><td class="mdescLeft">&#160;</td><td class="mdescRight">pprofile_T describing a flux surface constant electron temperature profile. <br /></td></tr>
 <tr class="separator:a0dfd08d4f237fae503c7b27513cfee02"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac003aa814fa611fa4e3fcad0f1500fed"><td class="memItemLeft" align="right" valign="top">real(rprec)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structvmec__equilibrium_1_1vmec__class.html#ac003aa814fa611fa4e3fcad0f1500fed">pol_rad_ratio</a></td></tr>
-<tr class="memdesc:ac003aa814fa611fa4e3fcad0f1500fed"><td class="mdescLeft">&#160;</td><td class="mdescRight">pprofile_T describing a flux surface conatsnt soft x-ray emissivity profile.  <a href="#ac003aa814fa611fa4e3fcad0f1500fed">More...</a><br /></td></tr>
+<tr class="memitem:a1454d2b34e372ef6b1654997eeca0d77"><td class="memItemLeft" align="right" valign="top">type(pprofile_class), pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structvmec__equilibrium_1_1vmec__class.html#a1454d2b34e372ef6b1654997eeca0d77">ze</a> =&gt; null()</td></tr>
+<tr class="memdesc:a1454d2b34e372ef6b1654997eeca0d77"><td class="mdescLeft">&#160;</td><td class="mdescRight">pprofile_T describing a flux surface conatsnt soft x-ray emissivity profile.  <a href="#a1454d2b34e372ef6b1654997eeca0d77">More...</a><br /></td></tr>
+<tr class="separator:a1454d2b34e372ef6b1654997eeca0d77"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac003aa814fa611fa4e3fcad0f1500fed"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ac003aa814fa611fa4e3fcad0f1500fed"></a>
+real(rprec)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structvmec__equilibrium_1_1vmec__class.html#ac003aa814fa611fa4e3fcad0f1500fed">pol_rad_ratio</a></td></tr>
+<tr class="memdesc:ac003aa814fa611fa4e3fcad0f1500fed"><td class="mdescLeft">&#160;</td><td class="mdescRight">Ratio of the poloidal grid points to the poloidal grid points. <br /></td></tr>
 <tr class="separator:ac003aa814fa611fa4e3fcad0f1500fed"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a713a315e222accda5ce7ede256a2f557"><td class="memItemLeft" align="right" valign="top">real(rprec)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structvmec__equilibrium_1_1vmec__class.html#a713a315e222accda5ce7ede256a2f557">phi_offset</a> = 0</td></tr>
 <tr class="memdesc:a713a315e222accda5ce7ede256a2f557"><td class="mdescLeft">&#160;</td><td class="mdescRight">Instance of a <a class="el" href="structvmec__equilibrium_1_1vmec__magnetic__cache.html">vmec_magnetic_cache</a> object.  <a href="#a713a315e222accda5ce7ede256a2f557">More...</a><br /></td></tr>
@@ -136,7 +140,7 @@ integer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s
 <div class="textblock"><p>Base class representing a <a class="el" href="namespacevmec__equilibrium.html" title="Defines the base class of the type vmec_class. This module contains all the code necessary to interfa...">vmec_equilibrium</a>. </p>
 <dl class="section user"><dt>Super Class:</dt><dd><a class="el" href="namespaceequilibrium.html">equilibrium</a> </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l00372">372</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l00384">384</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
 <a class="anchor" id="a713a315e222accda5ce7ede256a2f557"></a>
 <div class="memitem">
@@ -151,24 +155,24 @@ integer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s
 <p>Instance of a <a class="el" href="structvmec__equilibrium_1_1vmec__magnetic__cache.html">vmec_magnetic_cache</a> object. </p>
 <p>VMEC context. Plasma phi offset. </p>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l00400">400</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l00415">415</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
-<a class="anchor" id="ac003aa814fa611fa4e3fcad0f1500fed"></a>
+<a class="anchor" id="a1454d2b34e372ef6b1654997eeca0d77"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">real (rprec) vmec_equilibrium::vmec_class::pol_rad_ratio</td>
+          <td class="memname">type (pprofile_class), pointer vmec_equilibrium::vmec_class::ze =&gt; null()</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 <p>pprofile_T describing a flux surface conatsnt soft x-ray emissivity profile. </p>
-<p>Ratio of the poloidal grid points to the poloidal grid points. </p>
+<p>pprofile_T describing a flux surface constant Zeff profile. </p>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l00389">389</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l00401">401</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -178,7 +182,7 @@ integer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Nov 28 2017 10:22:19 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Mon Mar 26 2018 17:40:05 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>
