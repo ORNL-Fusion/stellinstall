@@ -492,22 +492,26 @@
 
 !GATHER BDY FORCES AND PRINT OUT ON PROC=0
        PRINT_O: IF (l_PrintOriginForces) THEN
-          fbdy(1) = SQRT(SUM(f_smnf(m1,:,1)**2))
-          fbdy(2) = SQRT(SUM(f_smnf(m1,:,2)**2))
-          fbdy(3) = SQRT(SUM(f_smnf(m0,:,2)**2) + SUM(f_smnf(m2:,:,2)**2))
+          IF (nsmin .eq. 1 .and. nsmax .ge. 2) THEN
+             fbdy(1) = SQRT(SUM(f_smnf(m1,:,1)**2))
+             fbdy(2) = SQRT(SUM(f_smnf(m1,:,2)**2))
+             fbdy(3) = SQRT(SUM(f_smnf(m0,:,2)**2) + SUM(f_smnf(m2:,:,2)**2))
 
-          fbdy(4) = SQRT(SUM(f_umnf(m1,:,1)**2))
-          fbdy(5) = SQRT(SUM(f_umnf(m1,:,2)**2))
-          fbdy(6) = SQRT(SUM(f_umnf(m0,:,2)**2) + SUM(f_umnf(m2:,:,2)**2))
+             fbdy(4) = SQRT(SUM(f_umnf(m1,:,1)**2))
+             fbdy(5) = SQRT(SUM(f_umnf(m1,:,2)**2))
+             fbdy(6) = SQRT(SUM(f_umnf(m0,:,2)**2) + SUM(f_umnf(m2:,:,2)**2))
 
-          fbdy(7) = SQRT(SUM(f_vmnf(m0,:,1)**2))
-          fbdy(8) = SQRT(SUM(f_vmnf(m0,:,2)**2))
-          fbdy(9) = SQRT(SUM(f_vmnf(m1:,:,2)**2))
+             fbdy(7) = SQRT(SUM(f_vmnf(m0,:,1)**2))
+             fbdy(8) = SQRT(SUM(f_vmnf(m0,:,2)**2))
+             fbdy(9) = SQRT(SUM(f_vmnf(m1:,:,2)**2))
+          END IF
 
-          fbdy(11) = SQRT(SUM(f_umnf(:,:,ns)**2))
-          fbdy(10) = SQRT(SUM(f_umnf(:,:,ns-1)**2))
-          fbdy(13) = SQRT(SUM(f_vmnf(:,:,ns)**2))
-          fbdy(12) = SQRT(SUM(f_vmnf(:,:,ns-1)**2))
+          IF (nsmax .eq. ns .and. nsmin .le. ns - 1) THEN
+             fbdy(11) = SQRT(SUM(f_umnf(:,:,ns)**2))
+             fbdy(10) = SQRT(SUM(f_umnf(:,:,ns-1)**2))
+             fbdy(13) = SQRT(SUM(f_vmnf(:,:,ns)**2))
+             fbdy(12) = SQRT(SUM(f_vmnf(:,:,ns-1)**2))
+          END IF
 
 #if defined(MPI_OPT)
            NPROCS_0: IF (nprocs .GT. 1) THEN
