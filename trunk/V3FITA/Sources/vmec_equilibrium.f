@@ -131,7 +131,6 @@
 
       MODULE vmec_equilibrium
       USE pprofile_T
-      USE gp_kernel
       USE vmec_context
 
       IMPLICIT NONE
