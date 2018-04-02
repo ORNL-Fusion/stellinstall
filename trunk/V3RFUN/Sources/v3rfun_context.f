@@ -9,9 +9,6 @@
 !>  running v3rfun.
 !*******************************************************************************
       MODULE v3rfun_context
-!#undef NEW_CODE
-#define NEW_CODE
-#ifdef NEW_CODE
       USE v3rfun_input
       USE diagnostic_dot
       USE biotsavart
@@ -922,5 +919,5 @@
       cart2cyl_v(3) = vcart(3)
 
       END FUNCTION
-#endif
+
       END MODULE
