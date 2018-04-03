@@ -90,8 +90,6 @@
 !  local variables
       REAL (rprec)                                  :: start_time
       INTEGER                                       :: i
-      INTEGER                                       :: j
-      INTEGER                                       :: k
       INTEGER                                       :: ri
       INTEGER                                       :: zi
       INTEGER                                       :: vi
@@ -299,7 +297,7 @@
                IF (vi .eq. 1) THEN
                   k_p = 2
                   k_m = num_p
-               ELSE IF (k .eq. num_p) THEN
+               ELSE IF (vi .eq. num_p) THEN
                   k_p = 1
                   k_m = num_p - 1
                ELSE
@@ -309,29 +307,29 @@
             END IF
 
 ! 1/rdazdp - dapdz
-            az_p = unprimed_grid_construct_m%a_z(i,j,k_p)
-            az_m = unprimed_grid_construct_m%a_z(i,j,k_m)
-            ap_p = unprimed_grid_construct_m%a_p(i,j + 1,k)
-            ap_m = unprimed_grid_construct_m%a_p(i,j - 1,k)
-            unprimed_grid_construct_m%b_r(i,j,k) =                             &
+            az_p = unprimed_grid_construct_m%a_z(ri,zi,k_p)
+            az_m = unprimed_grid_construct_m%a_z(ri,zi,k_m)
+            ap_p = unprimed_grid_construct_m%a_p(ri,zi + 1,vi)
+            ap_m = unprimed_grid_construct_m%a_p(ri,zi - 1,vi)
+            unprimed_grid_construct_m%b_r(ri,zi,vi) =                          &
      &         (az_p - az_m)/(2.0*pgrid%dv*r(ri)) -                            &
      &         (ap_p - ap_m)/(2.0*mgrid%dz)
 
 ! dardz - dazdr
-            ar_p = unprimed_grid_construct_m%a_r(i,j + 1,k)
-            ar_m = unprimed_grid_construct_m%a_r(i,j - 1,k)
-            az_p = unprimed_grid_construct_m%a_z(i + 1,j,k)
-            az_m = unprimed_grid_construct_m%a_z(i - 1,j,k)
-            unprimed_grid_construct_m%b_p(i,j,k) =                             &
+            ar_p = unprimed_grid_construct_m%a_r(ri,zi + 1,vi)
+            ar_m = unprimed_grid_construct_m%a_r(ri,zi - 1,vi)
+            az_p = unprimed_grid_construct_m%a_z(ri + 1,zi,vi)
+            az_m = unprimed_grid_construct_m%a_z(ri - 1,zi,vi)
+            unprimed_grid_construct_m%b_p(ri,zi,vi) =                          &
      &         (ar_p - ar_m)/(2.0*mgrid%dz) -                                  &
      &         (az_p - az_m)/(2.0*mgrid%dr)
 
 ! 1/r(drapdr - dardp)
-            ar_p = unprimed_grid_construct_m%a_r(i,j,k_p)
-            ar_m = unprimed_grid_construct_m%a_r(i,j,k_m)
-            ap_p = unprimed_grid_construct_m%a_p(i + 1,j,k)
-            ap_m = unprimed_grid_construct_m%a_p(i - 1,j,k)
-            unprimed_grid_construct_m%b_z(i,j,k) =                             &
+            ar_p = unprimed_grid_construct_m%a_r(ri,zi,k_p)
+            ar_m = unprimed_grid_construct_m%a_r(ri,zi,k_m)
+            ap_p = unprimed_grid_construct_m%a_p(ri + 1,zi,vi)
+            ap_m = unprimed_grid_construct_m%a_p(ri - 1,zi,vi)
+            unprimed_grid_construct_m%b_z(ri,zi,vi) =                          &
      &         (r_p(ri)*ap_p - r_m(ri)*ap_m)/(2.0*mgrid%dr*r(ri)) -            &
      &         (ar_p - ar_m)/(2.0*pgrid%dv*r(ri))
 
