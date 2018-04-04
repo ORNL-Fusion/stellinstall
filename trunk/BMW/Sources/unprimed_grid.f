@@ -162,10 +162,11 @@
          unprimed_grid_construct_m%a_p = 0.0
          unprimed_grid_construct_m%a_z = 0.0
          unprimed_grid_construct_m%b_r = 0.0
-         unprimed_grid_construct_m%b_p = 0.0
-         unprimed_grid_construct_m%b_z = 0.0
          cosv = 0.0
          sinv = 0.0
+         r = 0.0
+         r_p = 0.0
+         r_m = 0.0
 !$OMP END WORKSHARE
       END IF
 
@@ -174,8 +175,8 @@
       DO i = bmw_parallel_context_start(parallel, num_r),                      &
      &       bmw_parallel_context_end(parallel, num_r)
          r(i) = (i - 1.0)*mgrid%dr + mgrid%rmin
-         r_p(i) = i*mgrid%dr + mgrid%rmin
-         r_m(i) = (i - 2.0)*mgrid%dr + mgrid%rmin
+         r_p(i) = r(i) - mgrid%dr
+         r_m(i) = r(i) + mgrid%dr
       END DO
 !$OMP END DO
 
@@ -508,8 +509,8 @@
 !$          END IF
          END IF
 
-         r = r_grid(ai, aj, ak)
-         z = z_grid(ai, aj, ak)
+         r = r_grid(ai,aj,ak)
+         z = z_grid(ai,aj,ak)
          x = r*cosv(ai)
          y = r*sinv(ai)
 
