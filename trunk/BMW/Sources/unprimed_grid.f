@@ -175,8 +175,8 @@
       DO i = bmw_parallel_context_start(parallel, num_r),                      &
      &       bmw_parallel_context_end(parallel, num_r)
          r(i) = (i - 1.0)*mgrid%dr + mgrid%rmin
-         r_p(i) = r(i) - mgrid%dr
-         r_m(i) = r(i) + mgrid%dr
+         r_p(i) = r(i) + mgrid%dr
+         r_m(i) = r(i) - mgrid%dr
       END DO
 !$OMP END DO
 
