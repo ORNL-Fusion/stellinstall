@@ -58,10 +58,11 @@
 !>  @param[in] num_v    Number of toroidal grid points.
 !>  @param[in] flags    Number of toroidal grid points.
 !>  @param[in] parallel @ref bmw_parallel_context_class object instance.
+!>  @param[in] io_unit  Unit number to write messages to.
 !>  @returns A pointer to a constructed @ref primed_grid_class object.
 !-------------------------------------------------------------------------------
       FUNCTION primed_grid_construct(num_v, flags, siesta_file,                &
-     &                               parallel)
+     &                               parallel, io_unit)
       USE bmw_state_flags
 
       IMPLICIT NONE
@@ -72,6 +73,7 @@
       INTEGER, INTENT(in)                           :: flags
       CHARACTER (len=*), INTENT(in)                 :: siesta_file
       TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
+      INTEGER, INTENT(in)                           :: io_unit
 
 !  local variables
       REAL (rprec)                                  :: start_time
@@ -94,7 +96,7 @@
       END IF
 
       IF (parallel%offset .eq. 0) THEN
-         WRITE(*,1000)
+         WRITE(io_unit,1000)
       END IF
 
       CALL profiler_set_stop_time('primed_grid_construct', start_time)

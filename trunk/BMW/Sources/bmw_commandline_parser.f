@@ -22,6 +22,7 @@
 !>     @item3{@fixed_width{-woutf},   Y, Specify the wout input file name.}
 !>     @item3{@fixed_width{-siestaf}, Y, Specify the siesta input file name.}
 !>     @item3{@fixed_width{-outf},    Y, Specify the output input file name.}
+!>     @item3{@fixed_width{-logf},    Y, Write screen output to a log file.}
 !>     @item3{@fixed_wdith{-jv},      N, Force balance j^v from curl derived j^u. Overrdes the -ju flag.}
 !>     @item3{@fixed_wdith{-ju},      N, Force balance j^u from curl derived j^v.}
 !>     @item3{@fixed_wdith{-p_start}, Y, Starting phi index to compute fields. If this flag is not set, default
@@ -461,6 +462,8 @@
       WRITE(*,*) '             -ju and -jv flags.                      '
       WRITE(*,*) '                                                     '
       WRITE(*,*) '  -outf    Y Specify the output file name.           '
+      WRITE(*,*) '                                                     '
+      WRITE(*,*) '  -logf    Y Write screen output to a log file.      '
       WRITE(*,*) '                                                     '
       WRITE(*,*) '  -jv      N Force balance j^v from curl derived j^u.'
       WRITE(*,*) '             Overrdes the -ju flag.                  '

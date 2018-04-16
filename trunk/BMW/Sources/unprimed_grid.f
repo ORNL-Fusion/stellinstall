@@ -70,12 +70,14 @@
 !>  @param[in] p_end    Ending phi index to compute fields to.
 !>  @param[in] parallel @ref bmw_parallel_context::bmw_parallel_context_class
 !>                      object instance.
+!>  @param[in] io_unit  Unit number to write messages to.
 !>  @returns A pointer to a constructed @ref unprimed_grid_class object.
 !-------------------------------------------------------------------------------
       FUNCTION unprimed_grid_construct_m(mgrid, pgrid, p_start, p_end,         &
-     &                                   parallel)
+     &                                   parallel, io_unit)
 !$    USE omp_lib
       USE bmw_state_flags, ONLY: clear_screen
+      USE, INTRINSIC :: iso_fortran_env, Only : output_unit
 
       IMPLICIT NONE
 
@@ -86,6 +88,7 @@
       INTEGER, INTENT(in)                           :: p_start
       INTEGER, INTENT(in)                           :: p_end
       TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
+      INTEGER, INTENT(in)                           :: io_unit
 
 !  local variables
       REAL (rprec)                                  :: start_time
@@ -162,6 +165,8 @@
          unprimed_grid_construct_m%a_p = 0.0
          unprimed_grid_construct_m%a_z = 0.0
          unprimed_grid_construct_m%b_r = 0.0
+         unprimed_grid_construct_m%b_p = 0.0
+         unprimed_grid_construct_m%b_z = 0.0
          cosv = 0.0
          sinv = 0.0
          r = 0.0
@@ -230,22 +235,27 @@
                done = 100*current/total
                SELECT CASE (MOD(INT(current),4))
                   CASE (0)
-                     WRITE (*,1000,ADVANCE='NO') clear_screen, done
+                     WRITE (io_unit,1000,ADVANCE='NO') clear_screen,           &
+     &                                                 done
                   CASE (1)
-                     WRITE (*,1001,ADVANCE='NO') clear_screen, done
+                     WRITE (io_unit,1001,ADVANCE='NO') clear_screen,           &
+     &                                                 done
                   CASE (2)
-                     WRITE (*,1002,ADVANCE='NO') clear_screen, done
+                     WRITE (io_unit,1002,ADVANCE='NO') clear_screen,           &
+     &                                                 done
                   CASE (3)
-                     WRITE (*,1003,ADVANCE='NO') clear_screen, done
+                     WRITE (io_unit,1003,ADVANCE='NO') clear_screen,           &
+     &                                                 done
                END SELECT
+
+               IF (io_unit .ne. output_unit) THEN
+                  BACKSPACE (io_unit)
+               END IF
 !$          END IF
          END IF
 
-!  Note using z and r coordinate to avoid creating another variable.
-         z = (ri - 1.0)*mgrid%dr + mgrid%rmin
-
-         x = z*cosv(vi)
-         y = z*sinv(vi)
+         x = r(ri)*cosv(vi)
+         y = r(ri)*sinv(vi)
 
          rp = SQRT((pgrid%x - x)**2.0 + (pgrid%y - y)**2.0 +                   &
      &             zp(:,:,:,zi))
@@ -253,10 +263,10 @@
          ax = SUM(pgrid%j_x/rp)*pgrid%dvol
          ay = SUM(pgrid%j_y/rp)*pgrid%dvol
 
-         unprimed_grid_construct_m%a_r(ri,zi,vi) =  x/z*ax + y/z*ay            &
-     &                                           + mgrid%a_r(ri,zi,vi)
-         unprimed_grid_construct_m%a_p(ri,zi,vi) = -y/z*ax + x/z*ay            &
-     &                                           + mgrid%a_p(ri,zi,vi)
+         unprimed_grid_construct_m%a_r(ri,zi,vi) =                             &
+     &       x/r(ri)*ax + y/r(ri)*ay + mgrid%a_r(ri,zi,vi)
+         unprimed_grid_construct_m%a_p(ri,zi,vi) =                             &
+     &      -y/r(ri)*ax + x/r(ri)*ay + mgrid%a_p(ri,zi,vi)
          unprimed_grid_construct_m%a_z(ri,zi,vi) =                             &
      &      SUM(pgrid%j_z/rp)*pgrid%dvol + mgrid%a_z(ri,zi,vi)
       END DO
@@ -356,7 +366,7 @@
       DEALLOCATE(zp)
 
       IF (parallel%offset .eq. 0) THEN
-         WRITE (*,1004) clear_screen
+         WRITE (io_unit,1004) clear_screen
       END IF
 
       CALL profiler_set_stop_time('unprimed_grid_construct_m',                 &
@@ -386,12 +396,14 @@
 !>  @param[in] dphi     Phi grid spacing.
 !>  @param[in] parallel @ref bmw_parallel_context::bmw_parallel_context_class
 !>                      object instance.
+!>  @param[in] io_unit  Unit number to write messages to.
 !>  @returns A pointer to a constructed @ref unprimed_grid_class object.
 !-------------------------------------------------------------------------------
       FUNCTION unprimed_grid_construct_a(mgrid, pgrid, r_grid, z_grid,         &
-     &                                   dphi, parallel)
+     &                                   dphi, parallel, io_unit)
 !$    USE omp_lib
       USE bmw_state_flags, ONLY: clear_screen
+      USE, INTRINSIC :: iso_fortran_env, Only : output_unit
 
       IMPLICIT NONE
 
@@ -403,6 +415,7 @@
       REAL (rprec), DIMENSION(:,:,:), INTENT(in)    :: z_grid
       REAL (rprec), INTENT(in)                      :: dphi
       TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
+      INTEGER, INTENT(in)                           :: io_unit
 
 !  local variables
       REAL (rprec)                                  :: start_time
@@ -498,13 +511,21 @@
                done = 100*current/total
                SELECT CASE (MOD(INT(current),4))
                   CASE (0)
-                     WRITE (*,1000,ADVANCE='NO') clear_screen, done
+                     WRITE (io_unit,1000,ADVANCE='NO') clear_screen,           &
+     &                                                 done
                   CASE (1)
-                     WRITE (*,1001,ADVANCE='NO') clear_screen, done
+                     WRITE (io_unit,1001,ADVANCE='NO') clear_screen,           &
+     &                                                 done
                   CASE (2)
-                     WRITE (*,1002,ADVANCE='NO') clear_screen, done
+                     WRITE (io_unit,1002,ADVANCE='NO') clear_screen,           &
+     &                                                 done
                   CASE (3)
-                     WRITE (*,1003,ADVANCE='NO') clear_screen, done
+                     WRITE (io_unit,1003,ADVANCE='NO') clear_screen,           &
+     &                                                 done
+
+                  IF (io_unit .ne. output_unit) THEN
+                     BACKSPACE (io_unit)
+                  END IF
                END SELECT
 !$          END IF
          END IF
@@ -545,7 +566,7 @@
 !$OMP END PARALLEL
 
       IF (parallel%offset .eq. 0) THEN
-         WRITE (*,1004) clear_screen
+         WRITE (io_unit,1004) clear_screen
       END IF
 
       CALL profiler_set_stop_time('unprimed_grid_construct_a',                 &

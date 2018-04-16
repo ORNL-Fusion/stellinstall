@@ -61,9 +61,10 @@
 !>
 !>  @param[in] mgrid_file_name File name for vacuum fields.
 !>  @param[in] parallel        @ref bmw_parallel_context_class object instance.
+!>  @param[in] io_unit         Unit number to write messages to.
 !>  @returns A pointer to a constructed @ref m_grid_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION m_grid_construct(mgrid_file_name, parallel)
+      FUNCTION m_grid_construct(mgrid_file_name, parallel, io_unit)
       USE ezcdf
       USE read_wout_mod, Only: extcur
       USE bmw_parallel_context
@@ -74,6 +75,7 @@
       TYPE (m_grid_class), POINTER                  :: m_grid_construct
       CHARACTER (len=*), INTENT(in)                 :: mgrid_file_name
       TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
+      INTEGER, INTENT(in)                           :: io_unit
 
 !  local variables
       REAL (rprec)                                  :: start_time
@@ -98,7 +100,7 @@
       CALL cdf_inquire(mgrid_ncid, 'ar_001', temp_dims, ier=status)
       IF (status .ne. 0) THEN
          IF (parallel%offset .eq. 0) THEN
-            WRITE (*,3000) TRIM(mgrid_file_name)
+            WRITE (io_unit,3000) TRIM(mgrid_file_name)
          END IF
          CALL bmw_parallel_context_abort(status)
       END IF
@@ -164,7 +166,7 @@
       CALL cdf_close(mgrid_ncid)
 
       IF (parallel%offset .eq. 0) THEN
-         WRITE (*,2000)
+         WRITE (io_unit,2000)
       END IF
 
       CALL profiler_set_stop_time('m_grid_construct', start_time)

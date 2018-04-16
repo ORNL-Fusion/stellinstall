@@ -239,14 +239,16 @@
 !>  Provides a summary report if the number of threads and processes currently
 !>  configured.
 !>
-!>  @param[in]    this   A @ref bmw_parallel_context_class instance.
+!>  @param[in] this    A @ref bmw_parallel_context_class instance.
+!>  @param[in] io_unit Unit number to write messages to.
 !-------------------------------------------------------------------------------
-      SUBROUTINE bmw_parallel_context_report(this)
+      SUBROUTINE bmw_parallel_context_report(this, io_unit)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (bmw_parallel_context_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)                              :: io_unit
 
 !  local variables
       REAL (rprec)                                     :: start_time
@@ -256,9 +258,9 @@
 
       IF (this%offset .eq. 0) THEN
 #if defined(MPI_OPT)
-         WRITE (*,1000) this%stride
+         WRITE (io_unit,1000) this%stride
 #endif
-         WRITE (*,1001) this%num_threads
+         WRITE (io_unit,1001) this%num_threads
       END IF
 
       CALL profiler_set_stop_time('bmw_parallel_context_report',               &

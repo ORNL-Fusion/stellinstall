@@ -62,10 +62,12 @@
 !>  @param[in] siesta_file_name Path and name of the siesta file.
 !>  @param[in] flags            Option flags.
 !>  @param[in] parallel         @ref bmw_parallel_context_class object instance.
+!>  @param[in] io_unit          Unit number to write messages to.
 !>  @returns A pointer to a constructed @ref bmw_context_class object.
 !-------------------------------------------------------------------------------
       FUNCTION bmw_context_construct(mgrid_file_name, wout_file_name,          &
-     &                               siesta_file_name, flags, parallel)
+     &                               siesta_file_name, flags, parallel,        &
+     &                               io_unit)
       USE read_wout_mod, Only: read_wout_file, extcur
 
       IMPLICIT NONE
@@ -77,6 +79,7 @@
       CHARACTER (len=*), INTENT(in)     :: siesta_file_name
       INTEGER, INTENT(in)               :: flags
       TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
+      INTEGER, INTENT(in)               :: io_unit
 
 !  local variables
       REAL (rprec)                      :: start_time
@@ -91,25 +94,26 @@
       CALL read_wout_file(wout_file_name, status)
       IF (status .ne. 0) THEN
          IF (parallel%offset .eq. 0) THEN
-            WRITE (*,1000) TRIM(wout_file_name)
+            WRITE (io_unit,1000) TRIM(wout_file_name)
          END IF
          CALL bmw_parallel_context_abort(status)
       END IF
       IF (.not.ALLOCATED(extcur)) THEN
          IF (parallel%offset .eq. 0) THEN
-            WRITE (*,1001) TRIM(wout_file_name)
+            WRITE (io_unit,1001) TRIM(wout_file_name)
          END IF
          CALL bmw_parallel_context_abort(status)
       END IF
 
       bmw_context_construct%m_grid =>                                          &
-     &   m_grid_construct(mgrid_file_name, parallel)
+     &   m_grid_construct(mgrid_file_name, parallel, io_unit)
 
       num_p = SIZE(bmw_context_construct%m_grid%a_p, 3)
 
       bmw_context_construct%p_grid =>                                          &
      &   primed_grid_construct(num_p*bmw_context_construct%m_grid%nfp,         &
-     &                         flags, siesta_file_name, parallel)
+     &                         flags, siesta_file_name, parallel,              &
+     &                         io_unit)
 
       CALL profiler_set_stop_time('bmw_context_construct', start_time)
 
@@ -168,10 +172,11 @@
 !>  @param[in]    p_start  Starting phi index to compute fields to.
 !>  @param[in]    p_end    Ending phi index to compute fields to.
 !>  @param[in]    parallel @ref bmw_parallel_context_class object instance.
+!>  @param[in]    io_unit  Unit number to write messages to.
 !>  @returns A pointer to a constructed @ref bmw_context_class object.
 !-------------------------------------------------------------------------------
       SUBROUTINE bmw_context_set_up_grid_m(this, p_start, p_end,               &
-     &                                     parallel)
+     &                                     parallel, io_unit)
 
       IMPLICIT NONE
 
@@ -180,6 +185,7 @@
       INTEGER, INTENT(in)                           :: p_start
       INTEGER, INTENT(in)                           :: p_end
       TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
+      INTEGER, INTENT(in)                           :: io_unit
 
 !  local variables
       REAL (rprec)                                  :: start_time
@@ -188,7 +194,8 @@
       start_time = profiler_get_start_time()
 
       this%up_grid => unprimed_grid_construct(this%m_grid, this%p_grid,        &
-     &                                        p_start, p_end, parallel)
+     &                                        p_start, p_end, parallel,        &
+     &                                        io_unit)
 
       CALL profiler_set_stop_time('bmw_context_set_up_grid_m',                 &
      &                            start_time)
@@ -206,10 +213,11 @@
 !>  @param[in]    z_grid   3D Array of z positions.
 !>  @param[in]    dphi     Phi grid spacing.
 !>  @param[in]    parallel @ref bmw_parallel_context_class object instance.
+!>  @param[in]    io_unit  Unit number to write messages to.
 !>  @returns A pointer to a constructed @ref bmw_context_class object.
 !-------------------------------------------------------------------------------
       SUBROUTINE bmw_context_set_up_grid_a(this, r_grid, z_grid, dphi,         &
-     &                                     parallel)
+     &                                     parallel, io_unit)
 
       IMPLICIT NONE
 
@@ -219,6 +227,7 @@
       REAL (rprec), DIMENSION(:,:,:), INTENT(in)    :: z_grid
       REAL (rprec), INTENT(in)                      :: dphi
       TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
+      INTEGER, INTENT(in)                           :: io_unit
 
 !  local variables
       REAL (rprec)                                  :: start_time
@@ -228,7 +237,7 @@
 
       this%up_grid => unprimed_grid_construct(this%m_grid, this%p_grid,        &
      &                                        r_grid, z_grid, dphi,            &
-     &                                        parallel)
+     &                                        parallel, io_unit)
 
       CALL profiler_set_stop_time('bmw_context_set_up_grid_a',                 &
      &                            start_time)
