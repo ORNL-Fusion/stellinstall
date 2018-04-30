@@ -255,7 +255,7 @@
          y = r(ri)*sinv(vi)
 
          rp = SQRT((pgrid%x - x)**2.0 + (pgrid%y - y)**2.0 +                   &
-     &             (pgrid%x - z(zi))**2.0)
+     &             (pgrid%z - z(zi))**2.0)
 
          ax = SUM(pgrid%j_x/rp)*pgrid%dvol
          ay = SUM(pgrid%j_y/rp)*pgrid%dvol
