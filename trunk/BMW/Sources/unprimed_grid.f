@@ -101,12 +101,12 @@
       INTEGER                                       :: num_z
       REAL (rprec)                                  :: x
       REAL (rprec)                                  :: y
-      REAL (rprec)                                  :: z
       REAL (rprec)                                  :: ax
       REAL (rprec)                                  :: ay
       INTEGER                                       :: k_p
       INTEGER                                       :: k_m
       REAL (rprec), DIMENSION(:), ALLOCATABLE       :: r
+      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: z
       REAL (rprec), DIMENSION(:), ALLOCATABLE       :: r_p
       REAL (rprec), DIMENSION(:), ALLOCATABLE       :: r_m
       REAL (rprec), DIMENSION(:), ALLOCATABLE       :: cosv
@@ -115,7 +115,6 @@
       REAL (rprec)                                  :: done
       REAL (rprec)                                  :: current
       REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE   :: rp
-      REAL (rprec), DIMENSION(:,:,:,:), ALLOCATABLE :: zp
       REAL (rprec)                                  :: ar_p
       REAL (rprec)                                  :: ar_m
       REAL (rprec)                                  :: ap_p
@@ -144,18 +143,16 @@
       ALLOCATE(sinv(num_p))
 
       ALLOCATE(r(num_r))
+      ALLOCATE(z(num_z))
       ALLOCATE(r_p(num_r))
       ALLOCATE(r_m(num_r))
-
-      ALLOCATE(zp(SIZE(pgrid%x, 1),SIZE(pgrid%x, 2),SIZE(pgrid%x, 3),          &
-     &         num_z))
 
       total = bmw_parallel_context_end(parallel, num_r*num_z*num_p)
       total = CEILING(total/parallel%num_threads)
 
 !$OMP PARALLEL
 !$OMP& DEFAULT(SHARED)
-!$OMP& PRIVATE(i, ri, zi, vi, x, y, z, ax, ay, rp, k_p, k_m,                   &
+!$OMP& PRIVATE(i, ri, zi, vi, x, y, ax, ay, rp, k_p, k_m,                      &
 !$OMP&         ar_p, ar_m, ap_p, ap_m, az_p, az_m, current)
 
 !  Multi process will do an all reduce so these arrays need to be initalized.
@@ -170,6 +167,7 @@
          cosv = 0.0
          sinv = 0.0
          r = 0.0
+         z = 0.0
          r_p = 0.0
          r_m = 0.0
 !$OMP END WORKSHARE
@@ -189,8 +187,7 @@
 !$OMP& SCHEDULE(STATIC)
       DO i = bmw_parallel_context_start(parallel, num_z),                      &
      &       bmw_parallel_context_end(parallel, num_z)
-         z = (i - 1.0)*mgrid%dz + mgrid%zmin
-         zp(:,:,:,i) = (pgrid%z - z)**2.0
+         z(i) = (i - 1.0)*mgrid%dz + mgrid%zmin
       END DO
 !$OMP END DO
 
@@ -208,8 +205,8 @@
       IF (parallel%stride .gt. 1) THEN
          CALL bmw_parallel_context_reduce(parallel, cosv)
          CALL bmw_parallel_context_reduce(parallel, sinv)
-         CALL bmw_parallel_context_reduce(parallel, zp)
          CALL bmw_parallel_context_reduce(parallel, r)
+         CALL bmw_parallel_context_reduce(parallel, z)
          CALL bmw_parallel_context_reduce(parallel, r_p)
          CALL bmw_parallel_context_reduce(parallel, r_m)
       END IF
@@ -258,7 +255,7 @@
          y = r(ri)*sinv(vi)
 
          rp = SQRT((pgrid%x - x)**2.0 + (pgrid%y - y)**2.0 +                   &
-     &             zp(:,:,:,zi))
+     &             (pgrid%x - z(zi))**2.0)
 
          ax = SUM(pgrid%j_x/rp)*pgrid%dvol
          ay = SUM(pgrid%j_y/rp)*pgrid%dvol
@@ -361,9 +358,9 @@
       DEALLOCATE(cosv)
       DEALLOCATE(sinv)
       DEALLOCATE(r)
+      DEALLOCATE(z)
       DEALLOCATE(r_p)
       DEALLOCATE(r_m)
-      DEALLOCATE(zp)
 
       IF (parallel%offset .eq. 0) THEN
          WRITE (io_unit,1004) clear_screen
