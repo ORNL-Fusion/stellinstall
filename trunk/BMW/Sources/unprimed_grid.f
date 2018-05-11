@@ -469,6 +469,7 @@
          unprimed_grid_construct_a%a_z = 0.0
          cosv = 0.0
          sinv = 0.0
+         phi = 0.0
 !$OMP END WORKSHARE
       END IF
 

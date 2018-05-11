@@ -508,7 +508,7 @@
 !$OMP PARALLEL
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(i, x, si, ui, vi, r, z, ru, rv, zu, zv, ju, jv, bu, bv,         &
-!$OMP&         cosmn, sinmn, cosmn_nyq, sinmn_nyq)
+!$OMP&         cosmn, sinmn, cosmn_nyq, sinmn_nyq, jr, jp)
 
 !  Multi process will do an all reduce so these arrays need to be initalized.
       IF (parallel%stride .gt. 1) THEN
@@ -666,6 +666,9 @@
 
          ju = (p_prime(si) + jv*bu)/bv*mu0
          jv = jv*mu0
+
+         jr = ju*ru + jv*rv
+         jp = jv*r
 
          primed_grid_construct_ju%j_z(si,ui,vi) = ju*zu + jv*zv
          primed_grid_construct_ju%j_x(si,ui,vi) = jr*cosv(vi)                  &
@@ -856,7 +859,7 @@
 !$OMP PARALLEL
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(i, x, si, ui, vi, r, z, ru, rv, zu, zv, ju, jv, bu, bv,         &
-!$OMP&         cosmn, sinmn, cosmn_nyq, sinmn_nyq)
+!$OMP&         cosmn, sinmn, cosmn_nyq, sinmn_nyq, jr, jp)
 
 !  Multi process will do an all reduce so these arrays need to be initalized.
       IF (parallel%stride .gt. 1) THEN
@@ -1012,6 +1015,9 @@
 
          jv = (ju*bv - p_prime(si))/bu*mu0
          ju = ju*mu0
+
+         jr = ju*ru + jv*rv
+         jp = jv*r
 
          primed_grid_construct_jv%j_z(si,ui,vi) = ju*zu + jv*zv
          primed_grid_construct_jv%j_x(si,ui,vi) = jr*cosv(vi)                  &
