@@ -131,8 +131,8 @@ rp_type(7) = 'zbs',
 rp_vrnc(7) = 0.001,
 rp_index(7) = 0,
 rp_index2(7) = 1,
-rp_range_type(7,1:2) = 'value',
-rp_range_value(7,1:2) = 0,
+rp_range_type(7,1) = 'value',
+rp_range_value(7,1) = 0,
 
 mag_3D_a(5:8) = T, T, T, T, 
 
