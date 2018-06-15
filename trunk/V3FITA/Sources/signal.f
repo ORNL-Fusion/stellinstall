@@ -2320,9 +2320,8 @@
 !-------------------------------------------------------------------------------
 !>  @brief Calculates the modeled signal.
 !>
-!>  This method uses a gaussian process to set a model using the
-!>  the signals pointed in the  @ref gaussp_class::signals array. It then
-!>  returns the evidence.
+!>  This method uses a gaussian process to set a model using the signals pointed
+!>  in the  @ref gaussp_class::signals array. It then returns the evidence.
 !>
 !>  @param[in]    this         A @ref gaussp_class instance.
 !>  @param[inout] a_model      A @ref model instance.

@@ -43,5 +43,6 @@ list (APPEND v3fit_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/emission.f
 	${CMAKE_CURRENT_SOURCE_DIR}/siesta_context.f
 	${CMAKE_CURRENT_SOURCE_DIR}/siesta_equilibrium.f
+	${CMAKE_CURRENT_SOURCE_DIR}/guassian_process.f
 )
 set (v3fit_sources "${v3fit_sources}" PARENT_SCOPE)
