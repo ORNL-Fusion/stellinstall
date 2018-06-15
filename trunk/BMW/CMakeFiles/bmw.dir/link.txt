@@ -1,2 +1,0 @@
-/usr/bin/ar qc ../build/lib/libbmw.a  CMakeFiles/bmw.dir/Sources/bmw_commandline_parser.f.o CMakeFiles/bmw.dir/Sources/bmw_context.f.o CMakeFiles/bmw.dir/Sources/bmw_parallel_context.f.o CMakeFiles/bmw.dir/Sources/bmw_state_flags.f.o CMakeFiles/bmw.dir/Sources/m_grid.f.o CMakeFiles/bmw.dir/Sources/primed_grid.f.o CMakeFiles/bmw.dir/Sources/unprimed_grid.f.o CMakeFiles/bmw.dir/Sources/siesta_file.f.o
-/usr/bin/ranlib ../build/lib/libbmw.a
