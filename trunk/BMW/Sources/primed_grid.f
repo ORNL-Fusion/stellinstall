@@ -1226,6 +1226,8 @@
          cosnv = 0.0
          sinmu = 0.0
          sinnv = 0.0
+         cosv  = 0.0
+         sinv  = 0.0
 !$OMP END WORKSHARE
       END IF
 
@@ -1239,7 +1241,7 @@
 
          DO m = 0, siesta%mpol
             cosmu(m,i) = COS(m*x)
-            sinmu(n,i) = SIN(m*x)
+            sinmu(m,i) = SIN(m*x)
          END DO
       END DO
 !$OMP END DO
@@ -1296,7 +1298,6 @@
          x = (si - 1.0)/(siesta%nrad - 1.0)
 
          CALL primed_grid_siesta_interpol(x, ilow, wlow, ihigh, whigh)
-         amnint = wlow*rmnc(:,ilow) + whigh*rmnc(:,ihigh)
 
          cosmn_vmec = cosmu_vmec(:,ui)*cosnv_vmec(:,vi)                        &
      &              + sinmu_vmec(:,ui)*sinnv_vmec(:,vi)
@@ -1308,7 +1309,7 @@
                cosmn(m,n) = cosmu(m, ui)*cosnv(n, vi)                          &
      &                    - sinmu(m, ui)*sinnv(n, vi)
                sinmn(m,n) = sinmu(m, ui)*cosnv(n, vi)                          &
-     &                    + cosnv(m, ui)*sinnv(n, vi)
+     &                    + cosmu(m, ui)*sinnv(n, vi)
             END DO
          END DO
 
@@ -1362,7 +1363,7 @@
 
          jr = js*rs + ju*ru + jv*rv
          jp = jv*r
-         jz = ju*zs + ju*zu + jv*zv
+         jz = js*zs + ju*zu + jv*zv
 
          IF (si .eq. 1 .or. si .eq. ns) THEN
             jr = jr/2.0
@@ -1382,6 +1383,15 @@
       END DO
 !$OMP END DO
 
+      DEALLOCATE(cosmn)
+      DEALLOCATE(sinmn)
+
+      DEALLOCATE(cosmn_vmec)
+      DEALLOCATE(sinmn_vmec)
+
+      DEALLOCATE(amnint)
+!$OMP END PARALLEL
+
       DEALLOCATE(cosv)
       DEALLOCATE(sinv)
       DEALLOCATE(cosmu_vmec)
@@ -1392,16 +1402,6 @@
       DEALLOCATE(sinmu)
       DEALLOCATE(cosnv)
       DEALLOCATE(sinnv)
-
-      DEALLOCATE(cosmn)
-      DEALLOCATE(sinmn)
-
-      DEALLOCATE(cosmn_vmec)
-      DEALLOCATE(sinmn_vmec)
-
-      DEALLOCATE(amnint)
-
-!$OMP END PARALLEL
 
 !  Multi process did not fill out the entire array. Get the missing pieces from
 !  the other processes.

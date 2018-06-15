@@ -1,0 +1,856 @@
+The system is: Linux - 4.4.126-94.22-default - x86_64
+Compiling the Fortran compiler identification source file "CMakeFortranCompilerId.F" succeeded.
+Compiler: /mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/bin/intel64/bin/ifort 
+Build flags: 
+Id flags: -v
+
+The output was:
+0
+ifort version 17.0.7
+/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/bin/intel64/fpp    -D__INTEL_COMPILER=1700 -D__INTEL_COMPILER_UPDATE=7 -D__unix__ -D__unix -D__linux__ -D__linux -D__gnu_linux__ -Dunix -Dlinux -D__ELF__ -D__x86_64 -D__x86_64__ -D__amd64 -D__amd64__ -D__INTEL_COMPILER_BUILD_DATE=20180403 -D__INTEL_OFFLOAD -D__i686 -D__i686__ -D__pentiumpro -D__pentiumpro__ -D__pentium4 -D__pentium4__ -D__tune_pentium4__ -D__SSE2__ -D__SSE2_MATH__ -D__SSE__ -D__SSE_MATH__ -D__MMX__ -I. -I/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/include/intel64 -I/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/include/icc -I/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/include -I/usr/local/include -I/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/include -I/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/include-fixed -I/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../include/ -I/usr/include -fixed -4Ycpp -4Ncvf -f_com=yes -MX CMakeFortranCompilerId.F /tmp/ifortR63ncc.i
+#include "..." search starts here:
+#include <...> search starts here:
+ .
+ /draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/include/intel64
+ /draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/include/icc
+ /draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/include
+ /usr/local/include
+ /draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/include
+ /draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/include-fixed
+ /draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../include/
+ /usr/include
+End of search list.
+/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/bin/intel64/fortcom    -D__INTEL_COMPILER=1700 -D__INTEL_COMPILER_UPDATE=7 -D__unix__ -D__unix -D__linux__ -D__linux -D__gnu_linux__ -Dunix -Dlinux -D__ELF__ -D__x86_64 -D__x86_64__ -D__amd64 -D__amd64__ -D__INTEL_COMPILER_BUILD_DATE=20180403 -D__INTEL_OFFLOAD -D__i686 -D__i686__ -D__pentiumpro -D__pentiumpro__ -D__pentium4 -D__pentium4__ -D__tune_pentium4__ -D__SSE2__ -D__SSE2_MATH__ -D__SSE__ -D__SSE_MATH__ -D__MMX__ -mGLOB_pack_sort_init_list -I. -I/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/include/intel64 -I/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/include/icc -I/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/include -I/usr/local/include -I/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/include -I/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/include-fixed -I/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../include/ -I/usr/include -O2 "-reentrancy threaded" -simd -offload_host -mGLOB_em64t=TRUE -mP1OPT_version=17.0-intel64 -mGLOB_diag_file=/tmp/ifortI9kv5i.diag -mGLOB_long_size_64 -mGLOB_routine_pointer_size_64 -mGLOB_source_language=GLOB_SOURCE_LANGUAGE_F90 -mP2OPT_static_promotion -mP1OPT_print_version=FALSE -mCG_use_gas_got_workaround=F -mP2OPT_align_option_used=TRUE -mGLOB_gcc_version=630 "-mGLOB_options_string=-Wl,-rpath=/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/compiler/lib/intel64 -v" -mGLOB_cxx_limited_range=FALSE -mCG_extend_parms=FALSE -mGLOB_compiler_bin_directory=/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/bin/intel64 -mGLOB_as_output_backup_file_name=/tmp/ifortAUflKRas_.s -mGLOB_dashboard_use_source_name -mIPOPT_activate -mIPOPT_lite -mGLOB_instruction_tuning=0x0 -mGLOB_uarch_tuning=0x0 -mGLOB_product_id_code=0x22006d8f -mCG_bnl_movbe=T -mGLOB_extended_instructions=0x8 -mP3OPT_use_mspp_call_convention -mP2OPT_subs_out_of_bound=FALSE -mP2OPT_disam_type_based_disam=2 -mGLOB_ansi_alias -mPGOPTI_value_profile_use=T -mGLOB_opt_report_use_source_name -mP2OPT_il0_array_sections=TRUE -mGLOB_offload_mode=1 -mP2OPT_offload_unique_var_string=ifort1995951733e9IcAR -mP2OPT_hlo_level=2 -mP2OPT_hlo -mP2OPT_hpo_rtt_control=0 -mIPOPT_args_in_regs=0 -mP2OPT_disam_assume_nonstd_intent_in=FALSE -mGLOB_imf_mapping_library=/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/bin/intel64/libiml_attr.so -mIPOPT_single_file_compile_and_link=TRUE -mPGOPTI_gen_threadsafe_level=0 -mIPOPT_lto_object_enabled -mIPOPT_lto_object_value=1 -mIPOPT_obj_output_file_name=/tmp/ifortI9kv5i.o -mIPOPT_whole_archive_fixup_file_name=/tmp/ifortwarchkvpmcE -mGLOB_linker_version=2.29.1 -mGLOB_driver_tempfile_name=/tmp/iforttempfilemqJxqx -mP3OPT_asm_target=P3OPT_ASM_TARGET_GAS -mGLOB_async_unwind_tables=TRUE -mGLOB_obj_output_file=/tmp/ifortI9kv5i.o -mGLOB_source_dialect=GLOB_SOURCE_DIALECT_FORTRAN -mP1OPT_source_file_name=CMakeFortranCompilerId.F -mP1OPT_full_source_file_name=/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/3.7.2/CompilerIdFortran/CMakeFortranCompilerId.F -mP2OPT_symtab_type_copy=true /tmp/ifortR63ncc.i
+#include "..." search starts here:
+#include <...> search starts here:
+ .
+ /draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/include/intel64
+ /draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/include/icc
+ /draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/include
+ /usr/local/include
+ /draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/include
+ /draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/include-fixed
+ /draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../include/
+ /usr/include
+End of search list.
+ld    /usr/lib/../lib64/crt1.o /usr/lib/../lib64/crti.o /draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtbegin.o --eh-frame-hdr --build-id -dynamic-linker /lib64/ld-linux-x86-64.so.2 -m elf_x86_64 -o a.out /draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin/for_main.o -L/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/ -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/ -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64 -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64/ -L/lib/../lib64 -L/lib/../lib64/ -L/usr/lib/../lib64 -L/usr/lib/../lib64/ -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../ -L/lib64 -L/lib/ -L/usr/lib64 -L/usr/lib -rpath=/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/compiler/lib/intel64 /tmp/ifortI9kv5i.o -Bdynamic -Bstatic -lifport -lifcoremt -limf -lsvml -Bdynamic -lm -Bstatic -lipgo -lirc -Bdynamic -lpthread -Bstatic -lsvml -Bdynamic -lc -lgcc -lgcc_s -Bstatic -lirc_s -Bdynamic -ldl -lc /draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtend.o /usr/lib/../lib64/crtn.o
+
+
+Compilation of the Fortran compiler identification source "CMakeFortranCompilerId.F" produced "a.out"
+
+The Fortran compiler identification is Intel, found in "/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/3.7.2/CompilerIdFortran/a.out"
+
+Compiling the C compiler identification source file "CMakeCCompilerId.c" succeeded.
+Compiler: /mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/bin64/mpiicc 
+Build flags: 
+Id flags: 
+
+The output was:
+0
+
+
+Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "a.out"
+
+The C compiler identification is Intel, found in "/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/3.7.2/CompilerIdC/a.out"
+
+Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+Compiler: /mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/bin64/mpiicpc 
+Build flags: 
+Id flags: 
+
+The output was:
+0
+
+
+Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "a.out"
+
+The CXX compiler identification is Intel, found in "/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/3.7.2/CompilerIdCXX/a.out"
+
+Determining if the Fortran compiler works passed with the following output:
+Change Dir: /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/gmake" "cmTC_89b6b/fast"
+/usr/bin/gmake -f CMakeFiles/cmTC_89b6b.dir/build.make CMakeFiles/cmTC_89b6b.dir/build
+gmake[1]: Entering directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+Building Fortran object CMakeFiles/cmTC_89b6b.dir/testFortranCompiler.f.o
+/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/bin/intel64/bin/ifort     -c /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp/testFortranCompiler.f -o CMakeFiles/cmTC_89b6b.dir/testFortranCompiler.f.o
+Linking Fortran executable cmTC_89b6b
+/u/system/soft/SLES122/common.x86_64/cmake/3.7.2/bin/cmake -E cmake_link_script CMakeFiles/cmTC_89b6b.dir/link.txt --verbose=1
+/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/bin/intel64/bin/ifort       CMakeFiles/cmTC_89b6b.dir/testFortranCompiler.f.o  -o cmTC_89b6b  
+gmake[1]: Leaving directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+
+
+Detecting Fortran compiler ABI info compiled with the following output:
+Change Dir: /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/gmake" "cmTC_86b21/fast"
+/usr/bin/gmake -f CMakeFiles/cmTC_86b21.dir/build.make CMakeFiles/cmTC_86b21.dir/build
+gmake[1]: Entering directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+Building Fortran object CMakeFiles/cmTC_86b21.dir/CMakeFortranCompilerABI.F.o
+/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/bin/intel64/bin/ifort     -c /u/system/soft/SLES122/common.x86_64/cmake/3.7.2/share/cmake-3.7/Modules/CMakeFortranCompilerABI.F -o CMakeFiles/cmTC_86b21.dir/CMakeFortranCompilerABI.F.o
+Linking Fortran executable cmTC_86b21
+/u/system/soft/SLES122/common.x86_64/cmake/3.7.2/bin/cmake -E cmake_link_script CMakeFiles/cmTC_86b21.dir/link.txt --verbose=1
+/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/bin/intel64/bin/ifort    -v   CMakeFiles/cmTC_86b21.dir/CMakeFortranCompilerABI.F.o  -o cmTC_86b21   
+ifort version 17.0.7
+/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/bin/intel64/fortcom    -mGLOB_em64t=TRUE -mP1OPT_version=17.0-intel64 -mGLOB_diag_file=CMakeFiles/cmTC_86b21.dir/CMakeFortranCompilerABI.F.diag -mGLOB_long_size_64 -mGLOB_routine_pointer_size_64 -mGLOB_source_language=GLOB_SOURCE_LANGUAGE_F90 -mP2OPT_static_promotion -mP1OPT_print_version=FALSE -mCG_use_gas_got_workaround=F -mP2OPT_align_option_used=TRUE -mGLOB_gcc_version=630 "-mGLOB_options_string=-Wl,-rpath=/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/compiler/lib/intel64 -v -o cmTC_86b21" -mGLOB_cxx_limited_range=FALSE -mCG_extend_parms=FALSE -mGLOB_compiler_bin_directory=/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/bin/intel64 -mGLOB_as_output_backup_file_name=/tmp/ifortEMQ734as_.s -mGLOB_dashboard_use_source_name -mIPOPT_activate -mGLOB_product_id_code=0x22006d8f -mP3OPT_use_mspp_call_convention -mP2OPT_subs_out_of_bound=FALSE -mP2OPT_disam_type_based_disam=2 -mGLOB_ansi_alias -mPGOPTI_value_profile_use=T -mGLOB_opt_report_use_source_name -mP2OPT_il0_array_sections=TRUE -mGLOB_offload_mode=1 -mP2OPT_offload_unique_var_string=ifort1791511037LsQzZq -mP2OPT_hlo -mP2OPT_hpo_rtt_control=0 -mIPOPT_args_in_regs=0 -mP2OPT_disam_assume_nonstd_intent_in=FALSE -mGLOB_imf_mapping_library=/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/bin/intel64/libiml_attr.so -mPGOPTI_gen_threadsafe_level=0 -mIPOPT_link -mIPOPT_ipo_activate -mIPOPT_mo_activate -mIPOPT_source_files_list=/tmp/ifortslisgOXg27 -mIPOPT_mo_global_data -mIPOPT_link_script_file=/tmp/ifortscriptxrxF26 "-mIPOPT_cmdline_link="/usr/lib/../lib64/crt1.o" "/usr/lib/../lib64/crti.o" "/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtbegin.o" "--eh-frame-hdr" "--build-id" "-dynamic-linker" "/lib64/ld-linux-x86-64.so.2" "-m" "elf_x86_64" "-o" "cmTC_86b21" "/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin/for_main.o" "-L/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin" "-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/" "-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/" "-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64" "-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64/" "-L/lib/../lib64" "-L/lib/../lib64/" "-L/usr/lib/../lib64" "-L/usr/lib/../lib64/" "-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../" "-L/lib64" "-L/lib/" "-L/usr/lib64" "-L/usr/lib" "-rpath=/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/compiler/lib/intel64" "CMakeFiles/cmTC_86b21.dir/CMakeFortranCompilerABI.F.o" "-Bdynamic" "-Bstatic" "-lifport" "-lifcoremt" "-limf" "-lsvml" "-Bdynamic" "-lm" "-Bstatic" "-lipgo" "-lirc" "-Bdynamic" "-lpthread" "-Bstatic" "-lsvml" "-Bdynamic" "-lc" "-lgcc" "-lgcc_s" "-Bstatic" "-lirc_s" "-Bdynamic" "-ldl" "-lc" "/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtend.o" "/usr/lib/../lib64/crtn.o"" -mIPOPT_il_in_obj -mIPOPT_ipo_activate_warn=FALSE -mIPOPT_obj_output_file_name=/tmp/ipo_ifortSOuYZd.o -mIPOPT_whole_archive_fixup_file_name=/tmp/ifortwarchNe0v81 -mGLOB_linker_version=2.29.1 -mGLOB_driver_tempfile_name=/tmp/iforttempfileAsFta1 -mP3OPT_asm_target=P3OPT_ASM_TARGET_GAS -mGLOB_async_unwind_tables=TRUE -mGLOB_obj_output_file=/tmp/ipo_ifortSOuYZd.o -mGLOB_source_dialect=GLOB_SOURCE_DIALECT_NONE -mP1OPT_source_file_name=ipo_out.f -mP2OPT_symtab_type_copy=true CMakeFiles/cmTC_86b21.dir/CMakeFortranCompilerABI.F.o -mIPOPT_object_files=T -mIPOPT_assembly_files=/tmp/ifortalisDvSI0b -mIPOPT_generated_tempfiles=/tmp/ifortelisIiy60a -mIPOPT_embedded_object_base_name=/tmp/iforteobjoCuu19 -mIPOPT_cmdline_link_new_name=/tmp/ifortllisp5tS18
+ld    /usr/lib/../lib64/crt1.o /usr/lib/../lib64/crti.o /draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtbegin.o --eh-frame-hdr --build-id -dynamic-linker /lib64/ld-linux-x86-64.so.2 -m elf_x86_64 -o cmTC_86b21 /draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin/for_main.o -L/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/ -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/ -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64 -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64/ -L/lib/../lib64 -L/lib/../lib64/ -L/usr/lib/../lib64 -L/usr/lib/../lib64/ -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../ -L/lib64 -L/lib/ -L/usr/lib64 -L/usr/lib -rpath=/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/compiler/lib/intel64 CMakeFiles/cmTC_86b21.dir/CMakeFortranCompilerABI.F.o -Bdynamic -Bstatic -lifport -lifcoremt -limf -lsvml -Bdynamic -lm -Bstatic -lipgo -lirc -Bdynamic -lpthread -Bstatic -lsvml -Bdynamic -lc -lgcc -lgcc_s -Bstatic -lirc_s -Bdynamic -ldl -lc /draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtend.o /usr/lib/../lib64/crtn.o
+gmake[1]: Leaving directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+
+
+Parsed Fortran implicit link information from above output:
+  link line regex: [^( *|.*[/\])(ld|([^/\]+-)?ld|collect2)[^/\]*( |$)]
+  ignore line: [Change Dir: /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp]
+  ignore line: []
+  ignore line: [Run Build Command:"/usr/bin/gmake" "cmTC_86b21/fast"]
+  ignore line: [/usr/bin/gmake -f CMakeFiles/cmTC_86b21.dir/build.make CMakeFiles/cmTC_86b21.dir/build]
+  ignore line: [gmake[1]: Entering directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp']
+  ignore line: [Building Fortran object CMakeFiles/cmTC_86b21.dir/CMakeFortranCompilerABI.F.o]
+  ignore line: [/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/bin/intel64/bin/ifort     -c /u/system/soft/SLES122/common.x86_64/cmake/3.7.2/share/cmake-3.7/Modules/CMakeFortranCompilerABI.F -o CMakeFiles/cmTC_86b21.dir/CMakeFortranCompilerABI.F.o]
+  ignore line: [Linking Fortran executable cmTC_86b21]
+  ignore line: [/u/system/soft/SLES122/common.x86_64/cmake/3.7.2/bin/cmake -E cmake_link_script CMakeFiles/cmTC_86b21.dir/link.txt --verbose=1]
+  ignore line: [/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/bin/intel64/bin/ifort    -v   CMakeFiles/cmTC_86b21.dir/CMakeFortranCompilerABI.F.o  -o cmTC_86b21   ]
+  ignore line: [ifort version 17.0.7]
+  ignore line: [/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/bin/intel64/fortcom    -mGLOB_em64t=TRUE -mP1OPT_version=17.0-intel64 -mGLOB_diag_file=CMakeFiles/cmTC_86b21.dir/CMakeFortranCompilerABI.F.diag -mGLOB_long_size_64 -mGLOB_routine_pointer_size_64 -mGLOB_source_language=GLOB_SOURCE_LANGUAGE_F90 -mP2OPT_static_promotion -mP1OPT_print_version=FALSE -mCG_use_gas_got_workaround=F -mP2OPT_align_option_used=TRUE -mGLOB_gcc_version=630 "-mGLOB_options_string=-Wl,-rpath=/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/compiler/lib/intel64 -v -o cmTC_86b21" -mGLOB_cxx_limited_range=FALSE -mCG_extend_parms=FALSE -mGLOB_compiler_bin_directory=/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/bin/intel64 -mGLOB_as_output_backup_file_name=/tmp/ifortEMQ734as_.s -mGLOB_dashboard_use_source_name -mIPOPT_activate -mGLOB_product_id_code=0x22006d8f -mP3OPT_use_mspp_call_convention -mP2OPT_subs_out_of_bound=FALSE -mP2OPT_disam_type_based_disam=2 -mGLOB_ansi_alias -mPGOPTI_value_profile_use=T -mGLOB_opt_report_use_source_name -mP2OPT_il0_array_sections=TRUE -mGLOB_offload_mode=1 -mP2OPT_offload_unique_var_string=ifort1791511037LsQzZq -mP2OPT_hlo -mP2OPT_hpo_rtt_control=0 -mIPOPT_args_in_regs=0 -mP2OPT_disam_assume_nonstd_intent_in=FALSE -mGLOB_imf_mapping_library=/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/bin/intel64/libiml_attr.so -mPGOPTI_gen_threadsafe_level=0 -mIPOPT_link -mIPOPT_ipo_activate -mIPOPT_mo_activate -mIPOPT_source_files_list=/tmp/ifortslisgOXg27 -mIPOPT_mo_global_data -mIPOPT_link_script_file=/tmp/ifortscriptxrxF26 "-mIPOPT_cmdline_link="/usr/lib/../lib64/crt1.o" "/usr/lib/../lib64/crti.o" "/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtbegin.o" "--eh-frame-hdr" "--build-id" "-dynamic-linker" "/lib64/ld-linux-x86-64.so.2" "-m" "elf_x86_64" "-o" "cmTC_86b21" "/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin/for_main.o" "-L/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin" "-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/" "-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/" "-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64" "-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64/" "-L/lib/../lib64" "-L/lib/../lib64/" "-L/usr/lib/../lib64" "-L/usr/lib/../lib64/" "-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../" "-L/lib64" "-L/lib/" "-L/usr/lib64" "-L/usr/lib" "-rpath=/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/compiler/lib/intel64" "CMakeFiles/cmTC_86b21.dir/CMakeFortranCompilerABI.F.o" "-Bdynamic" "-Bstatic" "-lifport" "-lifcoremt" "-limf" "-lsvml" "-Bdynamic" "-lm" "-Bstatic" "-lipgo" "-lirc" "-Bdynamic" "-lpthread" "-Bstatic" "-lsvml" "-Bdynamic" "-lc" "-lgcc" "-lgcc_s" "-Bstatic" "-lirc_s" "-Bdynamic" "-ldl" "-lc" "/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtend.o" "/usr/lib/../lib64/crtn.o"" -mIPOPT_il_in_obj -mIPOPT_ipo_activate_warn=FALSE -mIPOPT_obj_output_file_name=/tmp/ipo_ifortSOuYZd.o -mIPOPT_whole_archive_fixup_file_name=/tmp/ifortwarchNe0v81 -mGLOB_linker_version=2.29.1 -mGLOB_driver_tempfile_name=/tmp/iforttempfileAsFta1 -mP3OPT_asm_target=P3OPT_ASM_TARGET_GAS -mGLOB_async_unwind_tables=TRUE -mGLOB_obj_output_file=/tmp/ipo_ifortSOuYZd.o -mGLOB_source_dialect=GLOB_SOURCE_DIALECT_NONE -mP1OPT_source_file_name=ipo_out.f -mP2OPT_symtab_type_copy=true CMakeFiles/cmTC_86b21.dir/CMakeFortranCompilerABI.F.o -mIPOPT_object_files=T -mIPOPT_assembly_files=/tmp/ifortalisDvSI0b -mIPOPT_generated_tempfiles=/tmp/ifortelisIiy60a -mIPOPT_embedded_object_base_name=/tmp/iforteobjoCuu19 -mIPOPT_cmdline_link_new_name=/tmp/ifortllisp5tS18]
+  link line: [ld    /usr/lib/../lib64/crt1.o /usr/lib/../lib64/crti.o /draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtbegin.o --eh-frame-hdr --build-id -dynamic-linker /lib64/ld-linux-x86-64.so.2 -m elf_x86_64 -o cmTC_86b21 /draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin/for_main.o -L/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/ -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/ -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64 -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64/ -L/lib/../lib64 -L/lib/../lib64/ -L/usr/lib/../lib64 -L/usr/lib/../lib64/ -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../ -L/lib64 -L/lib/ -L/usr/lib64 -L/usr/lib -rpath=/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/compiler/lib/intel64 CMakeFiles/cmTC_86b21.dir/CMakeFortranCompilerABI.F.o -Bdynamic -Bstatic -lifport -lifcoremt -limf -lsvml -Bdynamic -lm -Bstatic -lipgo -lirc -Bdynamic -lpthread -Bstatic -lsvml -Bdynamic -lc -lgcc -lgcc_s -Bstatic -lirc_s -Bdynamic -ldl -lc /draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtend.o /usr/lib/../lib64/crtn.o]
+    arg [ld] ==> ignore
+    arg [/usr/lib/../lib64/crt1.o] ==> ignore
+    arg [/usr/lib/../lib64/crti.o] ==> ignore
+    arg [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtbegin.o] ==> ignore
+    arg [--eh-frame-hdr] ==> ignore
+    arg [--build-id] ==> ignore
+    arg [-dynamic-linker] ==> ignore
+    arg [/lib64/ld-linux-x86-64.so.2] ==> ignore
+    arg [-m] ==> ignore
+    arg [elf_x86_64] ==> ignore
+    arg [-o] ==> ignore
+    arg [cmTC_86b21] ==> ignore
+    arg [/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin/for_main.o] ==> ignore
+    arg [-L/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin] ==> dir [/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin]
+    arg [-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/] ==> dir [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/]
+    arg [-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/] ==> dir [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/]
+    arg [-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64] ==> dir [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64]
+    arg [-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64/] ==> dir [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64/]
+    arg [-L/lib/../lib64] ==> dir [/lib/../lib64]
+    arg [-L/lib/../lib64/] ==> dir [/lib/../lib64/]
+    arg [-L/usr/lib/../lib64] ==> dir [/usr/lib/../lib64]
+    arg [-L/usr/lib/../lib64/] ==> dir [/usr/lib/../lib64/]
+    arg [-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../] ==> dir [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../]
+    arg [-L/lib64] ==> dir [/lib64]
+    arg [-L/lib/] ==> dir [/lib/]
+    arg [-L/usr/lib64] ==> dir [/usr/lib64]
+    arg [-L/usr/lib] ==> dir [/usr/lib]
+    arg [-rpath=/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/compiler/lib/intel64] ==> ignore
+    arg [CMakeFiles/cmTC_86b21.dir/CMakeFortranCompilerABI.F.o] ==> ignore
+    arg [-Bdynamic] ==> ignore
+    arg [-Bstatic] ==> ignore
+    arg [-lifport] ==> lib [ifport]
+    arg [-lifcoremt] ==> lib [ifcoremt]
+    arg [-limf] ==> lib [imf]
+    arg [-lsvml] ==> lib [svml]
+    arg [-Bdynamic] ==> ignore
+    arg [-lm] ==> lib [m]
+    arg [-Bstatic] ==> ignore
+    arg [-lipgo] ==> lib [ipgo]
+    arg [-lirc] ==> lib [irc]
+    arg [-Bdynamic] ==> ignore
+    arg [-lpthread] ==> lib [pthread]
+    arg [-Bstatic] ==> ignore
+    arg [-lsvml] ==> lib [svml]
+    arg [-Bdynamic] ==> ignore
+    arg [-lc] ==> lib [c]
+    arg [-lgcc] ==> lib [gcc]
+    arg [-lgcc_s] ==> lib [gcc_s]
+    arg [-Bstatic] ==> ignore
+    arg [-lirc_s] ==> lib [irc_s]
+    arg [-Bdynamic] ==> ignore
+    arg [-ldl] ==> lib [dl]
+    arg [-lc] ==> lib [c]
+    arg [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtend.o] ==> ignore
+    arg [/usr/lib/../lib64/crtn.o] ==> ignore
+  remove lib [gcc]
+  remove lib [gcc_s]
+  collapse library dir [/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin] ==> [/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin]
+  collapse library dir [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/] ==> [/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/lib/gcc/x86_64-pc-linux-gnu/6.3.0]
+  collapse library dir [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/] ==> [/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/lib/gcc]
+  collapse library dir [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64] ==> [/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/lib64]
+  collapse library dir [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64/] ==> [/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/lib64]
+  collapse library dir [/lib/../lib64] ==> [/lib64]
+  collapse library dir [/lib/../lib64/] ==> [/lib64]
+  collapse library dir [/usr/lib/../lib64] ==> [/usr/lib64]
+  collapse library dir [/usr/lib/../lib64/] ==> [/usr/lib64]
+  collapse library dir [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../] ==> [/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/lib]
+  collapse library dir [/lib64] ==> [/lib64]
+  collapse library dir [/lib/] ==> [/lib]
+  collapse library dir [/usr/lib64] ==> [/usr/lib64]
+  collapse library dir [/usr/lib] ==> [/usr/lib]
+  implicit libs: [ifport;ifcoremt;imf;svml;m;ipgo;irc;pthread;svml;c;irc_s;dl;c]
+  implicit dirs: [/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin;/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/lib/gcc/x86_64-pc-linux-gnu/6.3.0;/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/lib/gcc;/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/lib64;/lib64;/usr/lib64;/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/lib;/lib;/usr/lib]
+  implicit fwks: []
+
+
+Determining if the Fortran compiler supports Fortran 90 passed with the following output:
+Change Dir: /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/gmake" "cmTC_9fd1f/fast"
+/usr/bin/gmake -f CMakeFiles/cmTC_9fd1f.dir/build.make CMakeFiles/cmTC_9fd1f.dir/build
+gmake[1]: Entering directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+Building Fortran object CMakeFiles/cmTC_9fd1f.dir/testFortranCompilerF90.f90.o
+/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/bin/intel64/bin/ifort     -c /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp/testFortranCompilerF90.f90 -o CMakeFiles/cmTC_9fd1f.dir/testFortranCompilerF90.f90.o
+Linking Fortran executable cmTC_9fd1f
+/u/system/soft/SLES122/common.x86_64/cmake/3.7.2/bin/cmake -E cmake_link_script CMakeFiles/cmTC_9fd1f.dir/link.txt --verbose=1
+/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/bin/intel64/bin/ifort       CMakeFiles/cmTC_9fd1f.dir/testFortranCompilerF90.f90.o  -o cmTC_9fd1f  
+gmake[1]: Leaving directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+
+
+Determining if the C compiler works passed with the following output:
+Change Dir: /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/gmake" "cmTC_fcb0e/fast"
+/usr/bin/gmake -f CMakeFiles/cmTC_fcb0e.dir/build.make CMakeFiles/cmTC_fcb0e.dir/build
+gmake[1]: Entering directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_fcb0e.dir/testCCompiler.c.o
+/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/bin64/mpiicc     -o CMakeFiles/cmTC_fcb0e.dir/testCCompiler.c.o   -c /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp/testCCompiler.c
+Linking C executable cmTC_fcb0e
+/u/system/soft/SLES122/common.x86_64/cmake/3.7.2/bin/cmake -E cmake_link_script CMakeFiles/cmTC_fcb0e.dir/link.txt --verbose=1
+/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/bin64/mpiicc       CMakeFiles/cmTC_fcb0e.dir/testCCompiler.c.o  -o cmTC_fcb0e -rdynamic 
+gmake[1]: Leaving directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+
+
+Detecting C compiler ABI info compiled with the following output:
+Change Dir: /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/gmake" "cmTC_aa062/fast"
+/usr/bin/gmake -f CMakeFiles/cmTC_aa062.dir/build.make CMakeFiles/cmTC_aa062.dir/build
+gmake[1]: Entering directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_aa062.dir/CMakeCCompilerABI.c.o
+/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/bin64/mpiicc     -o CMakeFiles/cmTC_aa062.dir/CMakeCCompilerABI.c.o   -c /u/system/soft/SLES122/common.x86_64/cmake/3.7.2/share/cmake-3.7/Modules/CMakeCCompilerABI.c
+Linking C executable cmTC_aa062
+/u/system/soft/SLES122/common.x86_64/cmake/3.7.2/bin/cmake -E cmake_link_script CMakeFiles/cmTC_aa062.dir/link.txt --verbose=1
+/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/bin64/mpiicc      -v CMakeFiles/cmTC_aa062.dir/CMakeCCompilerABI.c.o  -o cmTC_aa062 -rdynamic  
+mpiicc for the Intel(R) MPI Library 2017 Update 4 for Linux*
+Copyright(C) 2003-2017, Intel Corporation.  All rights reserved.
+icc version 17.0.7 (gcc version 6.3.0 compatibility)
+/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/bin/intel64/mcpcom    -mGLOB_em64t=TRUE -mP1OPT_version=17.0-intel64 -mGLOB_diag_file=CMakeFiles/cmTC_aa062.dir/CMakeCCompilerABI.c.diag -mGLOB_long_size_64 -mGLOB_routine_pointer_size_64 -mP1OPT_print_version=FALSE -mCG_use_gas_got_workaround=F -mP2OPT_align_option_used=TRUE -mGLOB_gcc_version=630 "-mGLOB_options_string=-I/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/include -Wl,-rpath=/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/compiler/lib/intel64 -v -o cmTC_aa062 -rdynamic -L/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt -L/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt -Xlinker -rpath -Xlinker /mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib -Xlinker -rpath -Xlinker /opt/intel/mpi-rt/2017.0.0/intel64/lib/release_mt -Xlinker -rpath -Xlinker /opt/intel/mpi-rt/2017.0.0/intel64/lib -lmpifort -lmpi -lmpigi -ldl -lrt -lpthread" -mGLOB_cxx_limited_range=FALSE -mCG_extend_parms=FALSE -mGLOB_compiler_bin_directory=/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/bin/intel64 -mGLOB_as_output_backup_file_name=/tmp/iccdzm29zas_.s -mGLOB_dashboard_use_source_name -mIPOPT_activate -mGLOB_product_id_code=0x22006d91 -mP3OPT_use_mspp_call_convention -mP2OPT_subs_out_of_bound=FALSE -mP2OPT_disam_type_based_disam=2 -mP2OPT_disam_assume_ansi_c -mP2OPT_checked_disam_ansi_alias=TRUE -mGLOB_ansi_alias -mPGOPTI_value_profile_use=T -mGLOB_opt_report_use_source_name -mP2OPT_il0_array_sections=TRUE -mGLOB_offload_mode=1 -mP2OPT_offload_unique_var_string=icc1196881265CfiIHE -mP2OPT_hlo -mP2OPT_hpo_rtt_control=0 -mIPOPT_args_in_regs=0 -mP2OPT_disam_assume_nonstd_intent_in=FALSE -mGLOB_imf_mapping_library=/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/bin/intel64/libiml_attr.so -mPGOPTI_gen_threadsafe_level=0 -mIPOPT_link -mIPOPT_ipo_activate -mIPOPT_mo_activate -mIPOPT_source_files_list=/tmp/iccslisjHBEXu -mIPOPT_mo_global_data -mIPOPT_link_script_file=/tmp/iccscriptTjTSGw "-mIPOPT_cmdline_link="/usr/lib/../lib64/crt1.o" "/usr/lib/../lib64/crti.o" "/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtbegin.o" "-export-dynamic" "--eh-frame-hdr" "--build-id" "-dynamic-linker" "/lib64/ld-linux-x86-64.so.2" "-m" "elf_x86_64" "-L/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt" "-L/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib" "-o" "cmTC_aa062" "-L/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin" "-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/" "-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/" "-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64" "-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64/" "-L/lib/../lib64" "-L/lib/../lib64/" "-L/usr/lib/../lib64" "-L/usr/lib/../lib64/" "-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../" "-L/lib64" "-L/lib/" "-L/usr/lib64" "-L/usr/lib" "-rpath=/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/compiler/lib/intel64" "CMakeFiles/cmTC_aa062.dir/CMakeCCompilerABI.c.o" "--enable-new-dtags" "-rpath" "/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt" "-rpath" "/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib" "-rpath" "/opt/intel/mpi-rt/2017.0.0/intel64/lib/release_mt" "-rpath" "/opt/intel/mpi-rt/2017.0.0/intel64/lib" "-lmpifort" "-lmpi" "-lmpigi" "-ldl" "-lrt" "-lpthread" "-Bdynamic" "-Bstatic" "-limf" "-lsvml" "-lirng" "-Bdynamic" "-lm" "-Bstatic" "-lipgo" "-ldecimal" "--as-needed" "-Bdynamic" "-lcilkrts" "-lstdc++" "--no-as-needed" "-lgcc" "-lgcc_s" "-Bstatic" "-lirc" "-lsvml" "-Bdynamic" "-lc" "-lgcc" "-lgcc_s" "-Bstatic" "-lirc_s" "-Bdynamic" "-ldl" "-lc" "/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtend.o" "/usr/lib/../lib64/crtn.o"" -mIPOPT_il_in_obj -mIPOPT_ipo_activate_warn=FALSE -mIPOPT_obj_output_file_name=/tmp/ipo_iccw3TmAk.o -mIPOPT_whole_archive_fixup_file_name=/tmp/iccwarchmWXapF -mGLOB_linker_version=2.29.1 -mGLOB_driver_tempfile_name=/tmp/icctempfilej7h89G -mP3OPT_asm_target=P3OPT_ASM_TARGET_GAS -mGLOB_async_unwind_tables=TRUE -mGLOB_obj_output_file=/tmp/ipo_iccw3TmAk.o -mGLOB_source_dialect=GLOB_SOURCE_DIALECT_NONE -mP1OPT_source_file_name=ipo_out.c CMakeFiles/cmTC_aa062.dir/CMakeCCompilerABI.c.o -mIPOPT_object_files=T -mIPOPT_assembly_files=/tmp/iccalisULrM2n -mIPOPT_generated_tempfiles=/tmp/iccelisVuJZLp -mIPOPT_embedded_object_base_name=/tmp/icceobj075cvr -mIPOPT_cmdline_link_new_name=/tmp/iccllisP4Hqet
+ld    /usr/lib/../lib64/crt1.o /usr/lib/../lib64/crti.o /draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtbegin.o -export-dynamic --eh-frame-hdr --build-id -dynamic-linker /lib64/ld-linux-x86-64.so.2 -m elf_x86_64 -L/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt -L/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib -o cmTC_aa062 -L/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/ -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/ -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64 -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64/ -L/lib/../lib64 -L/lib/../lib64/ -L/usr/lib/../lib64 -L/usr/lib/../lib64/ -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../ -L/lib64 -L/lib/ -L/usr/lib64 -L/usr/lib -rpath=/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/compiler/lib/intel64 CMakeFiles/cmTC_aa062.dir/CMakeCCompilerABI.c.o --enable-new-dtags -rpath /mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt -rpath /mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib -rpath /opt/intel/mpi-rt/2017.0.0/intel64/lib/release_mt -rpath /opt/intel/mpi-rt/2017.0.0/intel64/lib -lmpifort -lmpi -lmpigi -ldl -lrt -lpthread -Bdynamic -Bstatic -limf -lsvml -lirng -Bdynamic -lm -Bstatic -lipgo -ldecimal --as-needed -Bdynamic -lcilkrts -lstdc++ --no-as-needed -lgcc -lgcc_s -Bstatic -lirc -lsvml -Bdynamic -lc -lgcc -lgcc_s -Bstatic -lirc_s -Bdynamic -ldl -lc /draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtend.o /usr/lib/../lib64/crtn.o
+gmake[1]: Leaving directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+
+
+Parsed C implicit link information from above output:
+  link line regex: [^( *|.*[/\])(ld|([^/\]+-)?ld|collect2)[^/\]*( |$)]
+  ignore line: [Change Dir: /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp]
+  ignore line: []
+  ignore line: [Run Build Command:"/usr/bin/gmake" "cmTC_aa062/fast"]
+  ignore line: [/usr/bin/gmake -f CMakeFiles/cmTC_aa062.dir/build.make CMakeFiles/cmTC_aa062.dir/build]
+  ignore line: [gmake[1]: Entering directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp']
+  ignore line: [Building C object CMakeFiles/cmTC_aa062.dir/CMakeCCompilerABI.c.o]
+  ignore line: [/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/bin64/mpiicc     -o CMakeFiles/cmTC_aa062.dir/CMakeCCompilerABI.c.o   -c /u/system/soft/SLES122/common.x86_64/cmake/3.7.2/share/cmake-3.7/Modules/CMakeCCompilerABI.c]
+  ignore line: [Linking C executable cmTC_aa062]
+  ignore line: [/u/system/soft/SLES122/common.x86_64/cmake/3.7.2/bin/cmake -E cmake_link_script CMakeFiles/cmTC_aa062.dir/link.txt --verbose=1]
+  ignore line: [/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/bin64/mpiicc      -v CMakeFiles/cmTC_aa062.dir/CMakeCCompilerABI.c.o  -o cmTC_aa062 -rdynamic  ]
+  ignore line: [mpiicc for the Intel(R) MPI Library 2017 Update 4 for Linux*]
+  ignore line: [Copyright(C) 2003-2017, Intel Corporation.  All rights reserved.]
+  ignore line: [icc version 17.0.7 (gcc version 6.3.0 compatibility)]
+  ignore line: [/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/bin/intel64/mcpcom    -mGLOB_em64t=TRUE -mP1OPT_version=17.0-intel64 -mGLOB_diag_file=CMakeFiles/cmTC_aa062.dir/CMakeCCompilerABI.c.diag -mGLOB_long_size_64 -mGLOB_routine_pointer_size_64 -mP1OPT_print_version=FALSE -mCG_use_gas_got_workaround=F -mP2OPT_align_option_used=TRUE -mGLOB_gcc_version=630 "-mGLOB_options_string=-I/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/include -Wl,-rpath=/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/compiler/lib/intel64 -v -o cmTC_aa062 -rdynamic -L/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt -L/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt -Xlinker -rpath -Xlinker /mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib -Xlinker -rpath -Xlinker /opt/intel/mpi-rt/2017.0.0/intel64/lib/release_mt -Xlinker -rpath -Xlinker /opt/intel/mpi-rt/2017.0.0/intel64/lib -lmpifort -lmpi -lmpigi -ldl -lrt -lpthread" -mGLOB_cxx_limited_range=FALSE -mCG_extend_parms=FALSE -mGLOB_compiler_bin_directory=/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/bin/intel64 -mGLOB_as_output_backup_file_name=/tmp/iccdzm29zas_.s -mGLOB_dashboard_use_source_name -mIPOPT_activate -mGLOB_product_id_code=0x22006d91 -mP3OPT_use_mspp_call_convention -mP2OPT_subs_out_of_bound=FALSE -mP2OPT_disam_type_based_disam=2 -mP2OPT_disam_assume_ansi_c -mP2OPT_checked_disam_ansi_alias=TRUE -mGLOB_ansi_alias -mPGOPTI_value_profile_use=T -mGLOB_opt_report_use_source_name -mP2OPT_il0_array_sections=TRUE -mGLOB_offload_mode=1 -mP2OPT_offload_unique_var_string=icc1196881265CfiIHE -mP2OPT_hlo -mP2OPT_hpo_rtt_control=0 -mIPOPT_args_in_regs=0 -mP2OPT_disam_assume_nonstd_intent_in=FALSE -mGLOB_imf_mapping_library=/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/bin/intel64/libiml_attr.so -mPGOPTI_gen_threadsafe_level=0 -mIPOPT_link -mIPOPT_ipo_activate -mIPOPT_mo_activate -mIPOPT_source_files_list=/tmp/iccslisjHBEXu -mIPOPT_mo_global_data -mIPOPT_link_script_file=/tmp/iccscriptTjTSGw "-mIPOPT_cmdline_link="/usr/lib/../lib64/crt1.o" "/usr/lib/../lib64/crti.o" "/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtbegin.o" "-export-dynamic" "--eh-frame-hdr" "--build-id" "-dynamic-linker" "/lib64/ld-linux-x86-64.so.2" "-m" "elf_x86_64" "-L/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt" "-L/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib" "-o" "cmTC_aa062" "-L/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin" "-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/" "-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/" "-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64" "-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64/" "-L/lib/../lib64" "-L/lib/../lib64/" "-L/usr/lib/../lib64" "-L/usr/lib/../lib64/" "-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../" "-L/lib64" "-L/lib/" "-L/usr/lib64" "-L/usr/lib" "-rpath=/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/compiler/lib/intel64" "CMakeFiles/cmTC_aa062.dir/CMakeCCompilerABI.c.o" "--enable-new-dtags" "-rpath" "/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt" "-rpath" "/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib" "-rpath" "/opt/intel/mpi-rt/2017.0.0/intel64/lib/release_mt" "-rpath" "/opt/intel/mpi-rt/2017.0.0/intel64/lib" "-lmpifort" "-lmpi" "-lmpigi" "-ldl" "-lrt" "-lpthread" "-Bdynamic" "-Bstatic" "-limf" "-lsvml" "-lirng" "-Bdynamic" "-lm" "-Bstatic" "-lipgo" "-ldecimal" "--as-needed" "-Bdynamic" "-lcilkrts" "-lstdc++" "--no-as-needed" "-lgcc" "-lgcc_s" "-Bstatic" "-lirc" "-lsvml" "-Bdynamic" "-lc" "-lgcc" "-lgcc_s" "-Bstatic" "-lirc_s" "-Bdynamic" "-ldl" "-lc" "/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtend.o" "/usr/lib/../lib64/crtn.o"" -mIPOPT_il_in_obj -mIPOPT_ipo_activate_warn=FALSE -mIPOPT_obj_output_file_name=/tmp/ipo_iccw3TmAk.o -mIPOPT_whole_archive_fixup_file_name=/tmp/iccwarchmWXapF -mGLOB_linker_version=2.29.1 -mGLOB_driver_tempfile_name=/tmp/icctempfilej7h89G -mP3OPT_asm_target=P3OPT_ASM_TARGET_GAS -mGLOB_async_unwind_tables=TRUE -mGLOB_obj_output_file=/tmp/ipo_iccw3TmAk.o -mGLOB_source_dialect=GLOB_SOURCE_DIALECT_NONE -mP1OPT_source_file_name=ipo_out.c CMakeFiles/cmTC_aa062.dir/CMakeCCompilerABI.c.o -mIPOPT_object_files=T -mIPOPT_assembly_files=/tmp/iccalisULrM2n -mIPOPT_generated_tempfiles=/tmp/iccelisVuJZLp -mIPOPT_embedded_object_base_name=/tmp/icceobj075cvr -mIPOPT_cmdline_link_new_name=/tmp/iccllisP4Hqet]
+  link line: [ld    /usr/lib/../lib64/crt1.o /usr/lib/../lib64/crti.o /draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtbegin.o -export-dynamic --eh-frame-hdr --build-id -dynamic-linker /lib64/ld-linux-x86-64.so.2 -m elf_x86_64 -L/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt -L/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib -o cmTC_aa062 -L/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/ -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/ -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64 -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64/ -L/lib/../lib64 -L/lib/../lib64/ -L/usr/lib/../lib64 -L/usr/lib/../lib64/ -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../ -L/lib64 -L/lib/ -L/usr/lib64 -L/usr/lib -rpath=/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/compiler/lib/intel64 CMakeFiles/cmTC_aa062.dir/CMakeCCompilerABI.c.o --enable-new-dtags -rpath /mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt -rpath /mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib -rpath /opt/intel/mpi-rt/2017.0.0/intel64/lib/release_mt -rpath /opt/intel/mpi-rt/2017.0.0/intel64/lib -lmpifort -lmpi -lmpigi -ldl -lrt -lpthread -Bdynamic -Bstatic -limf -lsvml -lirng -Bdynamic -lm -Bstatic -lipgo -ldecimal --as-needed -Bdynamic -lcilkrts -lstdc++ --no-as-needed -lgcc -lgcc_s -Bstatic -lirc -lsvml -Bdynamic -lc -lgcc -lgcc_s -Bstatic -lirc_s -Bdynamic -ldl -lc /draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtend.o /usr/lib/../lib64/crtn.o]
+    arg [ld] ==> ignore
+    arg [/usr/lib/../lib64/crt1.o] ==> ignore
+    arg [/usr/lib/../lib64/crti.o] ==> ignore
+    arg [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtbegin.o] ==> ignore
+    arg [-export-dynamic] ==> ignore
+    arg [--eh-frame-hdr] ==> ignore
+    arg [--build-id] ==> ignore
+    arg [-dynamic-linker] ==> ignore
+    arg [/lib64/ld-linux-x86-64.so.2] ==> ignore
+    arg [-m] ==> ignore
+    arg [elf_x86_64] ==> ignore
+    arg [-L/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt] ==> dir [/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt]
+    arg [-L/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib] ==> dir [/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib]
+    arg [-o] ==> ignore
+    arg [cmTC_aa062] ==> ignore
+    arg [-L/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin] ==> dir [/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin]
+    arg [-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/] ==> dir [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/]
+    arg [-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/] ==> dir [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/]
+    arg [-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64] ==> dir [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64]
+    arg [-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64/] ==> dir [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64/]
+    arg [-L/lib/../lib64] ==> dir [/lib/../lib64]
+    arg [-L/lib/../lib64/] ==> dir [/lib/../lib64/]
+    arg [-L/usr/lib/../lib64] ==> dir [/usr/lib/../lib64]
+    arg [-L/usr/lib/../lib64/] ==> dir [/usr/lib/../lib64/]
+    arg [-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../] ==> dir [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../]
+    arg [-L/lib64] ==> dir [/lib64]
+    arg [-L/lib/] ==> dir [/lib/]
+    arg [-L/usr/lib64] ==> dir [/usr/lib64]
+    arg [-L/usr/lib] ==> dir [/usr/lib]
+    arg [-rpath=/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/compiler/lib/intel64] ==> ignore
+    arg [CMakeFiles/cmTC_aa062.dir/CMakeCCompilerABI.c.o] ==> ignore
+    arg [--enable-new-dtags] ==> ignore
+    arg [-rpath] ==> ignore
+    arg [/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt] ==> ignore
+    arg [-rpath] ==> ignore
+    arg [/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib] ==> ignore
+    arg [-rpath] ==> ignore
+    arg [/opt/intel/mpi-rt/2017.0.0/intel64/lib/release_mt] ==> ignore
+    arg [-rpath] ==> ignore
+    arg [/opt/intel/mpi-rt/2017.0.0/intel64/lib] ==> ignore
+    arg [-lmpifort] ==> lib [mpifort]
+    arg [-lmpi] ==> lib [mpi]
+    arg [-lmpigi] ==> lib [mpigi]
+    arg [-ldl] ==> lib [dl]
+    arg [-lrt] ==> lib [rt]
+    arg [-lpthread] ==> lib [pthread]
+    arg [-Bdynamic] ==> ignore
+    arg [-Bstatic] ==> ignore
+    arg [-limf] ==> lib [imf]
+    arg [-lsvml] ==> lib [svml]
+    arg [-lirng] ==> lib [irng]
+    arg [-Bdynamic] ==> ignore
+    arg [-lm] ==> lib [m]
+    arg [-Bstatic] ==> ignore
+    arg [-lipgo] ==> lib [ipgo]
+    arg [-ldecimal] ==> lib [decimal]
+    arg [--as-needed] ==> ignore
+    arg [-Bdynamic] ==> ignore
+    arg [-lcilkrts] ==> lib [cilkrts]
+    arg [-lstdc++] ==> lib [stdc++]
+    arg [--no-as-needed] ==> ignore
+    arg [-lgcc] ==> lib [gcc]
+    arg [-lgcc_s] ==> lib [gcc_s]
+    arg [-Bstatic] ==> ignore
+    arg [-lirc] ==> lib [irc]
+    arg [-lsvml] ==> lib [svml]
+    arg [-Bdynamic] ==> ignore
+    arg [-lc] ==> lib [c]
+    arg [-lgcc] ==> lib [gcc]
+    arg [-lgcc_s] ==> lib [gcc_s]
+    arg [-Bstatic] ==> ignore
+    arg [-lirc_s] ==> lib [irc_s]
+    arg [-Bdynamic] ==> ignore
+    arg [-ldl] ==> lib [dl]
+    arg [-lc] ==> lib [c]
+    arg [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtend.o] ==> ignore
+    arg [/usr/lib/../lib64/crtn.o] ==> ignore
+  remove lib [gcc]
+  remove lib [gcc_s]
+  remove lib [gcc]
+  remove lib [gcc_s]
+  collapse library dir [/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt] ==> [/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt]
+  collapse library dir [/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib] ==> [/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib]
+  collapse library dir [/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin] ==> [/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin]
+  collapse library dir [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/] ==> [/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/lib/gcc/x86_64-pc-linux-gnu/6.3.0]
+  collapse library dir [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/] ==> [/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/lib/gcc]
+  collapse library dir [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64] ==> [/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/lib64]
+  collapse library dir [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64/] ==> [/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/lib64]
+  collapse library dir [/lib/../lib64] ==> [/lib64]
+  collapse library dir [/lib/../lib64/] ==> [/lib64]
+  collapse library dir [/usr/lib/../lib64] ==> [/usr/lib64]
+  collapse library dir [/usr/lib/../lib64/] ==> [/usr/lib64]
+  collapse library dir [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../] ==> [/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/lib]
+  collapse library dir [/lib64] ==> [/lib64]
+  collapse library dir [/lib/] ==> [/lib]
+  collapse library dir [/usr/lib64] ==> [/usr/lib64]
+  collapse library dir [/usr/lib] ==> [/usr/lib]
+  implicit libs: [mpifort;mpi;mpigi;dl;rt;pthread;imf;svml;irng;m;ipgo;decimal;cilkrts;stdc++;irc;svml;c;irc_s;dl;c]
+  implicit dirs: [/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt;/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib;/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin;/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/lib/gcc/x86_64-pc-linux-gnu/6.3.0;/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/lib/gcc;/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/lib64;/lib64;/usr/lib64;/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/lib;/lib;/usr/lib]
+  implicit fwks: []
+
+
+
+
+Detecting C [-std=c11] compiler features compiled with the following output:
+Change Dir: /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/gmake" "cmTC_d855f/fast"
+/usr/bin/gmake -f CMakeFiles/cmTC_d855f.dir/build.make CMakeFiles/cmTC_d855f.dir/build
+gmake[1]: Entering directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_d855f.dir/feature_tests.c.o
+/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/bin64/mpiicc    -std=c11 -o CMakeFiles/cmTC_d855f.dir/feature_tests.c.o   -c /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/feature_tests.c
+Linking C executable cmTC_d855f
+/u/system/soft/SLES122/common.x86_64/cmake/3.7.2/bin/cmake -E cmake_link_script CMakeFiles/cmTC_d855f.dir/link.txt --verbose=1
+/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/bin64/mpiicc       CMakeFiles/cmTC_d855f.dir/feature_tests.c.o  -o cmTC_d855f -rdynamic 
+gmake[1]: Leaving directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+
+
+    Feature record: C_FEATURE:1c_function_prototypes
+    Feature record: C_FEATURE:1c_restrict
+    Feature record: C_FEATURE:1c_static_assert
+    Feature record: C_FEATURE:1c_variadic_macros
+
+
+Detecting C [-std=c99] compiler features compiled with the following output:
+Change Dir: /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/gmake" "cmTC_60935/fast"
+/usr/bin/gmake -f CMakeFiles/cmTC_60935.dir/build.make CMakeFiles/cmTC_60935.dir/build
+gmake[1]: Entering directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_60935.dir/feature_tests.c.o
+/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/bin64/mpiicc    -std=c99 -o CMakeFiles/cmTC_60935.dir/feature_tests.c.o   -c /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/feature_tests.c
+Linking C executable cmTC_60935
+/u/system/soft/SLES122/common.x86_64/cmake/3.7.2/bin/cmake -E cmake_link_script CMakeFiles/cmTC_60935.dir/link.txt --verbose=1
+/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/bin64/mpiicc       CMakeFiles/cmTC_60935.dir/feature_tests.c.o  -o cmTC_60935 -rdynamic 
+gmake[1]: Leaving directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+
+
+    Feature record: C_FEATURE:1c_function_prototypes
+    Feature record: C_FEATURE:1c_restrict
+    Feature record: C_FEATURE:1c_static_assert
+    Feature record: C_FEATURE:1c_variadic_macros
+
+
+Detecting C [-std=c89] compiler features compiled with the following output:
+Change Dir: /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/gmake" "cmTC_984b6/fast"
+/usr/bin/gmake -f CMakeFiles/cmTC_984b6.dir/build.make CMakeFiles/cmTC_984b6.dir/build
+gmake[1]: Entering directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_984b6.dir/feature_tests.c.o
+/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/bin64/mpiicc    -std=c89 -o CMakeFiles/cmTC_984b6.dir/feature_tests.c.o   -c /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/feature_tests.c
+Linking C executable cmTC_984b6
+/u/system/soft/SLES122/common.x86_64/cmake/3.7.2/bin/cmake -E cmake_link_script CMakeFiles/cmTC_984b6.dir/link.txt --verbose=1
+/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/bin64/mpiicc       CMakeFiles/cmTC_984b6.dir/feature_tests.c.o  -o cmTC_984b6 -rdynamic 
+gmake[1]: Leaving directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+
+
+    Feature record: C_FEATURE:1c_function_prototypes
+    Feature record: C_FEATURE:0c_restrict
+    Feature record: C_FEATURE:0c_static_assert
+    Feature record: C_FEATURE:0c_variadic_macros
+Determining if the CXX compiler works passed with the following output:
+Change Dir: /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/gmake" "cmTC_778c2/fast"
+/usr/bin/gmake -f CMakeFiles/cmTC_778c2.dir/build.make CMakeFiles/cmTC_778c2.dir/build
+gmake[1]: Entering directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_778c2.dir/testCXXCompiler.cxx.o
+/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/bin64/mpiicpc      -o CMakeFiles/cmTC_778c2.dir/testCXXCompiler.cxx.o -c /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp/testCXXCompiler.cxx
+Linking CXX executable cmTC_778c2
+/u/system/soft/SLES122/common.x86_64/cmake/3.7.2/bin/cmake -E cmake_link_script CMakeFiles/cmTC_778c2.dir/link.txt --verbose=1
+/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/bin64/mpiicpc        CMakeFiles/cmTC_778c2.dir/testCXXCompiler.cxx.o  -o cmTC_778c2 -rdynamic 
+gmake[1]: Leaving directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+
+
+Detecting CXX compiler ABI info compiled with the following output:
+Change Dir: /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/gmake" "cmTC_d2449/fast"
+/usr/bin/gmake -f CMakeFiles/cmTC_d2449.dir/build.make CMakeFiles/cmTC_d2449.dir/build
+gmake[1]: Entering directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_d2449.dir/CMakeCXXCompilerABI.cpp.o
+/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/bin64/mpiicpc      -o CMakeFiles/cmTC_d2449.dir/CMakeCXXCompilerABI.cpp.o -c /u/system/soft/SLES122/common.x86_64/cmake/3.7.2/share/cmake-3.7/Modules/CMakeCXXCompilerABI.cpp
+Linking CXX executable cmTC_d2449
+/u/system/soft/SLES122/common.x86_64/cmake/3.7.2/bin/cmake -E cmake_link_script CMakeFiles/cmTC_d2449.dir/link.txt --verbose=1
+/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/bin64/mpiicpc       -v CMakeFiles/cmTC_d2449.dir/CMakeCXXCompilerABI.cpp.o  -o cmTC_d2449 -rdynamic  
+mpiicpc for the Intel(R) MPI Library 2017 Update 4 for Linux*
+Copyright(C) 2003-2017, Intel Corporation.  All rights reserved.
+icpc version 17.0.7 (gcc version 6.3.0 compatibility)
+/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/bin/intel64/mcpcom    -mGLOB_em64t=TRUE -mP1OPT_version=17.0-intel64 -mGLOB_diag_file=CMakeFiles/cmTC_d2449.dir/CMakeCXXCompilerABI.cpp.diag -mGLOB_long_size_64 -mGLOB_routine_pointer_size_64 -mP1OPT_print_version=FALSE -mCG_use_gas_got_workaround=F -mP2OPT_align_option_used=TRUE -mGLOB_gcc_version=630 "-mGLOB_options_string=-I/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/include -Wl,-rpath=/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/compiler/lib/intel64 -v -o cmTC_d2449 -rdynamic -L/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt -L/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt -Xlinker -rpath -Xlinker /mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib -Xlinker -rpath -Xlinker /opt/intel/mpi-rt/2017.0.0/intel64/lib/release_mt -Xlinker -rpath -Xlinker /opt/intel/mpi-rt/2017.0.0/intel64/lib -lmpicxx -lmpifort -lmpi -lmpigi -ldl -lrt -lpthread" -mGLOB_cxx_limited_range=FALSE -mCG_extend_parms=FALSE -mGLOB_compiler_bin_directory=/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/bin/intel64 -mGLOB_as_output_backup_file_name=/tmp/icpcnYXYFLas_.s -mGLOB_dashboard_use_source_name -mIPOPT_activate -mGLOB_product_id_code=0x22006d8e -mP3OPT_use_mspp_call_convention -mP2OPT_subs_out_of_bound=FALSE -mP2OPT_disam_type_based_disam=2 -mP2OPT_disam_assume_ansi_c -mP2OPT_checked_disam_ansi_alias=TRUE -mGLOB_ansi_alias -mPGOPTI_value_profile_use=T -mGLOB_opt_report_use_source_name -mP2OPT_il0_array_sections=TRUE -mGLOB_offload_mode=1 -mP2OPT_offload_unique_var_string=icpc20720537077S7tlJ -mP2OPT_hlo -mP2OPT_hpo_rtt_control=0 -mIPOPT_args_in_regs=0 -mP2OPT_disam_assume_nonstd_intent_in=FALSE -mGLOB_imf_mapping_library=/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/bin/intel64/libiml_attr.so -mPGOPTI_gen_threadsafe_level=0 -mIPOPT_link -mIPOPT_ipo_activate -mIPOPT_mo_activate -mIPOPT_source_files_list=/tmp/icpcsliszwKvps -mIPOPT_mo_global_data -mIPOPT_link_script_file=/tmp/icpcscriptiOkpPy "-mIPOPT_cmdline_link="/usr/lib/../lib64/crt1.o" "/usr/lib/../lib64/crti.o" "/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtbegin.o" "-export-dynamic" "--eh-frame-hdr" "--build-id" "-dynamic-linker" "/lib64/ld-linux-x86-64.so.2" "-m" "elf_x86_64" "-L/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt" "-L/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib" "-o" "cmTC_d2449" "-L/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin" "-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/" "-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/" "-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64" "-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64/" "-L/lib/../lib64" "-L/lib/../lib64/" "-L/usr/lib/../lib64" "-L/usr/lib/../lib64/" "-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../" "-L/lib64" "-L/lib/" "-L/usr/lib64" "-L/usr/lib" "-rpath=/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/compiler/lib/intel64" "CMakeFiles/cmTC_d2449.dir/CMakeCXXCompilerABI.cpp.o" "--enable-new-dtags" "-rpath" "/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt" "-rpath" "/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib" "-rpath" "/opt/intel/mpi-rt/2017.0.0/intel64/lib/release_mt" "-rpath" "/opt/intel/mpi-rt/2017.0.0/intel64/lib" "-lmpicxx" "-lmpifort" "-lmpi" "-lmpigi" "-ldl" "-lrt" "-lpthread" "-Bdynamic" "-Bstatic" "-limf" "-lsvml" "-lirng" "-Bdynamic" "-lstdc++" "-lm" "-Bstatic" "-lipgo" "-ldecimal" "--as-needed" "-Bdynamic" "-lcilkrts" "--no-as-needed" "-lstdc++" "-lgcc" "-lgcc_s" "-Bstatic" "-lirc" "-lsvml" "-Bdynamic" "-lc" "-lgcc" "-lgcc_s" "-Bstatic" "-lirc_s" "-Bdynamic" "-ldl" "-lc" "/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtend.o" "/usr/lib/../lib64/crtn.o"" -mIPOPT_il_in_obj -mIPOPT_ipo_activate_warn=FALSE -mIPOPT_obj_output_file_name=/tmp/ipo_icpcGZLeUP.o -mIPOPT_whole_archive_fixup_file_name=/tmp/icpcwarchXx8kZ4 -mGLOB_linker_version=2.29.1 -mGLOB_driver_tempfile_name=/tmp/icpctempfilejH6Zqb -mP3OPT_asm_target=P3OPT_ASM_TARGET_GAS -mGLOB_async_unwind_tables=TRUE -mGLOB_obj_output_file=/tmp/ipo_icpcGZLeUP.o -mGLOB_source_dialect=GLOB_SOURCE_DIALECT_NONE -mP1OPT_source_file_name=ipo_out.c CMakeFiles/cmTC_d2449.dir/CMakeCXXCompilerABI.cpp.o -mIPOPT_object_files=T -mIPOPT_assembly_files=/tmp/icpcalisqtBYJ2 -mIPOPT_generated_tempfiles=/tmp/icpcelisfiWQ98 -mIPOPT_embedded_object_base_name=/tmp/icpceobjSIyJzf -mIPOPT_cmdline_link_new_name=/tmp/icpcllis0krCZl
+ld    /usr/lib/../lib64/crt1.o /usr/lib/../lib64/crti.o /draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtbegin.o -export-dynamic --eh-frame-hdr --build-id -dynamic-linker /lib64/ld-linux-x86-64.so.2 -m elf_x86_64 -L/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt -L/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib -o cmTC_d2449 -L/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/ -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/ -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64 -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64/ -L/lib/../lib64 -L/lib/../lib64/ -L/usr/lib/../lib64 -L/usr/lib/../lib64/ -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../ -L/lib64 -L/lib/ -L/usr/lib64 -L/usr/lib -rpath=/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/compiler/lib/intel64 CMakeFiles/cmTC_d2449.dir/CMakeCXXCompilerABI.cpp.o --enable-new-dtags -rpath /mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt -rpath /mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib -rpath /opt/intel/mpi-rt/2017.0.0/intel64/lib/release_mt -rpath /opt/intel/mpi-rt/2017.0.0/intel64/lib -lmpicxx -lmpifort -lmpi -lmpigi -ldl -lrt -lpthread -Bdynamic -Bstatic -limf -lsvml -lirng -Bdynamic -lstdc++ -lm -Bstatic -lipgo -ldecimal --as-needed -Bdynamic -lcilkrts --no-as-needed -lstdc++ -lgcc -lgcc_s -Bstatic -lirc -lsvml -Bdynamic -lc -lgcc -lgcc_s -Bstatic -lirc_s -Bdynamic -ldl -lc /draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtend.o /usr/lib/../lib64/crtn.o
+gmake[1]: Leaving directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+
+
+Parsed CXX implicit link information from above output:
+  link line regex: [^( *|.*[/\])(ld|([^/\]+-)?ld|collect2)[^/\]*( |$)]
+  ignore line: [Change Dir: /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp]
+  ignore line: []
+  ignore line: [Run Build Command:"/usr/bin/gmake" "cmTC_d2449/fast"]
+  ignore line: [/usr/bin/gmake -f CMakeFiles/cmTC_d2449.dir/build.make CMakeFiles/cmTC_d2449.dir/build]
+  ignore line: [gmake[1]: Entering directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp']
+  ignore line: [Building CXX object CMakeFiles/cmTC_d2449.dir/CMakeCXXCompilerABI.cpp.o]
+  ignore line: [/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/bin64/mpiicpc      -o CMakeFiles/cmTC_d2449.dir/CMakeCXXCompilerABI.cpp.o -c /u/system/soft/SLES122/common.x86_64/cmake/3.7.2/share/cmake-3.7/Modules/CMakeCXXCompilerABI.cpp]
+  ignore line: [Linking CXX executable cmTC_d2449]
+  ignore line: [/u/system/soft/SLES122/common.x86_64/cmake/3.7.2/bin/cmake -E cmake_link_script CMakeFiles/cmTC_d2449.dir/link.txt --verbose=1]
+  ignore line: [/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/bin64/mpiicpc       -v CMakeFiles/cmTC_d2449.dir/CMakeCXXCompilerABI.cpp.o  -o cmTC_d2449 -rdynamic  ]
+  ignore line: [mpiicpc for the Intel(R) MPI Library 2017 Update 4 for Linux*]
+  ignore line: [Copyright(C) 2003-2017, Intel Corporation.  All rights reserved.]
+  ignore line: [icpc version 17.0.7 (gcc version 6.3.0 compatibility)]
+  ignore line: [/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/bin/intel64/mcpcom    -mGLOB_em64t=TRUE -mP1OPT_version=17.0-intel64 -mGLOB_diag_file=CMakeFiles/cmTC_d2449.dir/CMakeCXXCompilerABI.cpp.diag -mGLOB_long_size_64 -mGLOB_routine_pointer_size_64 -mP1OPT_print_version=FALSE -mCG_use_gas_got_workaround=F -mP2OPT_align_option_used=TRUE -mGLOB_gcc_version=630 "-mGLOB_options_string=-I/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/include -Wl,-rpath=/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/compiler/lib/intel64 -v -o cmTC_d2449 -rdynamic -L/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt -L/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt -Xlinker -rpath -Xlinker /mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib -Xlinker -rpath -Xlinker /opt/intel/mpi-rt/2017.0.0/intel64/lib/release_mt -Xlinker -rpath -Xlinker /opt/intel/mpi-rt/2017.0.0/intel64/lib -lmpicxx -lmpifort -lmpi -lmpigi -ldl -lrt -lpthread" -mGLOB_cxx_limited_range=FALSE -mCG_extend_parms=FALSE -mGLOB_compiler_bin_directory=/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/bin/intel64 -mGLOB_as_output_backup_file_name=/tmp/icpcnYXYFLas_.s -mGLOB_dashboard_use_source_name -mIPOPT_activate -mGLOB_product_id_code=0x22006d8e -mP3OPT_use_mspp_call_convention -mP2OPT_subs_out_of_bound=FALSE -mP2OPT_disam_type_based_disam=2 -mP2OPT_disam_assume_ansi_c -mP2OPT_checked_disam_ansi_alias=TRUE -mGLOB_ansi_alias -mPGOPTI_value_profile_use=T -mGLOB_opt_report_use_source_name -mP2OPT_il0_array_sections=TRUE -mGLOB_offload_mode=1 -mP2OPT_offload_unique_var_string=icpc20720537077S7tlJ -mP2OPT_hlo -mP2OPT_hpo_rtt_control=0 -mIPOPT_args_in_regs=0 -mP2OPT_disam_assume_nonstd_intent_in=FALSE -mGLOB_imf_mapping_library=/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/bin/intel64/libiml_attr.so -mPGOPTI_gen_threadsafe_level=0 -mIPOPT_link -mIPOPT_ipo_activate -mIPOPT_mo_activate -mIPOPT_source_files_list=/tmp/icpcsliszwKvps -mIPOPT_mo_global_data -mIPOPT_link_script_file=/tmp/icpcscriptiOkpPy "-mIPOPT_cmdline_link="/usr/lib/../lib64/crt1.o" "/usr/lib/../lib64/crti.o" "/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtbegin.o" "-export-dynamic" "--eh-frame-hdr" "--build-id" "-dynamic-linker" "/lib64/ld-linux-x86-64.so.2" "-m" "elf_x86_64" "-L/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt" "-L/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib" "-o" "cmTC_d2449" "-L/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin" "-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/" "-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/" "-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64" "-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64/" "-L/lib/../lib64" "-L/lib/../lib64/" "-L/usr/lib/../lib64" "-L/usr/lib/../lib64/" "-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../" "-L/lib64" "-L/lib/" "-L/usr/lib64" "-L/usr/lib" "-rpath=/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/compiler/lib/intel64" "CMakeFiles/cmTC_d2449.dir/CMakeCXXCompilerABI.cpp.o" "--enable-new-dtags" "-rpath" "/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt" "-rpath" "/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib" "-rpath" "/opt/intel/mpi-rt/2017.0.0/intel64/lib/release_mt" "-rpath" "/opt/intel/mpi-rt/2017.0.0/intel64/lib" "-lmpicxx" "-lmpifort" "-lmpi" "-lmpigi" "-ldl" "-lrt" "-lpthread" "-Bdynamic" "-Bstatic" "-limf" "-lsvml" "-lirng" "-Bdynamic" "-lstdc++" "-lm" "-Bstatic" "-lipgo" "-ldecimal" "--as-needed" "-Bdynamic" "-lcilkrts" "--no-as-needed" "-lstdc++" "-lgcc" "-lgcc_s" "-Bstatic" "-lirc" "-lsvml" "-Bdynamic" "-lc" "-lgcc" "-lgcc_s" "-Bstatic" "-lirc_s" "-Bdynamic" "-ldl" "-lc" "/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtend.o" "/usr/lib/../lib64/crtn.o"" -mIPOPT_il_in_obj -mIPOPT_ipo_activate_warn=FALSE -mIPOPT_obj_output_file_name=/tmp/ipo_icpcGZLeUP.o -mIPOPT_whole_archive_fixup_file_name=/tmp/icpcwarchXx8kZ4 -mGLOB_linker_version=2.29.1 -mGLOB_driver_tempfile_name=/tmp/icpctempfilejH6Zqb -mP3OPT_asm_target=P3OPT_ASM_TARGET_GAS -mGLOB_async_unwind_tables=TRUE -mGLOB_obj_output_file=/tmp/ipo_icpcGZLeUP.o -mGLOB_source_dialect=GLOB_SOURCE_DIALECT_NONE -mP1OPT_source_file_name=ipo_out.c CMakeFiles/cmTC_d2449.dir/CMakeCXXCompilerABI.cpp.o -mIPOPT_object_files=T -mIPOPT_assembly_files=/tmp/icpcalisqtBYJ2 -mIPOPT_generated_tempfiles=/tmp/icpcelisfiWQ98 -mIPOPT_embedded_object_base_name=/tmp/icpceobjSIyJzf -mIPOPT_cmdline_link_new_name=/tmp/icpcllis0krCZl]
+  link line: [ld    /usr/lib/../lib64/crt1.o /usr/lib/../lib64/crti.o /draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtbegin.o -export-dynamic --eh-frame-hdr --build-id -dynamic-linker /lib64/ld-linux-x86-64.so.2 -m elf_x86_64 -L/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt -L/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib -o cmTC_d2449 -L/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/ -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/ -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64 -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64/ -L/lib/../lib64 -L/lib/../lib64/ -L/usr/lib/../lib64 -L/usr/lib/../lib64/ -L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../ -L/lib64 -L/lib/ -L/usr/lib64 -L/usr/lib -rpath=/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/compiler/lib/intel64 CMakeFiles/cmTC_d2449.dir/CMakeCXXCompilerABI.cpp.o --enable-new-dtags -rpath /mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt -rpath /mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib -rpath /opt/intel/mpi-rt/2017.0.0/intel64/lib/release_mt -rpath /opt/intel/mpi-rt/2017.0.0/intel64/lib -lmpicxx -lmpifort -lmpi -lmpigi -ldl -lrt -lpthread -Bdynamic -Bstatic -limf -lsvml -lirng -Bdynamic -lstdc++ -lm -Bstatic -lipgo -ldecimal --as-needed -Bdynamic -lcilkrts --no-as-needed -lstdc++ -lgcc -lgcc_s -Bstatic -lirc -lsvml -Bdynamic -lc -lgcc -lgcc_s -Bstatic -lirc_s -Bdynamic -ldl -lc /draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtend.o /usr/lib/../lib64/crtn.o]
+    arg [ld] ==> ignore
+    arg [/usr/lib/../lib64/crt1.o] ==> ignore
+    arg [/usr/lib/../lib64/crti.o] ==> ignore
+    arg [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtbegin.o] ==> ignore
+    arg [-export-dynamic] ==> ignore
+    arg [--eh-frame-hdr] ==> ignore
+    arg [--build-id] ==> ignore
+    arg [-dynamic-linker] ==> ignore
+    arg [/lib64/ld-linux-x86-64.so.2] ==> ignore
+    arg [-m] ==> ignore
+    arg [elf_x86_64] ==> ignore
+    arg [-L/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt] ==> dir [/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt]
+    arg [-L/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib] ==> dir [/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib]
+    arg [-o] ==> ignore
+    arg [cmTC_d2449] ==> ignore
+    arg [-L/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin] ==> dir [/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin]
+    arg [-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/] ==> dir [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/]
+    arg [-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/] ==> dir [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/]
+    arg [-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64] ==> dir [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64]
+    arg [-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64/] ==> dir [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64/]
+    arg [-L/lib/../lib64] ==> dir [/lib/../lib64]
+    arg [-L/lib/../lib64/] ==> dir [/lib/../lib64/]
+    arg [-L/usr/lib/../lib64] ==> dir [/usr/lib/../lib64]
+    arg [-L/usr/lib/../lib64/] ==> dir [/usr/lib/../lib64/]
+    arg [-L/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../] ==> dir [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../]
+    arg [-L/lib64] ==> dir [/lib64]
+    arg [-L/lib/] ==> dir [/lib/]
+    arg [-L/usr/lib64] ==> dir [/usr/lib64]
+    arg [-L/usr/lib] ==> dir [/usr/lib]
+    arg [-rpath=/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/compiler/lib/intel64] ==> ignore
+    arg [CMakeFiles/cmTC_d2449.dir/CMakeCXXCompilerABI.cpp.o] ==> ignore
+    arg [--enable-new-dtags] ==> ignore
+    arg [-rpath] ==> ignore
+    arg [/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt] ==> ignore
+    arg [-rpath] ==> ignore
+    arg [/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib] ==> ignore
+    arg [-rpath] ==> ignore
+    arg [/opt/intel/mpi-rt/2017.0.0/intel64/lib/release_mt] ==> ignore
+    arg [-rpath] ==> ignore
+    arg [/opt/intel/mpi-rt/2017.0.0/intel64/lib] ==> ignore
+    arg [-lmpicxx] ==> lib [mpicxx]
+    arg [-lmpifort] ==> lib [mpifort]
+    arg [-lmpi] ==> lib [mpi]
+    arg [-lmpigi] ==> lib [mpigi]
+    arg [-ldl] ==> lib [dl]
+    arg [-lrt] ==> lib [rt]
+    arg [-lpthread] ==> lib [pthread]
+    arg [-Bdynamic] ==> ignore
+    arg [-Bstatic] ==> ignore
+    arg [-limf] ==> lib [imf]
+    arg [-lsvml] ==> lib [svml]
+    arg [-lirng] ==> lib [irng]
+    arg [-Bdynamic] ==> ignore
+    arg [-lstdc++] ==> lib [stdc++]
+    arg [-lm] ==> lib [m]
+    arg [-Bstatic] ==> ignore
+    arg [-lipgo] ==> lib [ipgo]
+    arg [-ldecimal] ==> lib [decimal]
+    arg [--as-needed] ==> ignore
+    arg [-Bdynamic] ==> ignore
+    arg [-lcilkrts] ==> lib [cilkrts]
+    arg [--no-as-needed] ==> ignore
+    arg [-lstdc++] ==> lib [stdc++]
+    arg [-lgcc] ==> lib [gcc]
+    arg [-lgcc_s] ==> lib [gcc_s]
+    arg [-Bstatic] ==> ignore
+    arg [-lirc] ==> lib [irc]
+    arg [-lsvml] ==> lib [svml]
+    arg [-Bdynamic] ==> ignore
+    arg [-lc] ==> lib [c]
+    arg [-lgcc] ==> lib [gcc]
+    arg [-lgcc_s] ==> lib [gcc_s]
+    arg [-Bstatic] ==> ignore
+    arg [-lirc_s] ==> lib [irc_s]
+    arg [-Bdynamic] ==> ignore
+    arg [-ldl] ==> lib [dl]
+    arg [-lc] ==> lib [c]
+    arg [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/crtend.o] ==> ignore
+    arg [/usr/lib/../lib64/crtn.o] ==> ignore
+  remove lib [gcc]
+  remove lib [gcc_s]
+  remove lib [gcc]
+  remove lib [gcc_s]
+  collapse library dir [/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt] ==> [/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt]
+  collapse library dir [/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib] ==> [/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib]
+  collapse library dir [/draco/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin] ==> [/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin]
+  collapse library dir [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/] ==> [/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/lib/gcc/x86_64-pc-linux-gnu/6.3.0]
+  collapse library dir [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/] ==> [/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/lib/gcc]
+  collapse library dir [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64] ==> [/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/lib64]
+  collapse library dir [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../../lib64/] ==> [/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/lib64]
+  collapse library dir [/lib/../lib64] ==> [/lib64]
+  collapse library dir [/lib/../lib64/] ==> [/lib64]
+  collapse library dir [/usr/lib/../lib64] ==> [/usr/lib64]
+  collapse library dir [/usr/lib/../lib64/] ==> [/usr/lib64]
+  collapse library dir [/draco/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/bin/../lib/gcc/x86_64-pc-linux-gnu/6.3.0/../../../] ==> [/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/lib]
+  collapse library dir [/lib64] ==> [/lib64]
+  collapse library dir [/lib/] ==> [/lib]
+  collapse library dir [/usr/lib64] ==> [/usr/lib64]
+  collapse library dir [/usr/lib] ==> [/usr/lib]
+  implicit libs: [mpicxx;mpifort;mpi;mpigi;dl;rt;pthread;imf;svml;irng;stdc++;m;ipgo;decimal;cilkrts;stdc++;irc;svml;c;irc_s;dl;c]
+  implicit dirs: [/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib/release_mt;/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/intel64/lib;/u/system/soft/SLES122/common.x86_64/intel/ps2017.7/compilers_and_libraries_2017.7.259/linux/compiler/lib/intel64_lin;/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/lib/gcc/x86_64-pc-linux-gnu/6.3.0;/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/lib/gcc;/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/lib64;/lib64;/usr/lib64;/u/system/soft/SLES122/common.x86_64/gcc/6.3.0/lib;/lib;/usr/lib]
+  implicit fwks: []
+
+
+
+
+Detecting CXX [-std=c++14] compiler features compiled with the following output:
+Change Dir: /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/gmake" "cmTC_924aa/fast"
+/usr/bin/gmake -f CMakeFiles/cmTC_924aa.dir/build.make CMakeFiles/cmTC_924aa.dir/build
+gmake[1]: Entering directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_924aa.dir/feature_tests.cxx.o
+/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/bin64/mpiicpc     -std=c++14 -o CMakeFiles/cmTC_924aa.dir/feature_tests.cxx.o -c /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/feature_tests.cxx
+Linking CXX executable cmTC_924aa
+/u/system/soft/SLES122/common.x86_64/cmake/3.7.2/bin/cmake -E cmake_link_script CMakeFiles/cmTC_924aa.dir/link.txt --verbose=1
+/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/bin64/mpiicpc        CMakeFiles/cmTC_924aa.dir/feature_tests.cxx.o  -o cmTC_924aa -rdynamic 
+gmake[1]: Leaving directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+
+
+    Feature record: CXX_FEATURE:1cxx_aggregate_default_initializers
+    Feature record: CXX_FEATURE:1cxx_alias_templates
+    Feature record: CXX_FEATURE:1cxx_alignas
+    Feature record: CXX_FEATURE:1cxx_alignof
+    Feature record: CXX_FEATURE:1cxx_attributes
+    Feature record: CXX_FEATURE:1cxx_attribute_deprecated
+    Feature record: CXX_FEATURE:1cxx_auto_type
+    Feature record: CXX_FEATURE:1cxx_binary_literals
+    Feature record: CXX_FEATURE:1cxx_constexpr
+    Feature record: CXX_FEATURE:1cxx_contextual_conversions
+    Feature record: CXX_FEATURE:1cxx_decltype
+    Feature record: CXX_FEATURE:1cxx_decltype_auto
+    Feature record: CXX_FEATURE:1cxx_decltype_incomplete_return_types
+    Feature record: CXX_FEATURE:1cxx_default_function_template_args
+    Feature record: CXX_FEATURE:1cxx_defaulted_functions
+    Feature record: CXX_FEATURE:1cxx_defaulted_move_initializers
+    Feature record: CXX_FEATURE:1cxx_delegating_constructors
+    Feature record: CXX_FEATURE:1cxx_deleted_functions
+    Feature record: CXX_FEATURE:1cxx_digit_separators
+    Feature record: CXX_FEATURE:1cxx_enum_forward_declarations
+    Feature record: CXX_FEATURE:1cxx_explicit_conversions
+    Feature record: CXX_FEATURE:1cxx_extended_friend_declarations
+    Feature record: CXX_FEATURE:1cxx_extern_templates
+    Feature record: CXX_FEATURE:1cxx_final
+    Feature record: CXX_FEATURE:1cxx_func_identifier
+    Feature record: CXX_FEATURE:1cxx_generic_lambdas
+    Feature record: CXX_FEATURE:1cxx_inheriting_constructors
+    Feature record: CXX_FEATURE:1cxx_inline_namespaces
+    Feature record: CXX_FEATURE:1cxx_lambdas
+    Feature record: CXX_FEATURE:1cxx_lambda_init_captures
+    Feature record: CXX_FEATURE:1cxx_local_type_template_args
+    Feature record: CXX_FEATURE:1cxx_long_long_type
+    Feature record: CXX_FEATURE:1cxx_noexcept
+    Feature record: CXX_FEATURE:1cxx_nonstatic_member_init
+    Feature record: CXX_FEATURE:1cxx_nullptr
+    Feature record: CXX_FEATURE:1cxx_override
+    Feature record: CXX_FEATURE:1cxx_range_for
+    Feature record: CXX_FEATURE:1cxx_raw_string_literals
+    Feature record: CXX_FEATURE:1cxx_reference_qualified_functions
+    Feature record: CXX_FEATURE:1cxx_relaxed_constexpr
+    Feature record: CXX_FEATURE:1cxx_return_type_deduction
+    Feature record: CXX_FEATURE:1cxx_right_angle_brackets
+    Feature record: CXX_FEATURE:1cxx_rvalue_references
+    Feature record: CXX_FEATURE:1cxx_sizeof_member
+    Feature record: CXX_FEATURE:1cxx_static_assert
+    Feature record: CXX_FEATURE:1cxx_strong_enums
+    Feature record: CXX_FEATURE:1cxx_template_template_parameters
+    Feature record: CXX_FEATURE:1cxx_thread_local
+    Feature record: CXX_FEATURE:1cxx_trailing_return_types
+    Feature record: CXX_FEATURE:1cxx_unicode_literals
+    Feature record: CXX_FEATURE:1cxx_uniform_initialization
+    Feature record: CXX_FEATURE:1cxx_unrestricted_unions
+    Feature record: CXX_FEATURE:1cxx_user_literals
+    Feature record: CXX_FEATURE:1cxx_variable_templates
+    Feature record: CXX_FEATURE:1cxx_variadic_macros
+    Feature record: CXX_FEATURE:1cxx_variadic_templates
+
+
+Detecting CXX [-std=c++11] compiler features compiled with the following output:
+Change Dir: /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/gmake" "cmTC_11ff1/fast"
+/usr/bin/gmake -f CMakeFiles/cmTC_11ff1.dir/build.make CMakeFiles/cmTC_11ff1.dir/build
+gmake[1]: Entering directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_11ff1.dir/feature_tests.cxx.o
+/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/bin64/mpiicpc     -std=c++11 -o CMakeFiles/cmTC_11ff1.dir/feature_tests.cxx.o -c /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/feature_tests.cxx
+Linking CXX executable cmTC_11ff1
+/u/system/soft/SLES122/common.x86_64/cmake/3.7.2/bin/cmake -E cmake_link_script CMakeFiles/cmTC_11ff1.dir/link.txt --verbose=1
+/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/bin64/mpiicpc        CMakeFiles/cmTC_11ff1.dir/feature_tests.cxx.o  -o cmTC_11ff1 -rdynamic 
+gmake[1]: Leaving directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+
+
+    Feature record: CXX_FEATURE:0cxx_aggregate_default_initializers
+    Feature record: CXX_FEATURE:1cxx_alias_templates
+    Feature record: CXX_FEATURE:1cxx_alignas
+    Feature record: CXX_FEATURE:1cxx_alignof
+    Feature record: CXX_FEATURE:1cxx_attributes
+    Feature record: CXX_FEATURE:0cxx_attribute_deprecated
+    Feature record: CXX_FEATURE:1cxx_auto_type
+    Feature record: CXX_FEATURE:1cxx_binary_literals
+    Feature record: CXX_FEATURE:1cxx_constexpr
+    Feature record: CXX_FEATURE:0cxx_contextual_conversions
+    Feature record: CXX_FEATURE:1cxx_decltype
+    Feature record: CXX_FEATURE:0cxx_decltype_auto
+    Feature record: CXX_FEATURE:1cxx_decltype_incomplete_return_types
+    Feature record: CXX_FEATURE:1cxx_default_function_template_args
+    Feature record: CXX_FEATURE:1cxx_defaulted_functions
+    Feature record: CXX_FEATURE:1cxx_defaulted_move_initializers
+    Feature record: CXX_FEATURE:1cxx_delegating_constructors
+    Feature record: CXX_FEATURE:1cxx_deleted_functions
+    Feature record: CXX_FEATURE:0cxx_digit_separators
+    Feature record: CXX_FEATURE:1cxx_enum_forward_declarations
+    Feature record: CXX_FEATURE:1cxx_explicit_conversions
+    Feature record: CXX_FEATURE:1cxx_extended_friend_declarations
+    Feature record: CXX_FEATURE:1cxx_extern_templates
+    Feature record: CXX_FEATURE:1cxx_final
+    Feature record: CXX_FEATURE:1cxx_func_identifier
+    Feature record: CXX_FEATURE:0cxx_generic_lambdas
+    Feature record: CXX_FEATURE:1cxx_inheriting_constructors
+    Feature record: CXX_FEATURE:1cxx_inline_namespaces
+    Feature record: CXX_FEATURE:1cxx_lambdas
+    Feature record: CXX_FEATURE:0cxx_lambda_init_captures
+    Feature record: CXX_FEATURE:1cxx_local_type_template_args
+    Feature record: CXX_FEATURE:1cxx_long_long_type
+    Feature record: CXX_FEATURE:1cxx_noexcept
+    Feature record: CXX_FEATURE:1cxx_nonstatic_member_init
+    Feature record: CXX_FEATURE:1cxx_nullptr
+    Feature record: CXX_FEATURE:1cxx_override
+    Feature record: CXX_FEATURE:1cxx_range_for
+    Feature record: CXX_FEATURE:1cxx_raw_string_literals
+    Feature record: CXX_FEATURE:1cxx_reference_qualified_functions
+    Feature record: CXX_FEATURE:0cxx_relaxed_constexpr
+    Feature record: CXX_FEATURE:0cxx_return_type_deduction
+    Feature record: CXX_FEATURE:1cxx_right_angle_brackets
+    Feature record: CXX_FEATURE:1cxx_rvalue_references
+    Feature record: CXX_FEATURE:1cxx_sizeof_member
+    Feature record: CXX_FEATURE:1cxx_static_assert
+    Feature record: CXX_FEATURE:1cxx_strong_enums
+    Feature record: CXX_FEATURE:1cxx_template_template_parameters
+    Feature record: CXX_FEATURE:1cxx_thread_local
+    Feature record: CXX_FEATURE:1cxx_trailing_return_types
+    Feature record: CXX_FEATURE:1cxx_unicode_literals
+    Feature record: CXX_FEATURE:1cxx_uniform_initialization
+    Feature record: CXX_FEATURE:1cxx_unrestricted_unions
+    Feature record: CXX_FEATURE:1cxx_user_literals
+    Feature record: CXX_FEATURE:0cxx_variable_templates
+    Feature record: CXX_FEATURE:1cxx_variadic_macros
+    Feature record: CXX_FEATURE:1cxx_variadic_templates
+
+
+Detecting CXX [-std=c++98] compiler features compiled with the following output:
+Change Dir: /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/gmake" "cmTC_7e84e/fast"
+/usr/bin/gmake -f CMakeFiles/cmTC_7e84e.dir/build.make CMakeFiles/cmTC_7e84e.dir/build
+gmake[1]: Entering directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_7e84e.dir/feature_tests.cxx.o
+/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/bin64/mpiicpc     -std=c++98 -o CMakeFiles/cmTC_7e84e.dir/feature_tests.cxx.o -c /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/feature_tests.cxx
+Linking CXX executable cmTC_7e84e
+/u/system/soft/SLES122/common.x86_64/cmake/3.7.2/bin/cmake -E cmake_link_script CMakeFiles/cmTC_7e84e.dir/link.txt --verbose=1
+/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/bin64/mpiicpc        CMakeFiles/cmTC_7e84e.dir/feature_tests.cxx.o  -o cmTC_7e84e -rdynamic 
+gmake[1]: Leaving directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+
+
+    Feature record: CXX_FEATURE:0cxx_aggregate_default_initializers
+    Feature record: CXX_FEATURE:0cxx_alias_templates
+    Feature record: CXX_FEATURE:0cxx_alignas
+    Feature record: CXX_FEATURE:0cxx_alignof
+    Feature record: CXX_FEATURE:0cxx_attributes
+    Feature record: CXX_FEATURE:0cxx_attribute_deprecated
+    Feature record: CXX_FEATURE:0cxx_auto_type
+    Feature record: CXX_FEATURE:0cxx_binary_literals
+    Feature record: CXX_FEATURE:0cxx_constexpr
+    Feature record: CXX_FEATURE:0cxx_contextual_conversions
+    Feature record: CXX_FEATURE:0cxx_decltype
+    Feature record: CXX_FEATURE:0cxx_decltype_auto
+    Feature record: CXX_FEATURE:0cxx_decltype_incomplete_return_types
+    Feature record: CXX_FEATURE:0cxx_default_function_template_args
+    Feature record: CXX_FEATURE:0cxx_defaulted_functions
+    Feature record: CXX_FEATURE:0cxx_defaulted_move_initializers
+    Feature record: CXX_FEATURE:0cxx_delegating_constructors
+    Feature record: CXX_FEATURE:0cxx_deleted_functions
+    Feature record: CXX_FEATURE:0cxx_digit_separators
+    Feature record: CXX_FEATURE:0cxx_enum_forward_declarations
+    Feature record: CXX_FEATURE:0cxx_explicit_conversions
+    Feature record: CXX_FEATURE:0cxx_extended_friend_declarations
+    Feature record: CXX_FEATURE:0cxx_extern_templates
+    Feature record: CXX_FEATURE:0cxx_final
+    Feature record: CXX_FEATURE:0cxx_func_identifier
+    Feature record: CXX_FEATURE:0cxx_generic_lambdas
+    Feature record: CXX_FEATURE:0cxx_inheriting_constructors
+    Feature record: CXX_FEATURE:0cxx_inline_namespaces
+    Feature record: CXX_FEATURE:0cxx_lambdas
+    Feature record: CXX_FEATURE:0cxx_lambda_init_captures
+    Feature record: CXX_FEATURE:0cxx_local_type_template_args
+    Feature record: CXX_FEATURE:0cxx_long_long_type
+    Feature record: CXX_FEATURE:0cxx_noexcept
+    Feature record: CXX_FEATURE:0cxx_nonstatic_member_init
+    Feature record: CXX_FEATURE:0cxx_nullptr
+    Feature record: CXX_FEATURE:0cxx_override
+    Feature record: CXX_FEATURE:0cxx_range_for
+    Feature record: CXX_FEATURE:0cxx_raw_string_literals
+    Feature record: CXX_FEATURE:0cxx_reference_qualified_functions
+    Feature record: CXX_FEATURE:0cxx_relaxed_constexpr
+    Feature record: CXX_FEATURE:0cxx_return_type_deduction
+    Feature record: CXX_FEATURE:0cxx_right_angle_brackets
+    Feature record: CXX_FEATURE:0cxx_rvalue_references
+    Feature record: CXX_FEATURE:0cxx_sizeof_member
+    Feature record: CXX_FEATURE:0cxx_static_assert
+    Feature record: CXX_FEATURE:0cxx_strong_enums
+    Feature record: CXX_FEATURE:0cxx_template_template_parameters
+    Feature record: CXX_FEATURE:0cxx_thread_local
+    Feature record: CXX_FEATURE:0cxx_trailing_return_types
+    Feature record: CXX_FEATURE:0cxx_unicode_literals
+    Feature record: CXX_FEATURE:0cxx_uniform_initialization
+    Feature record: CXX_FEATURE:0cxx_unrestricted_unions
+    Feature record: CXX_FEATURE:0cxx_user_literals
+    Feature record: CXX_FEATURE:0cxx_variable_templates
+    Feature record: CXX_FEATURE:0cxx_variadic_macros
+    Feature record: CXX_FEATURE:0cxx_variadic_templates
+Determining if the include file pthread.h exists passed with the following output:
+Change Dir: /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/gmake" "cmTC_fc912/fast"
+/usr/bin/gmake -f CMakeFiles/cmTC_fc912.dir/build.make CMakeFiles/cmTC_fc912.dir/build
+gmake[1]: Entering directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_fc912.dir/CheckIncludeFile.c.o
+/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/bin64/mpiicc     -o CMakeFiles/cmTC_fc912.dir/CheckIncludeFile.c.o   -c /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp/CheckIncludeFile.c
+Linking C executable cmTC_fc912
+/u/system/soft/SLES122/common.x86_64/cmake/3.7.2/bin/cmake -E cmake_link_script CMakeFiles/cmTC_fc912.dir/link.txt --verbose=1
+/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/bin64/mpiicc       CMakeFiles/cmTC_fc912.dir/CheckIncludeFile.c.o  -o cmTC_fc912 -rdynamic 
+gmake[1]: Leaving directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+
+
+Determining if the pthread_create exist passed with the following output:
+Change Dir: /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/gmake" "cmTC_d8de9/fast"
+/usr/bin/gmake -f CMakeFiles/cmTC_d8de9.dir/build.make CMakeFiles/cmTC_d8de9.dir/build
+gmake[1]: Entering directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_d8de9.dir/CheckSymbolExists.c.o
+/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/bin64/mpiicc     -o CMakeFiles/cmTC_d8de9.dir/CheckSymbolExists.c.o   -c /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTC_d8de9
+/u/system/soft/SLES122/common.x86_64/cmake/3.7.2/bin/cmake -E cmake_link_script CMakeFiles/cmTC_d8de9.dir/link.txt --verbose=1
+/mpcdf/soft/SLES122/common/intel/ps2017.7/impi/2017.4/bin64/mpiicc       CMakeFiles/cmTC_d8de9.dir/CheckSymbolExists.c.o  -o cmTC_d8de9 -rdynamic 
+gmake[1]: Leaving directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+
+File /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <pthread.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef pthread_create
+  return ((int*)(&pthread_create))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+
+Determining if the Fortran sgemm exists passed with the following output:
+Change Dir: /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/gmake" "cmTC_a3996/fast"
+/usr/bin/gmake -f CMakeFiles/cmTC_a3996.dir/build.make CMakeFiles/cmTC_a3996.dir/build
+gmake[1]: Entering directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+Building Fortran object CMakeFiles/cmTC_a3996.dir/testFortranCompiler.f.o
+/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/bin/intel64/bin/ifort    -mkl -qopenmp -DNEW_CODE -cpp    -c /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp/testFortranCompiler.f -o CMakeFiles/cmTC_a3996.dir/testFortranCompiler.f.o
+Linking Fortran executable cmTC_a3996
+/u/system/soft/SLES122/common.x86_64/cmake/3.7.2/bin/cmake -E cmake_link_script CMakeFiles/cmTC_a3996.dir/link.txt --verbose=1
+/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/bin/intel64/bin/ifort       -mkl -qopenmp -DNEW_CODE -cpp  CMakeFiles/cmTC_a3996.dir/testFortranCompiler.f.o  -o cmTC_a3996  -L/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/mkl/lib/intel64 -Wl,-rpath,/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/mkl/lib/intel64:/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/compiler/lib/intel64  -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core /mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/compiler/lib/intel64/libiomp5.so -lm 
+gmake[1]: Leaving directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+
+
+Determining if the Fortran cheev exists passed with the following output:
+Change Dir: /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/gmake" "cmTC_1ebf5/fast"
+/usr/bin/gmake -f CMakeFiles/cmTC_1ebf5.dir/build.make CMakeFiles/cmTC_1ebf5.dir/build
+gmake[1]: Entering directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+Building Fortran object CMakeFiles/cmTC_1ebf5.dir/testFortranCompiler.f.o
+/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/bin/intel64/bin/ifort    -mkl -qopenmp -DNEW_CODE -cpp    -c /u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp/testFortranCompiler.f -o CMakeFiles/cmTC_1ebf5.dir/testFortranCompiler.f.o
+Linking Fortran executable cmTC_1ebf5
+/u/system/soft/SLES122/common.x86_64/cmake/3.7.2/bin/cmake -E cmake_link_script CMakeFiles/cmTC_1ebf5.dir/link.txt --verbose=1
+/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/bin/intel64/bin/ifort       -mkl -qopenmp -DNEW_CODE -cpp  CMakeFiles/cmTC_1ebf5.dir/testFortranCompiler.f.o  -o cmTC_1ebf5  -L/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/mkl/lib/intel64 -Wl,-rpath,/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/mkl/lib/intel64:/mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/compiler/lib/intel64  -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core /mpcdf/soft/SLES122/common/intel/ps2017.7/17.0/linux/compiler/lib/intel64/libiomp5.so -lm 
+gmake[1]: Leaving directory '/draco/u/gscoig/STELLOPT_corrections/trunk/CMakeFiles/CMakeTmp'
+
+
