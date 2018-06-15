@@ -70,10 +70,12 @@ C-----------------------------------------------
       gvvs(:,l) = p5*(gvvs(:,l) + gvvs(:,l+1))
       END DO
 
+      IF (trglob .ge. ns) THEN
       pguu(:,ns) = p5*pguu(:,ns)
       pgvv(:,ns) = p5*pgvv(:,ns)
       guus(:,ns) = p5*guus(:,ns)
       gvvs(:,ns) = p5*gvvs(:,ns)
+      END IF
 
 !DIR$ IVDEP
       nsmin=tlglob; nsmax=MIN(ns-1,trglob)
