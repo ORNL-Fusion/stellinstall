@@ -512,7 +512,7 @@ if (MPI_Fortran_FOUND)
 #  Subsequent tests will examine the results of the reconstruction for correct
 #  results.
 	add_test (NAME    reconstruction_task_test_mpi
-        	  COMMAND ${EXECUTABLE_OUTPUT_PATH}/xv3fit input.test.v3fit -para=-1 -mpi=auto)
+	          COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 8 ${MPI_OVERSUBSCRIBE_FLAG} ${EXECUTABLE_OUTPUT_PATH}/xv3fit input.test.v3fit -para=-1)
 
 #  Since the reconstruction task test was run, Check the output files for correct values.
 
@@ -764,7 +764,7 @@ if (MPI_Fortran_FOUND)
 #  Subsequent tests will examine the results of the reconstruction for correct 
 #  results.
 	add_test (NAME    reconstruction_task_test_mpiexec
-        	  COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 7 ${EXECUTABLE_OUTPUT_PATH}/xv3fit input.test.v3fit -para=-1)
+	          COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 7 ${MPI_OVERSUBSCRIBE_FLAG} ${EXECUTABLE_OUTPUT_PATH}/xv3fit input.test.v3fit -para=-1)
 #  Since the reconstruction task test was run, Check the output files for correct values.
 
 #  Check that the reconstruction parameter reconstructed to the correct values.

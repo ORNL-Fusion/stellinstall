@@ -2151,10 +2151,8 @@
 !>  threads is controled using the @fixed_width{-para} command line argument. An
 !>  argument of a negative values specifies to use the default behavior.
 !>
-!>  When using MPI, this sets and configures the processes. There are two ways
-!>  to operate MPI. Using either method, a unique directory needs to be
-!>  generated for each process to avoid overwriting output files. MPI is use by
-!>  setting the @fixed_width{-mpi} command line flag. @see cl_parsing_sec
+!>  When using MPI, this sets and configures the processes. A unique directory
+!>  needs to be generated for each process to avoid overwriting output files.
 !>
 !>  The default way is to create and distribute the threads externally. In this
 !>  case, the number of processes is fixed. Each process will need to be
@@ -2187,7 +2185,6 @@
       INTEGER                                   :: num_threads
 #if defined(MPI_OPT)
       INTEGER                                   :: error
-      INTEGER                                   :: num_processes
       INTEGER                                   :: num_recon_processes
       INTEGER                                   :: num_eq_processes
       INTEGER                                   :: i
@@ -2196,15 +2193,6 @@
       INTEGER                                   :: eq_rank
       INTEGER                                   :: eq_size
       INTEGER                                   :: recon_rank
-      INTEGER, DIMENSION(:), ALLOCATABLE        :: info
-      INTEGER, DIMENSION(:), ALLOCATABLE        :: error_array
-      CHARACTER (len=path_length),                                             &
-     &   DIMENSION(:), ALLOCATABLE              :: commands
-      CHARACTER (len=path_length),                                             &
-     &   DIMENSION(:,:), ALLOCATABLE            :: args
-      INTEGER, DIMENSION(:), ALLOCATABLE        :: max_procs
-      INTEGER                                   :: parent_comm
-      INTEGER                                   :: child_comm
       CHARACTER (len=dir_prefix_len)            :: directory_name
       CHARACTER (len=path_length)               :: temp_string
 #endif
@@ -2236,64 +2224,10 @@
       CALL MPI_COMM_SIZE(MPI_COMM_WORLD, mpi_size, error)
       CALL MPI_COMM_RANK(MPI_COMM_WORLD, mpi_rank, error)
 
-      CALL MPI_COMM_GET_PARENT(parent_comm, error)
-
 !  Initialize the intra communicator to the world communicator. This is done so
 !  global_comm has is value even when num_processes is 1 or the processes were
 !  created externally.
       context%global_comm = MPI_COMM_WORLD
-
-!  Configure the number of processes to use. Process may be configured in three
-!  ways.
-!
-!    1. auto     : Sets the number of processes egual to the number of
-!                  reconstruction parameters
-!    2. <number> : Set an explicit numner of parameters.
-!    3. Default  : Uses the preconfigured number of processes specified by the
-!                  user.
-      IF ((parent_comm .eq. MPI_COMM_NULL) .and. (mpi_rank .eq. 0)) THEN
-         IF (commandline_parser_is_flag_set(context%cl_parser,                 &
-     &                                      '-mpi')) THEN
-
-            CALL assert_eq(mpi_size, 1, 'Cannot spawn processes ' //           &
-     &                                  'when mpi is configured ' //           &
-     &                                  'externally.')
-
-            SELECT CASE (TRIM(commandline_parser_get_string(                   &
-     &                        context%cl_parser, '-mpi')))
-
-               CASE ('auto')
-                  num_processes = n_rp
-
-               CASE DEFAULT
-                  num_processes =                                              &
-     &               commandline_parser_get_integer(context%cl_parser,         &
-     &                                              '-mpi', 1)
-
-            END SELECT
-
-         ELSE
-!  Processes were created externally.
-            num_processes = mpi_size
-         END IF
-      ELSE
-
-!  This must be a child process. Check to see if it was spawned from a parent or
-!  created manually.
-         IF (parent_comm .eq. MPI_COMM_NULL) THEN
-!  This was a manually create process. Set the global_comm to the world
-!  communicator. There is no need to reset the rank.
-            context%global_comm = MPI_COMM_WORLD
-         ELSE
-!  This was a spawned process. Merge the communicator and reset the rank and
-!  size.
-            CALL MPI_INTERCOMM_MERGE(parent_comm, .true.,                      &
-     &                               context%global_comm, error)
-            CALL MPI_COMM_RANK(context%global_comm, mpi_rank, error)
-            CALL MPI_COMM_SIZE(context%global_comm, mpi_size, error)
-         END IF
-         num_processes = mpi_size
-      END IF
 
 !  MPI parallelization is only implemented for specific tasks. If the root task
 !  is not a reconstruction task stop the child processes.
@@ -2303,19 +2237,19 @@
             IF (commandline_parser_is_flag_set(context%cl_parser,              &
      &                                         '-serial')) THEN
                num_recon_processes = 1
-               num_eq_processes = num_processes
-            ELSE IF (num_processes .le. n_rp) THEN
-               num_recon_processes = num_processes
+               num_eq_processes = mpi_size
+            ELSE IF (mpi_size .le. n_rp) THEN
+               num_recon_processes = mpi_size
                num_eq_processes = 1
             ELSE
                num_recon_processes = n_rp
-               num_eq_processes = num_processes/n_rp                           &
-     &                          + MOD(num_processes, n_rp)
+               num_eq_processes = mpi_size/n_rp                                &
+     &                          + MOD(mpi_size, n_rp)
             END IF
 
          CASE ('v3post', 'vmec_v3post', 'equilibrium')
             num_recon_processes = 1
-            num_eq_processes = num_processes
+            num_eq_processes = mpi_size
 
          CASE DEFAULT
             num_recon_processes = 1
@@ -2373,62 +2307,10 @@
          END DO
       END IF
 
-!  Create subprocess if needed and set the working directory of the sub
-!  processes. When spawning processes, the working directory set instantly.
-      IF ((parent_comm .eq. MPI_COMM_NULL) .and.                               &
-     &    (mpi_rank .eq. 0)                .and.                               &
-     &    (mpi_size .eq. 1)                .and.                               &
-     &    (num_processes .gt. 1)) THEN
-         ALLOCATE(commands(num_processes - 1))
-         ALLOCATE(args(num_processes - 1,2))
-         ALLOCATE(info(num_processes - 1))
-         ALLOCATE(max_procs(num_processes - 1))
-         ALLOCATE(error_array(num_processes - 1))
-         error_array = 0
-
-         commands = TRIM(context%cl_parser%command)
-
-         args(:,1) = temp_string
-         IF (num_threads .lt. 0) THEN
-            args(:,2) = '-para=-1'
-         ELSE IF (num_threads .lt. 10) THEN
-            WRITE (temp_string, 1001) num_threads
-            args(:,2) = TRIM(temp_string)
-         ELSE
-            WRITE (temp_string, 1002) num_threads
-            args(:,2) = TRIM(temp_string)
-         END IF
-
-         max_procs = 1
-
-         DO i = 2, num_recon_processes
-            CALL MPI_INFO_CREATE(info(i - 1), error)
-         END DO
-
-         CALL MPI_COMM_SPAWN_MULTIPLE(num_processes - 1, commands, args,       &
-     &                                max_procs, info, 0,                      &
-     &                                MPI_COMM_WORLD, child_comm,              &
-     &                                error_array, error)
-
-         CALL MPI_INTERCOMM_MERGE(child_comm, .false.,                         &
-     &                            context%global_comm, error)
-
-         DO i = 1, num_processes - 1
-           CALL MPI_INFO_FREE(info(i), error)
-         END DO
-
-         DEALLOCATE(info)
-         DEALLOCATE(max_procs)
-         DEALLOCATE(args)
-         DEALLOCATE(commands)
-         DEALLOCATE(error_array)
-      END IF
-
 !  Wait for all processes to reach this point.
       CALL MPI_BARRIER(context%global_comm, error)
 
-!  The global set of communicators exists at this point. Partition the
-!  equilibrium communicators.
+!  Partition the equilibrium communicators.
       recon_rank = MOD(mpi_rank, MAX(1, num_recon_processes))
       CALL MPI_COMM_SPLIT(context%global_comm, recon_rank, 0,                  &
      &                    context%equilibrium_comm, error)
@@ -2457,7 +2339,7 @@
          END IF
       END IF
 
-      WRITE (*,1003) mpi_rank + 1, recon_rank + 1, eq_rank + 1,                &
+      WRITE (*,1001) mpi_rank + 1, recon_rank + 1, eq_rank + 1,                &
      &               TRIM(my_task)
 
       CALL MPI_BARRIER(context%global_comm, error)
@@ -2466,12 +2348,7 @@
       CALL profiler_set_stop_time('config_parallelism', start_time)
 
 1000  FORMAT('Using ',i4,' threads.')
-
-!  Support up to 99 directories. need to add leading zeros to avoid spaces.
-1001  FORMAT('-para=',i1)
-1002  FORMAT('-para=',i2)
-
-1003  FORMAT('Configured global process ',i5,', recon process ',i5,            &
+1001  FORMAT('Configured global process ',i5,', recon process ',i5,            &
      &       ', eq process ',i5,' task ',a)
 
       END SUBROUTINE

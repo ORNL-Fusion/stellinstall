@@ -35,10 +35,6 @@
 !>     @item3{@fixed_width{-force},   N, Forces the equilibrium to re-solve on every reconstruction parameter}
 !>     @item3{@fixed_width{-para},    Y, Configures openmp parallelism. The value of this flag sets the maximum
 !>                                       number of threads to use. A value of @fixed_width{-1} uses the default.}
-!>     @item3{@fixed_width{-mpi},     Y, Configures mpi parallelism. This flag takes one of three values.
-!>                                       * @fixed_width{default}  Processes are configured externally.
-!>                                       * @fixed_width{auto}     Sets up one sub process per reconstruction parameter.
-!>                                       * @fixed_width{[number]} Sets the number of sub processes manually.}
 !>     @item3{@fixed_width{-out},     N, Writes out the input file for each reconstruction step.}
 !>     @item3{@fixed_width{-c},       Y, Compress magnetic response functions using the cutoff.}
 !>     @item3{@fixed_width{-c_diff},  N, Use central differencing to compute the Jacobian.}
@@ -456,6 +452,12 @@
       WRITE(*,*) '                                                     '
       WRITE(*,*) '                        V3FIT                        '
       WRITE(*,*) '                                                     '
+      WRITE(*,*) 'Configured with:                                     '
+!$    WRITE(*,*) '  OpenMP support                                     '
+#if defined(MPI_OPT)
+      WRITE(*,*) '  MPI support                                        '
+#endif
+      WRITE(*,*) '                                                     '
       WRITE(*,*) 'Usage: xv3fit [-arg][=option] ...                    '
       WRITE(*,*) '                                                     '
       WRITE(*,*) 'Options:                                             '
@@ -475,18 +477,6 @@
 !$    WRITE(*,*) '             to run with. A value of -1 means use the'
 !$    WRITE(*,*) '             default number of threads.              '
 !$    WRITE(*,*) '                                                     '
-#if defined(MPI_OPT)
-      WRITE(*,*) '  -mpi     Y Configures the use of MPI. This takes   '
-      WRITE(*,*) '             the following values.                   '
-      WRITE(*,*) '                                                     '
-      WRITE(*,*) '                 default : Processes are configured  '
-      WRITE(*,*) '                           externally.               '
-      WRITE(*,*) '                 auto : Sets up one process per      '
-      WRITE(*,*) '                        reconstruction parameter.    '
-      WRITE(*,*) '                 [number] : Set the number of        '
-      WRITE(*,*) '                            processes.               '
-      WRITE(*,*) '                                                     '
-#endif
       WRITE(*,*) '  -out     N Write out the input file and at each    '
       WRITE(*,*) '             step.                                   '
       WRITE(*,*) '                                                     '

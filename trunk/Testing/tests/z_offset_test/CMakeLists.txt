@@ -1,8 +1,13 @@
 #  Run the reconstruction task. This just tests if the reconstruction executes correctly. 
 #  Subsequent tests will examine the results of the reconstruction for correct 
 #  results.
-add_test (NAME    z_offset_test
-          COMMAND ${EXECUTABLE_OUTPUT_PATH}/xv3fit input.test.v3fit -para=-1 -mpi=auto)
+if (MPI_Fortran_FOUND)
+	add_test (NAME    z_offset_test
+	          COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 8 ${MPI_OVERSUBSCRIBE_FLAG} ${EXECUTABLE_OUTPUT_PATH}/xv3fit input.test.v3fit -para=-1)
+else ()
+	add_test (NAME    z_offset_test
+	          COMMAND ${EXECUTABLE_OUTPUT_PATH}/xv3fit input.test.v3fit -para=-1)
+endif ()
 
 #  Since the reconstruction task test was run, Check the output files for correct values.
 
