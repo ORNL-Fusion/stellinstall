@@ -338,7 +338,7 @@
       CALL profiler_set_stop_time('sxrem_get_signal_type', start_time)
 
 1000  FORMAT('sxrch(',i2,')')
-1001  FORMAT('xcis te')
+1001  FORMAT('xics te')
 
       END FUNCTION
 
