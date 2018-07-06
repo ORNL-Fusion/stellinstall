@@ -19,6 +19,16 @@
       IMPLICIT NONE
 
 !*******************************************************************************
+!  sxrem module parameters
+!*******************************************************************************
+!>  Type descriptor for sxrem no type.
+      INTEGER, PARAMETER :: sxrem_no_type    = -1
+!>  Type descriptor for sxrem type represented a standard emission diagnostic.
+      INTEGER, PARAMETER :: sxrem_emiss_type = 0
+!>  Type descriptor for sxrem type represented a te diagnostic.
+      INTEGER, PARAMETER :: sxrem_te_type    = 1
+
+!*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) sxrem base class
 !  2) sxrem context
@@ -30,6 +40,12 @@
 !>  @ref diagnostic
 !-------------------------------------------------------------------------------
       TYPE sxrem_class
+!>  Type descirptor of the intpol type.
+!>  @par Possible values are:
+!>  * @ref sxrem_no_type
+!>  * @ref sxrem_emiss_type
+!>  * @ref sxrem_te_type
+         INTEGER                :: type
 !>  The complete path of the chord.
          TYPE (vertex), POINTER :: chord_path => null()
 !>  Geometric chord factor.
@@ -78,6 +94,15 @@
 !  INTERFACE BLOCKS
 !*******************************************************************************
 !-------------------------------------------------------------------------------
+!>  Interface for the construction of @ref sxrem_class types using
+!>  @ref intpol_construct_int or @ref intpol_construct_pol.
+!-------------------------------------------------------------------------------
+      INTERFACE sxrem_construct
+         MODULE PROCEDURE sxrem_construct_emiss,                                &
+     &                    sxrem_construct_te
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
 !>  Interface to get the guassian process kernel values.
 !-------------------------------------------------------------------------------
       INTERFACE sxrem_get_gp
@@ -93,7 +118,7 @@
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  @brief Construct a @ref sxrem_class object.
+!>  @brief Construct a @ref sxrem_class object for emission.
 !>
 !>  Allocates memory and initializes a @ref sxrem_class object.
 !>
@@ -103,13 +128,13 @@
 !>  @param[in] profile_number Index of the soft x-ray emissivity profile.
 !>  @returns A pointer to a constructed @ref sxrem_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION sxrem_construct(start_path, end_path, geo,                      &
-     &                         profile_number)
+      FUNCTION sxrem_construct_emiss(start_path, end_path, geo,                &
+     &                               profile_number)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (sxrem_class), POINTER            :: sxrem_construct
+      TYPE (sxrem_class), POINTER            :: sxrem_construct_emiss
       REAL (rprec), DIMENSION(3), INTENT(in) :: start_path
       REAL (rprec), DIMENSION(3), INTENT(in) :: end_path
       REAL (rprec), INTENT(in)               :: geo
@@ -121,15 +146,57 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      ALLOCATE(sxrem_construct)
+      ALLOCATE(sxrem_construct_emiss)
 
-      CALL path_append_vertex(sxrem_construct%chord_path, start_path)
-      CALL path_append_vertex(sxrem_construct%chord_path, end_path)
+      sxrem_construct_emiss%type = sxrem_emiss_type
 
-      sxrem_construct%geo = geo
-      sxrem_construct%profile_number = profile_number
+      CALL path_append_vertex(sxrem_construct_emiss%chord_path,                &
+     &                        start_path)
+      CALL path_append_vertex(sxrem_construct_emiss%chord_path,                &
+     &                        end_path)
 
-      CALL profiler_set_stop_time('sxrem_construct', start_time)
+      sxrem_construct_emiss%geo = geo
+      sxrem_construct_emiss%profile_number = profile_number
+
+      CALL profiler_set_stop_time('sxrem_construct_emiss', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref sxrem_class object for te.
+!>
+!>  Allocates memory and initializes a @ref sxrem_class object.
+!>
+!>  @param[in] start_path     Starting point of a sxrem chord.
+!>  @param[in] end_path       Ending point of a sxrem chord.
+!>  @returns A pointer to a constructed @ref sxrem_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION sxrem_construct_te(start_path, end_path)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (sxrem_class), POINTER            :: sxrem_construct_te
+      REAL (rprec), DIMENSION(3), INTENT(in) :: start_path
+      REAL (rprec), DIMENSION(3), INTENT(in) :: end_path
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      ALLOCATE(sxrem_construct_te)
+
+      sxrem_construct_te%type = sxrem_te_type
+
+      CALL path_append_vertex(sxrem_construct_te%chord_path,                   &
+     &                        start_path)
+      CALL path_append_vertex(sxrem_construct_te%chord_path, end_path)
+
+      sxrem_construct_te%geo = 1.0
+
+      CALL profiler_set_stop_time('sxrem_construct_te', start_time)
 
       END FUNCTION
 
@@ -219,9 +286,17 @@
          context_length = SIZE(TRANSFER(sxr_context, context))
          ALLOCATE(context(context_length))
          context = TRANSFER(sxr_context, context)
-         sxrem_get_modeled_signal(1) =                                         &
-     &      path_integrate(a_model%int_params, this%chord_path,                &
-     &                     sxr_function, context)*this%geo*scale_factor
+
+         IF (this%type .eq. sxrem_emiss_type) THEN
+            sxrem_get_modeled_signal(1) =                                      &
+     &         path_integrate(a_model%int_params, this%chord_path,             &
+     &                        sxr_function, context)*                          &
+     &         this%geo*scale_factor
+         ELSE
+            sxrem_get_modeled_signal(1) =                                      &
+     &         path_integrate(a_model%int_params, this%chord_path,             &
+     &                        te_function, context)
+         END IF
 
          DEALLOCATE(context)
       END IF
@@ -254,11 +329,16 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      WRITE (sxrem_get_signal_type, 1000) this%profile_number
+      IF (this%type .eq. sxrem_emiss_type) THEN
+         WRITE (sxrem_get_signal_type, 1000) this%profile_number
+      ELSE
+         WRITE (sxrem_get_signal_type, 1001)
+      END IF
 
       CALL profiler_set_stop_time('sxrem_get_signal_type', start_time)
 
 1000  FORMAT('sxrch(',i2,')')
+1001  FORMAT('xcis te')
 
       END FUNCTION
 
@@ -464,6 +544,49 @@
       sxr_context = TRANSFER(context, sxr_context)
       sxr_function = model_get_sxrem(sxr_context%model, xcart,                 &
      &                               sxr_context%profile_number)*dx
+
+      CALL profiler_set_stop_time('sxr_function', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Electron temperature callback function.
+!>
+!>  Returns the value of the electron temperature times the change in path
+!>  length. This function is passed to @ref integration_path::path_integrate to
+!>  act as a callback. The soft x-ray emissivity is provided by
+!>  @ref model::model_get_sxrem.
+!>
+!>  @see integration_path
+!>
+!>  @param[in] context A @ref sxrem_context for the model.
+!>  @param[in] xcart   The integration point.
+!>  @param[in] dxcart  A vector change in path. Not used in this function.
+!>  @param[in] length  Length along the integration.
+!>  @param[in] dx      A scalar change in path.
+!>  @returns The te(x)*dl at point x.
+!-------------------------------------------------------------------------------
+      FUNCTION te_function(context, xcart, dxcart, length, dx)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: te_function
+      CHARACTER (len=1), INTENT(in)          :: context(:)
+      REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
+      REAL (rprec), DIMENSION(3), INTENT(in) :: dxcart
+      REAL (rprec), INTENT(in)               :: length
+      REAL (rprec), INTENT(in)               :: dx
+
+! local variables
+      TYPE (sxrem_context)                   :: sxr_context
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      sxr_context = TRANSFER(context, sxr_context)
+      te_function = model_get_te(sxr_context%model, xcart)*dx
 
       CALL profiler_set_stop_time('sxr_function', start_time)
 

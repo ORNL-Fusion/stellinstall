@@ -25,10 +25,14 @@
 !>
 !>  @section sxrem_dot_key_sec Keywords
 !>  @begin_table
-!>  @item2{@fixed_width{sxr_chord_XYZ},          A soft x-ray chord specified in Cartesian coordinates.}
-!>  @item2{@fixed_width{sxr_chord_RPhiDegZ},     A soft x-ray chord specified in Cylindrical coordinates.}
-!>  @item2{@fixed_width{sxr_chord_XYZ_geo},      A soft x-ray chord specified in Cartesian coordinates with the geometric factor.}
-!>  @item2{@fixed_width{sxr_chord_RPhiDegZ_geo}, A soft x-ray chord specified in Cylindrical coordinates with the geometric factor.}
+!>  @item2{@fixed_width{sxr_chord_XYZ},                 A soft x-ray chord specified in Cartesian coordinates.}
+!>  @item2{@fixed_width{sxr_chord_RPhiDegZ},            A soft x-ray chord specified in Cylindrical coordinates.}
+!>  @item2{@fixed_width{sxr_chord_XYZ_geo},             A soft x-ray chord specified in Cartesian coordinates with the geometric factor.}
+!>  @item2{@fixed_width{sxr_chord_RPhiDegZ_geo},        A soft x-ray chord specified in Cylindrical coordinates with the geometric factor.}
+!>  @item2{@fixed_width{sxr_chord_XYZ_xcis_emiss},      A XCIS emission chord specified in Cartesian coordinates.}
+!>  @item2{@fixed_width{sxr_chord_RPhiDegZ_xcis_emiss}, A XCIS emission chord specified in Cylindrical coordinates.}
+!>  @item2{@fixed_width{sxr_chord_XYZ_xcis_te},         A XCIS electron temperature chord specified in Cartesian coordinates.}
+!>  @item2{@fixed_width{sxr_chord_RPhiDegZ_xcis_te},    A XCIS electron temperature chord specified in Cylindrical coordinates.}
 !>  @item2{@fixed_width{sxr_new_profile},        Mark the start of chords that begin the next profile.}
 !>  @end_table
 !>
@@ -148,7 +152,7 @@
 
 !  local parameters
 !  n_sxrchd_keyword        integer - number of sxrchd_keyword s.
-      INTEGER, PARAMETER :: n_sxrchd_keyword = 6
+      INTEGER, PARAMETER :: n_sxrchd_keyword = 10
 
 !  local variables
 !  sxrchd_keyword    character array - keywords for various sxrch input types
@@ -166,8 +170,12 @@
       sxrchd_keyword(2) = 'sxr_chord_RPhiDegZ'
       sxrchd_keyword(3) = 'sxr_chord_XYZ_geo'
       sxrchd_keyword(4) = 'sxr_chord_RPhiDegZ_geo'
-      sxrchd_keyword(5) = 'sxr_new_profile'
-      sxrchd_keyword(6) = 'end_of_file'
+      sxrchd_keyword(5) = 'sxr_chord_XYZ_xcis_emiss'
+      sxrchd_keyword(6) = 'sxr_chord_RPhiDegZ_xcis_emiss'
+      sxrchd_keyword(7) = 'sxr_chord_XYZ_xcis_te'
+      sxrchd_keyword(8) = 'sxr_chord_RPhiDegZ_xcis_te'
+      sxrchd_keyword(9) = 'sxr_new_profile'
+      sxrchd_keyword(10) = 'end_of_file'
 
 !  Open up the 'sxrch.' file
       sxrch_dot_file_ref = signal_dot_open(TRIM(sxrch_file), 'sxrch')
@@ -188,21 +196,21 @@
             CASE ('end_of_file')
                EXIT ! Exit out of infinte loop.
 
-            CASE ('sxr_chord_XYZ')
+            CASE ('sxr_chord_XYZ', 'sxr_chord_XYZ_xcis_emiss')
                CALL sxrch_dot_parse_chord(sxrch_dot_file_ref,                  &
      &                                    'XYZ', signals,                      &
      &                                    signals_created,                     &
      &                                    observed, sigma, weight,             &
      &                                    current_profile, first_index,        &
-     &                                    .false.)
+     &                                    .false., .false.)
 
-            CASE ('sxr_chord_RPhiDegZ')
+            CASE ('sxr_chord_RPhiDegZ', 'sxr_chord_RPhiDegZ_xcis_emiss')
                CALL sxrch_dot_parse_chord(sxrch_dot_file_ref,                  &
      &                                    'RPHiDegZ', signals,                 &
      &                                    signals_created,                     &
      &                                    observed, sigma, weight,             &
      &                                    current_profile, first_index,        &
-     &                                    .false.)
+     &                                    .false., .false.)
 
             CASE ('sxr_chord_XYZ_geo')
                CALL sxrch_dot_parse_chord(sxrch_dot_file_ref,                  &
@@ -210,7 +218,7 @@
      &                                    signals_created,                     &
      &                                    observed, sigma, weight,             &
      &                                    current_profile, first_index,        &
-     &                                    .true.)
+     &                                    .true., .false.)
 
             CASE ('sxr_chord_RPhiDegZ_geo')
                CALL sxrch_dot_parse_chord(sxrch_dot_file_ref,                  &
@@ -218,7 +226,23 @@
      &                                    signals_created,                     &
      &                                    observed, sigma, weight,             &
      &                                    current_profile, first_index,        &
-     &                                    .true.)
+     &                                    .true., .false.)
+
+            CASE ('sxr_chord_XYZ_xcis_te')
+               CALL sxrch_dot_parse_chord(sxrch_dot_file_ref,                  &
+     &                                    'XYZ', signals,                      &
+     &                                    signals_created,                     &
+     &                                    observed, sigma, weight,             &
+     &                                    current_profile, first_index,        &
+     &                                    .false., .true.)
+
+            CASE ('sxr_chord_RPhiDegZ_xcis_te')
+               CALL sxrch_dot_parse_chord(sxrch_dot_file_ref,                  &
+     &                                    'RPHiDegZ', signals,                 &
+     &                                    signals_created,                     &
+     &                                    observed, sigma, weight,             &
+     &                                    current_profile, first_index,        &
+     &                                    .false., .true.)
 
             CASE ('sxr_new_profile')
                current_profile = current_profile + 1
@@ -259,6 +283,7 @@
 !>  @param[inout] first_index        Index of the first instance of an intpol
 !>                                   signal.
 !>  @param[in]    use_geo            Chord contains geomtric factor.
+!>  @param[in]    is_te              Chord used electron temperature.
 !-------------------------------------------------------------------------------
       SUBROUTINE sxrch_dot_parse_chord(sxrch_dot_file_ref,                     &
      &                                 coordinate_type,                        &
@@ -266,7 +291,7 @@
      &                                 signals_created,                        &
      &                                 observed, sigma, weight,                &
      &                                 current_profile, first_index,           &
-     &                                 use_geo)
+     &                                 use_geo, is_te)
       USE signal
       USE v3fit_input, only: v3fit_max_diagnostics,                            &
      &                       v3fit_input_find_scale_index
@@ -285,6 +310,7 @@
       INTEGER, INTENT(in)                    :: current_profile
       INTEGER, INTENT(inout)                 :: first_index
       LOGICAL, INTENT(in)                    :: use_geo
+      LOGICAL, INTENT(in)                    :: is_te
 
 !  local variables
       REAL(rprec), DIMENSION(3)              :: xcart_i, xcart_f
@@ -314,12 +340,23 @@
      &            'Expected geometric factor for sxrem chord')
       END IF
 
-      signals(signals_created + 1)%p => signal_construct(                      &
-     &   diagnostic_construct(                                                 &
-     &      sxrem_construct(xcart_i, xcart_f, geo, current_profile)),          &
-     &   chord_name, chord_name, 'arb', observed(signals_created + 1),         &
-     &   sigma(signals_created + 1), weight(signals_created + 1),              &
-     &   v3fit_input_find_scale_index(signals_created + 1))
+      IF (is_te) THEN
+         signals(signals_created + 1)%p => signal_construct(                   &
+     &      diagnostic_construct(                                              &
+     &         sxrem_construct(xcart_i, xcart_f)),                             &
+     &      chord_name, chord_name, 'eVm',                                     &
+     &      observed(signals_created + 1), sigma(signals_created + 1),         &
+     &      weight(signals_created + 1),                                       &
+     &      v3fit_input_find_scale_index(signals_created + 1))
+      ELSE
+         signals(signals_created + 1)%p => signal_construct(                   &
+     &      diagnostic_construct(                                              &
+     &         sxrem_construct(xcart_i, xcart_f, geo, current_profile)),       &
+     &      chord_name, chord_name, 'arb',                                     &
+     &      observed(signals_created + 1), sigma(signals_created + 1),         &
+     &      weight(signals_created + 1),                                       &
+     &      v3fit_input_find_scale_index(signals_created + 1))
+      END IF
       signals_created = signals_created + 1
 
 !  At lease one sxrem signal was made. Set the first index. This should only be

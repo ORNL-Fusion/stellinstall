@@ -21,7 +21,7 @@
 
       IMPLICIT NONE
 !*******************************************************************************
-!  diagnostic module parameters
+!  intpol module parameters
 !*******************************************************************************
 !>  Type descriptor for intpol no type.
       INTEGER, PARAMETER :: intpol_no_type             = -1
