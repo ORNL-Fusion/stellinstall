@@ -1950,7 +1950,8 @@
 !-------------------------------------------------------------------------------
 !>  @brief Reset the internal state of the model.
 !>
-!>  Clears out the model state flags then resets the equilibrium.
+!>  Clears out the model state flags then resets the equilibrium. This resets
+!>  the profile grid if they were changed.
 !>
 !>  @param[inout] this A @ref equilibrium_class instance.
 !-------------------------------------------------------------------------------
@@ -1962,15 +1963,80 @@
        TYPE (model_class), INTENT(inout) :: this
 
 !  local variables
+       INTEGER                                 :: i
+       INTEGER                                 :: j
+       REAL (rprec)                            :: r
        REAL (rprec)                            :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      this%state_flags = model_state_all_off
       CALL equilibrium_reset_state(this%equilibrium)
 
+      IF (ASSOCIATED(this%ne_grid) .and.                                       &
+     &    BTEST(this%state_flags, model_state_ne_flag)) THEN
+         DO i = 1, SIZE(this%ne_grid)
+            r = (i - 1)*this%grid_step + this%grid_start
+            this%ne_grid(i) = model_get_ne(this, r)
+         END DO
+      END IF
+
+      IF (ASSOCIATED(this%sxrem_grid)) THEN
+         DO j = 1, SIZE(this%sxrem_grid, 2)
+            IF (BTEST(this%state_flags,                                        &
+     &                model_state_sxrem_flag + (j - 1))) THEN
+               DO i = 1, SIZE(this%sxrem_grid, 1)
+                  r = (i - 1)*this%grid_step + this%grid_start
+                  this%sxrem_grid(i,j) = model_get_sxrem(this, r, j)
+               END DO
+            END IF
+         END DO
+      END IF
+
+      IF (ASSOCIATED(this%te_grid) .and.                                       &
+     &    BTEST(this%state_flags, model_state_te_flag)) THEN
+         DO i = 1, SIZE(this%te_grid)
+            r = (i - 1)*this%grid_step + this%grid_start
+            this%te_grid(i) = model_get_te(this, r)
+         END DO
+      END IF
+
+      IF (ASSOCIATED(this%ze_grid) .and.                                       &
+     &    BTEST(this%state_flags, model_state_ze_flag)) THEN
+         DO i = 1, SIZE(this%ze_grid)
+            r = (i - 1)*this%grid_step + this%grid_start
+            this%ze_grid(i) = model_get_ze(this, r)
+         END DO
+      END IF
+      this%state_flags = model_state_all_off
+
       CALL profiler_set_stop_time('model_reset_state', start_time)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Save the internal state of the model.
+!>
+!>  Clears out the model state flags then resets the equilibrium.
+!>
+!>  @param[inout] this A @ref equilibrium_class instance.
+!-------------------------------------------------------------------------------
+      SUBROUTINE model_save_state(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (model_class), INTENT(inout) :: this
+
+!  local variables
+      REAL (rprec)                      :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      CALL equilibrium_save_state(this%equilibrium)
+
+      CALL profiler_set_stop_time('model_save_state', start_time)
 
       END SUBROUTINE
 
@@ -2057,8 +2123,6 @@
      &                   model_state_sxrem_flag + (j - 1))) THEN
                   DO i = 1, SIZE(this%sxrem_grid, 1)
                      r = (i - 1)*this%grid_step + this%grid_start
-!  The length to the camera is not really known here so use 1 here. Since this
-!  is meant to map out the emission profile this is ok.
                      this%sxrem_grid(i,j) = model_get_sxrem(this, r, j)
                   END DO
                END IF

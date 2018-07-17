@@ -28,39 +28,39 @@ add_test (NAME    reconstruction_task_sl_step_test_sem_totals
 
 #  Check the jacobians for the the correct values.
 add_test (NAME    reconstruction_task_sl_step_test_jac_1-4:1-1
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=3 --jlow=0 jhigh=0 --value=0.0)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=3 --jlow=0 --jhigh=0 --value=0.0)
 add_test (NAME    reconstruction_task_sl_step_test_jac_1-4:3-3
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=3 --jlow=2 jhigh=2 --value=0.0)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=3 --jlow=2 --jhigh=2 --value=0.0)
 add_test (NAME    reconstruction_task_sl_step_test_jac_5-16:3-4
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=4 --ihigh=15 --jlow=2 jhigh=3 --value=0.0)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=4 --ihigh=15 --jlow=2 --jhigh=3 --value=0.0)
 add_test (NAME    reconstruction_task_sl_step_test_jac_17-20:1-1
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=16 --ihigh=19 --jlow=0 jhigh=0 --value=0.0)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=16 --ihigh=19 --jlow=0 --jhigh=0 --value=0.0)
 add_test (NAME    reconstruction_task_sl_step_test_jac_17-20:4-4
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=16 --ihigh=19 --jlow=3 jhigh=3 --value=0.0)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=16 --ihigh=19 --jlow=3 --jhigh=3 --value=0.0)
 add_test (NAME    reconstruction_task_sl_step_test_jac_21-28:3-4
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=20 --ihigh=27 --jlow=2 jhigh=3 --value=0.0)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=20 --ihigh=27 --jlow=2 --jhigh=3 --value=0.0)
 add_test (NAME    reconstruction_task_sl_step_test_jac_25-28:1-1
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=24 --ihigh=27 --jlow=0 jhigh=0 --value=0.0)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=24 --ihigh=27 --jlow=0 --jhigh=0 --value=0.0)
 add_test (NAME    reconstruction_task_sl_step_test_jac_prior_1
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=28 --ihigh=28 --jlow=1 jhigh=3 --value=0.0)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=28 --ihigh=28 --jlow=1 --jhigh=3 --value=0.0)
 add_test (NAME    reconstruction_task_sl_step_test_jac_prior_2-1
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=29 --ihigh=29 --jlow=0 jhigh=0 --value=0.0)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=29 --ihigh=29 --jlow=0 --jhigh=0 --value=0.0)
 add_test (NAME    reconstruction_task_sl_step_test_jac_prior_2-2
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=29 --ihigh=29 --jlow=2 jhigh=3 --value=0.0)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=29 --ihigh=29 --jlow=2 --jhigh=3 --value=0.0)
 add_test (NAME    reconstruction_task_sl_step_test_jac_prior_3-1
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=30 --ihigh=30 --jlow=0 jhigh=1 --value=0.0)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=30 --ihigh=30 --jlow=0 --jhigh=1 --value=0.0)
 add_test (NAME    reconstruction_task_sl_step_test_jac_prior_3-2
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=30 --ihigh=30 --jlow=3 jhigh=3 --value=0.0)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=30 --ihigh=30 --jlow=3 --jhigh=3 --value=0.0)
 add_test (NAME    reconstruction_task_sl_step_test_jac_prior_4
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=31 --ihigh=31 --jlow=0 jhigh=2 --value=0.0)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=31 --ihigh=31 --jlow=0 --jhigh=2 --value=0.0)
 add_test (NAME    reconstruction_task_sl_step_test_jac_prior_5:6-7
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=32 --ihigh=32 --jlow=5 jhigh=6 --value=0.0)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=32 --ihigh=32 --jlow=5 --jhigh=6 --value=0.0)
 add_test (NAME    reconstruction_task_sl_step_test_jac_prior_6:5
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=33 --ihigh=33 --jlow=4 jhigh=4 --value=0.0)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=33 --ihigh=33 --jlow=4 --jhigh=4 --value=0.0)
 add_test (NAME    reconstruction_task_sl_step_test_jac_prior_6:7
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=33 --ihigh=33 --jlow=6 jhigh=6 --value=0.0)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=33 --ihigh=33 --jlow=6 --jhigh=6 --value=0.0)
 add_test (NAME    reconstruction_task_sl_step_test_jac_prior_7:5-6
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=34 --ihigh=34 --jlow=4 jhigh=5 --value=0.0)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=34 --ihigh=34 --jlow=4 --jhigh=5 --value=0.0)
 
 #  Check that the observed signal was written correctly.
 add_test (NAME    reconstruction_task_sl_step_test_check_observed_sxr001
@@ -257,39 +257,39 @@ if (MPI_Fortran_FOUND)
 
 #  Check the jacobians for the the correct values.
 	add_test (NAME    reconstruction_task_sl_step_test_jac_1-4:1-1_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=3 --jlow=0 jhigh=0 --value=0.0)
+        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=3 --jlow=0 --jhigh=0 --value=0.0)
 	add_test (NAME    reconstruction_task_sl_step_test_jac_1-4:3-3_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=3 --jlow=2 jhigh=2 --value=0.0)
+        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=3 --jlow=2 --jhigh=2 --value=0.0)
 	add_test (NAME    reconstruction_task_sl_step_test_jac_5-16:3-4_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=4 --ihigh=15 --jlow=2 jhigh=3 --value=0.0)
+        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=4 --ihigh=15 --jlow=2 --jhigh=3 --value=0.0)
 	add_test (NAME    reconstruction_task_sl_step_test_jac_17-20:1-1_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=16 --ihigh=19 --jlow=0 jhigh=0 --value=0.0)
+        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=16 --ihigh=19 --jlow=0 --jhigh=0 --value=0.0)
 	add_test (NAME    reconstruction_task_sl_step_test_jac_17-20:4-4_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=16 --ihigh=19 --jlow=3 jhigh=3 --value=0.0)
+        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=16 --ihigh=19 --jlow=3 --jhigh=3 --value=0.0)
 	add_test (NAME    reconstruction_task_sl_step_test_jac_21-28:3-4_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=20 --ihigh=27 --jlow=2 jhigh=3 --value=0.0)
+        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=20 --ihigh=27 --jlow=2 --jhigh=3 --value=0.0)
 	add_test (NAME    reconstruction_task_sl_step_test_jac_25-28:1-1_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=24 --ihigh=27 --jlow=0 jhigh=0 --value=0.0)
+        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=24 --ihigh=27 --jlow=0 --jhigh=0 --value=0.0)
 	add_test (NAME    reconstruction_task_sl_step_test_jac_prior_1_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=28 --ihigh=28 --jlow=1 jhigh=3 --value=0.0)
+        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=28 --ihigh=28 --jlow=1 --jhigh=3 --value=0.0)
 	add_test (NAME    reconstruction_task_sl_step_test_jac_prior_2-1_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=29 --ihigh=29 --jlow=0 jhigh=0 --value=0.0)
+        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=29 --ihigh=29 --jlow=0 --jhigh=0 --value=0.0)
 	add_test (NAME    reconstruction_task_sl_step_test_jac_prior_2-2_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=29 --ihigh=29 --jlow=2 jhigh=3 --value=0.0)
+        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=29 --ihigh=29 --jlow=2 --jhigh=3 --value=0.0)
 	add_test (NAME    reconstruction_task_sl_step_test_jac_prior_3-1_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=30 --ihigh=30 --jlow=0 jhigh=1 --value=0.0)
+        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=30 --ihigh=30 --jlow=0 --jhigh=1 --value=0.0)
 	add_test (NAME    reconstruction_task_sl_step_test_jac_prior_3-2_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=30 --ihigh=30 --jlow=3 jhigh=3 --value=0.0)
+        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=30 --ihigh=30 --jlow=3 --jhigh=3 --value=0.0)
 	add_test (NAME    reconstruction_task_sl_step_test_jac_prior_4_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=31 --ihigh=31 --jlow=0 jhigh=2 --value=0.0)
+        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=31 --ihigh=31 --jlow=0 --jhigh=2 --value=0.0)
 	add_test (NAME    reconstruction_task_sl_step_test_jac_prior_5:6-7_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=32 --ihigh=32 --jlow=5 jhigh=6 --value=0.0)
+        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=32 --ihigh=32 --jlow=5 --jhigh=6 --value=0.0)
 	add_test (NAME    reconstruction_task_sl_step_test_jac_prior_6:5_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=33 --ihigh=33 --jlow=4 jhigh=4 --value=0.0)
+        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=33 --ihigh=33 --jlow=4 --jhigh=4 --value=0.0)
 	add_test (NAME    reconstruction_task_sl_step_test_jac_prior_6:7_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=33 --ihigh=33 --jlow=6 jhigh=6 --value=0.0)
+        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=33 --ihigh=33 --jlow=6 --jhigh=6 --value=0.0)
 	add_test (NAME    reconstruction_task_sl_step_test_jac_prior_7:5-6_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=34 --ihigh=34 --jlow=4 jhigh=5 --value=0.0)
+        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=34 --ihigh=34 --jlow=4 --jhigh=5 --value=0.0)
 
 #  Check that the observed signal was written correctly.
 	add_test (NAME    reconstruction_task_sl_step_test_check_observed_sxr001_mpi

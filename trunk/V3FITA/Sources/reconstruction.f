@@ -875,7 +875,7 @@
          offset(i) = offset(i - 1) + stride(i - 1)
       END DO
 
-      CALL equilibrium_save_state(a_model%equilibrium)
+      CALL model_save_state(a_model)
 
 !  Loop over the parameters, but only do iterations for the rank as determined
 !  by the stride and the offset. Strides and offsets are determined using C

@@ -22,17 +22,17 @@ add_test (NAME    param_constraints_test_sem_totals
 
 #  Check that jacobians for the correct values.
 add_test (NAME    param_constraints_test_jac_1-1:2-2
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=0 --jlow=1 jhigh=1 --value=0.0)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=0 --jlow=1 --jhigh=1 --value=0.0)
 add_test (NAME    param_constraints_test_jac_2-2:3-4
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=1 --ihigh=1 --jlow=2 jhigh=3 --value=0.0)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=1 --ihigh=1 --jlow=2 --jhigh=3 --value=0.0)
 add_test (NAME    param_constraints_test_jac_1-2:3-4
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=1 --jlow=2 jhigh=3 --value=0.0)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=1 --jlow=2 --jhigh=3 --value=0.0)
 add_test (NAME    param_constraints_test_jac_3-4:1-2
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=2 --ihigh=3 --jlow=0 jhigh=2 --value=0.0)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=2 --ihigh=3 --jlow=0 --jhigh=2 --value=0.0)
 add_test (NAME    param_constraints_test_jac_3-3:4-4
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=2 --ihigh=2 --jlow=3 jhigh=3 --value=0.0)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=2 --ihigh=2 --jlow=3 --jhigh=3 --value=0.0)
 add_test (NAME    param_constraints_test_jac_4-4:3-3
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=3 --ihigh=3 --jlow=4 jhigh=4 --value=0.0)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=3 --ihigh=3 --jlow=4 --jhigh=4 --value=0.0)
 
 #  Check parameter constraint types for the correct values.
 add_test (NAME    param_constraints_test_type_pp_ne_af_type

@@ -11,13 +11,13 @@ add_test (NAME    lasym_boundary_test
 
 #  Check the jacobians for the the correct values.
 add_test (NAME    lasym_boundary_test_jac_1-1:1-1
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=0 --jlow=0 jhigh=0 --value=100.0)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=0 --jlow=0 --jhigh=0 --value=100.0)
 add_test (NAME    lasym_boundary_test_jac_1-1:2-2
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=0 --jlow=1 jhigh=1 --value=0.0)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=0 --jlow=1 --jhigh=1 --value=0.0)
 add_test (NAME    lasym_boundary_test_jac_2-2:1-1
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=1 --ihigh=1 --jlow=0 jhigh=0 --value=0.0)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=1 --ihigh=1 --jlow=0 --jhigh=0 --value=0.0)
 add_test (NAME    lasym_boundary_test_jac_2-2:2-2
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=1 --ihigh=1 --jlow=1 jhigh=1 --value=100.0)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=1 --ihigh=1 --jlow=1 --jhigh=1 --value=100.0)
 
 #  Check that the observed signal was written correctly.
 add_test (NAME    lasym_boundary_test_check_observed_prior_1

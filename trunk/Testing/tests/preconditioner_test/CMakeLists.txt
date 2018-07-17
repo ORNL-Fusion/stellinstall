@@ -31,44 +31,52 @@ add_test (NAME    preconditioner_test_sem_totals
           COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_sem_total.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit)
 
 #  Check the jacobians for the the correct values.
-add_test (NAME    preconditioner_test_jac_1-4:1-1
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=3 --jlow=0 jhigh=0 --value=0.0)
-add_test (NAME    preconditioner_test_jac_1-4:3-3
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=3 --jlow=2 jhigh=2 --value=0.0)
-add_test (NAME    preconditioner_test_jac_5-16:3-4
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=4 --ihigh=15 --jlow=2 jhigh=3 --value=0.0)
-add_test (NAME    preconditioner_test_jac_17-20:1-1
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=16 --ihigh=19 --jlow=0 jhigh=0 --value=0.0)
-add_test (NAME    preconditioner_test_jac_17-20:4-4
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=16 --ihigh=19 --jlow=3 jhigh=3 --value=0.0)
-add_test (NAME    preconditioner_test_jac_21-28:3-4
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=20 --ihigh=27 --jlow=2 jhigh=3 --value=0.0)
-add_test (NAME    preconditioner_test_jac_25-28:1-1
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=24 --ihigh=27 --jlow=0 jhigh=0 --value=0.0)
-add_test (NAME    preconditioner_test_jac_prior_1
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=28 --ihigh=28 --jlow=1 jhigh=3 --value=0.0)
-add_test (NAME    preconditioner_test_jac_prior_2-1
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=29 --ihigh=29 --jlow=0 jhigh=0 --value=0.0)
-add_test (NAME    preconditioner_test_jac_prior_2-2
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=29 --ihigh=29 --jlow=2 jhigh=3 --value=0.0)
-add_test (NAME    preconditioner_test_jac_prior_3-1
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=30 --ihigh=30 --jlow=0 jhigh=1 --value=0.0)
-add_test (NAME    preconditioner_test_jac_prior_3-2
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=30 --ihigh=30 --jlow=3 jhigh=3 --value=0.0)
-add_test (NAME    preconditioner_test_jac_prior_4
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=31 --ihigh=31 --jlow=0 jhigh=2 --value=0.0)
-add_test (NAME    preconditioner_test_jac_prior_5-7:1-4
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=32 --ihigh=34 --jlow=0 jhigh=3 --value=0.0)
-add_test (NAME    preconditioner_test_jac_prior_1-4:5-7
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=28 --ihigh=31 --jlow=4 jhigh=6 --value=0.0)
+add_test (NAME    preconditioner_test_jac_1-12:1-7
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=11 --jlow=0 --jhigh=6 --value=0.0)
+add_test (NAME    preconditioner_test_jac_13-16:1-1
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=12 --ihigh=15 --jlow=0 --jhigh=0 --value=0.0)
+add_test (NAME    preconditioner_test_jac_13-16:3-3
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=12 --ihigh=15 --jlow=2 --jhigh=2 --value=0.0)
+add_test (NAME    preconditioner_test_jac_17-28:3-4
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=16 --ihigh=27 --jlow=2 --jhigh=3 --value=0.0)
+add_test (NAME    preconditioner_test_jac_29-32:1-1
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=28 --ihigh=31 --jlow=0 --jhigh=0 --value=0.0)
+add_test (NAME    preconditioner_test_jac_29-32:4-4
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=28 --ihigh=31 --jlow=3 --jhigh=3 --value=0.0)
+add_test (NAME    preconditioner_test_jac_33-36:3-4
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=32 --ihigh=35 --jlow=2 --jhigh=3 --value=0.0)
+add_test (NAME    preconditioner_test_jac_37-40:1-1
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=36 --ihigh=39 --jlow=0 --jhigh=0 --value=0.0)
+add_test (NAME    preconditioner_test_jac_37-40:3-4
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=36 --ihigh=39 --jlow=2 --jhigh=3 --value=0.0)
+add_test (NAME    preconditioner_test_jac_prior_1:2-7
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=40 --ihigh=40 --jlow=1 --jhigh=6 --value=0.0)
+add_test (NAME    preconditioner_test_jac_prior_2:1-1
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=41 --ihigh=41 --jlow=0 --jhigh=0 --value=0.0)
+add_test (NAME    preconditioner_test_jac_prior_2:3-7
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=41 --ihigh=41 --jlow=2 --jhigh=6 --value=0.0)
+add_test (NAME    preconditioner_test_jac_prior_3:1-2
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=42 --ihigh=42 --jlow=0 --jhigh=1 --value=0.0)
+add_test (NAME    preconditioner_test_jac_prior_3:4-7
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=42 --ihigh=42 --jlow=3 --jhigh=6 --value=0.0)
+add_test (NAME    preconditioner_test_jac_prior_4:1-3
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=43 --ihigh=43 --jlow=0 --jhigh=2 --value=0.0)
+add_test (NAME    preconditioner_test_jac_prior_4:5-7
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=43 --ihigh=43 --jlow=4 --jhigh=6 --value=0.0)
+add_test (NAME    preconditioner_test_jac_prior_5:1-4
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=44 --ihigh=44 --jlow=0 --jhigh=3 --value=0.0)
 add_test (NAME    preconditioner_test_jac_prior_5:6-7
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=32 --ihigh=32 --jlow=5 jhigh=6 --value=0.0)
-add_test (NAME    preconditioner_test_jac_prior_6:5
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=33 --ihigh=33 --jlow=4 jhigh=4 --value=0.0)
-add_test (NAME    preconditioner_test_jac_prior_6:7
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=33 --ihigh=33 --jlow=6 jhigh=6 --value=0.0)
-add_test (NAME    preconditioner_test_jac_prior_7:5-6
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=34 --ihigh=34 --jlow=4 jhigh=5 --value=0.0)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=44 --ihigh=44 --jlow=5 --jhigh=6 --value=0.0)
+add_test (NAME    preconditioner_test_jac_prior_6:1-5
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=45 --ihigh=45 --jlow=0 --jhigh=4 --value=0.0)
+add_test (NAME    preconditioner_test_jac_prior_6:7-7
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=45 --ihigh=45 --jlow=6 --jhigh=6 --value=0.0)
+add_test (NAME    preconditioner_test_jac_prior_7:1-6
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=46 --ihigh=46 --jlow=0 --jhigh=5 --value=0.0)
+add_test (NAME    preconditioner_test_jac_prior_8:1-2
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=47 --ihigh=47 --jlow=0 --jhigh=1 --value=0.0)
+add_test (NAME    preconditioner_test_jac_prior_8:4-7
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=47 --ihigh=47 --jlow=3 --jhigh=6 --value=0.0)
 
 #  Check that the observed signal was written correctly.
 add_test (NAME    preconditioner_test_check_observed_sxr001
@@ -282,44 +290,52 @@ add_test (NAME    preconditioner_test_sem_totals_c_diff
           COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_sem_total.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit)
 
 #  Check the jacobians for the the correct values.
-add_test (NAME    preconditioner_test_jac_1-4:1-1_c_diff
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=3 --jlow=0 jhigh=0 --value=0.0)
-add_test (NAME    preconditioner_test_jac_1-4:3-3_c_diff
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=3 --jlow=2 jhigh=2 --value=0.0)
-add_test (NAME    preconditioner_test_jac_5-16:3-4_c_diff
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=4 --ihigh=15 --jlow=2 jhigh=3 --value=0.0)
-add_test (NAME    preconditioner_test_jac_17-20:1-1_c_diff
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=16 --ihigh=19 --jlow=0 jhigh=0 --value=0.0)
-add_test (NAME    preconditioner_test_jac_17-20:4-4_c_diff
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=16 --ihigh=19 --jlow=3 jhigh=3 --value=0.0)
-add_test (NAME    preconditioner_test_jac_21-28:3-4_c_diff
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=20 --ihigh=27 --jlow=2 jhigh=3 --value=0.0)
-add_test (NAME    preconditioner_test_jac_25-28:1-1_c_diff
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=24 --ihigh=27 --jlow=0 jhigh=0 --value=0.0)
-add_test (NAME    preconditioner_test_jac_prior_1_c_diff
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=28 --ihigh=28 --jlow=1 jhigh=3 --value=0.0)
-add_test (NAME    preconditioner_test_jac_prior_2-1_c_diff
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=29 --ihigh=29 --jlow=0 jhigh=0 --value=0.0)
-add_test (NAME    preconditioner_test_jac_prior_2-2_c_diff
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=29 --ihigh=29 --jlow=2 jhigh=3 --value=0.0)
-add_test (NAME    preconditioner_test_jac_prior_3-1_c_diff
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=30 --ihigh=30 --jlow=0 jhigh=1 --value=0.0)
-add_test (NAME    preconditioner_test_jac_prior_3-2_c_diff
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=30 --ihigh=30 --jlow=3 jhigh=3 --value=0.0)
-add_test (NAME    preconditioner_test_jac_prior_4_c_diff
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=31 --ihigh=31 --jlow=0 jhigh=2 --value=0.0)
-add_test (NAME    preconditioner_test_jac_prior_5-7:1-4_c_diff
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=32 --ihigh=34 --jlow=0 jhigh=3 --value=0.0)
-add_test (NAME    preconditioner_test_jac_prior_1-4:5-7_c_diff
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=28 --ihigh=31 --jlow=4 jhigh=6 --value=0.0)
+add_test (NAME    preconditioner_test_jac_1-12:1-7_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=11 --jlow=0 --jhigh=6 --value=0.0)
+add_test (NAME    preconditioner_test_jac_13-16:1-1_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=12 --ihigh=15 --jlow=0 --jhigh=0 --value=0.0)
+add_test (NAME    preconditioner_test_jac_13-16:3-3_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=12 --ihigh=15 --jlow=2 --jhigh=2 --value=0.0)
+add_test (NAME    preconditioner_test_jac_17-28:3-4_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=16 --ihigh=27 --jlow=2 --jhigh=3 --value=0.0)
+add_test (NAME    preconditioner_test_jac_29-32:1-1_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=28 --ihigh=31 --jlow=0 --jhigh=0 --value=0.0)
+add_test (NAME    preconditioner_test_jac_29-32:4-4_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=28 --ihigh=31 --jlow=3 --jhigh=3 --value=0.0)
+add_test (NAME    preconditioner_test_jac_33-36:3-4_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=32 --ihigh=35 --jlow=2 --jhigh=3 --value=0.0)
+add_test (NAME    preconditioner_test_jac_37-40:1-1_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=36 --ihigh=39 --jlow=0 --jhigh=0 --value=0.0)
+add_test (NAME    preconditioner_test_jac_37-40:3-4_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=36 --ihigh=39 --jlow=2 --jhigh=3 --value=0.0)
+add_test (NAME    preconditioner_test_jac_prior_1:2-7_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=40 --ihigh=40 --jlow=1 --jhigh=6 --value=0.0)
+add_test (NAME    preconditioner_test_jac_prior_2:1-1_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=41 --ihigh=41 --jlow=0 --jhigh=0 --value=0.0)
+add_test (NAME    preconditioner_test_jac_prior_2:3-7_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=41 --ihigh=41 --jlow=2 --jhigh=6 --value=0.0)
+add_test (NAME    preconditioner_test_jac_prior_3:1-2_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=42 --ihigh=42 --jlow=0 --jhigh=1 --value=0.0)
+add_test (NAME    preconditioner_test_jac_prior_3:4-7_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=42 --ihigh=42 --jlow=3 --jhigh=6 --value=0.0)
+add_test (NAME    preconditioner_test_jac_prior_4:1-3_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=43 --ihigh=43 --jlow=0 --jhigh=2 --value=0.0)
+add_test (NAME    preconditioner_test_jac_prior_4:5-7_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=43 --ihigh=43 --jlow=4 --jhigh=6 --value=0.0)
+add_test (NAME    preconditioner_test_jac_prior_5:1-4_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=44 --ihigh=44 --jlow=0 --jhigh=3 --value=0.0)
 add_test (NAME    preconditioner_test_jac_prior_5:6-7_c_diff
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=32 --ihigh=32 --jlow=5 jhigh=6 --value=0.0)
-add_test (NAME    preconditioner_test_jac_prior_6:5_c_diff
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=33 --ihigh=33 --jlow=4 jhigh=4 --value=0.0)
-add_test (NAME    preconditioner_test_jac_prior_6:7_c_diff
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=33 --ihigh=33 --jlow=6 jhigh=6 --value=0.0)
-add_test (NAME    preconditioner_test_jac_prior_7:5-6_c_diff
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=34 --ihigh=34 --jlow=4 jhigh=5 --value=0.0)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=44 --ihigh=44 --jlow=5 --jhigh=6 --value=0.0)
+add_test (NAME    preconditioner_test_jac_prior_6:1-5_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=45 --ihigh=45 --jlow=0 --jhigh=4 --value=0.0)
+add_test (NAME    preconditioner_test_jac_prior_6:7-7_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=45 --ihigh=45 --jlow=6 --jhigh=6 --value=0.0)
+add_test (NAME    preconditioner_test_jac_prior_7:1-6_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=46 --ihigh=46 --jlow=0 --jhigh=5 --value=0.0)
+add_test (NAME    preconditioner_test_jac_prior_8:1-2_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=47 --ihigh=47 --jlow=0 --jhigh=1 --value=0.0)
+add_test (NAME    preconditioner_test_jac_prior_8:4-7_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=47 --ihigh=47 --jlow=3 --jhigh=6 --value=0.0)
 
 #  Check that the observed signal was written correctly.
 add_test (NAME    preconditioner_test_check_observed_sxr001_c_diff
@@ -537,44 +553,52 @@ if (MPI_Fortran_FOUND)
         	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_sem_total.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit)
 
 #  Check the jacobians for the the correct values.
-	add_test (NAME    preconditioner_test_jac_1-4:1-1_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=3 --jlow=0 jhigh=0 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_1-4:3-3_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=3 --jlow=2 jhigh=2 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_5-16:3-4_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=4 --ihigh=15 --jlow=2 jhigh=3 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_17-20:1-1_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=16 --ihigh=19 --jlow=0 jhigh=0 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_17-20:4-4_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=16 --ihigh=19 --jlow=3 jhigh=3 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_21-28:3-4_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=20 --ihigh=27 --jlow=2 jhigh=3 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_25-28:1-1_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=24 --ihigh=27 --jlow=0 jhigh=0 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_prior_1_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=28 --ihigh=28 --jlow=1 jhigh=3 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_prior_2-1_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=29 --ihigh=29 --jlow=0 jhigh=0 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_prior_2-2_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=29 --ihigh=29 --jlow=2 jhigh=3 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_prior_3-1_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=30 --ihigh=30 --jlow=0 jhigh=1 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_prior_3-2_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=30 --ihigh=30 --jlow=3 jhigh=3 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_prior_4_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=31 --ihigh=31 --jlow=0 jhigh=2 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_prior_5-7:1-4_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=32 --ihigh=34 --jlow=0 jhigh=3 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_prior_1-4:5-7_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=28 --ihigh=31 --jlow=4 jhigh=6 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_1-12:1-7_mpi
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=11 --jlow=0 --jhigh=6 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_13-16:1-1_mpi
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=12 --ihigh=15 --jlow=0 --jhigh=0 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_13-16:3-3_mpi
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=12 --ihigh=15 --jlow=2 --jhigh=2 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_17-28:3-4_mpi
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=16 --ihigh=27 --jlow=2 --jhigh=3 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_29-32:1-1_mpi
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=28 --ihigh=31 --jlow=0 --jhigh=0 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_29-32:4-4_mpi
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=28 --ihigh=31 --jlow=3 --jhigh=3 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_33-36:3-4_mpi
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=32 --ihigh=35 --jlow=2 --jhigh=3 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_37-40:1-1_mpi
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=36 --ihigh=39 --jlow=0 --jhigh=0 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_37-40:3-4_mpi
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=36 --ihigh=39 --jlow=2 --jhigh=3 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_prior_1:2-7_mpi
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=40 --ihigh=40 --jlow=1 --jhigh=6 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_prior_2:1-1_mpi
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=41 --ihigh=41 --jlow=0 --jhigh=0 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_prior_2:3-7_mpi
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=41 --ihigh=41 --jlow=2 --jhigh=6 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_prior_3:1-2_mpi
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=42 --ihigh=42 --jlow=0 --jhigh=1 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_prior_3:4-7_mpi
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=42 --ihigh=42 --jlow=3 --jhigh=6 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_prior_4:1-3_mpi
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=43 --ihigh=43 --jlow=0 --jhigh=2 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_prior_4:5-7_mpi
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=43 --ihigh=43 --jlow=4 --jhigh=6 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_prior_5:1-4_mpi
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=44 --ihigh=44 --jlow=0 --jhigh=3 --value=0.0)
 	add_test (NAME    preconditioner_test_jac_prior_5:6-7_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=32 --ihigh=32 --jlow=5 jhigh=6 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_prior_6:5_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=33 --ihigh=33 --jlow=4 jhigh=4 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_prior_6:7_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=33 --ihigh=33 --jlow=6 jhigh=6 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_prior_7:5-6_mpi
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=34 --ihigh=34 --jlow=4 jhigh=5 --value=0.0)
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=44 --ihigh=44 --jlow=5 --jhigh=6 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_prior_6:1-5_mpi
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=45 --ihigh=45 --jlow=0 --jhigh=4 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_prior_6:7-7_mpi
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=45 --ihigh=45 --jlow=6 --jhigh=6 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_prior_7:1-6_mpi
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=46 --ihigh=46 --jlow=0 --jhigh=5 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_prior_8:1-2_mpi
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=47 --ihigh=47 --jlow=0 --jhigh=1 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_prior_8:4-7_mpi
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=47 --ihigh=47 --jlow=3 --jhigh=6 --value=0.0)
 
 #  Check that the observed signal was written correctly.
 	add_test (NAME    preconditioner_test_check_observed_sxr001_mpi
@@ -788,44 +812,52 @@ if (MPI_Fortran_FOUND)
         	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_sem_total.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit)
 
 #  Check the jacobians for the the correct values.
-	add_test (NAME    preconditioner_test_jac_1-4:1-1_mpiexec
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=3 --jlow=0 jhigh=0 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_1-4:3-3_mpiexec
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=3 --jlow=2 jhigh=2 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_5-16:3-4_mpiexec
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=4 --ihigh=15 --jlow=2 jhigh=3 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_17-20:1-1_mpiexec
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=16 --ihigh=19 --jlow=0 jhigh=0 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_17-20:4-4_mpiexec
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=16 --ihigh=19 --jlow=3 jhigh=3 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_21-28:3-4_mpiexec
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=20 --ihigh=27 --jlow=2 jhigh=3 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_25-28:1-1_mpiexec
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=24 --ihigh=27 --jlow=0 jhigh=0 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_prior_1_mpiexec
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=28 --ihigh=28 --jlow=1 jhigh=3 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_prior_2-1_mpiexec
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=29 --ihigh=29 --jlow=0 jhigh=0 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_prior_2-2_mpiexec
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=29 --ihigh=29 --jlow=2 jhigh=3 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_prior_3-1_mpiexec
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=30 --ihigh=30 --jlow=0 jhigh=1 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_prior_3-2_mpiexec
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=30 --ihigh=30 --jlow=3 jhigh=3 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_prior_4_mpiexec
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=31 --ihigh=31 --jlow=0 jhigh=2 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_prior_5-7:1-4_mpiexec
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=32 --ihigh=34 --jlow=0 jhigh=3 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_prior_1-4:5-7_mpiexec
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=28 --ihigh=31 --jlow=4 jhigh=6 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_1-12:1-7_mpiexec
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=11 --jlow=0 --jhigh=6 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_13-16:1-1_mpiexec
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=12 --ihigh=15 --jlow=0 --jhigh=0 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_13-16:3-3_mpiexec
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=12 --ihigh=15 --jlow=2 --jhigh=2 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_17-28:3-4_mpiexec
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=16 --ihigh=27 --jlow=2 --jhigh=3 --value=0.0)	
+	add_test (NAME    preconditioner_test_jac_29-32:1-1_mpiexec
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=28 --ihigh=31 --jlow=0 --jhigh=0 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_29-32:4-4_mpiexec
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=28 --ihigh=31 --jlow=3 --jhigh=3 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_33-36:3-4_mpiexec
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=32 --ihigh=35 --jlow=2 --jhigh=3 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_37-40:1-1_mpiexec
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=36 --ihigh=39 --jlow=0 --jhigh=0 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_37-40:3-4_mpiexec
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=36 --ihigh=39 --jlow=2 --jhigh=3 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_prior_1:2-7_mpiexec
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=40 --ihigh=40 --jlow=1 --jhigh=6 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_prior_2:1-1_mpiexec
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=41 --ihigh=41 --jlow=0 --jhigh=0 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_prior_2:3-7_mpiexec
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=41 --ihigh=41 --jlow=2 --jhigh=6 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_prior_3:1-2_mpiexec
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=42 --ihigh=42 --jlow=0 --jhigh=1 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_prior_3:4-7_mpiexec
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=42 --ihigh=42 --jlow=3 --jhigh=6 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_prior_4:1-3_mpiexec
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=43 --ihigh=43 --jlow=0 --jhigh=2 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_prior_4:5-7_mpiexec
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=43 --ihigh=43 --jlow=4 --jhigh=6 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_prior_5:1-4_mpiexec
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=44 --ihigh=44 --jlow=0 --jhigh=3 --value=0.0)
 	add_test (NAME    preconditioner_test_jac_prior_5:6-7_mpiexec
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=32 --ihigh=32 --jlow=5 jhigh=6 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_prior_6:5_mpiexec
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=33 --ihigh=33 --jlow=4 jhigh=4 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_prior_6:7_mpiexec
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=33 --ihigh=33 --jlow=6 jhigh=6 --value=0.0)
-	add_test (NAME    preconditioner_test_jac_prior_7:5-6_mpiexec
-        	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=34 --ihigh=34 --jlow=4 jhigh=5 --value=0.0)
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=44 --ihigh=44 --jlow=5 --jhigh=6 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_prior_6:1-5_mpiexec
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=45 --ihigh=45 --jlow=0 --jhigh=4 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_prior_6:7-7_mpiexec
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=45 --ihigh=45 --jlow=6 --jhigh=6 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_prior_7:1-6_mpiexec
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=46 --ihigh=46 --jlow=0 --jhigh=5 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_prior_8:1-2_mpiexec
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=47 --ihigh=47 --jlow=0 --jhigh=1 --value=0.0)
+	add_test (NAME    preconditioner_test_jac_prior_8:4-7_mpiexec
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=47 --ihigh=47 --jlow=3 --jhigh=6 --value=0.0)
 
 #  Check that the observed signal was written correctly.
 	add_test (NAME    preconditioner_test_check_observed_sxr001_mpiexec
