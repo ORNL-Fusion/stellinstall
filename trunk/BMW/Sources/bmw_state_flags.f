@@ -18,6 +18,9 @@
 !>  Clear screen output.
       CHARACTER (len=*), PARAMETER ::                                          &
      &   clear_screen = achar(27)//"[2K"//achar(13)
+!>  Progress indicator.
+      CHARACTER (len=3), DIMENSION(0:3), PARAMETER ::                          &
+     &   progress = (/ ' | ',  ' / ', ' - ', ' \ '/)
 
 !>  Clear all flags.
       INTEGER, PARAMETER :: bmw_state_flags_off = 0

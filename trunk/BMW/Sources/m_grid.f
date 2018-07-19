@@ -335,7 +335,7 @@
      &           m_grid_intf(                                                  &
      &              this%a_z(ilow,jhigh,klow),                                 &
      &              this%a_z(ihigh,jhigh,klow),                                &
-     &                      i),                                                &
+     &              i),                                                        &
      &           j),                                                           &
      &        m_grid_intf(                                                     &
      &           m_grid_intf(                                                  &

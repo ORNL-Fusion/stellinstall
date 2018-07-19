@@ -58,11 +58,11 @@
 !-------------------------------------------------------------------------------
 !>  @brief Construct a @ref unprimed_grid_class object.
 !>
-!>  Allocates memory and initializes a @ref unprimed_grid_class object with an
-!>  This computes the vector potential, magnetic field and positions on the
-!>  unprimed grid. Magnetic field components are provided on a truncated grid.
-!>  Due to the central differencing, field componetents cannot be provided for
-!>  first and last points on the r and z grids.
+!>  Allocates memory and initializes a @ref unprimed_grid_class object. This
+!>  computes the vector potential, magnetic field and positions on the unprimed
+!>  grid. Magnetic field components are provided on a truncated grid. Due to the
+!>  central differencing, field componetents cannot be provided for first and
+!>  last points on the r and z grids.
 !>
 !>  @param[in] mgrid    A @ref m_grid::m_grid_class object.
 !>  @param[in] pgrid    A @ref primed_grid::primed_grid_class object.
@@ -76,7 +76,7 @@
       FUNCTION unprimed_grid_construct_m(mgrid, pgrid, p_start, p_end,         &
      &                                   parallel, io_unit)
 !$    USE omp_lib
-      USE bmw_state_flags, ONLY: clear_screen
+      USE bmw_state_flags, ONLY: clear_screen, progress
       USE, INTRINSIC :: iso_fortran_env, Only : output_unit
 
       IMPLICIT NONE
@@ -229,21 +229,10 @@
          IF (parallel%offset .eq. 0) THEN
 !$          IF (OMP_GET_THREAD_NUM() .eq. 0) THEN
                current = current + 1.0
-               done = 100*current/total
-               SELECT CASE (MOD(INT(current),4))
-                  CASE (0)
-                     WRITE (io_unit,1000,ADVANCE='NO') clear_screen,           &
-     &                                                 done
-                  CASE (1)
-                     WRITE (io_unit,1001,ADVANCE='NO') clear_screen,           &
-     &                                                 done
-                  CASE (2)
-                     WRITE (io_unit,1002,ADVANCE='NO') clear_screen,           &
-     &                                                 done
-                  CASE (3)
-                     WRITE (io_unit,1003,ADVANCE='NO') clear_screen,           &
-     &                                                 done
-               END SELECT
+               done = 100.0*current/total
+
+               WRITE (io_unit,1000,ADVANCE='NO')                               &
+     &            clear_screen, progress(MOD(INT(current),4)), done
 
                IF (io_unit .ne. output_unit) THEN
                   BACKSPACE (io_unit)
@@ -363,28 +352,25 @@
       DEALLOCATE(r_m)
 
       IF (parallel%offset .eq. 0) THEN
-         WRITE (io_unit,1004) clear_screen
+         WRITE (io_unit,1001) clear_screen
       END IF
 
       CALL profiler_set_stop_time('unprimed_grid_construct_m',                 &
      &                            start_time)
 
-1000  FORMAT(a,' | ',f6.2,' % Finished')
-1001  FORMAT(a,' / ',f6.2,' % Finished')
-1002  FORMAT(a,' - ',f6.2,' % Finished')
-1003  FORMAT(a,' \ ',f6.2,' % Finished')
-1004  FORMAT(a,'Unprimed Grid Finished')
+1000  FORMAT(a,a,f6.2,' % Finished')
+1001  FORMAT(a,'Unprimed Grid Finished')
 
       END FUNCTION
 
 !-------------------------------------------------------------------------------
 !>  @brief Construct a @ref unprimed_grid_class object at specfied points.
 !>
-!>  Allocates memory and initializes a @ref unprimed_grid_class object with an
-!>  This computes the vector potential, magnetic field and positions on the
-!>  unprimed grid. Magnetic field components are provided on a truncated grid.
-!>  Due to the central differencing, field componetents cannot be provided for
-!>  first and last points on the r and z grids.
+!>  Allocates memory and initializes a @ref unprimed_grid_class object. This
+!>  computes the vector potential, magnetic field and positions on the unprimed
+!>  grid. The primed grid is supplied as arbitrary r and z positions with a
+!>  uniformly spaced phi grid. Since the primed grid is arbitrary, this function
+!>  does not compute the magnetic field components.
 !>
 !>  @param[in] mgrid    A @ref m_grid::m_grid_class object.
 !>  @param[in] pgrid    A @ref primed_grid::primed_grid_class object.
@@ -399,7 +385,7 @@
       FUNCTION unprimed_grid_construct_a(mgrid, pgrid, r_grid, z_grid,         &
      &                                   dphi, parallel, io_unit)
 !$    USE omp_lib
-      USE bmw_state_flags, ONLY: clear_screen
+      USE bmw_state_flags, ONLY: clear_screen, progress
       USE, INTRINSIC :: iso_fortran_env, Only : output_unit
 
       IMPLICIT NONE
@@ -506,25 +492,14 @@
          IF (parallel%offset .eq. 0) THEN
 !$          IF (OMP_GET_THREAD_NUM() .eq. 0) THEN
                current = current + 1.0
-               done = 100*current/total
-               SELECT CASE (MOD(INT(current),4))
-                  CASE (0)
-                     WRITE (io_unit,1000,ADVANCE='NO') clear_screen,           &
-     &                                                 done
-                  CASE (1)
-                     WRITE (io_unit,1001,ADVANCE='NO') clear_screen,           &
-     &                                                 done
-                  CASE (2)
-                     WRITE (io_unit,1002,ADVANCE='NO') clear_screen,           &
-     &                                                 done
-                  CASE (3)
-                     WRITE (io_unit,1003,ADVANCE='NO') clear_screen,           &
-     &                                                 done
+               done = 100.0*current/total
 
-                  IF (io_unit .ne. output_unit) THEN
-                     BACKSPACE (io_unit)
-                  END IF
-               END SELECT
+               WRITE (io_unit,1000,ADVANCE='NO')                               &
+     &            clear_screen, progress(MOD(INT(current),4)), done
+
+               IF (io_unit .ne. output_unit) THEN
+                  BACKSPACE (io_unit)
+               END IF
 !$          END IF
          END IF
 
@@ -564,17 +539,14 @@
 !$OMP END PARALLEL
 
       IF (parallel%offset .eq. 0) THEN
-         WRITE (io_unit,1004) clear_screen
+         WRITE (io_unit,1001) clear_screen
       END IF
 
       CALL profiler_set_stop_time('unprimed_grid_construct_a',                 &
      &                            start_time)
 
-1000  FORMAT(a,' | ',f6.2,' % Finished')
-1001  FORMAT(a,' / ',f6.2,' % Finished')
-1002  FORMAT(a,' - ',f6.2,' % Finished')
-1003  FORMAT(a,' \ ',f6.2,' % Finished')
-1004  FORMAT(a,'Unprimed Grid Finished')
+1000  FORMAT(a,a,f6.2,' % Finished')
+1001  FORMAT(a,'Unprimed Grid Finished')
 
       END FUNCTION
 

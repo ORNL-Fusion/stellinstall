@@ -16,7 +16,7 @@
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
-!  1) bmw paralle context base class
+!  1) bmw parallel context base class
 !
 !*******************************************************************************
 !-------------------------------------------------------------------------------
@@ -61,11 +61,11 @@
 !-------------------------------------------------------------------------------
 !>  @brief Construct a @ref bmw_context_class object.
 !>
-!>  Allocates memory and initializes a @ref bmw_context_class object.
+!>  Allocates memory and initializes a @ref bmw_parallel_context_class object.
 !>
 !>  @param[in] comm        MPI communicator. Only used if MPI support has been
 !>                         compiled in.
-!>  @returns A pointer to a constructed @ref bmw_context_class object.
+!>  @returns A pointer to a constructed @ref bmw_parallel_context_class object.
 !-------------------------------------------------------------------------------
       FUNCTION bmw_parallel_context_construct(                                 &
 #if defined (MPI_OPT)
