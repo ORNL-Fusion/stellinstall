@@ -19,9 +19,10 @@
          LOGICAL  :: lactive = .TRUE.
          REAL(dp) :: cntl(5), ftol
          LOGICAL  :: lverbose = .TRUE.
+         LOGICAL  :: l_nonlinear = .TRUE.
       END TYPE GMRES_INFO
 
-      INTEGER, PARAMETER :: matveci=1, precondLeft=2,
+      INTEGER, PARAMETER :: finish=0, matveci=1, precondLeft=2,
      1                      precondRight=3, dotProd=4, peek=5
 
       CONTAINS
@@ -48,7 +49,7 @@
       REAL(dp), TARGET, ALLOCATABLE :: work(:)
       REAL(dp), ALLOCATABLE         :: xmin(:)
       REAL(dp), POINTER :: sx(:), sy(:), sz(:)
-	  LOGICAL   :: lprint, lstore
+	LOGICAL   :: lprint, lstore, l_nonlinear
 !-----------------------------------------------
       EXTERNAL yAx, apply_precond, getnlforce
 !-----------------------------------------------
@@ -68,6 +69,7 @@
       delfsq = 1
       jcount = 0; icount = 0
       kout = 0; kprint = 0
+	l_nonlinear = gi%l_nonlinear
 
       m = gi%m
       iam = gi%iam
@@ -82,7 +84,6 @@
       IF (gi%icntl(6) .EQ. 1) work(1:n) = x0/bnorm
       work(n+1:2*n) = b(1:n)/bnorm
 
-      icount=0; jcount=0
       IF (lprint) PRINT 900
  900  FORMAT(/,1x,'GMRES (SERIAL) CONVERGENCE SUMMARY',/,1x,15('-'))     
 
@@ -151,9 +152,8 @@
         GOTO 10
 
       ELSE IF (revcom .EQ. peek) THEN
-!        IF (lprint) PRINT *,'CALL PEEK'        
         fsq_last = fsq_nl                                                !need for delfsq criteria
-        CALL GetNLForce(work(colx), fsq_nl, bnorm)                       !get nonlinear force
+        IF (l_nonlinear) CALL GetNLForce(work(colx), fsq_nl, bnorm)      !get nonlinear force
 
         fsq_lin = (rinfo(1)*bnorm)**2
         icount = icount+1
@@ -162,7 +162,14 @@
         fsq_min_lin = MIN(fsq_min_lin, fsq_lin)
         IF (fsq_lin .LT. 1.E-30_dp) gi%icntl(7)=gi%info(1)
 
-        IF (lprint .AND. icount.EQ.1) PRINT 905
+        IF (lprint .AND. icount.EQ.1) THEN
+	     IF (l_nonlinear) THEN
+		    PRINT 905
+	     ELSE
+              PRINT 906
+	     END IF
+	  END IF
+
         kout = gi%info(1)
         IF (icount.EQ.1 .OR. MOD(icount,10).EQ.0) THEN
            kprint = kout
@@ -171,7 +178,13 @@
            IF (icount .EQ. 1) THEN
               fsq_min = fsq_nl; fsq_min_lin = fsq_lin
            END IF
-           IF (lprint) PRINT 910, kout, fsq_nl, xmod, xmax, fsq_lin
+           IF (lprint) THEN
+		    IF (l_nonlinear) THEN
+			   PRINT 910, kout, fsq_nl, xmod, xmax, fsq_lin
+              ELSE
+			   PRINT 911, kout, xmod, xmax, fsq_lin
+              END IF
+	     END IF
         END IF
 
         IF (gi%ngmres_type .EQ. 1) GOTO 10                               !OLDSTYLE:IGNORE LOGIC BELOW
@@ -194,7 +207,11 @@
 
       ENDIF
  905  FORMAT(1x,'ITER',7x,'FSQ_NL',10x,'||X||',9x,'MAX|X|',9x,'FSQ_ARN')
+ 906  FORMAT(1x,'ITER',7x,'||X||',11x,'MAX|X|',9x,'FSQ_ARN')
  910  FORMAT(i5, 4(3x,1pe12.3))
+ 911  FORMAT(i5, 3(3x,1pe12.3))
+  
+ 100   CONTINUE
 
       IF (ALLOCATED (xmin)) THEN
         x0(1:n) = xmin(1:n)
@@ -202,13 +219,18 @@
       ELSE
         x0(1:n) = work(1:n)
         fsq_min = fsq_nl
+	  IF (.NOT.l_Nonlinear) fsq_min = fsq_lin
       END IF
 
       gi%ftol = fsq_min
       x0 = bnorm*x0
       IF (lprint .AND. kprint.NE.kout) THEN
          xmod = SQRT(SUM(x0*x0));  xmax = MAXVAL(ABS(x0))
-         PRINT 910, kout, fsq_min, xmod, xmax, fsq_min_lin
+	   IF (l_NonLinear) THEN
+            PRINT 910, kout, fsq_min, xmod, xmax, fsq_min_lin
+         ELSE
+	      PRINT 911, kout, xmod, xmax, fsq_lin
+	   END IF
       END IF
 
       DEALLOCATE (work)
@@ -245,7 +267,7 @@
       REAL(dp), ALLOCATABLE, DIMENSION(:) :: aux, tmpbuf
       REAL(dp) :: skston, skstoff, xmax, xmod, bnorm, lsum, gsum
       LOGICAL, PARAMETER :: lfast=.FALSE.
-      LOGICAL  :: lactive = .TRUE., lprint, lStore
+      LOGICAL  :: lactive = .TRUE., lprint, lStore, l_NonLinear
 !-----------------------------------------------
 !
 !     EASY-TO-USE WRAPPER FOR GMRES PARALLEL DRIVER CALL
@@ -257,6 +279,7 @@
       lactive = gi%lactive
       MY_COMM_WORLD = gi%MY_COMM_WORLD
       MY_COMM       = gi%MY_COMM
+      l_nonlinear = gi%l_nonlinear
 
       fsq_min = 1; fsq_min_lin = 1
       delfsq = 1
@@ -409,7 +432,7 @@
            aux(myrowstart:myrowend) = work(colx:colx+nloc-1)
         END IF
 !get nonlinear force
-        CALL GetNLForce(aux, fsq_nl, bnorm)
+        IF (l_NonLinear) CALL GetNLForce(aux, fsq_nl, bnorm)
 
         fsq_lin = (rinfo(1)*bnorm)**2
         icount = icount+1
@@ -419,7 +442,13 @@
            
         IF (fsq_lin .LT. 1.E-30_dp) gi%icntl(7)=gi%info(1)
 
-        IF (lprint .AND. icount.EQ.1) PRINT 905
+        IF (lprint .AND. icount.EQ.1) THEN
+	     IF (l_nonlinear) THEN
+		    PRINT 905
+	     ELSE
+              PRINT 906
+	     END IF
+	  END IF
         kout = gi%info(1)
 
         LACTIVE1: IF (lactive) THEN
@@ -434,7 +463,13 @@
      1                     MY_COMM, MPI_ERR)
            xmax=bnorm*xmax
            kprint = kout
-           IF (lprint) PRINT 910, kout, fsq_nl, xmod, xmax, fsq_lin
+           IF (lprint) THEN
+		    IF (l_nonlinear) THEN
+			   PRINT 910, kout, fsq_nl, xmod, xmax, fsq_lin
+              ELSE
+			   PRINT 911, kout, xmod, xmax, fsq_lin
+              END IF
+	     END IF
         END IF
 
         END IF LACTIVE1
@@ -461,7 +496,9 @@
       ENDIF REVCOM_LOOP
 
  905  FORMAT(1x,'ITER',7x,'FSQ_NL',10x,'||X||',9x,'MAX|X|',9x,'FSQ_ARN')
+ 906  FORMAT(1x,'ITER',7x,'||X||',11x,'MAX|X|',9x,'FSQ_ARN')
  910  FORMAT(i5, 4(3x,1pe12.3))
+ 911  FORMAT(i5, 3(3x,1pe12.3))
 
 !*******************************
 ! end reverse loop: dump the solution to a file for debugging
@@ -509,7 +546,11 @@
 
       IF (lprint .AND. kout.NE.kprint) THEN
          xmod = SQRT(SUM(x0*x0)); xmax = MAXVAL(ABS(x0))
-         PRINT 910, kout, fsq_min, xmod, xmax, fsq_min_lin
+	   IF (l_NonLinear) THEN
+            PRINT 910, kout, fsq_min, xmod, xmax, fsq_min_lin
+         ELSE
+	      PRINT 911, kout, xmod, xmax, fsq_lin
+	   END IF
       END IF
 
       gi%ftol = fsq_min

@@ -2,7 +2,7 @@
 !
 !     USAGE:
 !
-!     Use READ_BOOZ_MOD to include variables dynamically ALlocated
+!     Use READ_BOOZER_MOD to include variables dynamically ALlocated
 !     in the module
 !     Call DEALLOCATE_READ_BOOZER to free this memory when it is no longer needed
 !

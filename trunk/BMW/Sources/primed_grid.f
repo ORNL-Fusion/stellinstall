@@ -231,7 +231,7 @@
 !$OMP END WORKSHARE
       END IF
 
-!$OMP DO
+!$OMP DO SIMD
 !$OMP& SCHEDULE(STATIC)
       DO i = bmw_parallel_context_start(parallel, num_u),                      &
      &       bmw_parallel_context_end(parallel, num_u)
@@ -241,9 +241,9 @@
          cosmu_nyq(:,i) = COS(xm_nyq*x)
          sinmu_nyq(:,i) = SIN(xm_nyq*x)
       END DO
-!$OMP END DO
+!$OMP END DO SIMD
 
-!$OMP DO
+!$OMP DO SIMD
 !$OMP& SCHEDULE(STATIC)
       DO i = bmw_parallel_context_start(parallel, num_v_use),                  &
      &       bmw_parallel_context_end(parallel, num_v_use)
@@ -255,7 +255,7 @@
          cosnv_nyq(:,i) = COS(xn_nyq*x)
          sinnv_nyq(:,i) = SIN(xn_nyq*x)
       END DO
-!$OMP END DO
+!$OMP END DO SIMD
 
       IF (parallel%stride .gt. 1) THEN
 !$OMP SINGLE
@@ -279,7 +279,7 @@
          ALLOCATE(sinmn_nyq(mnmax_nyq))
       END IF
 
-!$OMP DO
+!$OMP DO SIMD
 !$OMP& SCHEDULE(STATIC)
       DO i = bmw_parallel_context_start(parallel, ns*num_u*num_v_use),         &
      &       bmw_parallel_context_end(parallel, ns*num_u*num_v_use)
@@ -339,7 +339,7 @@
          primed_grid_construct_both%y(si,ui,vi) = r*sinv(vi)
          primed_grid_construct_both%z(si,ui,vi) = z
       END DO
-!$OMP END DO
+!$OMP END DO SIMD
 
       DEALLOCATE(cosmn)
       DEALLOCATE(sinmn)
