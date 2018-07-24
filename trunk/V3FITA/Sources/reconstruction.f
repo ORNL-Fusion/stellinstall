@@ -1223,23 +1223,6 @@
          temp_work = 0.0
       END WHERE
 
-      DO i = 1, SIZE(this%j_svd_u, 1)
-         WRITE(*,*) this%j_svd_u(i,:)
-         WRITE(*,*)
-      END DO
-      WRITE(*,*)
-      WRITE(*,*)
-      DO i = 1, SIZE(this%j_svd_w)
-         WRITE(*,*) this%j_svd_w(i)
-         WRITE(*,*)
-      END DO
-      WRITE(*,*)
-      WRITE(*,*)
-      DO i = 1, SIZE(this%j_svd_vt, 1)
-         WRITE(*,*) this%j_svd_vt(i,:)
-         WRITE(*,*)
-      END DO
-
 !  U^T * e
       temp_work2 = MATMUL(TRANSPOSE(this%j_svd_u),                             &
      &                    this%e(:,this%current_step))

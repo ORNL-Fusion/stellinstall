@@ -173,7 +173,7 @@
 !$OMP END WORKSHARE
       END IF
 
-!$OMP DO SIMD
+!$OMP DO
 !$OMP& SCHEDULE(STATIC)
       DO i = bmw_parallel_context_start(parallel, num_r),                      &
      &       bmw_parallel_context_end(parallel, num_r)
@@ -181,17 +181,17 @@
          r_p(i) = r(i) + mgrid%dr
          r_m(i) = r(i) - mgrid%dr
       END DO
-!$OMP END DO SIMD
+!$OMP END DO
 
-!$OMP DO SIMD
+!$OMP DO
 !$OMP& SCHEDULE(STATIC)
       DO i = bmw_parallel_context_start(parallel, num_z),                      &
      &       bmw_parallel_context_end(parallel, num_z)
          z(i) = (i - 1.0)*mgrid%dz + mgrid%zmin
       END DO
-!$OMP END DO SIMD
+!$OMP END DO
 
-!$OMP DO SIMD
+!$OMP DO
 !$OMP& SCHEDULE(STATIC)
       DO i = bmw_parallel_context_start(parallel, num_p),                      &
      &       bmw_parallel_context_end(parallel, num_p)
@@ -199,7 +199,7 @@
          cosv(i) = COS(x)
          sinv(i) = SIN(x)
       END DO
-!$OMP END DO SIMD
+!$OMP END DO
 
 !$OMP SINGLE
       IF (parallel%stride .gt. 1) THEN
@@ -218,7 +218,7 @@
      &            SIZE(pgrid%x, 2),                                            &
      &            SIZE(pgrid%x, 3)))
 
-!$OMP DO SIMD
+!$OMP DO
 !$OMP& SCHEDULE(STATIC)
       DO i = bmw_parallel_context_start(parallel, num_r*num_z*num_p),          &
      &       bmw_parallel_context_end(parallel, num_r*num_z*num_p)
@@ -256,7 +256,7 @@
          unprimed_grid_construct_m%a_z(ri,zi,vi) =                             &
      &      SUM(pgrid%j_z/rp)*pgrid%dvol + mgrid%a_z(ri,zi,vi)
       END DO
-!$OMP END DO SIMD
+!$OMP END DO
 
       DEALLOCATE(rp)
 
@@ -273,7 +273,7 @@
       END IF
 !$OMP END SINGLE
 
-!$OMP DO SIMD
+!$OMP DO
 !$OMP& SCHEDULE(STATIC)
       DO i = bmw_parallel_context_start(parallel, num_p*num_r*num_z),          &
      &       bmw_parallel_context_end(parallel, num_p*num_r*num_z)
@@ -332,7 +332,7 @@
 
          END IF
       END DO
-!$OMP END DO SIMD
+!$OMP END DO
 !$OMP END PARALLEL
 
       IF (parallel%stride .gt. 1) THEN
@@ -459,7 +459,7 @@
 !$OMP END WORKSHARE
       END IF
 
-!$OMP DO SIMD
+!$OMP DO
 !$OMP& SCHEDULE(STATIC)
       DO i = bmw_parallel_context_start(parallel, num_1),                      &
      &       bmw_parallel_context_end(parallel, num_1)
@@ -467,7 +467,7 @@
          cosv(i) = COS(phi(i))
          sinv(i) = SIN(phi(i))
       END DO
-!$OMP END DO SIMD
+!$OMP END DO
 
 !$OMP SINGLE
       IF (parallel%stride .gt. 1) THEN
@@ -481,7 +481,7 @@
      &            SIZE(pgrid%x, 2),                                            &
      &            SIZE(pgrid%x, 3)))
 
-!$OMP DO SIMD
+!$OMP DO
 !$OMP& SCHEDULE(STATIC)
       DO i = bmw_parallel_context_start(parallel, num_1*num_2*num_3),          &
      &       bmw_parallel_context_end(parallel, num_1*num_2*num_3)
@@ -532,7 +532,7 @@
 !  vector potential.
 
       END DO
-!$OMP END DO SIMD
+!$OMP END DO
 
       DEALLOCATE(rp)
 

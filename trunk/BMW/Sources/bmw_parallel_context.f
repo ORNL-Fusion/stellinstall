@@ -512,7 +512,6 @@
 !>  @returns The index of the i dimension.
 !-------------------------------------------------------------------------------
       PURE FUNCTION bmw_parallel_context_i(index, num_i)
-!!$OMP DECLARE SIMD(bmw_parallel_context_i)
 
       IMPLICIT NONE
 
@@ -538,7 +537,6 @@
 !>  @returns The index of the j dimension.
 !-------------------------------------------------------------------------------
       PURE FUNCTION bmw_parallel_context_j(index, num_i, num_j)
-!!$OMP DECLARE SIMD(bmw_parallel_context_j)
 
       IMPLICIT NONE
 
@@ -565,7 +563,6 @@
 !>  @returns The index of the k dimension.
 !-------------------------------------------------------------------------------
       PURE FUNCTION bmw_parallel_context_k(index, num_i, num_j)
-!!$OMP DECLARE SIMD(bmw_parallel_context_k)
 
       IMPLICIT NONE
 

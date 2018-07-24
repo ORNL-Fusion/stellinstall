@@ -1057,8 +1057,6 @@
          step = step/param_div_factor
       END DO
 
-      WRITE (*,*) new_value
-
       CALL model_set_param(a_model, this%param_id, this%indices(1),            &
      &                     this%indices(2), new_value, eq_comm)
 
