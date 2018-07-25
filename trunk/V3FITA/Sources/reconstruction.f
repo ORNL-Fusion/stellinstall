@@ -1686,7 +1686,6 @@
 !  local variables
       INTEGER                                            :: k_use
       INTEGER                                            :: i, j
-      REAL (rprec), DIMENSION(:), ALLOCATABLE            :: param_value
       REAL (rprec)                                       :: step_use
       REAL (rprec)                                       :: start_time
       LOGICAL                                            :: temp
@@ -1713,13 +1712,6 @@
          CALL param_sync_delta(params(i)%p, recon_comm)
       END DO
 #endif
-
-      ALLOCATE(param_value(SIZE(params)))
-
-!  Save the parameter values.
-      DO i = 1, SIZE(params)
-         param_value(i) = param_get_value(params(i)%p, a_model)
-      END DO
 
 !  Set the initial step size.
       step_use = this%step_max
@@ -1784,23 +1776,6 @@
 !  current step to the last good step.
          this%current_step = this%current_step - 1
 
-!  If the step failed, reset the param values so that they remain in sync with
-!  the step.
-         DO j = 1, SIZE(params)
-            CALL param_set_value(params(j)%p, a_model, param_value(j),         &
-     &                           eq_comm, this%use_central)
-         END DO
-         DO j = 1, SIZE(locks)
-            CALL param_set_lock_value(locks(j)%p, a_model, eq_comm)
-         END DO
-
-!  Reset the model state back to the last step. The state of the last step was
-!  saved before the jacobian was computed. This needs to be called after the
-!  parameters are reset so that the model is flagged to the converged state.
-!  Otherwise the model will try to converge again producing an incorrect wout
-!  file.
-         CALL model_reset_state(a_model)
-
          IF (i .eq. reconstruction_max_step_try) THEN
 !  The signals contain cached values. If the step fails recompute the modeled
 !  signals so that values written to the recout match the result file.
@@ -1817,8 +1792,6 @@
          WRITE (*,*) 'Changing max step size to ', step_use
          WRITE (iou,*) 'Changing max step size to ', step_use
       END DO
-
-      DEALLOCATE(param_value)
 
       CALL profiler_set_stop_time('reconstruction_step', start_time)
 
@@ -2083,6 +2056,28 @@
 !  Ensure that parent had a chance sync the child equilibrium before it gets
 !  reset. See below.
          CALL MPI_BARRIER(recon_comm, error)
+
+!  If the equilibrium failed to converge reset the parameters and equilibrium.
+         IF ((best_index                   .lt. 0) .or.                        &
+     &       (reconstruction_get_dg2(this) .lt. 0.0)) THEN
+!  The step failed, reset the param values so that they remain in sync with the
+!  step.
+             DO i = 1, SIZE(params)
+                CALL param_set_value(params(i)%p, a_model,                     &
+     &                               param_value(i), eq_comm,                  &
+     &                               this%use_central)
+             END DO
+             DO i = 1, SIZE(locks)
+                CALL param_set_lock_value(locks(i)%p, a_model, eq_comm)
+             END DO
+
+!  Reset the model state back to the last step. The state of the last step was
+!  saved before the jacobian was computed. This needs to be called after the
+!  parameters are reset so that the model is flagged to the converged state.
+!  Otherwise the model will try to converge again producing an incorrect wout
+!  file.
+             CALL model_reset_state(a_model)
+         END IF
       ELSE
 
          IF (mpi_rank .eq. best_index) THEN
