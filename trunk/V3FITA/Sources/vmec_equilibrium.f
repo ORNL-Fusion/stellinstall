@@ -3409,7 +3409,7 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
       vmec_get_sxrem_cart = vmec_get_sxrem(this,                               &
-     &                                     vmec_get_flux(this, x_cart),           &
+     &                                     vmec_get_flux(this, x_cart),        &
      &                                     index)
 
       CALL profiler_set_stop_time('vmec_get_sxrem_cart', start_time)
@@ -3759,6 +3759,8 @@
       vmec_get_flux = vmec_get_s(this, x_cart)
 
       IF (.not.lrfp) THEN
+!  VMEC can redistribute the radial grid. This converts even spaced internal
+!  grid to the normalized flux.
          vmec_get_flux = torflux(vmec_get_flux)
       END IF
 
