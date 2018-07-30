@@ -11,9 +11,7 @@
 
       MODULE reconstruction
       USE stel_kinds
-      USE v3fit_params
-      USE signal
-      USE model
+      USE guassian_process
       USE profiler
 
       IMPLICIT NONE
@@ -56,8 +54,6 @@
          LOGICAL                               :: use_central = .false.
 !>  Counter to track the step number.
          INTEGER                               :: current_step = 0
-!>  Index of the first parallelable signal.
-         INTEGER                               :: first_para_signal = 0
 !>  Index of the last parallelable signal.
          INTEGER                               :: last_para_signal = 0
 
@@ -162,8 +158,6 @@
 !>                                    @ref v3fit_input::cut_delta_a
 !>  @param[in] cut_dg2                Cutoff value for expected change in g^2.
 !>                                    @ref v3fit_input::cut_dg2
-!>  @param[in] first_para_signal      Index of the first signal that can be
-!>                                    parallelized.
 !>  @param[in] last_para_signal       Index of the last signal that can be
 !>                                    parallelized.
 !>  @param[in] cut_inv_svd            Cutoff value for the pseudo inverse
@@ -175,9 +169,8 @@
      &                                  num_parameters, step_type,             &
      &                                  step_max, cut_svd, cut_eff,            &
      &                                  cut_marg_eff, cut_delta_a,             &
-     &                                  cut_dg2, first_para_signal,            &
-     &                                  last_para_signal, cut_inv_svd,         &
-     &                                  use_central)
+     &                                  cut_dg2, last_para_signal,             &
+     &                                  cut_inv_svd, use_central)
 
       IMPLICIT NONE
 
@@ -194,7 +187,6 @@
       REAL (rprec), INTENT(in)             :: cut_marg_eff
       REAL (rprec), INTENT(in)             :: cut_delta_a
       REAL (rprec), INTENT(in)             :: cut_dg2
-      INTEGER, INTENT(in)                  :: first_para_signal
       INTEGER, INTENT(in)                  :: last_para_signal
       REAL (rprec), INTENT(in)             :: cut_inv_svd
       LOGICAL, INTENT(in)                  :: use_central
@@ -235,7 +227,6 @@
       reconstruction_construct%cut_delta_a = cut_delta_a
       reconstruction_construct%cut_dg2 = cut_dg2
 
-      reconstruction_construct%first_para_signal = first_para_signal
       reconstruction_construct%last_para_signal = last_para_signal
 
       reconstruction_construct%cut_inv_svd = cut_inv_svd
@@ -675,13 +666,14 @@
 !>  @param[inout] this     A @ref reconstruction_class instance.
 !>  @param[inout] signals  Array of @ref signal objects.
 !>  @param[inout] a_model  A @ref model instance.
+!>  @param[inout] gaussp   Array of @ref gaussp_class objects.
 !>  @param[inout] eq_steps Number of steps for the equilibrium to take.
 !>  @param[in]    iou      Input/output file to write log messages to.
 !>  @param[in]    eq_comm  MPI communicator for the child equilibrium processes.
 !>  @returns True if the equilibrium converged and false if otherwise.
 !-------------------------------------------------------------------------------
-      FUNCTION reconstruction_eval_e(this, signals, a_model, eq_steps,         &
-     &                               iou, eq_comm)
+      FUNCTION reconstruction_eval_e(this, signals, a_model, gaussp,           &
+     &                               eq_steps, iou, eq_comm)
 
       IMPLICIT NONE
 
@@ -690,6 +682,8 @@
       TYPE (reconstruction_class), INTENT(inout)         :: this
       TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
       TYPE (model_class), INTENT(inout)                  :: a_model
+      TYPE (gaussp_class_pointer), DIMENSION(:), INTENT(inout) ::              &
+     &   gaussp
       INTEGER, INTENT(inout)                             :: eq_steps
       INTEGER, INTENT(in)                                :: iou
       INTEGER, INTENT(in)                                :: eq_comm
@@ -703,20 +697,15 @@
 
 !  Converge the equilibrium. this%e is initialized to zero in the constructor.
       IF (model_converge(a_model, eq_steps, iou, eq_comm, 'All')) THEN
-
-!  Certian signals cannot be parallelized. Compute all the signals up to that
-!  point in parallel then continue in serial.
-      DO i = 1, this%first_para_signal - 1
-         this%e(i,this%current_step) =                                      &
-     &         signal_get_e(signals(i)%p, a_model, .false.,                    &
-     &                      this%last_values(:,i))
-      END DO
+         DO i = 1, SIZE(gaussp)
+            CALL gaussp_set_profile(gaussp(i)%p, a_model)
+         END DO
 
 !$OMP PARALLEL DO
 !$OMP& SCHEDULE(DYNAMIC)
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(i)
-         DO i = this%first_para_signal, this%last_para_signal
+         DO i = 1, this%last_para_signal
             this%e(i,this%current_step) =                                      &
      &         signal_get_e(signals(i)%p, a_model, .false.,                    &
      &                      this%last_values(:,i))
@@ -797,7 +786,7 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE reconstruction_eval_jacobians(this, signals,                  &
      &                                         derived_params, locks,          &
-     &                                         a_model, params,                &
+     &                                         a_model, gaussp, params,        &
      &                                         eq_steps, iou,                  &
      &                                         recon_comm, eq_comm)
       USE xstuff
@@ -811,6 +800,8 @@
      &   derived_params
       TYPE (param_pointer), DIMENSION(:), INTENT(in)     :: locks
       TYPE (model_class), INTENT(inout)                  :: a_model
+      TYPE (gaussp_class_pointer), DIMENSION(:), INTENT(inout) ::              &
+     &   gaussp
       TYPE (param_pointer), DIMENSION(:), INTENT(inout)  :: params
       INTEGER, INTENT(inout)                             :: eq_steps
       INTEGER, INTENT(in)                                :: iou
@@ -901,6 +892,9 @@
 !  in that parameter direction.
          IF (model_converge(a_model, eq_steps, iou, eq_comm,                   &
      &                      param_get_name(params(j)%p, a_model))) THEN
+            DO i = 1, SIZE(gaussp)
+               CALL gaussp_set_profile(gaussp(i)%p, a_model)
+            END DO
 
 !  Compute the normalized jacobian. d e_i/d a_j . Equation 12 in Hanson et. al.
 !  doi:10.1088/0029-5515/49/7/075031
@@ -936,16 +930,11 @@
 !  point in parallel then continue in serial. Store half the finite difference
 !  in the jacobian. Central difference only takes steps in a single direction so
 !  there is no need to normaize the direction.
-               DO i = 1, this%first_para_signal - 1
-                  this%jacobian(i,j) =                                         &
-     &               signal_get_e(signals(i)%p, a_model, .false.,              &
-     &                            this%last_values(:,i))
-               END DO
 !$OMP PARALLEL DO
 !$OMP& SCHEDULE(DYNAMIC)
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(i)
-               DO i = this%first_para_signal, this%last_para_signal
+               DO i = 1, this%last_para_signal
                   this%jacobian(i,j) =                                         &
      &               signal_get_e(signals(i)%p, a_model, .false.,              &
      &                            this%last_values(:,i))
@@ -979,21 +968,17 @@
                IF (model_converge(a_model, eq_steps, iou, eq_comm,             &
      &                            param_get_name(params(j)%p,                  &
      &                            a_model))) THEN
+                  DO i = 1, SIZE(gaussp)
+                     CALL gaussp_set_profile(gaussp(i)%p, a_model)
+                  END DO
 
 !  Find other half of the finite difference. Negate the jacobian to obtain a
 !  direction down hill.
-                  DO i = 1, this%first_para_signal - 1
-                     this%jacobian(i,j) =                                      &
-     &                  -this%jacobian(i,j) +                                  &
-     &                   signal_get_e(signals(i)%p, a_model, .false.,          &
-     &                                this%last_values(:,i))
-                  END DO
-
 !$OMP PARALLEL DO
 !$OMP& SCHEDULE(DYNAMIC)
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(i)
-                  DO i = this%first_para_signal, this%last_para_signal
+                  DO i = 1, this%last_para_signal
                      this%jacobian(i,j) =                                      &
      &                  -this%jacobian(i,j) +                                  &
      &                   signal_get_e(signals(i)%p, a_model, .false.,          &
@@ -1027,17 +1012,11 @@
 !  point in parallel then continue in serial. When using a single sided
 !  difference, the step may be taken in either direction. Normalize by the sign
 !  of the parameter delta.
-               DO i = 1, this%first_para_signal - 1
-                  this%jacobian(i,j) =                                         &
-     &               -(signal_get_e(signals(i)%p, a_model, .false.,            &
-     &                              this%last_values(:,i)) -                   &
-     &                this%e(i,this%current_step))
-               END DO
 !$OMP PARALLEL DO
 !$OMP& SCHEDULE(DYNAMIC)
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(i)
-               DO i = this%first_para_signal, this%last_para_signal
+               DO i = 1, this%last_para_signal
                   this%jacobian(i,j) =                                         &
      &               -(signal_get_e(signals(i)%p, a_model, .false.,            &
      &                              this%last_values(:,i)) -                   &
@@ -1120,7 +1099,7 @@
 !>  @returns The number of singular values to use.
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_eval_step(this, signals, derived_params,         &
-     &                                  locks, a_model, params,                &
+     &                                  locks, a_model, gaussp, params,        &
      &                                  eq_steps, iou, recon_comm,             &
      &                                  eq_comm)
 
@@ -1134,6 +1113,8 @@
      &   derived_params
       TYPE (param_pointer), DIMENSION(:), INTENT(in)     :: locks
       TYPE (model_class), INTENT(inout)                  :: a_model
+      TYPE (gaussp_class_pointer), DIMENSION(:), INTENT(inout) ::              &
+     &   gaussp
       TYPE (param_pointer), DIMENSION(:), INTENT(inout)  :: params
       INTEGER, INTENT(inout)                             :: eq_steps
       INTEGER, INTENT(in)                                :: iou
@@ -1163,7 +1144,7 @@
 #endif
 
       CALL reconstruction_eval_jacobians(this, signals, derived_params,        &
-     &                                   locks, a_model, params,               &
+     &                                   locks, a_model, gaussp, params,       &
      &                                   eq_steps, iou, recon_comm,            &
      &                                   eq_comm)
 
@@ -1655,6 +1636,7 @@
 !>  @param[inout] signals    Array of @ref signal objects.
 !>  @param[inout] locks      Array of @ref lock objects.
 !>  @param[inout] a_model    A @ref model instance.
+!>  @param[inout] gaussp     Array of @ref gaussp_class objects.
 !>  @param[inout] params     Array of @ref parameter objects.
 !>  @param[inout] eq_steps   Number of steps the equilibrium took.
 !>  @param[in]    iou        Input/output file to write log messages to.
@@ -1664,8 +1646,8 @@
 !>  @returns True if the step was successfull and false otherwise.
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_step(this, signals, derived_params,              &
-     &                             locks, a_model, params, eq_steps,           &
-     &                             iou, recon_comm, eq_comm)
+     &                             locks, a_model, gaussp, params,             &
+     &                             eq_steps, iou, recon_comm, eq_comm)
 
       IMPLICIT NONE
 
@@ -1677,6 +1659,8 @@
      &   derived_params
       TYPE (param_pointer), DIMENSION(:), INTENT(in)     :: locks
       TYPE (model_class), INTENT(inout)                  :: a_model
+      TYPE (gaussp_class_pointer), DIMENSION(:), INTENT(inout) ::              &
+     &   gaussp
       TYPE (param_pointer), DIMENSION(:), INTENT(inout)  :: params
       INTEGER, INTENT(inout)                             :: eq_steps
       INTEGER, INTENT(in)                                :: iou
@@ -1685,7 +1669,8 @@
 
 !  local variables
       INTEGER                                            :: k_use
-      INTEGER                                            :: i, j
+      INTEGER                                            :: i
+      INTEGER                                            :: j
       REAL (rprec)                                       :: step_use
       REAL (rprec)                                       :: start_time
       LOGICAL                                            :: temp
@@ -1698,8 +1683,9 @@
 
 !  Evaluate the quasi-Newton step.
       k_use = reconstruction_eval_step(this, signals, derived_params,          &
-     &                                 locks, a_model, params, eq_steps,       &
-     &                                 iou, recon_comm, eq_comm)
+     &                                 locks, a_model, gaussp, params,         &
+     &                                 eq_steps, iou, recon_comm,              &
+     &                                 eq_comm)
       this%num_sv(this%current_step + 1) = k_use
 
 !  Sync the results of the jacobian and singular value decomposition to the
@@ -1719,9 +1705,9 @@
       DO i = 1, reconstruction_max_step_try
 
          IF (reconstruction_try_step(this, signals, derived_params,            &
-     &                               locks, a_model, params, eq_steps,         &
-     &                               step_use, iou, recon_comm,                &
-     &                               eq_comm)) THEN
+     &                               locks, a_model, gaussp, params,           &
+     &                               eq_steps, step_use, iou,                  &
+     &                               recon_comm, eq_comm)) THEN
 
 !  Equilibrium converged
 
@@ -1780,7 +1766,7 @@
 !  The signals contain cached values. If the step fails recompute the modeled
 !  signals so that values written to the recout match the result file.
             temp = reconstruction_eval_e(this, signals, a_model,               &
-     &                                   eq_steps, iou, eq_comm)
+     &                                   gaussp, eq_steps, iou, eq_comm)
 
             WRITE (*,*) 'Reconstruction step failed.'
             WRITE (iou,*) 'Reconstruction step failed.'
@@ -1822,9 +1808,9 @@
 !>  @returns The lowest q^2 value.
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_try_step(this, signals, derived_params,          &
-     &                                 locks, a_model, params, eq_steps,       &
-     &                                 max_step, iou, recon_comm,              &
-     &                                 eq_comm)
+     &                                 locks, a_model, gaussp, params,         &
+     &                                 eq_steps, max_step, iou,                &
+     &                                 recon_comm, eq_comm)
 
       IMPLICIT NONE
 
@@ -1836,6 +1822,8 @@
      &   derived_params
       TYPE (param_pointer), DIMENSION(:), INTENT(in)     :: locks
       TYPE (model_class), INTENT(inout)                  :: a_model
+      TYPE (gaussp_class_pointer), DIMENSION(:), INTENT(inout) ::              &
+     &   gaussp
       TYPE (param_pointer), DIMENSION(:), INTENT(inout)  :: params
       INTEGER, INTENT(inout)                             :: eq_steps
       REAL (rprec), INTENT(inout)                        :: max_step
@@ -1970,7 +1958,7 @@
 !  reconstruction_eval_e writes the e array to the correct index.
       this%current_step = this%current_step + 1
       converged = reconstruction_eval_e(this, signals, a_model,                &
-     &                                  eq_steps, iou, eq_comm)
+     &                                  gaussp, eq_steps, iou, eq_comm)
 
 !  Search all the processes for the lowest value of g^2.
       best_index = -1
@@ -2600,18 +2588,11 @@
      &                            this%last_values)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
-!  Certian signals cannot be parallelized. Compute all the signals up to that
-!  point in parallel then continue in serial.
-      DO i = 1, this%first_para_signal - 1
-         this%e(i,this%current_step) =                                         &
-     &      signal_get_e(signals(i)%p, a_model, .false.,                       &
-     &                   this%last_values(:,i))
-      END DO
 !$OMP PARALLEL DO
 !$OMP& SCHEDULE(DYNAMIC)
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(i)
-      DO i = this%first_para_signal, this%last_para_signal
+      DO i = 1, this%last_para_signal
          this%e(i,this%current_step) =                                         &
      &      signal_get_e(signals(i)%p, a_model, .false.,                       &
      &                   this%last_values(:,i))

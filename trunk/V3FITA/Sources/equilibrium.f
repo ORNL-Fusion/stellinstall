@@ -657,6 +657,51 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
+!>  @brief Get the number of electron density gp kernel hyper parameters.
+!>
+!>  This method is virtual. The actual getting of the number of hyper parameters
+!>  should be handled by a subclass method.
+!>  @see vmec_equilibrium::vmec_get_gp_ne_num_hyper_param
+!>  @see siesta_equilibrium::siesta_get_gp_ne_num_hyper_param
+!>
+!>  @param[in] this A @ref equilibrium_class instance.
+!>  @returns Number of kernel hyper parameters.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_gp_ne_num_hyper_param(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER :: equilibrium_get_gp_ne_num_hyper_param
+      TYPE (equilibrium_class), INTENT(in) :: this
+
+!  local variables
+      REAL (rprec)                         :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_gp_ne_num_hyper_param =                            &
+     &         vmec_get_gp_ne_num_hyper_param(this%vmec)
+
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_gp_ne_num_hyper_param =                            &
+     &         siesta_get_gp_ne_num_hyper_param(this%siesta)
+
+         CASE DEFAULT
+            equilibrium_get_gp_ne_num_hyper_param = 0
+
+      END SELECT
+
+      CALL profiler_set_stop_time(                                             &
+     &        'equilibrium_get_gp_ne_num_hyper_param', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
 !>  @brief Get the electron density profile af array.
 !>
 !>  This method is virtual. The actual getting of the af array should be handled
@@ -940,6 +985,51 @@
 
       CALL profiler_set_stop_time('equilibrium_get_ne_radial',                 &
      &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the number of electron temperature gp kernel hyper parameters.
+!>
+!>  This method is virtual. The actual getting of the number of hyper parameters
+!>  should be handled by a subclass method.
+!>  @see vmec_equilibrium::vmec_get_gp_te_num_hyper_param
+!>  @see siesta_equilibrium::siesta_get_gp_ne_num_hyper_param
+!>
+!>  @param[in] this A @ref equilibrium_class instance.
+!>  @returns Number of kernel hyper parameters.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_gp_te_num_hyper_param(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER :: equilibrium_get_gp_te_num_hyper_param
+      TYPE (equilibrium_class), INTENT(in) :: this
+
+!  local variables
+      REAL (rprec)                         :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_gp_te_num_hyper_param =                            &
+     &         vmec_get_gp_te_num_hyper_param(this%vmec)
+
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_gp_te_num_hyper_param =                            &
+     &         siesta_get_gp_te_num_hyper_param(this%siesta)
+
+         CASE DEFAULT
+            equilibrium_get_gp_te_num_hyper_param = 0
+
+      END SELECT
+
+      CALL profiler_set_stop_time(                                             &
+     &        'equilibrium_get_gp_te_num_hyper_param', start_time)
 
       END FUNCTION
 
@@ -1322,6 +1412,53 @@
 
       CALL profiler_set_stop_time('equilibrium_get_ze_radial',                 &
      &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the number of soft x-ray emissivity gp kernel hyper parameters.
+!>
+!>  This method is virtual. The actual getting of the number of hyper parameters
+!>  should be handled by a subclass method.
+!>  @see vmec_equilibrium::vmec_get_gp_sxrem_num_hyper_param
+!>  @see siesta_equilibrium::siesta_get_gp_sxrem_num_hyper_param
+!>
+!>  @param[in] this  A @ref equilibrium_class instance.
+!>  @param[in] index Index of the soft x-ray emissivity profile to use.
+!>  @returns Number of kernel hyper parameters.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_gp_sxrem_num_hyper_param(this, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER :: equilibrium_get_gp_sxrem_num_hyper_param
+      TYPE (equilibrium_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                  :: index
+
+!  local variables
+      REAL (rprec)                         :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_gp_sxrem_num_hyper_param =                         &
+     &         vmec_get_gp_sxrem_num_hyper_param(this%vmec, index)
+
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_gp_sxrem_num_hyper_param =                         &
+     &         siesta_get_gp_sxrem_num_hyper_param(this%siesta, index)
+
+         CASE DEFAULT
+            equilibrium_get_gp_sxrem_num_hyper_param = 0
+
+      END SELECT
+
+      CALL profiler_set_stop_time(                                             &
+     &        'equilibrium_get_gp_sxrem_num_hyper_param', start_time)
 
       END FUNCTION
 

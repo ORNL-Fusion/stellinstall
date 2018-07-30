@@ -960,6 +960,65 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
+!>  @brief Get the number of electron density gp kernel hyper parameters.
+!>
+!>  Returns the number of availible hyper parameters in the electron density
+!>  guassian process kernel.
+!>
+!>  @param[in] this A @ref model_class instance.
+!>  @returns Number of kernel hyper parameters.
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_gp_ne_num_hyper_param(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER                        :: model_get_gp_ne_num_hyper_param
+      TYPE (model_class), INTENT(in) :: this
+
+!  local variables
+      REAL (rprec)                   :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      model_get_gp_ne_num_hyper_param =                                        &
+     &   equilibrium_get_gp_ne_num_hyper_param(this%equilibrium)
+
+      CALL profiler_set_stop_time('model_get_gp_ne_num_hyper_param',           &
+     &                            start_time)
+
+       END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the electron density profile af array.
+!>
+!>  Returns the af array for the electron density profile.
+!>
+!>  @param[in] this A @ref model_class instance.
+!>  @returns Number of kernel hyper parameters.
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_ne_af(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:), POINTER :: model_get_ne_af
+      TYPE (model_class), INTENT(in)      :: this
+
+!  local variables
+      REAL (rprec)                        :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      model_get_ne_af => equilibrium_get_ne_af(this%equilibrium)
+
+      CALL profiler_set_stop_time('model_get_ne_af', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
 !>  @brief Get the electron density gp kernel value for the two indicies.
 !>
 !>  Gets the electron density gp kernel for two points. This also sets the
@@ -1171,6 +1230,65 @@
       END SELECT
 
       CALL profiler_set_stop_time('model_get_ne_radial', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the number of electron temperature gp kernel hyper parameters.
+!>
+!>  Returns the number of availible hyper parameters in the electron temperature
+!>  guassian process kernel.
+!>
+!>  @param[in] this A @ref model_class instance.
+!>  @returns Number of kernel hyper parameters.
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_gp_te_num_hyper_param(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER                        :: model_get_gp_te_num_hyper_param
+      TYPE (model_class), INTENT(in) :: this
+
+!  local variables
+      REAL (rprec)                   :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      model_get_gp_te_num_hyper_param =                                        &
+     &   equilibrium_get_gp_te_num_hyper_param(this%equilibrium)
+
+      CALL profiler_set_stop_time('model_get_gp_te_num_hyper_param',           &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the electron temperature profile af array.
+!>
+!>  Returns the af array for the electron density profile.
+!>
+!>  @param[in] this A @ref model_class instance.
+!>  @returns Number of kernel hyper parameters.
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_te_af(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:), POINTER :: model_get_te_af
+      TYPE (model_class), INTENT(in)      :: this
+
+!  local variables
+      REAL (rprec)                        :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      model_get_te_af => equilibrium_get_te_af(this%equilibrium)
+
+      CALL profiler_set_stop_time('model_get_te_af', start_time)
 
       END FUNCTION
 
@@ -1463,6 +1581,71 @@
       END SELECT
 
       CALL profiler_set_stop_time('model_get_ze_radial', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the number of soft x-ray emission gp kernel hyper parameters.
+!>
+!>  Returns the number of availible hyper parameters in the soft x-ray emission
+!>  guassian process kernel.
+!>
+!>  @param[in] this  A @ref model_class instance.
+!>  @param[in] index Index of the soft x-ray emissivity profile.
+!>  @returns Number of kernel hyper parameters.
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_gp_sxrem_num_hyper_param(this, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER :: model_get_gp_sxrem_num_hyper_param
+      TYPE (model_class), INTENT(in) :: this
+      INTEGER, INTENT(in)            :: index
+
+!  local variables
+      REAL (rprec)                   :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      model_get_gp_sxrem_num_hyper_param =                                     &
+     &   equilibrium_get_gp_sxrem_num_hyper_param(this%equilibrium,            &
+     &                                            index)
+
+      CALL profiler_set_stop_time('model_get_gp_sxrem_num_hyper_param',        &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the soft x-ray emissivity profile af array.
+!>
+!>  Returns the af array for the electron density profile.
+!>
+!>  @param[in] this  A @ref model_class instance.
+!>  @param[in] index Index of the soft x-ray emissivity profile.
+!>  @returns Number of kernel hyper parameters.
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_sxrem_af(this, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:), POINTER :: model_get_sxrem_af
+      TYPE (model_class), INTENT(in)      :: this
+      INTEGER, INTENT(in)                 :: index
+
+!  local variables
+      REAL (rprec)                        :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      model_get_sxrem_af => equilibrium_get_sxrem_af(this%equilibrium,         &
+     &                                               index)
+
+      CALL profiler_set_stop_time('model_get_sxrem_af', start_time)
 
       END FUNCTION
 

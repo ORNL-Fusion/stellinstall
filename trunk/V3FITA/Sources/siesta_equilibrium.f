@@ -1672,6 +1672,42 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
+!>  @brief Get the number of electron density gp kernel hyper parameters.
+!>
+!>  This method overrides
+!>  @ref equilibrium::equilibrium_get_gp_ne_num_hyper_param. If no density
+!>  profile was created zero is returned.
+!>
+!>  @param[in] this A @ref siesta_class instance.
+!>  @returns Number of kernel hyper parameters.
+!-------------------------------------------------------------------------------
+      FUNCTION siesta_get_gp_ne_num_hyper_param(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER :: siesta_get_gp_ne_num_hyper_param
+      TYPE (siesta_class), INTENT(in) :: this
+
+!  local variables
+      REAL (rprec)                    :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (ASSOCIATED(this%ne)) THEN
+         siesta_get_gp_ne_num_hyper_param =                                    &
+     &      pprofile_get_gp_num_hyper_param(this%ne)
+      ELSE
+         siesta_get_gp_ne_num_hyper_param = 0
+      END IF
+
+      CALL profiler_set_stop_time('siesta_get_gp_ne_num_hyper_param',          &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
 !>  @brief Gets the electron density profile af array.
 !>
 !>  This method overrides @ref equilibrium::equilibrium_get_ne_af. If no density
@@ -1883,6 +1919,42 @@
      &   pprofile_get_value(this%ne, siesta_get_p(this, s, .true.))
 
       CALL profiler_set_stop_time('siesta_get_ne_radial', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the number of electron temperature gp kernel hyper parameters.
+!>
+!>  This method overrides
+!>  @ref equilibrium::equilibrium_get_gp_ne_num_hyper_param. If no electron
+!>  temperature profile was created zero is returned.
+!>
+!>  @param[in] this A @ref siesta_class instance.
+!>  @returns Number of kernel hyper parameters.
+!-------------------------------------------------------------------------------
+      FUNCTION siesta_get_gp_te_num_hyper_param(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER :: siesta_get_gp_te_num_hyper_param
+      TYPE (siesta_class), INTENT(in) :: this
+
+!  local variables
+      REAL (rprec)                    :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (ASSOCIATED(this%te)) THEN
+         siesta_get_gp_te_num_hyper_param =                                    &
+     &      pprofile_get_gp_num_hyper_param(this%te)
+      ELSE
+         siesta_get_gp_te_num_hyper_param = 0
+      END IF
+
+      CALL profiler_set_stop_time('siesta_get_gp_te_num_hyper_param',          &
+     &                            start_time)
 
       END FUNCTION
 
@@ -2103,6 +2175,45 @@
      &   pprofile_get_value(this%te, siesta_get_p(this, s, .true.))
 
       CALL profiler_set_stop_time('siesta_get_te_radial', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the number of soft x-ray emission gp kernel hyper parameters.
+!>
+!>  This method overrides
+!>  @ref equilibrium::equilibrium_get_gp_sxrem_num_hyper_param. If no soft x-ray
+!>  emission profile was created zero is returned.
+!>
+!>  @param[in] this  A @ref vmec_class instance.
+!>  @param[in] index Index of the soft x-ray emissivity profile.
+!>  @returns Number of kernel hyper parameters.
+!-------------------------------------------------------------------------------
+      FUNCTION siesta_get_gp_sxrem_num_hyper_param(this, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER :: siesta_get_gp_sxrem_num_hyper_param
+      TYPE (siesta_class), INTENT(in) :: this
+      INTEGER, INTENT(in)             :: index
+
+!  local variables
+      REAL (rprec)                    :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (ASSOCIATED(this%sxrem) .and.                                         &
+     &    (index .le. SIZE(this%sxrem))) THEN
+         siesta_get_gp_sxrem_num_hyper_param =                                 &
+     &      pprofile_get_gp_num_hyper_param(this%sxrem(index)%p)
+      ELSE
+         siesta_get_gp_sxrem_num_hyper_param = 0
+      END IF
+
+      CALL profiler_set_stop_time('siesta_get_gp_sxrem_num_hyper_param',       &
+     &                            start_time)
 
       END FUNCTION
 

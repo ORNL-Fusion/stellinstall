@@ -2713,6 +2713,42 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
+!>  @brief Get the number of electron density gp kernel hyper parameters.
+!>
+!>  This method overrides
+!>  @ref equilibrium::equilibrium_get_gp_ne_num_hyper_param. If no density
+!>  profile was created zero is returned.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @returns Number of kernel hyper parameters.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_gp_ne_num_hyper_param(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER                       :: vmec_get_gp_ne_num_hyper_param
+      TYPE (vmec_class), INTENT(in) :: this
+
+!  local variables
+      REAL (rprec)                  :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (ASSOCIATED(this%ne)) THEN
+         vmec_get_gp_ne_num_hyper_param =                                      &
+     &      pprofile_get_gp_num_hyper_param(this%ne)
+      ELSE
+         vmec_get_gp_ne_num_hyper_param = 0
+      END IF
+
+      CALL profiler_set_stop_time('vmec_get_gp_ne_num_hyper_param',            &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
 !>  @brief Gets the electron density profile af array.
 !>
 !>  This method overrides @ref equilibrium::equilibrium_get_ne_af. If no density
@@ -2926,6 +2962,42 @@
       END IF
 
       CALL profiler_set_stop_time('vmec_get_ne_radial', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the number of electron temperature gp kernel hyper parameters.
+!>
+!>  This method overrides
+!>  @ref equilibrium::equilibrium_get_gp_te_num_hyper_param. If no electron
+!>  temperature profile was created zero is returned.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @returns Number of kernel hyper parameters.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_gp_te_num_hyper_param(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER                       :: vmec_get_gp_te_num_hyper_param
+      TYPE (vmec_class), INTENT(in) :: this
+
+!  local variables
+      REAL (rprec)                  :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (ASSOCIATED(this%te)) THEN
+         vmec_get_gp_te_num_hyper_param =                                      &
+     &      pprofile_get_gp_num_hyper_param(this%te)
+      ELSE
+         vmec_get_gp_te_num_hyper_param = 0
+      END IF
+
+      CALL profiler_set_stop_time('vmec_get_gp_te_num_hyper_param',            &
+     &                            start_time)
 
       END FUNCTION
 
@@ -3209,6 +3281,45 @@
       END IF
 
       CALL profiler_set_stop_time('vmec_get_ze_radial', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the number of soft x-ray emission gp kernel hyper parameters.
+!>
+!>  This method overrides
+!>  @ref equilibrium::equilibrium_get_gp_sxrem_num_hyper_param. If no soft x-ray
+!>  emission profile was created zero is returned.
+!>
+!>  @param[in] this  A @ref vmec_class instance.
+!>  @param[in] index Index of the soft x-ray emissivity profile.
+!>  @returns Number of kernel hyper parameters.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_gp_sxrem_num_hyper_param(this, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER                       :: vmec_get_gp_sxrem_num_hyper_param
+      TYPE (vmec_class), INTENT(in) :: this
+      INTEGER, INTENT(in)           :: index
+
+!  local variables
+      REAL (rprec)                  :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (ASSOCIATED(this%sxrem) .and.                                         &
+     &    (index .le. SIZE(this%sxrem))) THEN
+         vmec_get_gp_sxrem_num_hyper_param =                                   &
+     &      pprofile_get_gp_num_hyper_param(this%sxrem(index)%p)
+      ELSE
+         vmec_get_gp_sxrem_num_hyper_param = 0
+      END IF
+
+      CALL profiler_set_stop_time('vmec_get_gp_sxrem_num_hyper_param',         &
+     &                            start_time)
 
       END FUNCTION
 

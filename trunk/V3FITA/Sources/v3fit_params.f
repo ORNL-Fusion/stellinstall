@@ -222,7 +222,7 @@
 !>  @param[in] range_value    Value of a boundary.
 !>  @param[in] num_signals    Number of signals. Used to determine the size of
 !>                            the @ref param_recon_class::sem arrays.
-!>  @param[in] num_params     Number of parameters. USed to determine the size
+!>  @param[in] num_params     Number of parameters. Used to determine the size
 !>                            of the @ref param_class::correlation arrays.
 !>  @returns A pointer to a constructed @ref param_class object.
 !-------------------------------------------------------------------------------
@@ -1051,7 +1051,7 @@
                this%recon%delta = -step
                EXIT
             END IF
-      END IF
+         END IF
 
 !  Decrease the step and try again.
          step = step/param_div_factor

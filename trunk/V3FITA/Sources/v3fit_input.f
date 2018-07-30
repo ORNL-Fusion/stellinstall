@@ -264,24 +264,23 @@
 !>  @end_table
 !>
 !>  @table_section{gp_sec, Guassian process signal variables}
-!>     @item{n_gpsig,          Number of gaussian process signals.,                v3fit_input::n_gpsig}
-!>     @item{n_sig_gpsig,      Number of signals in a gaussian process signal.,    v3fit_input::n_sig_gpsig}
-!>     @item{gpsig_indices,    Indices of the signals to include in the GP.,       v3fit_input::gpsig_indices}
-!>     @item{gpsig_model_type, Gaussian process profile the guassian process uses.
-!>                             -# @fixed_width{'none'}  No profile.
-!>                             -# @fixed_width{'te'}    Temperature profile.
-!>                             -# @fixed_width{'ne'}    Denisty profile.
-!>                             -# @fixed_width{'sxrem'} Soft X-ray profile.,       v3fit_input::gpsig_model_type}
-!>     @item{gpsig_model_id,   Profile index.,                                     v3fit_input::gpsig_model_id}
-!>     @item{gpsig_name,       Name of the Gaussian Process.,                      v3fit_input::gpsig_name}
-!>     @item{gpsig_units,      Units of the Gausssian Process,                     v3fit_input::gpsig_units}
-!>     @item{gp_cholesky_fact, The Gaussian process uses a cholesky decompositions
-!>                             to factor a matrix. It assumes that the matrix is
-!>                             positive def. Which is true analytically. This
-!>                             input can be used to add a small offset to the
-!>                             matrix to insure positive def.,                     v3fit_input::gp_cholesky_fact}
-!>     @item{gp_chi2_offset,   Offset added to the GP LOG EVIDENCE to insure that
-!>                             it is positive.,                                    v3fit_input::gp_chi2_offset}
+!>     @item{n_gp,              Number of gaussian processes.,                      v3fit_input::n_gp}
+!>     @item{n_gp_signal,       Number of signals in a gaussian process signal.,    v3fit_input::n_gp_signal}
+!>     @item{gp_signal_indices, Indices of the signals to include in the GP.,       v3fit_input::gp_signal_indices}
+!>     @item{gp_model_type,     Gaussian process profile the guassian process uses.
+!>                              -# @fixed_width{'none'}  No profile.
+!>                              -# @fixed_width{'te'}    Temperature profile.
+!>                              -# @fixed_width{'ne'}    Denisty profile.
+!>                              -# @fixed_width{'sxrem'} Soft X-ray profile.,       v3fit_input::gp_model_type}
+!>     @item{gp_model_index,    Profile index.,                                     v3fit_input::gp_model_index}
+!>     @item{gp_param_vrnc,     Array of Gaussian process parameter variances.,     v3fit_input::gp_param_vrnc}
+!>     @item{gp_tolerance,      Stopping criteria for the gradient ascent to
+!>                              maximize the log of the evidence.,                  v3fit_input::gp_tolerance}
+!>     @item{gp_cholesky_fact,  The Gaussian process uses a cholesky decompositions
+!>                              to factor a matrix. It assumes that the matrix is
+!>                              positive def. Which is true analytically. This
+!>                              input can be used to add a small offset to the
+!>                              matrix to insure positive def.,                     v3fit_input::gp_cholesky_fact}
 !>  @end_table
 !>
 !>  @table_section{coosig_sec, COOSIG - Combination Of Other SIGnals NLI Variables}
@@ -1042,32 +1041,29 @@
 
 !  Gaussian Process Signals specification.
 !>  Number of gaussian process signals.
-      INTEGER :: n_gpsig = 0
+      INTEGER :: n_gp = 0
 !>  Number of signals in a gaussian process signal.
-      INTEGER, DIMENSION(max_gaussprocess) :: n_sig_gpsig = 0
+      INTEGER, DIMENSION(max_gaussprocess) :: n_gp_signal = 0
 !>  Indices of the number signals to include in the GP. Number of indices needs
 !>  to match @ref n_sig_gpsig.
       INTEGER, DIMENSION(max_gaussprocess,v3fit_max_signals) ::                &
-     &   gpsig_indices = 0
+     &   gp_signal_indices = 0
 !>  Gaussian process model type. @see signal
-      CHARACTER(len=gaussp_type_length),                                       &
-     &   DIMENSION(max_gaussprocess) :: gpsig_model_type = 'none'
+      CHARACTER(len=data_short_name_length),                                   &
+     &   DIMENSION(max_gaussprocess) :: gp_model_type = 'none'
 !>  Gaussian process model type ID for models with multiple profiles.
-      INTEGER, DIMENSION(max_gaussprocess) :: gpsig_model_id = 0
-!>  Name of the Gaussian Process.
-      CHARACTER (len=data_name_length),                                        &
-     &   DIMENSION(max_gaussprocess) :: gpsig_name = ''
-!>  Units of the Gausssian Process
-      CHARACTER (len=data_short_name_length),                                  &
-     &   DIMENSION(max_gaussprocess) :: gpsig_units = ''
+      INTEGER, DIMENSION(max_gaussprocess) :: gp_model_index = 0
+!>  Variances for the hyper parameters.
+      REAL(rprec), DIMENSION(max_gaussprocess, v3fit_max_parameters) ::        &
+     &   gp_param_vrnc = 0.001
+!>  Convergence criteria for the gradient ascent to maximize the log of the
+!>  evidence.
+      REAL(rprec), DIMENSION(max_gaussprocess) :: gp_tolerance = 1.0E-4
 !>  The Gaussian process uses a cholesky decompositions to factor a matrix. It
 !>  assumes that the matrix is positive def. Which is true analytically. This
 !>  input can be used to add a small offset to the matrix to insure positive
 !>  def.
       REAL(rprec), DIMENSION(max_gaussprocess) :: gp_cholesky_fact = 0.0
-!>  Offset added to the GP LOG EVIDENCE to insure that it is positive
-      REAL (rprec), DIMENSION(max_gaussprocess) ::                             &
-     &   gp_chi2_offset = 0.0
 
 !  Integration parameters.
 !>  Integation method. The evaultion the K_LL matrix can require multipe
@@ -1195,9 +1191,8 @@
      &   n_coosig, n_sig_coosig, coosig_indices, coosig_coeff,                 &
      &   coosig_type, coosig_name, coosig_units, coosig_wgts_id,               &
 !  Gaussian Process Signals specification.
-     &   n_gpsig, n_sig_gpsig, gpsig_indices, gpsig_model_type,                &
-     &   gpsig_model_id, gpsig_name, gpsig_units, gp_cholesky_fact,            &
-     &   gp_chi2_offset,                                                       &
+     &   n_gp, n_gp_signal, gp_signal_indices, gp_model_type,                  &
+     &   gp_model_index, gp_param_vrnc, gp_tolerance, gp_cholesky_fact,        &
 !  Integration parameters.
      &   int_method, int_num_points, int_size,                                 &
 !  Initial PLasma Offsets.

@@ -10,63 +10,80 @@
 !*******************************************************************************
       MODULE guassian_process
       USE signal
+      USE pprofile_T
+      USE v3fit_params
 
 !*******************************************************************************
 !  gaussian process module parameters
 !*******************************************************************************
-!>  Maximum length of the gaussp2 type descritpion string.
-      INTEGER, PARAMETER :: gaussp2_type_length = 10
-
 !>  Type descriptor for  the gaussian process type no type.
-      INTEGER, PARAMETER :: gaussp2_no_type     = -1
+      INTEGER, PARAMETER :: gaussp_no_type    = -1
 !>  Type descriptor for the gaussian process sxrem type.
-      INTEGER, PARAMETER :: gaussp2_sxrem_type  = 0
+      INTEGER, PARAMETER :: gaussp_ne_type    = 0
 !>  Type descriptor for the gaussian process te type.
-      INTEGER, PARAMETER :: gaussp2_te_type     = 1
+      INTEGER, PARAMETER :: gaussp_te_type    = 1
 !>  Type descriptor for the gaussian process ne type.
-      INTEGER, PARAMETER :: gaussp2_ne_type     = 2
+      INTEGER, PARAMETER :: gaussp_sxrem_type = 2
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) gaussian process base class
+!  2) gaussian process pointer type
 !
 !*******************************************************************************
-
 !-------------------------------------------------------------------------------
 !>  Base class representing a gaussian process.
 !-------------------------------------------------------------------------------
-      TYPE gaussp2_class
+      TYPE gaussp_class
 !>  Type descriptor of the gaussian procees type.
 !>  @par Possible values are:
-!>  * @ref gaussp2_no_type
-!>  * @ref gaussp2_sxrem_type
-!>  * @ref gaussp2_te_type
-!>  * @ref gaussp2_ne_type
+!>  * @ref gaussp_no_type
+!>  * @ref gaussp_sxrem_type
+!>  * @ref gaussp_te_type
+!>  * @ref gaussp_ne_type
 !  Keep for now, but this might not be needed later.
-         INTEGER :: type = gaussp2_no_type
+         INTEGER :: type = gaussp_no_type
 
 !>  Array of @ref signal_pointer
          TYPE (signal_pointer), DIMENSION(:), POINTER ::                       &
      &      signals => null()
 
+!>  Gradient ascent convergence stop.
+         REAL (rprec)                          :: tolerance
+
 !>  Matrix of signal profile.
-      REAL (rprec), DIMENSION(:,:), POINTER :: kls => null()
+         REAL (rprec), DIMENSION(:,:), POINTER :: kls => null()
 !>  Matrix of signal signal.
-      REAL (rprec), DIMENSION(:,:), POINTER :: kll => null()
+         REAL (rprec), DIMENSION(:,:), POINTER :: kll => null()
 !>  Work matrix for the cholesky factorization.
-      REAL (rprec), DIMENSION(:,:), POINTER :: work => null()
+         REAL (rprec), DIMENSION(:,:), POINTER :: work => null()
 !>  Positive factor to add to the diagonal entries of the matrix before
 !>  factoring.
-         REAL (rprec)                   :: cholesky_fac
+         REAL (rprec)                          :: cholesky_fac
 
 !>  Profile index for sxrem profiles.
          INTEGER  :: profile_index = -1
 
-!>  Offset to add to the log evidence.
-         REAL (rprec) :: chi2_offset
-
 !>  Pointer to the profile af array.
-         REAL (rprec), DIMENSION(:), POINTER :: fpoints => null()
+         REAL (rprec), DIMENSION(:), POINTER   :: fpoints => null()
+
+!>  Array of hyper parameters.
+         TYPE (param_pointer), DIMENSION(:), POINTER ::                        &
+     &      params => null()
+
+!>  Log file input output unit.
+         INTEGER                               :: iou
+      END TYPE
+
+!-------------------------------------------------------------------------------
+!>  Pointer to a gaussian process object. Used for creating arrays of gaussian
+!>  process pointers. This is needed because fortran does not allow arrays of
+!>  pointers directly.
+!-------------------------------------------------------------------------------
+      TYPE gaussp_class_pointer
+!>  Pointer to a @ref gaussp_class. Used for building arrays of
+!>  @ref gaussp_class objects.
+         TYPE (gaussp_class), POINTER :: p => null()
       END TYPE
 
       CONTAINS
@@ -74,79 +91,137 @@
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  @brief Construct a @ref gaussp2_class.
+!>  @brief Construct a @ref gaussp_class.
 !>
-!>  Allocates memory and initializes a @ref gaussp2_class object. This just
-!>  allocates the @ref gaussp2_class::signals, @ref gaussp2_class::a
+!>  Allocates memory and initializes a @ref gaussp_class object. This just
+!>  allocates the @ref gaussp_class::signals, @ref gaussp_class::a
 !>  array, and matrixices for the GP computataion.  The indices of these arrays
-!>  are set by @ref gaussp2_set_signal, and the matrices are calculated in
-!>  @ref gaussp2_get_modeled_signal
+!>  are set by @ref gaussp_set_signal, and the matrices are calculated in
+!>  @ref gaussp_get_modeled_signal
 !>
+!>  @param[in] a_model       A @ref model::model_class instance.
 !>  @param[in] n_signals     Number of signals in this gaussian process.
-!>  @param[in] eq            Pointer to the
-!>                           @ref equilibrium::equilibrium_class model.
-!>  @param[in] gaussp2_type   The type of profile modeled by the gaussian
+!>  @param[in] gaussp_type   The type of profile modeled by the gaussian
 !>                           process.
 !>  @param[in] profile_index Index of the profile of the sxrem profile.
+!>  @param[in] vrnc          Variance values for the hyper parameters.
+!>  @param[in] tolerance     Convergence value to maximize the log evidence.
 !>  @param[in] choleskey_fac Value added to diagnoal element to ensure K is PSD.
-!>  @returns A pointer to a constructed @ref gaussp2_class object.
+!>  @returns A pointer to a constructed @ref gaussp_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION gaussp2_construct(n_signals, eq, gaussp2_type,                  &
-     &                           profile_index, cholesky_fac,                  &
-     &                           chi2_offset)
-      USE equilibrium
+      FUNCTION gaussp_construct(a_model, n_signals, gaussp_type,               &
+     &                          profile_index, vrnc, tolerance,                &
+     &                          cholesky_fac)
+      USE data_parameters
+      USE safe_open_mod
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (gaussp2_class), POINTER :: gaussp2_construct
-      INTEGER, INTENT(in)                             :: n_signals
-      TYPE (equilibrium_class), POINTER, INTENT(in)   :: eq
-      INTEGER, INTENT(in)                             :: profile_index
-      CHARACTER (len=gaussp2_type_length), INTENT(in) :: gaussp2_type
-      REAL (rprec)                                    :: cholesky_fac
-      REAL (rprec), INTENT(in)                        :: chi2_offset
+      TYPE (gaussp_class), POINTER         :: gaussp_construct
+      TYPE (model_class), INTENT(in)       :: a_model
+      INTEGER, INTENT(in)                  :: n_signals
+      INTEGER, INTENT(in)                  :: profile_index
+      CHARACTER(len=*), INTENT(in)         :: gaussp_type
+      REAL (rprec), DIMENSION(:)           :: vrnc
+      REAL (rprec)                         :: tolerance
+      REAL (rprec)                         :: cholesky_fac
 
 !  Local Variables
-      INTEGER                                         :: n_points
-      REAL (rprec)                                    :: start_time
+      INTEGER                              :: i
+      INTEGER                              :: n_points
+      INTEGER                              :: n_params
+      INTEGER, DIMENSION(:,:), ALLOCATABLE :: indices
+      CHARACTER (len=data_name_length)     :: param_name
+      INTEGER                              :: status
+      REAL (rprec)                         :: start_time
+
+!  Local Parameters
+      CHARACTER (len=*), DIMENSION(2), PARAMETER :: range_type =               &
+     &   'infinity'
+      INTEGER, DIMENSION(2,2), PARAMETER    :: range_indices = 0
+      REAL (rprec), DIMENSION(2), PARAMETER :: range_value = 0.0
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      ALLOCATE(gaussp2_construct)
+      ALLOCATE(gaussp_construct)
 
-      SELECT CASE (gaussp2_type)
+      SELECT CASE (TRIM(gaussp_type))
 
          CASE ('sxrem')
-            gaussp2_construct%type = gaussp2_sxrem_type
-            gaussp2_construct%profile_index = profile_index
-            gaussp2_construct%fpoints =>                                       &
-     &         equilibrium_get_sxrem_af(eq, profile_index)
+            n_params = model_get_gp_sxrem_num_hyper_param(a_model,             &
+     &                                                    profile_index)
+            gaussp_construct%type = gaussp_sxrem_type
+            gaussp_construct%profile_index = profile_index
+            gaussp_construct%fpoints =>                                        &
+     &         model_get_sxrem_af(a_model, profile_index)
+            param_name = 'pp_sxrem_b_a'
+            ALLOCATE(indices(data_max_indices,n_params))
+            indices = 0
+            DO i = 1, n_params
+               indices(1,i) = profile_index
+               indices(2,i) = i - 1
+            END DO
+            gaussp_construct%iou = 0
+            CALL safe_open(gaussp_construct%iou, status, 'sxrem_gp.log',       &
+     &                     'replace', 'formatted', delim_in='none')
 
          CASE ('te')
-            gaussp2_construct%type = gaussp2_te_type
-            gaussp2_construct%fpoints => equilibrium_get_te_af(eq)
+            n_params = model_get_gp_te_num_hyper_param(a_model)
+            gaussp_construct%type = gaussp_te_type
+            gaussp_construct%fpoints => model_get_te_af(a_model)
+            param_name = 'pp_te_b'
+            ALLOCATE(indices(data_max_indices,n_params))
+            indices = 0
+            DO i = 1, n_params
+               indices(1,i) = i - 1
+            END DO
+            gaussp_construct%iou = 0
+            CALL safe_open(gaussp_construct%iou, status, 'te_gp.log',          &
+     &                     'replace', 'formatted', delim_in='none')
 
          CASE ('ne')
-            gaussp2_construct%type = gaussp2_ne_type
-            gaussp2_construct%fpoints => equilibrium_get_ne_af(eq)
+            n_params = model_get_gp_ne_num_hyper_param(a_model)
+            gaussp_construct%type = gaussp_ne_type
+            gaussp_construct%fpoints => model_get_ne_af(a_model)
+            param_name = 'pp_ne_b'
+            ALLOCATE(indices(data_max_indices,n_params))
+            indices = 0
+            DO i = 1, n_params
+               indices(1,i) = i - 1
+            END DO
+            gaussp_construct%iou = 0
+            CALL safe_open(gaussp_construct%iou, status, 'ne_gp.log',          &
+     &                     'replace', 'formatted', delim_in='none')
 
       END SELECT
 
-      n_points = SIZE(gaussp2_construct%fpoints)
+      n_points = SIZE(gaussp_construct%fpoints)
 
-      ALLOCATE(gaussp2_construct%signals(n_signals))
+      ALLOCATE(gaussp_construct%signals(n_signals))
 
-      ALLOCATE(gaussp2_construct%kls(n_signals,n_points))
-      ALLOCATE(gaussp2_construct%kll(n_signals,n_signals))
+      ALLOCATE(gaussp_construct%kls(n_signals,n_points))
+      ALLOCATE(gaussp_construct%kll(n_signals,n_signals))
 
-      ALLOCATE(gaussp2_construct%work(n_signals,n_points + 1))
+      ALLOCATE(gaussp_construct%work(n_signals,n_points + 1))
 
-      gaussp2_construct%cholesky_fac = cholesky_fac
-      gaussp2_construct%chi2_offset = chi2_offset
+      gaussp_construct%tolerance = tolerance
+      gaussp_construct%cholesky_fac = cholesky_fac
 
-      CALL profiler_set_stop_time('gaussp2_construct', start_time)
+      ALLOCATE(gaussp_construct%params(n_params))
+      DO i = 1, n_params
+!>  @todo FIXME: The guassian process kernels should know the correct ranges.
+!>               Query those instead. For now set all to infinity.
+         gaussp_construct%params(i)%p =>                                       &
+     &      param_construct(a_model, param_name, indices(:,i), vrnc(i),        &
+     &                      range_type, range_indices, range_value,            &
+     &                      n_signals, n_params)
+      END DO
+
+      DEALLOCATE(indices)
+
+      CALL profiler_set_stop_time('gaussp_construct', start_time)
 
       END FUNCTION
 
@@ -154,20 +229,20 @@
 !  DESTRUCTION SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  @brief Deconstruct a @ref gaussp2_class object.
+!>  @brief Deconstruct a @ref gaussp_class object.
 !>
-!>  Deallocates memory and uninitializes a @ref gaussp2_class object.
+!>  Deallocates memory and uninitializes a @ref gaussp_class object.
 !>
-!>  @param[inout] this A @ref gaussp2_class instance.
+!>  @param[inout] this A @ref gaussp_class instance.
 !>  @note The destructors of the signals in the signal array are not called her
 !>  because the gaussian process signals do not own the memory for those signals.
 !-------------------------------------------------------------------------------
-      SUBROUTINE gaussp2_destruct(this)
+      SUBROUTINE gaussp_destruct(this)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (gaussp2_class), POINTER :: this
+      TYPE (gaussp_class), POINTER :: this
 
 !  Local Variables
       INTEGER                       :: i
@@ -202,6 +277,20 @@
 
       this%fpoints => null()
 
+!  Deconstruct and deallocate all the hyper parameters.
+      IF (ASSOCIATED(this%params)) THEN
+         DO i = 1, SIZE(this%params)
+            IF (ASSOCIATED(this%params(i)%p)) THEN
+               CALL param_destruct(this%params(i)%p)
+               this%params(i)%p => null()
+            END IF
+         END DO
+         DEALLOCATE(this%params)
+         this%params => null()
+      END IF
+
+      CLOSE (this%iou)
+
       DEALLOCATE(this)
 
       END SUBROUTINE
@@ -212,20 +301,20 @@
 !-------------------------------------------------------------------------------
 !>  @brief Set the object and coefficient for an index.
 !>
-!>  @param[inout] this   A @ref gaussp2_class instance.
+!>  @param[inout] this   A @ref gaussp_class instance.
 !>  @param[in]    signal A @ref signal_class instance.
 !>  @param[in]    a      A weight for the signal
-!>  @param[in]    index  The index to place the gaussp2 @ref signal.
+!>  @param[in]    index  The index to place the gaussp @ref signal.
 !>  @note Only signals that were created before this gaussian process
 !>  can be added. Otherwise it will creat an infinitely recursive loop in
-!>  @ref gaussp2_get_modeled_signal
+!>  @ref gaussp_get_modeled_signal
 !-------------------------------------------------------------------------------
-      SUBROUTINE gaussp2_set_signal(this, signal, index)
+      SUBROUTINE gaussp_set_signal(this, signal, index)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (gaussp2_class), INTENT(inout) :: this
+      TYPE (gaussp_class), INTENT(inout) :: this
       TYPE (signal_class), POINTER        :: signal
       INTEGER, INTENT(in)                 :: index
 
@@ -237,7 +326,7 @@
 
       this%signals(index)%p => signal
 
-      CALL profiler_set_stop_time('gaussp2_set_signal', start_time)
+      CALL profiler_set_stop_time('gaussp_set_signal', start_time)
 
       END SUBROUTINE
 
@@ -248,28 +337,28 @@
 !>  in the  @ref gaussp_class::signals array. Hyper parameters are determined
 !>  by maximizing the evidence.
 !>
-!>  @param[in]    this         A @ref gaussp_class instance.
-!>  @param[inout] a_model      A @ref model instance.
+!>  @param[in]    this    A @ref gaussp_class instance.
+!>  @param[inout] a_model A @ref model instance.
 !-------------------------------------------------------------------------------
-      SUBROUTINE gaussp2_set_profile(this, a_model)
-      USE model
-      USE model_state
+      SUBROUTINE gaussp_set_profile(this, a_model)
+
+      IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (gaussp_class), INTENT(inout) :: this
-      TYPE (model_class), INTENT(inout)  :: a_model
+      TYPE (gaussp_class), INTENT(inout)     :: this
+      TYPE (model_class), INTENT(inout)       :: a_model
 
 !  Local Variables
-      INTEGER                            :: i
-      INTEGER                            :: j
-      REAL (rprec)                       :: start_time
-      INTEGER                            :: ierr
-!      REAL (rprec)                       :: log_evidence
-      REAL (rprec)                       :: evidence
-      REAL (rprec)                       :: devidence
+      INTEGER                                 :: i
+      REAL (rprec)                            :: start_time
+      INTEGER                                 :: ierr
+      REAL (rprec), DIMENSION(:), ALLOCATABLE :: cached_value
+      REAL (rprec), DIMENSION(:), ALLOCATABLE :: gradient
+      REAL (rprec)                            :: evidence
+      REAL (rprec)                            :: new_evidence
 
 !  local parameters
-      REAL(rprec), PARAMETER             :: tolerance = 1.0E-8
+      REAL(rprec), PARAMETER                  :: gamma = 1.0
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -288,14 +377,70 @@
 
 !  Use gradient ascent to fine the optimal hyper parameters by maximizing the
 !  the evidence.
-         DO WHILE (devidence > tolerance)
+         new_evidence = gaussp_get_evidence(this, a_model)
 
+         ALLOCATE(cached_value(SIZE(this%params)))
+         ALLOCATE(gradient(SIZE(this%params)))
+
+         DO i = 1, SIZE(this%params)
+            cached_value(i) = param_get_value(this%params(i)%p, a_model)
          END DO
 
+         WRITE (this%iou, 1000)
+         WRITE (this%iou, 1001) new_evidence
+
+         DO
+            evidence = new_evidence
+
+!  Compute gradient.
+            DO i = 1, SIZE(this%params)
+               CALL param_increment(this%params(i)%p, a_model,                 &
+     &                              MPI_COMM_NULL, .false.)
+               gradient(i) = (gaussp_get_evidence(this, a_model) -             &
+     &                        evidence)
+               CALL param_set_value(this%params(i)%p, a_model,                 &
+     &                              cached_value(i), MPI_COMM_NULL,            &
+     &                              .false.)
+            END DO
+
+!  Step towards the maximum.
+            DO i = 1, SIZE(this%params)
+               cached_value(i) = cached_value(i) + gamma*gradient(i)
+               CALL param_set_value(this%params(i)%p, a_model,                 &
+     &                              cached_value(i), MPI_COMM_NULL,            &
+     &                              .false.)
+            END DO
+            new_evidence = gaussp_get_evidence(this, a_model)
+
+            WRITE (this%iou, 1002) new_evidence, new_evidence - evidence
+
+            IF (ABS(new_evidence - evidence) < this%tolerance) EXIT
+         END DO
       END IF
+
+      DEALLOCATE(cached_value)
+      DEALLOCATE(gradient)
+
+!  Found the maximum now set the profile. The profile is determined by sampling
+!  the distribution.
+!
+!    af = K_SL * A^-1                                                        (1)
+!$OMP PARALLEL
+!$OMP& DEFAULT(SHARED)
+!$OMP DO
+!$OMP& SCHEDULE(STATIC)
+      DO i = 1, SIZE(this%fpoints)
+         this%fpoints(i) = DOT_PRODUCT(this%kls(:,i), this%work(:,1))
+      END DO
+!$OMP END DO
+!$OMP END PARALLEL
 
       CALL profiler_set_stop_time('gaussp_get_modeled_signal',                 &
      &                            start_time)
+
+1000  FORMAT('New Process')
+1001  FORMAT('Log Evidence : ',es12.5)
+1002  FORMAT('Log Evidence : ',es12.5,' Change :',es12.5)
 
       END SUBROUTINE
 
@@ -312,25 +457,24 @@
 !>  @param[inout] a_model A @ref model instance.
 !>  @returns The log evidence for the current hyper parameters.
 !-------------------------------------------------------------------------------
-      FUNCTION gaussp2_get_evidence(this, a_model)
-      USE model
+      FUNCTION gaussp_get_evidence(this, a_model)
       USE stel_constants, ONLY: twopi
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(4)          :: gaussp2_get_evidence
-      TYPE (gaussp2_class), INTENT(inout) :: this
-      TYPE (model_class), INTENT(inout)   :: a_model
+      REAL (rprec)                       :: gaussp_get_evidence
+      TYPE (gaussp_class), INTENT(inout) :: this
+      TYPE (model_class), INTENT(inout)  :: a_model
 
 !  Local Variables
-      INTEGER                             :: i
-      INTEGER                             :: j
-      REAL (rprec)                        :: start_time
-      INTEGER                             :: ierr
+      INTEGER                            :: i
+      INTEGER                            :: j
+      REAL (rprec)                       :: start_time
+      INTEGER                            :: ierr
 
 !  Local Parameters
-      REAL (rprec), PARAMETER             :: log2pi = LOG(twopi)
+      REAL (rprec), PARAMETER            :: log2pi = LOG(twopi)
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -341,8 +485,6 @@
 
 !$OMP DO
 !$OMP& SCHEDULE(DYNAMIC)
-!  FIXME: There are duplicate matrix elements here. We could avoid unnecessary
-!         computation.
       DO j = 1, SIZE(this%fpoints)
          DO i = 1, SIZE(this%signals)
             this%kls(i,j) = signal_get_gp(this%signals(i)%p, a_model, j)
@@ -414,17 +556,23 @@
 !    ln(|A|) = Sum 2*ln(A_ii)                                                (4)
 !
 
-      gaussp2_get_evidence = -0.5*SIZE(this%signals)*log2pi
-
+      gaussp_get_evidence = -0.5*SIZE(this%signals)*log2pi
+!$OMP PARALLEL
+!$OMP& DEFAULT(SHARED)
+!$OMP& PRIVATE(j)
+!$OMP DO
+!$OMP& REDUCTION(-:gaussp_get_evidence)
       DO j = 1, SIZE(this%signals)
-         gaussp2_get_evidence = gaussp2_get_evidence                           &
-     &                        - LOG(this%kll(j,j))                             &
-     &                        - 0.5*signal_get_observed_signal(                &
-     &                                 this%signals(j)%p, a_model)*            &
-     &                          this%work(j,1)
+         gaussp_get_evidence = gaussp_get_evidence                             &
+     &                       - LOG(this%kll(j,j))                              &
+     &                       - 0.5*signal_get_observed_signal(                 &
+     &                                this%signals(j)%p, a_model)*             &
+     &                         this%work(j,1)
       END DO
+!$OMP END DO
+!$OMP END PARALLEL
 
-      CALL profiler_set_stop_time('gaussp2_get_evidence', start_time)
+      CALL profiler_set_stop_time('gaussp_get_evidence', start_time)
 
       END FUNCTION
 

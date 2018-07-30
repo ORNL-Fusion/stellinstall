@@ -108,6 +108,7 @@
          WRITE (process_dir, 1001) dir_prefix, rank
       END IF
 
+!  Support up to 99 directories. Need to add leading zeros to avoid spaces.
 1000  FORMAT(a11,'_0',i1)
 1001  FORMAT(a11,'_',i2)
 

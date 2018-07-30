@@ -69,6 +69,12 @@
 !>  callback function for point.
 !-------------------------------------------------------------------------------
       TYPE sxrem_gp_context_i
+!>  Type descirptor of the intpol type.
+!>  @par Possible values are:
+!>  * @ref sxrem_no_type
+!>  * @ref sxrem_emiss_type
+!>  * @ref sxrem_te_type
+         INTEGER                     :: type
 !>  The index of the emissivity profile model.
          INTEGER                     :: profile_number
 !>  Reference to a @ref model::model_class object.
@@ -82,6 +88,12 @@
 !>  callback function for signal.
 !-------------------------------------------------------------------------------
       TYPE sxrem_gp_context_x
+!>  Type descirptor of the intpol type.
+!>  @par Possible values are:
+!>  * @ref sxrem_no_type
+!>  * @ref sxrem_emiss_type
+!>  * @ref sxrem_te_type
+         INTEGER                     :: type
 !>  The index of the emissivity profile model.
          INTEGER                     :: profile_number
 !>  Reference to a @ref model::model_class object.
@@ -295,7 +307,7 @@
          ELSE
             sxrem_get_modeled_signal(1) =                                      &
      &         path_integrate(a_model%int_params, this%chord_path,             &
-     &                        te_function, context)
+     &                        te_function, context)*scale_factor
          END IF
 
          DEALLOCATE(context)
@@ -379,6 +391,7 @@
       gp_context%profile_number = this%profile_number
       gp_context%model => a_model
       gp_context%i = i
+      gp_context%type = this%type
 
 !  Cast model into a data context. This is the equivalent to casting to a void
 !  pointer in C.
@@ -485,6 +498,7 @@
       gp_context%profile_number = this%profile_number
       gp_context%model => a_model
       gp_context%xcart = x_cart
+      gp_context%type = this%type
 
 !  Cast model into a data context. This is the equivalent to casting to a void
 !  pointer in C.
@@ -630,9 +644,16 @@
       start_time = profiler_get_start_time()
 
       gp_context = TRANSFER(context, gp_context)
-      gp_function_i = model_get_gp_sxrem(gp_context%model, xcart,              &
-     &                                   gp_context%i,                         &
-     &                                   gp_context%profile_number)*dx
+      IF (gp_context%type .eq. sxrem_emiss_type) THEN
+         gp_function_i = model_get_gp_sxrem(gp_context%model, xcart,           &
+     &                                      gp_context%i,                      &
+     &                                      gp_context%profile_number)
+      ELSE
+         gp_function_i = model_get_gp_te(gp_context%model, xcart,              &
+     &                                   gp_context%i)
+      END IF
+
+      gp_function_i = gp_function_i*dx
 
       CALL profiler_set_stop_time('gp_function_i', start_time)
 
@@ -676,9 +697,16 @@
 
 !  This is the second signal so put xcart in the second position.
       gp_context = TRANSFER(context, gp_context)
-      gp_function_x = model_get_gp_sxrem(gp_context%model,                     &
-     &                                   xcart, gp_context%xcart,              &
-     &                                   gp_context%profile_number)*dx
+      IF (gp_context%type .eq. sxrem_emiss_type) THEN
+         gp_function_x = model_get_gp_sxrem(gp_context%model,                  &
+     &                                      xcart, gp_context%xcart,           &
+     &                                      gp_context%profile_number)
+      ELSE
+         gp_function_x = model_get_gp_te(gp_context%model,                     &
+     &                                   xcart, gp_context%xcart)
+      END IF
+
+      gp_function_x = gp_function_x*dx
 
       CALL profiler_set_stop_time('gp_function_x', start_time)
 

@@ -46,9 +46,6 @@
 !>  Type descriptor for the @ref signal_class subclass @ref combination_class
 !  Use combination_class since combination lacks it's own module.
       INTEGER, PARAMETER :: signal_combination_type = 4
-!>  Type descriptor for the @ref signal_class subclass @ref gaussp_class
-!  Use gaussp_class since gaussian process lacks it's own module.
-      INTEGER, PARAMETER :: signal_gaussp_type      = 5
 
 !*******************************************************************************
 !  combination module parameters
@@ -66,21 +63,6 @@
       INTEGER, PARAMETER :: combination_min  = 2
 !>  Type descriptor for combination type weighted average
       INTEGER, PARAMETER :: combination_wavg = 3
-
-!*******************************************************************************
-!  gaussian process module parameters
-!*******************************************************************************
-!>  Maximum length of the gaussp type descritpion string.
-      INTEGER, PARAMETER :: gaussp_type_length = 10
-
-!>  Type descriptor for  the gaussian process type no type.
-      INTEGER, PARAMETER :: gaussp_no_type     = -1
-!>  Type descriptor for the gaussian process sxrem type.
-      INTEGER, PARAMETER :: gaussp_sxrem_type  = 0
-!>  Type descriptor for the gaussian process te type.
-      INTEGER, PARAMETER :: gaussp_te_type     = 1
-!>  Type descriptor for the gaussian process ne type.
-      INTEGER, PARAMETER :: gaussp_ne_type     = 2
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
@@ -132,8 +114,6 @@
          TYPE (feedback_class), POINTER     :: feedback => null()
 !>  An instance of a @ref combination object.
          TYPE (combination_class), POINTER  :: combination => null()
-!>  An instance of a @ref gaussp object.
-         TYPE (gaussp_class), POINTER       :: gaussp => null()
       END TYPE signal_class
 
 !-------------------------------------------------------------------------------
@@ -178,45 +158,6 @@
          INTEGER                                      :: wgt_index
       END TYPE combination_class
 
-!-------------------------------------------------------------------------------
-!>  Base class representing a gaussian process signal.
-!>  @par Super Class:
-!>  @ref signal
-!-------------------------------------------------------------------------------
-      TYPE gaussp_class
-!>  Type descriptor of the gaussian procees type.
-!>  @par Possible values are:
-!>  * @ref gaussp_no_type
-!>  * @ref gaussp_sxrem_type
-!>  * @ref gaussp_te_type
-!>  * @ref gaussp_ne_type
-!  Keep for now, but this might not be needed later.
-         INTEGER :: type = gaussp_no_type
-
-!>  Array of @ref signal_pointer
-         TYPE (signal_pointer), DIMENSION(:), POINTER ::                       &
-     &      signals => null()
-
-!>  Matrix of signal profile.
-         REAL (rprec), DIMENSION(:,:), POINTER :: matrix_kls => null()
-!>  Matrix of signal signal.
-         REAL (rprec), DIMENSION(:,:), POINTER :: matrix_kll => null()
-!>  Work matrix for the cholesky factorization.
-         REAL (rprec), DIMENSION(:,:), POINTER :: work => null()
-!>  Positive factor to add to the diagonal entries of the matrix before
-!>  factoring.
-         REAL (rprec)                          :: cholesky_fac
-
-!>  Profile index for sxrem profiles.
-         INTEGER  :: profile_index = -1
-
-!>  Offset to add to the log evidence.
-         REAL (rprec) :: chi2_offset
-
-!>  Pointer to the profile af array.
-         REAL (rprec), DIMENSION(:), POINTER :: fpoints => null()
-      END TYPE gaussp_class
-
 !*******************************************************************************
 !  INTERFACE BLOCKS
 !*******************************************************************************
@@ -233,7 +174,6 @@
      &                    signal_construct_prior,                              &
      &                    signal_construct_feedback,                           &
      &                    signal_construct_combination,                        &
-     &                    signal_construct_gaussp,                             &
      &                    signal_construct_diagnostic_netcdf
       END INTERFACE
 
@@ -553,85 +493,6 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Construct a @ref signal_class containing a @ref gaussp_class
-!>  object.
-!>
-!>  Allocates memory and initializes a @ref signal_class object.
-!>
-!>  @param[in] combination_object An instance of a @ref combination_class
-!>                                subclass.
-!>  @param[in] s_name             The short name of the signal.
-!>  @param[in] l_name             The short name of the signal.
-!>  @param[in] units              The units of the signal.
-!>  @param[in] observed           Observed value of the signal.
-!>  @param[in] sigma              Observed sigma of the signal.
-!>  @param[in] weight             Weight factor of the signal.
-!>  @param[in] index              Index of the model signal scale factor.
-!>  @returns A pointer to a constructed @ref signal_class object.
-!-------------------------------------------------------------------------------
-      FUNCTION signal_construct_gaussp(gaussp_object, s_name, l_name,          &
-     &                                 units, observed, sigma, weight,         &
-     &                                 index)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (signal_class), POINTER :: signal_construct_gaussp
-      TYPE (gaussp_class), POINTER :: gaussp_object
-      CHARACTER(len=*), INTENT(in) :: s_name
-      CHARACTER(len=*), INTENT(in) :: l_name
-      CHARACTER(len=*), INTENT(in) :: units
-      REAL(rprec), INTENT(inout)   :: observed
-      REAL(rprec), INTENT(inout)   :: sigma
-      REAL(rprec), INTENT(inout)   :: weight
-      INTEGER, INTENT(in)          :: index
-
-!  local variables
-      REAL (rprec)                 :: start_time
-
-!  local parameters
-      REAL(rprec), PARAMETER       :: tol = 1.0E-8
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-!  Warn the user that the observed signal for the Gaussian process is non-zero.
-      IF (ABS(observed) .gt. tol) THEN
-         WRITE (*,1001) TRIM(s_name)
-      END IF
-!  The Gaussian process should always have an observed value of 0.0.
-      observed = 0.0
-!  The Gaussian process should always have an sigma value of 0.0 to avoid
-!  double counting. Note that the sigmas are included in the calculation of
-!  the gp profile and the return gp is the log evidence which accounts for
-!  these errors.
-      IF (ABS(sigma) .ne. 1.0) THEN
-         WRITE (*,1002) TRIM(s_name)
-      END IF
-      sigma = 1.0
-
-!  ECH (enable for now)
-!      IF (ABS(weight) > tol) THEN
-!         WRITE (*,1003) TRIM(s_name)
-!         WRITE (*,*) "The ability to calculate chi^2 from the Gaussian "
-!         WRITE (*,*) "process is still under development."
-!      END IF
-!      weight = 0.0
-
-      signal_construct_gaussp =>                                               &
-     &   signal_construct(signal_gaussp_type, s_name, l_name,                  &
-     &                    units, observed, sigma, weight, index)
-      signal_construct_gaussp%gaussp => gaussp_object
-
-      CALL profiler_set_stop_time('signal_construct_combination',              &
-     &                            start_time)
-
-1001  FORMAT('Warning: Setting the observed value of ',a,' to zero.')
-1002  FORMAT('Warning: Setting the sigma value of ',a,' to 1.')
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
 !>  @brief Construct a @ref signal_class containing a @ref diagnostic object.
 !>
 !>  Reads the s_name, l_name and units from a netcdf file. Used for constructing
@@ -723,11 +584,6 @@
 
       IF (ASSOCIATED(this%combination)) THEN
          CALL combination_destruct(this%combination)
-         this%combination => null()
-      END IF
-
-      IF (ASSOCIATED(this%gaussp)) THEN
-         CALL gaussp_destruct(this%gaussp)
          this%combination => null()
       END IF
 
@@ -834,14 +690,6 @@
      &                                           a_model, sigma,               &
      &                                           last_value,                   &
      &                                           scale_factor)
-
-!  FIXME: Hold off a scale factor of these signals until I determine how it
-!  works.
-            CASE (signal_gaussp_type)
-               signal_get_modeled_signal =                                     &
-     &            gaussp_get_modeled_signal(this%gaussp, a_model,              &
-     &                                      sigma, last_value,                 &
-     &                                      scale_factor)
 
          END SELECT
 
@@ -1079,10 +927,6 @@
             signal_get_signal_type =                                           &
      &         TRIM(combination_get_signal_type(this%combination))
 
-         CASE (signal_gaussp_type)
-            signal_get_signal_type =                                           &
-     &         TRIM(gaussp_get_signal_type(this%gaussp))
-
       END SELECT
 
       CALL profiler_set_stop_time('signal_get_signal_type', start_time)
@@ -1136,9 +980,6 @@
 
          CASE (signal_combination_type)
             signal_get_header = combination_get_header(this%combination)
-
-         CASE (signal_gaussp_type)
-            signal_get_header = gaussp_get_header(this%gaussp)
 
       END SELECT
 
@@ -1502,9 +1343,6 @@
          CASE (signal_combination_type)
             CALL combination_write_auxiliary(this%combination,                 &
      &                                       iou, index)
-
-         CASE (signal_gaussp_type)
-            CALL gaussp_write_auxiliary(this%gaussp, iou, index)
 
       CALL profiler_set_stop_time('signals_write_auxiliary', start_time)
 
@@ -2133,486 +1971,6 @@
 1001  FORMAT('Weighted Average Index: ',i4)
 1002  FORMAT('term #',2x,'s_name',16x,'Coefficient')
 1003  FORMAT(2x,i4,2x,a20,2x,es12.5)
-
-      END SUBROUTINE
-
-!*******************************************************************************
-!*******************************************************************************
-!*******************************************************************************
-!*******************************************************************************
-!
-!  Gaussian Process Signals
-!
-!*******************************************************************************
-!  CONSTRUCTION SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Construct a @ref gaussp_class.
-!>
-!>  Allocates memory and initializes a @ref gaussp_class object. This just
-!>  allocates the @ref gaussp_class::signals, @ref gaussp_class::a
-!>  array, and matrixices for the GP computataion.  The indices of these arrays
-!>  are set by @ref gaussp_set_signal, and the matrices are calculated in
-!>  @ref gaussp_get_modeled_signal
-!>
-!>  @param[in] n_signals     Number of signals in this gaussian process.
-!>  @param[in] eq            Pointer to the
-!>                           @ref equilibrium::equilibrium_class model.
-!>  @param[in] gaussp_type   The type of profile modeled by the gaussian
-!>                           process.
-!>  @param[in] profile_index Index of the profile of the sxrem profile.
-!>  @param[in] choleskey_fac Value added to diagnoal element to ensure K is PSD.
-!>  @returns A pointer to a constructed @ref gaussp_class object.
-!-------------------------------------------------------------------------------
-      FUNCTION gaussp_construct(n_signals, eq, gaussp_type,                    &
-     &                          profile_index, cholesky_fac,                   &
-     &                          chi2_offset)
-      USE equilibrium
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (gaussp_class), POINTER                   :: gaussp_construct
-      INTEGER, INTENT(in)                            :: n_signals
-      TYPE (equilibrium_class), POINTER, INTENT(in)  :: eq
-      INTEGER, INTENT(in)                            :: profile_index
-      CHARACTER (len=gaussp_type_length), INTENT(in) :: gaussp_type
-      REAL (rprec)                                   :: cholesky_fac
-      REAL (rprec), INTENT(in)                       :: chi2_offset
-
-!  Local Variables
-      INTEGER                                        :: n_points
-      REAL (rprec)                                   :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      ALLOCATE(gaussp_construct)
-
-      SELECT CASE (gaussp_type)
-
-         CASE ('sxrem')
-            gaussp_construct%type = gaussp_sxrem_type
-            gaussp_construct%profile_index = profile_index
-            gaussp_construct%fpoints =>                                        &
-     &         equilibrium_get_sxrem_af(eq, profile_index)
-
-         CASE ('te')
-            gaussp_construct%type = gaussp_te_type
-            gaussp_construct%fpoints => equilibrium_get_te_af(eq)
-
-         CASE ('ne')
-            gaussp_construct%type = gaussp_ne_type
-            gaussp_construct%fpoints => equilibrium_get_ne_af(eq)
-
-      END SELECT
-
-      n_points = SIZE(gaussp_construct%fpoints)
-
-      ALLOCATE(gaussp_construct%signals(n_signals))
-
-      ALLOCATE(gaussp_construct%matrix_kls(n_signals,n_points))
-      ALLOCATE(gaussp_construct%matrix_kll(n_signals,n_signals))
-
-      ALLOCATE(gaussp_construct%work(n_signals,n_points + 1))
-
-      gaussp_construct%cholesky_fac = cholesky_fac
-      gaussp_construct%chi2_offset = chi2_offset
-
-      CALL profiler_set_stop_time('gaussp_construct', start_time)
-
-      END FUNCTION
-
-!*******************************************************************************
-!  DESTRUCTION SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Deconstruct a @ref gaussp_class object.
-!>
-!>  Deallocates memory and uninitializes a @ref gaussp_class object.
-!>
-!>  @param[inout] this A @ref gaussp_class instance.
-!>  @note The destructors of the signals in the signal array are not called her
-!>  because the gaussian process signals do not own the memory for those signals.
-!-------------------------------------------------------------------------------
-      SUBROUTINE gaussp_destruct(this)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (gaussp_class), POINTER :: this
-
-!  Local Variables
-      INTEGER                      :: i
-
-!  Start of executable code
-
-!  Null all pointers in the signals array. Do not deallocate the signals in the
-!  array since this object is not the owner.
-      DO i = 1, SIZE(this%signals)
-         this%signals(i)%p => null()
-      END DO
-
-      IF (ASSOCIATED(this%signals)) THEN
-         DEALLOCATE(this%signals)
-         this%signals => null()
-      END IF
-
-      IF (ASSOCIATED(this%matrix_kls)) THEN
-         DEALLOCATE(this%matrix_kls)
-         this%matrix_kls => null()
-      END IF
-
-      IF (ASSOCIATED(this%matrix_kll)) THEN
-         DEALLOCATE(this%matrix_kll)
-         this%matrix_kll => null()
-      END IF
-
-      IF (ASSOCIATED(this%work)) THEN
-         DEALLOCATE(this%work)
-         this%work => null()
-      END IF
-
-      this%fpoints => null()
-
-      DEALLOCATE(this)
-
-      END SUBROUTINE
-
-!*******************************************************************************
-!  SETTER SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Set the object and coefficient for an index.
-!>
-!>  @param[inout] this   A @ref gaussp_class instance.
-!>  @param[in]    signal A @ref signal_class instance.
-!>  @param[in]    a      A weight for the signal
-!>  @param[in]    index  The index to place the gaussp @ref signal.
-!>  @note Only signals that were created before this gaussian process
-!>  can be added. Otherwise it will creat an infinitely recursive loop in
-!>  @ref gaussp_get_modeled_signal
-!-------------------------------------------------------------------------------
-      SUBROUTINE gaussp_set_signal(this, signal, index)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (gaussp_class), INTENT(inout)  :: this
-      TYPE (signal_class), POINTER        :: signal
-      INTEGER, INTENT(in)                 :: index
-
-!  local Variables
-      REAL (rprec)                        :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      this%signals(index)%p => signal
-
-      CALL profiler_set_stop_time('gaussp_set_signal', start_time)
-
-      END SUBROUTINE
-
-!*******************************************************************************
-!  GETTER SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Calculates the modeled signal.
-!>
-!>  This method uses a gaussian process to set a model using the signals pointed
-!>  in the  @ref gaussp_class::signals array. It then returns the evidence.
-!>
-!>  @param[in]    this         A @ref gaussp_class instance.
-!>  @param[inout] a_model      A @ref model instance.
-!>  @param[out]   sigma        The modeled sigma.
-!>  @param[in]    last_value   Last good value in case the signal did not
-!>                             change.
-!>  @param[in]    scale_factor Factor to scale the modeled signal.
-!>  @returns The model value.
-!-------------------------------------------------------------------------------
-      FUNCTION gaussp_get_modeled_signal(this, a_model, sigma,                 &
-     &                                   last_value, scale_factor)
-      USE model
-      USE stel_constants, ONLY: twopi
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      REAL (rprec), DIMENSION(4)      :: gaussp_get_modeled_signal
-      TYPE (gaussp_class), INTENT(inout)      :: this
-      TYPE (model_class), INTENT(inout)       :: a_model
-      REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
-      REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
-      REAL (rprec), INTENT(in)                :: scale_factor
-
-!  Local Variables
-      INTEGER                                 :: i
-      INTEGER                                 :: j
-      REAL (rprec)                            :: start_time
-      INTEGER                                 :: ierr
-!      REAL (rprec)                            :: log_evidence
-      REAL (rprec)                            :: evidence
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      gaussp_get_modeled_signal(:) = last_value
-      sigma = 0.0
-
-      IF (BTEST(a_model%state_flags, model_state_vmec_flag)   .or.             &
-     &    BTEST(a_model%state_flags, model_state_siesta_flag) .or.             &
-     &    BTEST(a_model%state_flags, model_state_shift_flag)  .or.             &
-     &    BTEST(a_model%state_flags, model_state_signal_flag) .or.             &
-     &    (this%type .eq. gaussp_ne_type)    .and.                             &
-     &     BTEST(a_model%state_flags, model_state_ne_flag)    .or.             &
-     &    (this%type .eq. gaussp_te_type)    .and.                             &
-     &     BTEST(a_model%state_flags, model_state_te_flag)    .or.             &
-     &    (this%type .eq. gaussp_sxrem_type) .and.                             &
-     &     BTEST(a_model%state_flags, model_state_sxrem_flag +                 &
-     &                                this%profile_index - 1)) THEN
-
-!$OMP PARALLEL
-!$OMP& DEFAULT(SHARED)
-!$OMP& PRIVATE(i,j)
-
-!$OMP DO
-!$OMP& SCHEDULE(DYNAMIC)
-         DO j = 1, SIZE(this%fpoints)
-            DO i = 1, SIZE(this%signals)
-               this%matrix_kls(i,j) =                                          &
-     &            signal_get_gp(this%signals(i)%p, a_model, j)
-               this%work(i,j + 1) = this%matrix_kls(i,j)
-            END DO
-         END DO
-!$OMP END DO
-
-!$OMP DO
-!$OMP& SCHEDULE(DYNAMIC)
-         DO j = 1, SIZE(this%signals)
-            DO i = j, SIZE(this%signals)
-               this%matrix_kll(i,j) =                                          &
-     &            signal_get_gp(this%signals(i)%p, a_model,                    &
-     &                          this%signals(j)%p)
-               IF (j .ne. i) THEN
-                  this%matrix_kll(j,i) = this%matrix_kll(i,j)
-               END IF
-            END DO
-            this%matrix_kll(j,j) = this%matrix_kll(j,j)                        &
-     &                           + signal_get_sigma2(this%signals(j)%p)        &
-     &                           + this%cholesky_fac
-            this%work(j,1) =                                                   &
-     &         signal_get_observed_signal(this%signals(j)%p, a_model)
-         END DO
-!$OMP END DO
-!$OMP END PARALLEL
-
-!  CALL LAPACK to do Cholesky factorization of the A=(K_LL + Sigma_y)
-         CALL DPOTRF('L', SIZE(this%signals), this%matrix_kll,                 &
-     &               SIZE(this%signals), ierr)
-
-!  The elements in the cholesky matrix for j > i are meaning less.
-         IF (ierr .lt. 0) THEN
-            CALL err_fatal('gaussp_get_modeled_signal: DROTRF ' //             &
-     &                     'cannot factor matrix. ierr is negative')
-         ELSE IF (ierr .gt. 0) THEN
-            CALL err_fatal('gaussp_get_modeled_signal: DROTRF ' //             &
-     &                     'cannot factor matrix. ierr is '     //             &
-     &                     'positive. Try increasing gp_cholesky_fact')
-         END IF
-
-!  IF statement correctly throws an error if I cannot factor the matrix!
-
-!  CALL LAPACK to solve A^-1y and A^-1 K_LS simultaneously. The work matrix
-!  stores the RHS on input, and returns the solution matrix.
-         CALL DPOTRS('L', SIZE(this%signals), SIZE(this%fpoints) + 1,          &
-     &               this%matrix_kll, SIZE(this%signals), this%work,           &
-     &               SIZE(this%signals), ierr)
-         IF (ierr .lt. 0) THEN
-            CALL err_fatal('gaussp_get_modeled_signal: DROTRS ' //             &
-     &                      'failed to solve the equation')
-         END IF
-
-!  Calculate af, sigma_f, and evidence. We want to maximize the evidence. To
-!  a void numerical issues, we maximize the ln of the evidence. The evidence is
-!  given by.
-!
-!    P(y|sigma,x) = 1/Sqrt((2Pi)^N*|A|)Exp(-y^T.A^-1.y/2)                    (1)
-!
-!  Taking the ln of the evidence results in.
-!
-!    ln(P) = -N/2*ln(2Pi) - ln(|A|)/2 - y^T.A^-1.y/2                         (2)
-!
-!  The determinant of A is found by the Cholesky factorization and equals the
-!  product of the squares of the diagonal.
-!
-!    |A| = Prod (A_ii)^2                                                     (3)
-!
-!  Taking the ln of this results in.
-!
-!    ln(|A|) = Sum 2*ln(A_ii)                                                (4)
-!
-!  Since V3FIT works by minimizing, set the objective function to minimize
-!
-!     e = 1/ln(P) - 0                                                        (5)
-!
-!  The profile is determined by sampling the distribution.
-!
-!    af = K_SL * A^-1                                                        (6)
-         evidence = -0.5*SIZE(this%signals)*LOG(twopi)
-!!$OMP PARALLEL
-!!$OMP& DEFAULT(SHARED)
-!!$OMP& PRIVATE(j)
-!!$OMP DO
-!!$OMP& SCHEDULE(STATIC)
-!!$OMP& REDUCTION(-:log_evidence)
-         DO j = 1, SIZE(this%signals)
-             evidence = evidence - LOG(this%matrix_kll(j,j)) -                 &
-     &          0.5*signal_get_observed_signal(this%signals(j)%p,              &
-     &                                         a_model)*                       &
-     &          this%work(j,1)
-         END DO
-!!$OMP END DO
-!!$OMP DO
-!!$OMP& SCHEDULE(STATIC)
-         DO j = 1, SIZE(this%fpoints)
-            this%fpoints(j) = DOT_PRODUCT(this%matrix_kls(:,j),                &
-     &                                    this%work(:,1))
-         END DO
-!!$OMP END DO
-!!$OMP END PARALLEL
-         gaussp_get_modeled_signal(1) = 1.0                                    &
-     &                                / (evidence + this%chi2_offset)
-         gaussp_get_modeled_signal(2) = evidence
-      END IF
-
-      CALL profiler_set_stop_time('gaussp_get_modeled_signal',                 &
-     &                            start_time)
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!>  @brief Gets a discription of the gaussian process type.
-!>
-!>  Returns a description of the gaussian process for use when writting output
-!>  files.
-!>
-!>  @param[in] this A @ref gaussp_class instance.
-!>  @returns A string describing the gaussian process type.
-!-------------------------------------------------------------------------------
-      FUNCTION gaussp_get_signal_type(this)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      CHARACTER (len=data_name_length) :: gaussp_get_signal_type
-      TYPE (gaussp_class), INTENT(in)  :: this
-
-!  local variables
-      REAL (rprec)                     :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      SELECT CASE (this%type)
-         CASE (gaussp_no_type)
-            gaussp_get_signal_type = 'none'
-
-         CASE (gaussp_sxrem_type)
-            gaussp_get_signal_type = 'sxrem'
-
-         CASE (gaussp_te_type)
-            gaussp_get_signal_type = 'te'
-
-         CASE (gaussp_ne_type)
-            gaussp_get_signal_type = 'ne'
-
-      END SELECT
-
-      CALL profiler_set_stop_time('gaussp_get_signal_type',                    &
-     &                            start_time)
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!>  @brief Gets a discription of the model and model sigma array indices.
-!>
-!>  Returns a description of the array indices for use when writting output
-!>  files.
-!>
-!>  @param[in] this A @ref gaussp_class instance.
-!>  @returns A string describing the model and model sigma array indices.
-!-------------------------------------------------------------------------------
-      FUNCTION gaussp_get_header(this)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      CHARACTER (len=data_name_length), DIMENSION(7) ::                        &
-     &   gaussp_get_header
-      TYPE (gaussp_class), INTENT(in)                :: this
-
-!  local variables
-      REAL (rprec)                                   :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      gaussp_get_header(1) = 'model(2)'
-      gaussp_get_header(2) = 'model(3)'
-      gaussp_get_header(3) = 'model(4)'
-      gaussp_get_header(4) = 'model_sig(1)'
-      gaussp_get_header(5) = 'model_sig(2)'
-      gaussp_get_header(6) = 'model_sig(3)'
-      gaussp_get_header(7) = 'model_sig(4)'
-
-      CALL profiler_set_stop_time('gaussp_get_header', start_time)
-
-      END FUNCTION
-
-!*******************************************************************************
-!  UTILITY SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Write out auxiliary signal information to an output file.
-!>
-!>  Writes out the s_name and coefficient of the gaussp signals.
-!>
-!>  @param[in] this  A @ref gaussp_class instance.
-!>  @param[in] iou   A input/output representing the file to write to.
-!>  @param[in] index A index of this signal.
-!-------------------------------------------------------------------------------
-      SUBROUTINE gaussp_write_auxiliary(this, iou, index)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (gaussp_class), INTENT(in) :: this
-      INTEGER, INTENT(in)             :: iou
-      INTEGER, INTENT(in)             :: index
-
-!  local variables
-      INTEGER                         :: i
-      REAL (rprec)                    :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      WRITE (iou,*)
-      WRITE (iou,1000) index, gaussp_get_signal_type(this)
-      WRITE (iou,1001)
-
-      DO i = 1, SIZE(this%signals)
-         WRITE (iou,1002) i, this%signals(i)%p%s_name
-      END DO
-
-      CALL profiler_set_stop_time('gaussp_write_auxiliary',                    &
-     &                            start_time)
-
-1000  FORMAT('Signal',1x,i4,1x,                                                &
-     &       'is a gaussian process of using signals of type: ',a)
-1001  FORMAT('term #',2x,'s_name')
-1002  FORMAT(2x,i4,2x,a20)
 
       END SUBROUTINE
 

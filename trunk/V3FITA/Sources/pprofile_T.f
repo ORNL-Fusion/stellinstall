@@ -150,6 +150,8 @@
 
 !>  Cached value of the af array.
          REAL (rprec), DIMENSION(:), POINTER  :: cache => null()
+!>  Cached value of the af array.
+         REAL (rprec), DIMENSION(:), POINTER  :: cache_hyper => null()
       END TYPE
 
 !-------------------------------------------------------------------------------
@@ -264,11 +266,13 @@
             pprofile_construct%p_type = pprofile_gp_1d_sexp_type
             ALLOCATE(pprofile_construct%cache(                                 &
      &                  SIZE(pprofile_construct%af)))
+            ALLOCATE(pprofile_construct%cache_hyper(2))
 
          CASE ('sq_exp_1d_ln')
             pprofile_construct%p_type = pprofile_gp_1d_ln_sexp_type
             ALLOCATE(pprofile_construct%cache(                                 &
      &                  SIZE(pprofile_construct%af)))
+            ALLOCATE(pprofile_construct%cache_hyper(2))
 
          CASE ('none')
             pprofile_construct%p_type = pprofile_none_type
@@ -315,6 +319,11 @@
       IF (ASSOCIATED(this%cache)) THEN
          DEALLOCATE(this%cache)
          this%cache => null()
+      END IF
+
+      IF (ASSOCIATED(this%cache_hyper)) THEN
+         DEALLOCATE(this%cache_hyper)
+         this%cache_hyper => null()
       END IF
 
       DEALLOCATE(this)
@@ -652,6 +661,44 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!>  @brief Get the number of hyper parameters for guassian process kernel.
+!>
+!>  Hyper parameters must be set to maximise the log of the evidence. If this
+!>  profile is not a guassian process return zero.
+!>
+!>  @param[in] this A @ref pprofile_class instance.
+!>  @returns Number of hyper parameters.
+!-------------------------------------------------------------------------------
+      FUNCTION pprofile_get_gp_num_hyper_param(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER :: pprofile_get_gp_num_hyper_param
+      TYPE (pprofile_class), INTENT (in) :: this
+
+!  local variables
+      REAL (rprec)                       :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE(this%p_type)
+
+         CASE (pprofile_gp_1d_sexp_type, pprofile_gp_1d_ln_sexp_type)
+            pprofile_get_gp_num_hyper_param = 2
+
+         CASE DEFAULT
+            pprofile_get_gp_num_hyper_param = 0
+
+      END SELECT
+
+      CALL profiler_set_stop_time('pprofile_get_gp_num_hyper_param',           &
+     &                            start_time)
+
+      END FUNCTION
+
 !*******************************************************************************
 !  UTILITY SUBROUTINES
 !*******************************************************************************
@@ -704,7 +751,7 @@
 
          CASE (pprofile_gp_1d_sexp_type,                                       &
      &         pprofile_gp_1d_ln_sexp_type)
-            WRITE(iou,1300) this%b(0:3)
+            WRITE(iou,1300) this%b(0:1)
             WRITE(iou,1231) (i, this%as(i), this%af(i),                        &
      &                       i = 1, this%maxSplineIndex)
 
@@ -748,6 +795,7 @@
          CASE (pprofile_gp_1d_sexp_type,                                       &
      &         pprofile_gp_1d_ln_sexp_type)
             this%cache = this%af
+            this%cache_hyper = this%b(0:1)
 
       END SELECT
 
@@ -780,6 +828,7 @@
          CASE (pprofile_gp_1d_sexp_type,                                       &
      &         pprofile_gp_1d_ln_sexp_type)
             this%af = this%cache
+            this%b(0:1) = this%cache_hyper
 
       END SELECT
 

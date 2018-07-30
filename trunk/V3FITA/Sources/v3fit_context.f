@@ -42,6 +42,9 @@
          TYPE (commandline_parser_class), POINTER :: cl_parser => null()
 !>  The equilibrium model.
          TYPE (model_class), POINTER                  :: model => null()
+!>  Guassian process models.
+         TYPE (gaussp_class_pointer), DIMENSION(:), POINTER ::                 &
+     &      gp => null()
 !>  Array of signals.
 !>  @see signal
          TYPE (signal_pointer), DIMENSION(:), POINTER ::                       &
@@ -60,9 +63,6 @@
 
 !  The default for the following index is -1 indicating that this signal hasn't
 !  been created.
-!>  Index of the last instance of a @ref gaussp_class signal. The default
-!>  -1 represents no @ref gaussp_class signal created.
-         INTEGER :: gaussp_last_index = -1
 !>  Index of the first instance of a @ref magnetic signal. The default -1
 !>  represents no @ref magnetic signal created.
          INTEGER :: magnetic_index = -1
@@ -178,6 +178,18 @@
       IF (ASSOCIATED(this%model)) THEN
          CALL model_destruct(this%model)
          this%model => null()
+      END IF
+
+!  Deconstruct and deallocate all the signals.
+      IF (ASSOCIATED(this%gp)) THEN
+         DO i = 1, SIZE(this%gp)
+            IF (ASSOCIATED(this%gp(i)%p)) THEN
+               CALL gaussp_destruct(this%gp(i)%p)
+               this%gp(i)%p => null()
+            END IF
+         END DO
+         DEALLOCATE(this%gp)
+         this%signals => null()
       END IF
 
 !  Deconstruct and deallocate all the signals.
@@ -303,7 +315,7 @@
          ELSE IF (minsize .lt. SIZE(this%signals)) THEN
             ALLOCATE(temp_signal(minsize))
             DO i = 1, minsize
-                temp_signal(i)%p => this%signals(i)%p
+               temp_signal(i)%p => this%signals(i)%p
             END DO
 
             DEALLOCATE(this%signals)
