@@ -288,7 +288,7 @@
      &                                     last_value, scale_factor)
       ELSE
          sxrem_get_modeled_signal =                                            &
-     &      sxrem_get_modeled_te_signal(this, a_model, sigma,                  &
+     &      sxrem_get_modeled_ti_signal(this, a_model, sigma,                  &
      &                                  last_value, scale_factor)
       END IF
 
@@ -400,7 +400,7 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      sxrem_get_modeled_emiss_signal = last_value
+      sxrem_get_modeled_ti_signal = last_value
       sigma = 0.0
 
       IF (BTEST(a_model%state_flags, model_state_vmec_flag)     .or.           &
@@ -421,7 +421,7 @@
          ALLOCATE(context(context_length))
          context = TRANSFER(sxr_context, context)
 
-         sxrem_get_modeled_signal(1) =                                         &
+         sxrem_get_modeled_ti_signal(1) =                                      &
      &      path_integrate(a_model%int_params, this%chord_path,                &
      &                     ti_function, context)*scale_factor
 
@@ -701,7 +701,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec)                           :: te_function
+      REAL (rprec)                           :: ti_function
       CHARACTER (len=1), INTENT(in)          :: context(:)
       REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
       REAL (rprec), DIMENSION(3), INTENT(in) :: dxcart
@@ -767,7 +767,10 @@
      &                                      gp_context%i,                      &
      &                                      gp_context%profile_number)
       ELSE
-!
+!  XICS diagnostics involve two profiles. Not sure how this the guassian
+!  processes work in this situation. Assert if this is reached.
+         CALL assert(.false., 'Guassian processes not supported for ' //       &
+     &                        'XICS Ti cords')
       END IF
 
       gp_function_i = gp_function_i*dx

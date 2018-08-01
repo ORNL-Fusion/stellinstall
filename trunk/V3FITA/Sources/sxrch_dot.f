@@ -343,7 +343,7 @@
       IF (is_te) THEN
          signals(signals_created + 1)%p => signal_construct(                   &
      &      diagnostic_construct(                                              &
-     &         sxrem_construct(xcart_i, xcart_f)),                             &
+     &         sxrem_construct(xcart_i, xcart_f, current_profile)),            &
      &      chord_name, chord_name, 'eVm',                                     &
      &      observed(signals_created + 1), sigma(signals_created + 1),         &
      &      weight(signals_created + 1),                                       &
