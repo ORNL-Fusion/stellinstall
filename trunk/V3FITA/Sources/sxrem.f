@@ -26,7 +26,7 @@
 !>  Type descriptor for sxrem type represented a standard emission diagnostic.
       INTEGER, PARAMETER :: sxrem_emiss_type = 0
 !>  Type descriptor for sxrem type represented a te diagnostic.
-      INTEGER, PARAMETER :: sxrem_te_type    = 1
+      INTEGER, PARAMETER :: sxrem_ti_type    = 1
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
@@ -111,7 +111,7 @@
 !-------------------------------------------------------------------------------
       INTERFACE sxrem_construct
          MODULE PROCEDURE sxrem_construct_emiss,                                &
-     &                    sxrem_construct_te
+     &                    sxrem_construct_ti
       END INTERFACE
 
 !-------------------------------------------------------------------------------
@@ -175,22 +175,24 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Construct a @ref sxrem_class object for te.
+!>  @brief Construct a @ref sxrem_class object for ti.
 !>
 !>  Allocates memory and initializes a @ref sxrem_class object.
 !>
 !>  @param[in] start_path     Starting point of a sxrem chord.
 !>  @param[in] end_path       Ending point of a sxrem chord.
+!>  @param[in] profile_number Index of the soft x-ray emissivity profile.
 !>  @returns A pointer to a constructed @ref sxrem_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION sxrem_construct_te(start_path, end_path)
+      FUNCTION sxrem_construct_ti(start_path, end_path, profile_number)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (sxrem_class), POINTER            :: sxrem_construct_te
+      TYPE (sxrem_class), POINTER            :: sxrem_construct_ti
       REAL (rprec), DIMENSION(3), INTENT(in) :: start_path
       REAL (rprec), DIMENSION(3), INTENT(in) :: end_path
+      INTEGER, INTENT(in)                    :: profile_number
 
 !  local variables
       REAL (rprec)                           :: start_time
@@ -198,17 +200,18 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      ALLOCATE(sxrem_construct_te)
+      ALLOCATE(sxrem_construct_ti)
 
-      sxrem_construct_te%type = sxrem_te_type
+      sxrem_construct_ti%type = sxrem_ti_type
 
-      CALL path_append_vertex(sxrem_construct_te%chord_path,                   &
+      CALL path_append_vertex(sxrem_construct_ti%chord_path,                   &
      &                        start_path)
-      CALL path_append_vertex(sxrem_construct_te%chord_path, end_path)
+      CALL path_append_vertex(sxrem_construct_ti%chord_path, end_path)
 
-      sxrem_construct_te%geo = 1.0
+      sxrem_construct_ti%geo = 1.0
+      sxrem_construct_ti%profile_number = profile_number
 
-      CALL profiler_set_stop_time('sxrem_construct_te', start_time)
+      CALL profiler_set_stop_time('sxrem_construct_ti', start_time)
 
       END FUNCTION
 
@@ -248,7 +251,7 @@
 !>  @brief Calculates the modeled signal.
 !>
 !>  Calculates the soft x-ray emissivity signal by integrating along the chord
-!>  path. The emissivity is provided by the @ref sxr_function.
+!>  path. The signal is computed based on the type.
 !>
 !>  @param[in]  this         A @ref sxrem_class instance.
 !>  @param[in]  a_model      A @ref model instance.
@@ -279,7 +282,57 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      sxrem_get_modeled_signal = last_value
+      IF (this%type .eq. sxrem_emiss_type) THEN
+         sxrem_get_modeled_signal =                                            &
+     &      sxrem_get_modeled_emiss_signal(this, a_model, sigma,               &
+     &                                     last_value, scale_factor)
+      ELSE
+         sxrem_get_modeled_signal =                                            &
+     &      sxrem_get_modeled_te_signal(this, a_model, sigma,                  &
+     &                                  last_value, scale_factor)
+      END IF
+
+      CALL profiler_set_stop_time('sxrem_get_modeled_signal',                  &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Calculates the modeled emiss signal.
+!>
+!>  Calculates the soft x-ray emissivity signal by integrating along the chord
+!>  path. The emissivity is provided by the @ref sxr_function.
+!>
+!>  @param[in]  this         A @ref sxrem_class instance.
+!>  @param[in]  a_model      A @ref model instance.
+!>  @param[out] sigma        The modeled sigma.
+!>  @param[in]  last_value   Last good value in case the signal did not change.
+!>  @param[in]  scale_factor Factor to scale the modeled signal.
+!>  @returns The model value.
+!-------------------------------------------------------------------------------
+      FUNCTION sxrem_get_modeled_emiss_signal(this, a_model, sigma,            &
+     &                                        last_value, scale_factor)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(4) :: sxrem_get_modeled_emiss_signal
+      TYPE (sxrem_class), INTENT(in)          :: this
+      TYPE (model_class), TARGET, INTENT(in)  :: a_model
+      REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
+      REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
+      REAL (rprec), INTENT(in)                :: scale_factor
+
+! local variables
+      CHARACTER(len=1), ALLOCATABLE           :: context(:)
+      INTEGER                                 :: context_length
+      TYPE (sxrem_context)                    :: sxr_context
+      REAL (rprec)                            :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      sxrem_get_modeled_emiss_signal = last_value
       sigma = 0.0
 
       IF (BTEST(a_model%state_flags, model_state_vmec_flag)     .or.           &
@@ -299,21 +352,83 @@
          ALLOCATE(context(context_length))
          context = TRANSFER(sxr_context, context)
 
-         IF (this%type .eq. sxrem_emiss_type) THEN
-            sxrem_get_modeled_signal(1) =                                      &
-     &         path_integrate(a_model%int_params, this%chord_path,             &
-     &                        sxr_function, context)*                          &
+         sxrem_get_modeled_emiss_signal(1) =                                   &
+     &      path_integrate(a_model%int_params, this%chord_path,                &
+     &                     sxr_function, context)*                             &
      &         this%geo*scale_factor
-         ELSE
-            sxrem_get_modeled_signal(1) =                                      &
-     &         path_integrate(a_model%int_params, this%chord_path,             &
-     &                        te_function, context)*scale_factor
-         END IF
 
          DEALLOCATE(context)
       END IF
 
-      CALL profiler_set_stop_time('sxrem_get_modeled_signal',                  &
+      CALL profiler_set_stop_time('sxrem_get_modeled_emiss_signal',            &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Calculates the modeled ion temperature signal.
+!>
+!>  Calculates the soft x-ray emissivity/ion temperature signal by integrating
+!>  along the chord path. The emissivity is provided by the @ref ti_function.
+!>
+!>  @param[in]  this         A @ref sxrem_class instance.
+!>  @param[in]  a_model      A @ref model instance.
+!>  @param[out] sigma        The modeled sigma.
+!>  @param[in]  last_value   Last good value in case the signal did not change.
+!>  @param[in]  scale_factor Factor to scale the modeled signal.
+!>  @returns The model value.
+!-------------------------------------------------------------------------------
+      FUNCTION sxrem_get_modeled_ti_signal(this, a_model, sigma,               &
+     &                                     last_value, scale_factor)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(4) :: sxrem_get_modeled_ti_signal
+      TYPE (sxrem_class), INTENT(in)          :: this
+      TYPE (model_class), TARGET, INTENT(in)  :: a_model
+      REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
+      REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
+      REAL (rprec), INTENT(in)                :: scale_factor
+
+! local variables
+      CHARACTER(len=1), ALLOCATABLE           :: context(:)
+      INTEGER                                 :: context_length
+      TYPE (sxrem_context)                    :: sxr_context
+      REAL (rprec)                            :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      sxrem_get_modeled_emiss_signal = last_value
+      sigma = 0.0
+
+      IF (BTEST(a_model%state_flags, model_state_vmec_flag)     .or.           &
+     &    BTEST(a_model%state_flags, model_state_siesta_flag)   .or.           &
+     &    BTEST(a_model%state_flags, model_state_shift_flag)    .or.           &
+     &    BTEST(a_model%state_flags, model_state_ti_flag)       .or.           &
+     &    BTEST(a_model%state_flags, model_state_sxrem_flag +                  &
+     &                               (this%profile_number - 1)) .or.           &
+     &    BTEST(a_model%state_flags, model_state_signal_flag)) THEN
+
+!  The relevant data for the soft x-ray context.
+         sxr_context%profile_number = this%profile_number
+         sxr_context%model => a_model
+
+!  Cast model into a data to a context. This is the equivalent to casting to a
+!  void pointer in C.
+         context_length = SIZE(TRANSFER(sxr_context, context))
+         ALLOCATE(context(context_length))
+         context = TRANSFER(sxr_context, context)
+
+         sxrem_get_modeled_signal(1) =                                         &
+     &      path_integrate(a_model%int_params, this%chord_path,                &
+     &                     ti_function, context)*scale_factor
+
+         DEALLOCATE(context)
+      END IF
+
+      CALL profiler_set_stop_time('sxrem_get_modeled_ti_signal',               &
      &                            start_time)
 
       END FUNCTION
@@ -564,12 +679,13 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Electron temperature callback function.
+!>  @brief Ion temperature callback function.
 !>
-!>  Returns the value of the electron temperature times the change in path
-!>  length. This function is passed to @ref integration_path::path_integrate to
-!>  act as a callback. The soft x-ray emissivity is provided by
-!>  @ref model::model_get_sxrem.
+!>  Returns the value of the ion temperature times the soft x-ray emissivity
+!>  times the change in path length. This function is passed to
+!>  @ref integration_path::path_integrate to act as a callback. The soft x-ray
+!>  emissivity is provided by @ref model::model_get_sxrem and the ion
+!>  temperature is provided by @ref model::model_get_ti.
 !>
 !>  @see integration_path
 !>
@@ -580,7 +696,7 @@
 !>  @param[in] dx      A scalar change in path.
 !>  @returns The te(x)*dl at point x.
 !-------------------------------------------------------------------------------
-      FUNCTION te_function(context, xcart, dxcart, length, dx)
+      FUNCTION ti_function(context, xcart, dxcart, length, dx)
 
       IMPLICIT NONE
 
@@ -600,9 +716,11 @@
       start_time = profiler_get_start_time()
 
       sxr_context = TRANSFER(context, sxr_context)
-      te_function = model_get_te(sxr_context%model, xcart)*dx
+      ti_function = model_get_sxrem(sxr_context%model, xcart,                  &
+     &                              sxr_context%profile_number)                &
+     &            * model_get_ti(sxr_context%model, xcart)*dx
 
-      CALL profiler_set_stop_time('sxr_function', start_time)
+      CALL profiler_set_stop_time('ti_function', start_time)
 
       END FUNCTION
 
@@ -649,8 +767,7 @@
      &                                      gp_context%i,                      &
      &                                      gp_context%profile_number)
       ELSE
-         gp_function_i = model_get_gp_te(gp_context%model, xcart,              &
-     &                                   gp_context%i)
+!
       END IF
 
       gp_function_i = gp_function_i*dx
@@ -677,6 +794,7 @@
 !>  @returns The k(x, y)*dl at point y.
 !-------------------------------------------------------------------------------
       FUNCTION gp_function_x(context, xcart, dxcart, length, dx)
+      USE v3_utilities, ONLY: assert
 
       IMPLICIT NONE
 
@@ -702,8 +820,10 @@
      &                                      xcart, gp_context%xcart,           &
      &                                      gp_context%profile_number)
       ELSE
-         gp_function_x = model_get_gp_te(gp_context%model,                     &
-     &                                   xcart, gp_context%xcart)
+!  XICS diagnostics involve two profiles. Not sure how this the guassian
+!  processes work in this situation. Assert if this is reached.
+         CALL assert(.false., 'Guassian processes not supported for ' //       &
+     &                        'XICS Ti cords')
       END IF
 
       gp_function_x = gp_function_x*dx

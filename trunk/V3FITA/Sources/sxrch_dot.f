@@ -31,8 +31,8 @@
 !>  @item2{@fixed_width{sxr_chord_RPhiDegZ_geo},        A soft x-ray chord specified in Cylindrical coordinates with the geometric factor.}
 !>  @item2{@fixed_width{sxr_chord_XYZ_xics_emiss},      A XICS emission chord specified in Cartesian coordinates.}
 !>  @item2{@fixed_width{sxr_chord_RPhiDegZ_xics_emiss}, A XICS emission chord specified in Cylindrical coordinates.}
-!>  @item2{@fixed_width{sxr_chord_XYZ_xics_te},         A XICS electron temperature chord specified in Cartesian coordinates.}
-!>  @item2{@fixed_width{sxr_chord_RPhiDegZ_xics_te},    A XICS electron temperature chord specified in Cylindrical coordinates.}
+!>  @item2{@fixed_width{sxr_chord_XYZ_xics_ti},         A XICS electron temperature chord specified in Cartesian coordinates.}
+!>  @item2{@fixed_width{sxr_chord_RPhiDegZ_xics_ti},    A XICS electron temperature chord specified in Cylindrical coordinates.}
 !>  @item2{@fixed_width{sxr_new_profile},        Mark the start of chords that begin the next profile.}
 !>  @end_table
 !>
@@ -172,8 +172,8 @@
       sxrchd_keyword(4) = 'sxr_chord_RPhiDegZ_geo'
       sxrchd_keyword(5) = 'sxr_chord_XYZ_xics_emiss'
       sxrchd_keyword(6) = 'sxr_chord_RPhiDegZ_xics_emiss'
-      sxrchd_keyword(7) = 'sxr_chord_XYZ_xics_te'
-      sxrchd_keyword(8) = 'sxr_chord_RPhiDegZ_xics_te'
+      sxrchd_keyword(7) = 'sxr_chord_XYZ_xics_ti'
+      sxrchd_keyword(8) = 'sxr_chord_RPhiDegZ_xics_ti'
       sxrchd_keyword(9) = 'sxr_new_profile'
       sxrchd_keyword(10) = 'end_of_file'
 
@@ -228,7 +228,7 @@
      &                                    current_profile, first_index,        &
      &                                    .true., .false.)
 
-            CASE ('sxr_chord_XYZ_xics_te')
+            CASE ('sxr_chord_XYZ_xics_ti')
                CALL sxrch_dot_parse_chord(sxrch_dot_file_ref,                  &
      &                                    'XYZ', signals,                      &
      &                                    signals_created,                     &
@@ -236,7 +236,7 @@
      &                                    current_profile, first_index,        &
      &                                    .false., .true.)
 
-            CASE ('sxr_chord_RPhiDegZ_xics_te')
+            CASE ('sxr_chord_RPhiDegZ_xics_ti')
                CALL sxrch_dot_parse_chord(sxrch_dot_file_ref,                  &
      &                                    'RPHiDegZ', signals,                 &
      &                                    signals_created,                     &
