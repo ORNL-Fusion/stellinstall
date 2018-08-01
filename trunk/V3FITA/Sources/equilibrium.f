@@ -103,7 +103,7 @@
       END INTERFACE
 
 !-------------------------------------------------------------------------------
-!>  Interface for the equilibrium temperature profile values.
+!>  Interface for the equilibrium electron temperature profile values.
 !-------------------------------------------------------------------------------
       INTERFACE equilibrium_get_te
          MODULE PROCEDURE equilibrium_get_te_cart,                             &
@@ -111,12 +111,31 @@
       END INTERFACE
 
 !-------------------------------------------------------------------------------
-!>  Interface for the equilibrium guassian process temperature profile values.
+!>  Interface for the equilibrium guassian process electron temperature profile
+!>  values.
 !-------------------------------------------------------------------------------
       INTERFACE equilibrium_get_gp_te
          MODULE PROCEDURE equilibrium_get_gp_te_ij,                            &
      &                    equilibrium_get_gp_te_pi,                            &
      &                    equilibrium_get_gp_te_pp
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
+!>  Interface for the equilibrium ion temperature profile values.
+!-------------------------------------------------------------------------------
+      INTERFACE equilibrium_get_ti
+         MODULE PROCEDURE equilibrium_get_ti_cart,                             &
+     &                    equilibrium_get_ti_radial
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
+!>  Interface for the equilibrium guassian process ion temperature profile
+!>  values.
+!-------------------------------------------------------------------------------
+      INTERFACE equilibrium_get_gp_ti
+         MODULE PROCEDURE equilibrium_get_gp_ti_ij,                            &
+     &                    equilibrium_get_gp_ti_pi,                            &
+     &                    equilibrium_get_gp_ti_pp
       END INTERFACE
 
 !-------------------------------------------------------------------------------
@@ -994,7 +1013,7 @@
 !>  This method is virtual. The actual getting of the number of hyper parameters
 !>  should be handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_gp_te_num_hyper_param
-!>  @see siesta_equilibrium::siesta_get_gp_ne_num_hyper_param
+!>  @see siesta_equilibrium::siesta_get_gp_te_num_hyper_param
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @returns Number of kernel hyper parameters.
@@ -1069,9 +1088,11 @@
          CASE DEFAULT
             equilibrium_get_te_af => null()
 
-         END SELECT
+      END SELECT
 
-         END FUNCTION
+      CALL profiler_set_stop_time('equilibrium_get_te_af', start_time)
+
+      END FUNCTION
 
 !-------------------------------------------------------------------------------
 !>  @brief Get the electron temperature gp kernel value for the two indicies.
@@ -1202,7 +1223,7 @@
       REAL (rprec), DIMENSION(3), INTENT(in) :: y_cart
 
 !  local variables
-      REAL (rprec)                         :: start_time
+      REAL (rprec)                           :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -1317,6 +1338,340 @@
       END SELECT
 
       CALL profiler_set_stop_time('equilibrium_get_te_radial',                 &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the number of ion temperature gp kernel hyper parameters.
+!>
+!>  This method is virtual. The actual getting of the number of hyper parameters
+!>  should be handled by a subclass method.
+!>  @see vmec_equilibrium::vmec_get_gp_ti_num_hyper_param
+!>  @see siesta_equilibrium::siesta_get_gp_ti_num_hyper_param
+!>
+!>  @param[in] this A @ref equilibrium_class instance.
+!>  @returns Number of kernel hyper parameters.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_gp_ti_num_hyper_param(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER :: equilibrium_get_gp_ti_num_hyper_param
+      TYPE (equilibrium_class), INTENT(in) :: this
+
+!  local variables
+      REAL (rprec)                         :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_gp_ti_num_hyper_param =                            &
+     &         vmec_get_gp_ti_num_hyper_param(this%vmec)
+
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_gp_ti_num_hyper_param =                            &
+     &         siesta_get_gp_ti_num_hyper_param(this%siesta)
+
+         CASE DEFAULT
+            equilibrium_get_gp_ti_num_hyper_param = 0
+
+      END SELECT
+
+      CALL profiler_set_stop_time(                                             &
+     &        'equilibrium_get_gp_ti_num_hyper_param', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the ion temperature profile af array.
+!>
+!>  This method is virtual. The actual getting of the af array should be handled
+!>  by a subclass method.
+!>  @see vmec_equilibrium::vmec_get_ti_af
+!>  @see siesta_equilibrium::siesta_get_ti_af
+!>
+!>  @param[in] this A @ref equilibrium_class instance.
+!>  @returns Pointer to the electron ion profile af array.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_ti_af(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:), POINTER  :: equilibrium_get_ti_af
+      TYPE (equilibrium_class), INTENT(in) :: this
+
+!  local variables
+      REAL (rprec)                         :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_ti_af => vmec_get_ti_af(this%vmec)
+
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_ti_af => siesta_get_ti_af(this%siesta)
+
+         CASE DEFAULT
+            equilibrium_get_ti_af => null()
+
+      END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_get_ti_af', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the ion temperature gp kernel value for the two indicies.
+!>
+!>  This method is virtual. The actual getting of the kernel function
+!>  should be handled by a subclass method.
+!>  @see vmec_equilibrium::vmec_get_gp_ti_ij
+!>  @see siesta_equilibrium::siesta_get_gp_ti_ij
+!>
+!>  @param[in] this A @ref equilibrium_class instance.
+!>  @param[in] i    ith profile position.
+!>  @param[in] j    ith profile position.
+!>  @returns The value of the gp kernel function for i, j.
+!>  @note Note the gp kernel is not implmented for all equilibrium
+!>  types. For instance, vacuum equilibrium should not override this method.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_gp_ti_ij(this, i, j)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec) :: equilibrium_get_gp_ti_ij
+      TYPE (equilibrium_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                  :: i
+      INTEGER, INTENT(in)                  :: j
+
+!  local variables
+      REAL (rprec)                         :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_gp_ti_ij = vmec_get_gp_ti(this%vmec, i, j)
+
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_gp_ti_ij = siesta_get_gp_ti(this%siesta,           &
+     &                                                  i, j)
+
+         CASE DEFAULT
+            equilibrium_get_gp_ti_ij = 0.0
+
+      END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_get_gp_ti_ij',                  &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the ion temperature gp kernel value for the position and index.
+!>
+!>  This method is virtual. The actual getting of the kernel function
+!>  should be handled by a subclass method.
+!>  @see vmec_equilibrium::vmec_get_gp_ti_pi
+!>  @see siesta_equilibrium::siesta_get_gp_ti_pi
+!>
+!>  @param[in] this   A @ref equilibrium_class instance.
+!>  @param[in] x_cart Cartesian position to get the ion temperature at.
+!>  @param[in] i      Profile position index.
+!>  @returns The value of the gp kernel function for x_cart and i.
+!>  @note Note the gp kernel is not implmented for all equilibrium
+!>  types. For instance, vacuum equilibrium should not override this method.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_gp_ti_pi(this, x_cart, i)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec) :: equilibrium_get_gp_ti_pi
+      TYPE (equilibrium_class), INTENT(in)   :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      INTEGER, INTENT(in)                    :: i
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_gp_ti_pi = vmec_get_gp_ti(this%vmec,               &
+     &                                                x_cart, i)
+
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_gp_ti_pi = siesta_get_gp_ti(this%siesta,           &
+     &                                                  x_cart, i)
+
+         CASE DEFAULT
+            equilibrium_get_gp_ti_pi = 0.0
+
+      END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_get_gp_ti_pi',                  &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the ion temperature gp kernel value for the position and
+!>  position.
+!>
+!>  This method is virtual. The actual getting of the kernel function
+!>  should be handled by a subclass method.
+!>  @see vmec_equilibrium::vmec_get_gp_ti_pp
+!>  @see siesta_equilibrium::siesta_get_gp_ti_pp
+!>
+!>  @param[in] this   A @ref equilibrium_class instance.
+!>  @param[in] x_cart Cartesian position to get the kernel at.
+!>  @param[in] y_cart Cartesian position to get the kernel at.
+!>  @returns The value of the gp kernel function for x_cart and y_cart.
+!>  @note Note the gp kernel is not implmented for all equilibrium
+!>  types. For instance, vacuum equilibrium should not override this method.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_gp_ti_pp(this, x_cart, y_cart)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec) :: equilibrium_get_gp_ti_pp
+      TYPE (equilibrium_class), INTENT(in)   :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      REAL (rprec), DIMENSION(3), INTENT(in) :: y_cart
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_gp_ti_pp = vmec_get_gp_ti(this%vmec,               &
+     &                                                x_cart, y_cart)
+
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_gp_ti_pp = siesta_get_gp_ti(this%siesta,           &
+     &                                                  x_cart, y_cart)
+
+         CASE DEFAULT
+            equilibrium_get_gp_ti_pp = 0.0
+
+      END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_get_gp_ti_pp',                  &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the ion temperature at a cartesian position.
+!>
+!>  This method is virtual. The actual getting of the electron temperature
+!>  should be handled by a subclass method.
+!>  @see vmec_equilibrium::vmec_get_ti
+!>  @see siesta_equilibrium::siesta_get_ti
+!>
+!>  @param[in] this   A @ref equilibrium_class instance.
+!>  @param[in] x_cart Cartesian position to get the electron temperature at.
+!>  @returns The ion temperature at x_cart.
+!>  @note Note the ion temperature is not relevant to all equilibrium
+!>  types. For instance, vacuum equilibrium should not override this method.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_ti_cart(this, x_cart)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec) :: equilibrium_get_ti_cart
+      TYPE (equilibrium_class), INTENT(in)   :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_ti_cart = vmec_get_ti(this%vmec, x_cart)
+
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_ti_cart = siesta_get_ti(this%siesta, x_cart)
+
+         CASE DEFAULT
+            equilibrium_get_ti_cart = 0.0
+
+      END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_get_ti_cart',                   &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the ion temperature at a radial position.
+!>
+!>  This method is virtual. The actual getting of the ion temperature should be
+!>  handled by a subclass method.
+!>  @see vmec_equilibrium::vmec_get_ti
+!>  @see siesta_equilibrium::siesta_get_ti
+!>
+!>  @param[in] this A @ref equilibrium_class instance.
+!>  @param[in] r    Cartesian position to get the ion temperature at.
+!>  @returns The ion temperature at r.
+!>  @note Note the ion temperature is not relevant to all equilibrium
+!>  types. For instance, vacuum equilibrium should not override this method.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_ti_radial(this, r)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec) :: equilibrium_get_ti_radial
+      TYPE (equilibrium_class), INTENT(in) :: this
+      REAL (rprec), INTENT(in)             :: r
+
+!  local variables
+      REAL (rprec)                         :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_ti_radial = vmec_get_ti(this%vmec, r)
+
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_ti_radial = siesta_get_ti(this%siesta, r)
+
+         CASE DEFAULT
+            equilibrium_get_ti_radial = 0.0
+
+      END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_get_ti_radial',                 &
      &                            start_time)
 
       END FUNCTION
@@ -1608,7 +1963,7 @@
 
       END SELECT
 
-      CALL profiler_set_stop_time('equilibrium_get_gp_te_pi',                  &
+      CALL profiler_set_stop_time('equilibrium_get_gp_sxrem_pi',                &
      &                            start_time)
 
       END FUNCTION
@@ -1670,7 +2025,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Gets the soft x-ray emissivity at a cartesian position.
 !>
-!>  This method is virtual. The actual getting of the electron temperature
+!>  This method is virtual. The actual getting of the soft x-ray emissivity
 !>  should be handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_sxrem
 !>  @see siesta_equilibrium::siesta_get_sxrem
@@ -1721,7 +2076,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Gets the soft x-ray emissivity at a radial position.
 !>
-!>  This method is virtual. The actual getting of the electron temperature
+!>  This method is virtual. The actual getting of the soft x-ray emissivity
 !>  should be handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_sxrem
 !>  @see siesta_equilibrium::siesta_get_sxrem

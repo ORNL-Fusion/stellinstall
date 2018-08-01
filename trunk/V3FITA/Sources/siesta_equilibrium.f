@@ -31,29 +31,32 @@
 !>  reconstructed that do not change the equilibirum. These parameters do not
 !>  require the equilibrium to reconverge.
 !>  @begin_table
-!>     @item{pp_ne_b,       1D Array of function density profile parameters.,     @ref pprofile_T::pprofile_class::b}
-!>     @item{pp_ne_as,      1D Array of segment density profile s poitions.,      @ref pprofile_T::pprofile_class::as}
-!>     @item{pp_ne_af,      1D Array of segment density profile f values.,        @ref pprofile_T::pprofile_class::af}
+!>     @item{pp_ne_b,       1D Array of function density profile parameters.,              @ref pprofile_T::pprofile_class::b}
+!>     @item{pp_ne_as,      1D Array of segment density profile s poitions.,               @ref pprofile_T::pprofile_class::as}
+!>     @item{pp_ne_af,      1D Array of segment density profile f values.,                 @ref pprofile_T::pprofile_class::af}
 !>     @item{pp_sxrem_b,    1D Array of function sxrem profile parameters.
 !>                          DEPREICATED only use id when using the old profile
-!>                          specification.,                                       @ref pprofile_T::pprofile_class::b}
+!>                          specification.,                                                @ref pprofile_T::pprofile_class::b}
 !>     @item{pp_sxrem_as,   1D Array of segment sxrem profile s poitions.
 !>                          DEPREICATED only use id when using the old profile
-!>                          specification.,                                       @ref pprofile_T::pprofile_class::as}
+!>                          specification.,                                                @ref pprofile_T::pprofile_class::as}
 !>     @item{pp_sxrem_af,   1D Array of segment sxrem profile f values.
 !>                          DEPREICATED only use id when using the old profile
-!>                          specification.,                                       @ref pprofile_T::pprofile_class::af}
+!>                          specification.,                                                @ref pprofile_T::pprofile_class::af}
 !>     @item{pp_sxrem_b_a,  2D Array of function sxrem profile parameters.
-!>                          First index is the profile number.,                   @ref siesta_equilibrium::siesta_class::sxrem}
+!>                          First index is the profile number.,                            @ref siesta_equilibrium::siesta_class::sxrem}
 !>     @item{pp_sxrem_as_a, 2D Array of segment sxrem profile s poitions.
-!>                          First index is the profile number.,                   @ref siesta_equilibrium::siesta_class::sxrem}
+!>                          First index is the profile number.,                            @ref siesta_equilibrium::siesta_class::sxrem}
 !>     @item{pp_sxrem_af_a, 2D Array of segment sxrem profile f values.
-!>                          First index is the profile number.,                   @ref siesta_equilibrium::siesta_class::sxrem}
-!>     @item{pp_te_b,       1D Array of function temperature profile parameters., @ref pprofile_T::pprofile_class::b}
-!>     @item{pp_te_as,      1D Array of segment temperature profile s poitions.,  @ref pprofile_T::pprofile_class::as}
-!>     @item{pp_te_af,      1D Array of segment temperature profile f values.,    @ref pprofile_T::pprofile_class::af}
-!>     @item{phi_offset,    Phi angle offset in radians,                          @ref siesta_equilibrium::siesta_class::phi_offset}
-!>     @item{z_offset,      Z offset in meters,                                   @ref siesta_equilibrium::siesta_class::z_offset}
+!>                          First index is the profile number.,                            @ref siesta_equilibrium::siesta_class::sxrem}
+!>     @item{pp_te_b,       1D Array of function electron temperature profile parameters., @ref pprofile_T::pprofile_class::b}
+!>     @item{pp_te_as,      1D Array of segment electron temperature profile s poitions.,  @ref pprofile_T::pprofile_class::as}
+!>     @item{pp_te_af,      1D Array of segment electron temperature profile f values.,    @ref pprofile_T::pprofile_class::af}
+!>     @item{pp_ti_b,       1D Array of function ion temperature profile parameters.,      @ref pprofile_T::pprofile_class::b}
+!>     @item{pp_ti_as,      1D Array of segment ion temperature profile s poitions.,       @ref pprofile_T::pprofile_class::as}
+!>     @item{pp_ti_af,      1D Array of segment ion temperature profile f values.,         @ref pprofile_T::pprofile_class::af}
+!>     @item{phi_offset,    Phi angle offset in radians,                                   @ref siesta_equilibrium::siesta_class::phi_offset}
+!>     @item{z_offset,      Z offset in meters,                                            @ref siesta_equilibrium::siesta_class::z_offset}
 !>  @end_table
 !*******************************************************************************
 !>  @file siesta_equilibrium.f
@@ -79,44 +82,53 @@
 !  siesta equilibrium module parameters
 !*******************************************************************************
 !  Define id's only for values that can change. All others shouldn't be needed
-!  outside of the vmec interface. Parameter id's start at 11 since 0-10 are
+!  outside of the vmec interface. Parameter id's start at 14 since 0-13 are
 !  reserved for non equilibrium model parameters. These numbers will need to be
 !  updated if any new model parameters are added. Siesta uses the VMEC model
 !  parameters but overwrites the auxilary parameters.
 
 !  Auxiliary Model Parameters
 !>  1D Array of function density profile parameters. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_ne_b_id     = 55
+      INTEGER, PARAMETER :: siesta_pp_ne_b_id     = 58
 !>  1D Array of segment density profile s poitions. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_ne_as_id    = 56
+      INTEGER, PARAMETER :: siesta_pp_ne_as_id    = 59
 !>  1D Array of segment density profile f values. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_ne_af_id    = 57
+      INTEGER, PARAMETER :: siesta_pp_ne_af_id    = 60
 !>  1D Array of function sxrem profile parameters. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_sxrem_b_id  = 58
+      INTEGER, PARAMETER :: siesta_pp_sxrem_b_id  = 61
 !>  1D Array of segment sxrem profile s poitions. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_sxrem_as_id = 59
+      INTEGER, PARAMETER :: siesta_pp_sxrem_as_id = 62
 !>  1D Array of segment sxrem profile f values. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_sxrem_af_id = 60
-!>  1D Array of function temperature profile parameters. Defined in
+      INTEGER, PARAMETER :: siesta_pp_sxrem_af_id = 63
+!>  1D Array of function electron temperature profile parameters. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_te_b_id     = 61
-!>  1D Array of segment temperature profile s poitions. Defined in
+      INTEGER, PARAMETER :: siesta_pp_te_b_id     = 64
+!>  1D Array of segment electron temperature profile s poitions. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_te_as_id    = 62
-!>  1D Array of segment temperature profile f values. Defined in
+      INTEGER, PARAMETER :: siesta_pp_te_as_id    = 65
+!>  1D Array of segment electron temperature profile f values. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_te_af_id    = 63
+      INTEGER, PARAMETER :: siesta_pp_te_af_id    = 66
+!>  1D Array of function ion temperature profile parameters. Defined in
+!>  @ref pprofile_T.
+      INTEGER, PARAMETER :: siesta_pp_ti_b_id     = 67
+!>  1D Array of segment ion temperature profile s poitions. Defined in
+!>  @ref pprofile_T.
+      INTEGER, PARAMETER :: siesta_pp_ti_as_id    = 68
+!>  1D Array of segment ion temperature profile f values. Defined in
+!>  @ref pprofile_T.
+      INTEGER, PARAMETER :: siesta_pp_ti_af_id    = 69
 
 !  Skip 68-76 since these parameters have a VMEC value but not a SIESTA analog.
 !>  Plasma Phi offset. This is a parameter to allow changing the phi angle of a
 !>  quasi helical state in an RFP. Defined in @ref vmec_equilibrium.
-      INTEGER, PARAMETER :: siesta_phi_offset_id  = 76
+      INTEGER, PARAMETER :: siesta_phi_offset_id  = 82
 !>  Plasma z offset. This is a parameter to allow changing the vertical shift of
 !>  the plasma
-      INTEGER, PARAMETER :: siesta_z_offset_id    = 77
+      INTEGER, PARAMETER :: siesta_z_offset_id    = 83
 
 !>  Helical perturbation parameter.
-      INTEGER, PARAMETER :: siesta_helpert_id     = 78
+      INTEGER, PARAMETER :: siesta_helpert_id     = 84
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
@@ -210,6 +222,9 @@
          TYPE (pprofile_class), POINTER         :: te => null()
 !>  @ref pprofile_T describing a flux surface conatsnt soft x-ray emissivity
 !>  profile.
+         TYPE (pprofile_class), POINTER         :: ti => null()
+!>  @ref pprofile_T describing a flux surface conatsnt soft x-ray emissivity
+!>  profile.
          TYPE (pprofile_pointer), DIMENSION(:), POINTER ::                     &
      &      sxrem => null()
 
@@ -264,7 +279,7 @@
       END INTERFACE
 
 !-------------------------------------------------------------------------------
-!>  Interface for the siesta temperature profile values.
+!>  Interface for the siesta electron temperature profile values.
 !-------------------------------------------------------------------------------
       INTERFACE siesta_get_te
          MODULE PROCEDURE siesta_get_te_cart,                                  &
@@ -272,12 +287,31 @@
       END INTERFACE
 
 !-------------------------------------------------------------------------------
-!>  Interface for the siesta guassian process temperature profile values.
+!>  Interface for the siesta guassian process electron temperature profile
+!>  values.
 !-------------------------------------------------------------------------------
       INTERFACE siesta_get_gp_te
          MODULE PROCEDURE siesta_get_gp_te_ij,                                 &
      &                    siesta_get_gp_te_pi,                                 &
      &                    siesta_get_gp_te_pp
+      END INTERFACE
+
+
+!-------------------------------------------------------------------------------
+!>  Interface for the siesta ion temperature profile values.
+!-------------------------------------------------------------------------------
+      INTERFACE siesta_get_ti
+         MODULE PROCEDURE siesta_get_ti_cart,                                  &
+     &                    siesta_get_ti_radial
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
+!>  Interface for the siesta guassian process ion temperature profile values.
+!-------------------------------------------------------------------------------
+      INTERFACE siesta_get_gp_ti
+         MODULE PROCEDURE siesta_get_gp_ti_ij,                                 &
+     &                    siesta_get_gp_ti_pi,                                 &
+     &                    siesta_get_gp_ti_pp
       END INTERFACE
 
 !-------------------------------------------------------------------------------
@@ -323,6 +357,7 @@
 !>  @param[in]    ne                @ref pprofile_T for the electron density.
 !>  @param[in]    te                @ref pprofile_T for the electron
 !>                                  temperature.
+!>  @param[in]    ti                @ref pprofile_T for the ion temperature.
 !>  @param[in]    sxrem             @ref pprofile_T for the soft x-ray
 !>                                  emissivity.
 !>  @param[in]    phi_offset        Initial phi offset of the plasma relative to
@@ -339,7 +374,7 @@
 !>  @returns A pointer to a constructed @ref siesta_class object.
 !-------------------------------------------------------------------------------
       FUNCTION siesta_construct(file_name, restart_file_name,                  &
-     &                          ne, te, sxrem, phi_offset, z_offset,           &
+     &                          ne, te, ti, sxrem, phi_offset, z_offset,       &
      &                          pol_rad_ratio, iou, eq_comm, recon_comm,       &
      &                          vmec, state_flags)
       USE safe_open_mod
@@ -354,6 +389,7 @@
       CHARACTER (len=*), INTENT(in)        :: restart_file_name
       TYPE (pprofile_class), POINTER       :: ne
       TYPE (pprofile_class), POINTER       :: te
+      TYPE (pprofile_class), POINTER       :: ti
       TYPE (pprofile_pointer), DIMENSION(:), POINTER :: sxrem
       REAL (rprec), INTENT(in)             :: phi_offset
       REAL (rprec), INTENT(in)             :: z_offset
@@ -404,6 +440,7 @@
 
          siesta_construct%ne => ne
          siesta_construct%te => te
+         siesta_construct%ti => ti
          siesta_construct%sxrem => sxrem
 
          siesta_construct%phi_offset = phi_offset
@@ -467,6 +504,11 @@
       IF (ASSOCIATED(this%te)) THEN
          CALL pprofile_destruct(this%te)
          this%te => null()
+      END IF
+
+      IF (ASSOCIATED(this%ti)) THEN
+         CALL pprofile_destruct(this%ti)
+         this%ti => null()
       END IF
 
       IF (ASSOCIATED(this%sxrem)) THEN
@@ -649,6 +691,18 @@
          CASE (siesta_pp_te_af_id)
             state_flags = IBSET(state_flags, model_state_te_flag)
             this%te%af(i_index) = value
+
+         CASE (siesta_pp_ti_b_id)
+            state_flags = IBSET(state_flags, model_state_ti_flag)
+            this%ti%b(i_index) = value
+
+         CASE (siesta_pp_ti_as_id)
+            state_flags = IBSET(state_flags, model_state_ti_flag)
+            this%ti%as(i_index) = value
+
+         CASE (siesta_pp_ti_af_id)
+            state_flags = IBSET(state_flags, model_state_ti_flag)
+            this%ti%af(i_index) = value
 
 !  There are multiple soft x-ray emission profiles. These need to be offset by
 !  the array index.
@@ -1504,6 +1558,15 @@
          CASE ('pp_te_af')
             siesta_get_param_id = siesta_pp_te_af_id
 
+         CASE ('pp_ti_b')
+            siesta_get_param_id = siesta_pp_ti_b_id
+
+         CASE ('pp_ti_as')
+            siesta_get_param_id = siesta_pp_ti_as_id
+
+         CASE ('pp_ti_af')
+            siesta_get_param_id = siesta_pp_ti_af_id
+
          CASE ('phi_offset')
             siesta_get_param_id = siesta_phi_offset_id
 
@@ -1580,6 +1643,15 @@
          CASE (siesta_pp_te_af_id)
             siesta_get_param_value = this%te%af(i_index)
 
+         CASE (siesta_pp_ti_b_id)
+            siesta_get_param_value = this%ti%b(i_index)
+
+         CASE (siesta_pp_ti_as_id)
+            siesta_get_param_value = this%ti%as(i_index)
+
+         CASE (siesta_pp_ti_af_id)
+            siesta_get_param_value = this%ti%af(i_index)
+
          CASE (siesta_phi_offset_id)
             siesta_get_param_value = this%phi_offset
 
@@ -1651,6 +1723,15 @@
 
          CASE (siesta_pp_te_af_id)
             siesta_get_param_name = 'pp_te_af'
+
+         CASE (siesta_pp_ti_b_id)
+            siesta_get_param_name = 'pp_ti_b'
+
+         CASE (siesta_pp_ti_as_id)
+            siesta_get_param_name = 'pp_ti_as'
+
+         CASE (siesta_pp_ti_af_id)
+            siesta_get_param_name = 'pp_ti_af'
 
          CASE (siesta_phi_offset_id)
             siesta_get_param_name = 'phi_offset'
@@ -1926,7 +2007,7 @@
 !>  @brief Get the number of electron temperature gp kernel hyper parameters.
 !>
 !>  This method overrides
-!>  @ref equilibrium::equilibrium_get_gp_ne_num_hyper_param. If no electron
+!>  @ref equilibrium::equilibrium_get_gp_te_num_hyper_param. If no electron
 !>  temperature profile was created zero is returned.
 !>
 !>  @param[in] this A @ref siesta_class instance.
@@ -1962,7 +2043,7 @@
 !>  @brief Gets the electron temperature profile af array.
 !>
 !>  This method overrides @ref equilibrium::equilibrium_get_te_af. If no
-!>  temperature profile was created a null pointer is returned.
+!>  electron temperature profile was created a null pointer is returned.
 !>
 !>  @param[in] this A @ref siesta_class instance.
 !>  @returns Pointer to the electron temperature profile af array.
@@ -1995,7 +2076,7 @@
 !>  @brief Get the electron temperature gp kernel value for the two indicies.
 !>
 !>  This method overrides @ref equilibrium::equilibrium_get_gp_te_ij. If no
-!>  temperature profile was created zero is returned.
+!>  electron temperature profile was created zero is returned.
 !>
 !>  @param[in] this A @ref siesta_class instance.
 !>  @param[in] i    ith profile position.
@@ -2033,7 +2114,7 @@
 !>  index.
 !>
 !>  This method overrides @ref equilibrium::equilibrium_get_gp_te_pi. If no
-!>  density profile was created zero is returned.
+!>  electron temperature profile was created zero is returned.
 !>
 !>  @param[in] this   A @ref siesta_class instance.
 !>  @param[in] x_cart Cartesian position to get the electron temperature at.
@@ -2075,7 +2156,7 @@
 !>  position.
 !>
 !>  This method overrides @ref equilibrium::equilibrium_get_gp_te_pp. If no
-!>  temperature profile was created zero is returned.
+!>  electron temperature profile was created zero is returned.
 !>
 !>  @param[in] this   A @ref siesta_class instance.
 !>  @param[in] x_cart First cartesian position to get the electron temperature
@@ -2116,8 +2197,8 @@
 !>  @brief Gets the electron temperature at a cartesian position.
 !>
 !>  This method overrides @ref equilibrium::equilibrium_get_te. If no
-!>  temperature profile was created, return zero. Temperature is defined by a
-!>  mapping function of the pressure.
+!>  electron temperature profile was created, return zero. Electron temperature
+!>  is defined by a mapping function of the pressure.
 !>
 !>  @param[in] this   A @ref siesta_class instance.
 !>  @param[in] x_cart Cartesian position to get the electron temperature at.
@@ -2149,8 +2230,8 @@
 !>  @brief Gets the electron temperature at a s, u=0, v=0 position.
 !>
 !>  This method overrides @ref equilibrium::equilibrium_get_te. If no
-!>  temperature profile was created, return zero. Temperature is defined by a
-!>  mapping function of the pressure.
+!>  electron temperature profile was created, return zero. Electron temperature
+!>  is defined by a mapping function of the pressure.
 !>
 !>  @param[in] this A @ref siesta_class instance.
 !>  @param[in] s    Radial position to get the electron density at.
@@ -2175,6 +2256,257 @@
      &   pprofile_get_value(this%te, siesta_get_p(this, s, .true.))
 
       CALL profiler_set_stop_time('siesta_get_te_radial', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the number of ion temperature gp kernel hyper parameters.
+!>
+!>  This method overrides
+!>  @ref equilibrium::equilibrium_get_gp_ti_num_hyper_param. If no ion
+!>  temperature profile was created zero is returned.
+!>
+!>  @param[in] this A @ref siesta_class instance.
+!>  @returns Number of kernel hyper parameters.
+!-------------------------------------------------------------------------------
+      FUNCTION siesta_get_gp_ti_num_hyper_param(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER :: siesta_get_gp_ti_num_hyper_param
+      TYPE (siesta_class), INTENT(in) :: this
+
+!  local variables
+      REAL (rprec)                    :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (ASSOCIATED(this%ti)) THEN
+         siesta_get_gp_ti_num_hyper_param =                                    &
+     &      pprofile_get_gp_num_hyper_param(this%ti)
+      ELSE
+         siesta_get_gp_ti_num_hyper_param = 0
+      END IF
+
+      CALL profiler_set_stop_time('siesta_get_gp_ti_num_hyper_param',          &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the ion temperature profile af array.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_ti_af. If no ion
+!>  temperature profile was created a null pointer is returned.
+!>
+!>  @param[in] this A @ref siesta_class instance.
+!>  @returns Pointer to the electron temperature profile af array.
+!-------------------------------------------------------------------------------
+      FUNCTION siesta_get_ti_af(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:), POINTER :: siesta_get_ti_af
+      TYPE (siesta_class), INTENT(in)     :: this
+
+!  local variables
+      REAL (rprec)                        :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (ASSOCIATED(this%ti)) THEN
+         siesta_get_ti_af => this%ti%af
+      ELSE
+         siesta_get_ti_af => null()
+      END IF
+
+      CALL profiler_set_stop_time('siesta_get_ti_af', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the ion temperature gp kernel value for the two indicies.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_gp_te_ij. If no ion
+!>  temperature profile was created zero is returned.
+!>
+!>  @param[in] this A @ref siesta_class instance.
+!>  @param[in] i    ith profile position.
+!>  @param[in] j    jth profile position.
+!>  @returns The value of the gp kernel function for i, j.
+!-------------------------------------------------------------------------------
+      FUNCTION siesta_get_gp_ti_ij(this, i, j)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                    :: siesta_get_gp_ti_ij
+      TYPE (siesta_class), INTENT(in) :: this
+      INTEGER, INTENT(in)             :: i
+      INTEGER, INTENT(in)             :: j
+
+!  local variables
+      REAL (rprec)                    :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (ASSOCIATED(this%ti)) THEN
+         siesta_get_gp_ti_ij = pprofile_get_gp(this%ti, i, j)
+      ELSE
+         siesta_get_gp_ti_ij = 0.0
+      END IF
+
+      CALL profiler_set_stop_time('siesta_get_gp_ti_ij', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the ion temperature gp kernel value for the position and index.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_gp_ti_pi. If no ion
+!>  temperature profile was created zero is returned.
+!>
+!>  @param[in] this   A @ref siesta_class instance.
+!>  @param[in] x_cart Cartesian position to get the ion temperature at.
+!>  @param[in] i      Profile position index.
+!>  @returns The value of the gp kernel function for x_cart and i.
+!-------------------------------------------------------------------------------
+      FUNCTION siesta_get_gp_ti_pi(this, x_cart, i)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: siesta_get_gp_ti_pi
+      TYPE (siesta_class), INTENT(in)        :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      INTEGER, INTENT(in)                    :: i
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (ASSOCIATED(this%ti)) THEN
+         siesta_get_gp_ti_pi =                                                 &
+     &      pprofile_get_gp(this%ti, siesta_get_p(this, x_cart, .true.),       &
+     &                      i)
+      ELSE
+         siesta_get_gp_ti_pi = 0.0
+      END IF
+
+      CALL profiler_set_stop_time('siesta_get_gp_ti_pi', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the ion temperature gp kernel value for the position and
+!>  position.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_gp_ti_pp. If no ion
+!>  temperature profile was created zero is returned.
+!>
+!>  @param[in] this   A @ref siesta_class instance.
+!>  @param[in] x_cart First cartesian position to get the ion temperature at.
+!>  @param[in] y_cart Second cartesian position to get the ion temperature at.
+!>  @returns The value of the gp kernel function for x_cart and y_cart.
+!-------------------------------------------------------------------------------
+      FUNCTION siesta_get_gp_ti_pp(this, x_cart, y_cart)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: siesta_get_gp_ti_pp
+      TYPE (siesta_class), INTENT(in)        :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      REAL (rprec), DIMENSION(3), INTENT(in) :: y_cart
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (ASSOCIATED(this%ti)) THEN
+         siesta_get_gp_ti_pp =                                                 &
+     &      pprofile_get_gp(this%ti, siesta_get_p(this, x_cart, .true.),       &
+     &                      siesta_get_p(this, y_cart, .true.))
+      ELSE
+         siesta_get_gp_ti_pp = 0.0
+      END IF
+
+      CALL profiler_set_stop_time('siesta_get_gp_ti_pp', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the ion temperature at a cartesian position.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_ti. If no ion
+!>  temperature profile was created, return zero. Ion temperature is defined by
+!>  a mapping function of the pressure.
+!>
+!>  @param[in] this   A @ref siesta_class instance.
+!>  @param[in] x_cart Cartesian position to get the ion temperature at.
+!>  @returns The ion temperature at x_cart.
+!-------------------------------------------------------------------------------
+      FUNCTION siesta_get_ti_cart(this, x_cart)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: siesta_get_ti_cart
+      TYPE (siesta_class), INTENT(in)        :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      siesta_get_ti_cart =                                                     &
+     &   pprofile_get_value(this%ti, siesta_get_p(this, x_cart, .true.))
+
+      CALL profiler_set_stop_time('siesta_get_ti_cart', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the ion temperature at a s, u=0, v=0 position.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_ti. If no ion
+!>  ion temperature profile was created, return zero. Ion temperature is defined
+!>  by a mapping function of the pressure.
+!>
+!>  @param[in] this A @ref siesta_class instance.
+!>  @param[in] s    Radial position to get the ion density at.
+!>  @returns The ion temperature at s, u=0, v=0.
+!-------------------------------------------------------------------------------
+      FUNCTION siesta_get_ti_radial(this, s)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                    :: siesta_get_ti_radial
+      TYPE (siesta_class), INTENT(in) :: this
+      REAL (rprec), INTENT(in)        :: s
+
+!  local variables
+      REAL (rprec)                    :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      siesta_get_ti_radial =                                                   &
+     &   pprofile_get_value(this%ti, siesta_get_p(this, s, .true.))
+
+      CALL profiler_set_stop_time('siesta_get_ti_radial', start_time)
 
       END FUNCTION
 
@@ -2220,7 +2552,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Gets the soft x-ray emissivity profile af array.
 !>
-!>  This method overrides @ref equilibrium::equilibrium_get_te_af. If no soft
+!>  This method overrides @ref equilibrium::equilibrium_get_sxrem_af. If no soft
 !>  x-ray emissivity profile was created a null pointer is returned.
 !>
 !>  @param[in] this  A @ref siesta_class instance.
@@ -3610,7 +3942,8 @@
          CASE (siesta_pp_ne_b_id, siesta_pp_ne_as_id,                          &
      &         siesta_pp_ne_af_id, siesta_pp_te_b_id,                          &
      &         siesta_pp_te_as_id, siesta_pp_te_af_id,                         &
-     &         siesta_helpert_id)
+     &         siesta_pp_ti_b_id, siesta_pp_ti_as_id,                          &
+     &         siesta_pp_ti_af_id, siesta_helpert_id)
             siesta_is_1d_array = .true.
 
          CASE DEFAULT
@@ -3689,9 +4022,11 @@
          CASE (siesta_pp_ne_b_id, siesta_pp_ne_as_id,                          &
      &         siesta_pp_ne_af_id, siesta_pp_te_b_id,                          &
      &         siesta_pp_te_as_id, siesta_pp_te_af_id,                         &
-     &         siesta_pp_sxrem_b_id, siesta_pp_sxrem_as_id,                    &
-     &         siesta_pp_sxrem_af_id, siesta_phi_offset_id,                    &
-     &         siesta_z_offset_id, siesta_helpert_id)
+     &         siesta_pp_ti_b_id, siesta_pp_ti_as_id,                          &
+     &         siesta_pp_ti_af_id, siesta_pp_sxrem_b_id,                       &
+     &         siesta_pp_sxrem_as_id, siesta_pp_sxrem_af_id,                   &
+     &         siesta_phi_offset_id, siesta_z_offset_id,                       &
+     &         siesta_helpert_id)
             siesta_is_recon_param = .true.
 
          CASE DEFAULT
@@ -3909,6 +4244,7 @@
 
 !  local variables
       INTEGER                            :: error
+      INTEGER                            :: i
       REAL (rprec)                       :: start_time
 
 !  Start of executable code
@@ -3922,6 +4258,23 @@
      &               TRIM(this%restart_file_name) // '_cache',                 &
      &               error)
       CALL assert_eq(error, 0, 'Error copying restart file.')
+
+      IF (ASSOCIATED(this%ne)) THEN
+         CALL pprofile_save_state(this%ne)
+      END IF
+      IF (ASSOCIATED(this%te)) THEN
+         CALL pprofile_save_state(this%te)
+      END IF
+      IF (ASSOCIATED(this%ti)) THEN
+         CALL pprofile_save_state(this%ti)
+      END IF
+      IF (ASSOCIATED(this%sxrem)) THEN
+         DO i = 1, SIZE(this%sxrem)
+            IF (ASSOCIATED(this%sxrem(i)%p)) THEN
+               CALL pprofile_save_state(this%sxrem(i)%p)
+            END IF
+         END DO
+      END IF
 
       CALL profiler_set_stop_time('siesta_save_state', start_time)
 
@@ -3944,6 +4297,7 @@
 
 !  local variables
       INTEGER                            :: error
+      INTEGER                            :: i
       REAL (rprec)                       :: start_time
 
 !  Start of executable code
@@ -3957,6 +4311,23 @@
       CALL assert_eq(error, 0, 'Error moving wout file.')
 
       CALL siesta_context_read(this%context, this%restart_file_name)
+
+      IF (ASSOCIATED(this%ne)) THEN
+         CALL pprofile_reset_state(this%ne)
+      END IF
+      IF (ASSOCIATED(this%te)) THEN
+         CALL pprofile_reset_state(this%te)
+      END IF
+      IF (ASSOCIATED(this%ti)) THEN
+         CALL pprofile_reset_state(this%ti)
+      END IF
+      IF (ASSOCIATED(this%sxrem)) THEN
+         DO i = 1, SIZE(this%sxrem)
+            IF (ASSOCIATED(this%sxrem(i)%p)) THEN
+               CALL pprofile_reset_state(this%sxrem(i)%p)
+            END IF
+         END DO
+      END IF
 
       CALL profiler_set_stop_time('siesta_reset_state', start_time)
 
@@ -3991,13 +4362,25 @@
       start_time = profiler_get_start_time()
       WRITE (iou,*)
       WRITE (iou,*) 'Equilibrium Type : SIESTA'
-      CALL pprofile_write(this%ne, 'pp_ne', iou)
+      IF (ASSOCIATED(this%ne)) THEN
+         CALL pprofile_write(this%ne, 'pp_ne', iou)
+      END IF
 
-      DO i = 1, SIZE(this%sxrem)
-         CALL pprofile_write(this%sxrem(i)%p, 'pp_sxrem', iou)
-      END DO
+      IF (ASSOCIATED(this%sxrem)) THEN
+         DO i = 1, SIZE(this%sxrem)
+            IF (ASSOCIATED(this%sxrem(i)%p)) THEN
+               CALL pprofile_write(this%sxrem(i)%p, 'pp_sxrem', iou)
+            END IF
+         END DO
+      END IF
 
-      CALL pprofile_write(this%te, 'pp_te', iou)
+      IF (ASSOCIATED(this%te)) THEN
+         CALL pprofile_write(this%te, 'pp_te', iou)
+      END IF
+
+      IF (ASSOCIATED(this%ti)) THEN
+         CALL pprofile_write(this%ti, 'pp_ti', iou)
+      END IF
 
 !  Update the namelist input variables from the equilibrium solution.
       CALL siesta_set_namelist(this)

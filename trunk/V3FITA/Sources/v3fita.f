@@ -852,6 +852,9 @@
      &                       pprofile_construct(TRIM(pp_te_ptype),             &
      &                                          pp_te_b, pp_te_as,             &
      &                                          pp_te_af),                     &
+     &                       pprofile_construct(TRIM(pp_ti_ptype),             &
+     &                                          pp_ti_b, pp_ti_as,             &
+     &                                          pp_ti_af),                     &
      &                       pprofile_construct(TRIM(pp_ze_ptype),             &
      &                                          pp_ze_b, pp_ze_as,             &
      &                                          pp_ze_af), sxr,                &
@@ -866,10 +869,11 @@
 
       context%model => model_construct(model_ne_type,                          &
      &   model_sxrem_type_a(1:num_sxrem_p), model_te_type,                     &
-     &   model_ze_type, ne_pp_unit, ne_min, te_min, ze_min,                    &
-     &   sxrem_min(1:num_sxrem_p), e_pressure_fraction, emission_func,         &
-     &   equilibrium_construct(vmec, force_solve), sxrem_te_a,                 &
-     &   sxrem_ratio_a, ece_resonance_range, coosig_wgts, state_flags,         &
+     &   model_ti_type, model_ze_type, ne_pp_unit, ne_min, te_min,             &
+     &   ti_min, ze_min, sxrem_min(1:num_sxrem_p), e_pressure_fraction,        &
+     &   emission_func, equilibrium_construct(vmec, force_solve),              &
+     &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range, coosig_wgts,          &
+     &   state_flags,                                                          &
      &   sfactor_spec_fac(:MINLOC(sfactor_spec_imin, 1) - 1),                  &
      &   path_construct(int_method, int_num_points, int_size))
 
@@ -909,8 +913,9 @@
 
       context%model => model_construct(model_ne_type,                          &
      &   model_sxrem_type_a(1:num_sxrem_p), model_te_type,                     &
-     &   model_ze_type, ne_pp_unit, ne_min, te_min, ze_min,                    &
-     &   sxrem_min(1:num_sxrem_p), e_pressure_fraction, emission_func,         &
+     &   model_ti_type, model_ze_type, ne_pp_unit, ne_min, te_min,             &
+     &   ti_min, ze_min, sxrem_min(1:num_sxrem_p), e_pressure_fraction,        &
+     &   emission_func,                                                        &
      &   equilibrium_construct(vacuum_construct(vacuum_nli_filename,           &
      &                                          context%runlog_iou),           &
      &                         force_solve),                                   &
@@ -986,6 +991,9 @@
      &                           pprofile_construct(TRIM(pp_te_ptype),         &
      &                                              pp_te_b, pp_te_as,         &
      &                                              pp_te_af),                 &
+     &                           pprofile_construct(TRIM(pp_ti_ptype),         &
+     &                                              pp_ti_b, pp_ti_as,         &
+     &                                              pp_ti_af),                 &
      &                           sxr, phi_offset, z_offset,                    &
      &                           pol_rad_ratio, context%runlog_iou,            &
 #if defined(MPI_OPT)
@@ -1002,9 +1010,10 @@
 
       context%model => model_construct(model_ne_type,                          &
      &   model_sxrem_type_a(1:num_sxrem_p), model_te_type,                     &
-     &   model_ze_type, ne_pp_unit, ne_min, te_min, ze_min,                    &
-     &   sxrem_min(1:num_sxrem_p), e_pressure_fraction, emission_func,         &
-     &   equilibrium_construct_siesta(siesta, force_solve),                    &
+     &   model_te_type, model_ze_type, ne_pp_unit, ne_min, te_min,             &
+     &   ti_min, ze_min, sxrem_min(1:num_sxrem_p), e_pressure_fraction,        &
+     &   emission_func, equilibrium_construct_siesta(siesta,                   &
+     &                                               force_solve),             &
      &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range, coosig_wgts,          &
      &   state_flags, sfactor_spec_fac(:MINLOC(sfactor_spec_imin, 1)),         &
      &   path_construct(int_method, int_num_points, int_size))

@@ -48,32 +48,35 @@
 !>  reconstructed that do not change the equilibirum. These parameters do not
 !>  require the equilibrium to reconverge.
 !>  @begin_table
-!>     @item{pp_ne_b,       1D Array of function density profile parameters.,     @ref pprofile_T::pprofile_class::b}
-!>     @item{pp_ne_as,      1D Array of segment density profile s poitions.,      @ref pprofile_T::pprofile_class::as}
-!>     @item{pp_ne_af,      1D Array of segment density profile f values.,        @ref pprofile_T::pprofile_class::af}
+!>     @item{pp_ne_b,       1D Array of function density profile parameters.,              @ref pprofile_T::pprofile_class::b}
+!>     @item{pp_ne_as,      1D Array of segment density profile s poitions.,               @ref pprofile_T::pprofile_class::as}
+!>     @item{pp_ne_af,      1D Array of segment density profile f values.,                 @ref pprofile_T::pprofile_class::af}
 !>     @item{pp_sxrem_b,    1D Array of function sxrem profile parameters.
 !>                          DEPREICATED only use id when using the old profile
-!>                          specification.,                                       @ref pprofile_T::pprofile_class::b}
+!>                          specification.,                                                @ref pprofile_T::pprofile_class::b}
 !>     @item{pp_sxrem_as,   1D Array of segment sxrem profile s poitions.
 !>                          DEPREICATED only use id when using the old profile
-!>                          specification.,                                       @ref pprofile_T::pprofile_class::as}
+!>                          specification.,                                                @ref pprofile_T::pprofile_class::as}
 !>     @item{pp_sxrem_af,   1D Array of segment sxrem profile f values.
 !>                          DEPREICATED only use id when using the old profile
-!>                          specification.,                                       @ref pprofile_T::pprofile_class::af}
+!>                          specification.,                                                @ref pprofile_T::pprofile_class::af}
 !>     @item{pp_sxrem_b_a,  2D Array of function sxrem profile parameters.
-!>                          First index is the profile number.,                   @ref vmec_equilibrium::vmec_class::sxrem}
+!>                          First index is the profile number.,                            @ref vmec_equilibrium::vmec_class::sxrem}
 !>     @item{pp_sxrem_as_a, 2D Array of segment sxrem profile s poitions.
-!>                          First index is the profile number.,                   @ref vmec_equilibrium::vmec_class::sxrem}
+!>                          First index is the profile number.,                            @ref vmec_equilibrium::vmec_class::sxrem}
 !>     @item{pp_sxrem_af_a, 2D Array of segment sxrem profile f values.
-!>                          First index is the profile number.,                   @ref vmec_equilibrium::vmec_class::sxrem}
-!>     @item{pp_te_b,       1D Array of function temperature profile parameters., @ref pprofile_T::pprofile_class::b}
-!>     @item{pp_te_as,      1D Array of segment temperature profile s poitions.,  @ref pprofile_T::pprofile_class::as}
-!>     @item{pp_te_af,      1D Array of segment temperature profile f values.,    @ref pprofile_T::pprofile_class::af}
-!>     @item{pp_ze_b,       1D Array of function charge profile parameters.,      @ref pprofile_T::pprofile_class::b}
-!>     @item{pp_ze_as,      1D Array of segment charge profile s poitions.,       @ref pprofile_T::pprofile_class::as}
-!>     @item{pp_ze_af,      1D Array of segment charge profile f values.,         @ref pprofile_T::pprofile_class::af}
-!>     @item{phi_offset,    Phi angle offset in radians,                          @ref vmec_equilibrium::vmec_class::phi_offset}
-!>     @item{z_offset,      Z offset in meters,                                   @ref vmec_equilibrium::vmec_class::z_offset}
+!>                          First index is the profile number.,                            @ref vmec_equilibrium::vmec_class::sxrem}
+!>     @item{pp_te_b,       1D Array of function electron temperature profile parameters., @ref pprofile_T::pprofile_class::b}
+!>     @item{pp_te_as,      1D Array of segment electron temperature profile s poitions.,  @ref pprofile_T::pprofile_class::as}
+!>     @item{pp_te_af,      1D Array of segment electron temperature profile f values.,    @ref pprofile_T::pprofile_class::af}
+!>     @item{pp_ti_b,       1D Array of function ion temperature profile parameters.,      @ref pprofile_T::pprofile_class::b}
+!>     @item{pp_ti_as,      1D Array of segment ion temperature profile s poitions.,       @ref pprofile_T::pprofile_class::as}
+!>     @item{pp_ti_af,      1D Array of segment ion temperature profile f values.,         @ref pprofile_T::pprofile_class::af}
+!>     @item{pp_ze_b,       1D Array of function charge profile parameters.,               @ref pprofile_T::pprofile_class::b}
+!>     @item{pp_ze_as,      1D Array of segment charge profile s poitions.,                @ref pprofile_T::pprofile_class::as}
+!>     @item{pp_ze_af,      1D Array of segment charge profile f values.,                  @ref pprofile_T::pprofile_class::af}
+!>     @item{phi_offset,    Phi angle offset in radians,                                   @ref vmec_equilibrium::vmec_class::phi_offset}
+!>     @item{z_offset,      Z offset in meters,                                            @ref vmec_equilibrium::vmec_class::z_offset}
 !>  @end_table
 !>
 !>  @section vmec_equilibrium_derive_param_sec VMEC Derived Parameters
@@ -139,163 +142,172 @@
 !  vmec equilibrium module parameters
 !*******************************************************************************
 !  Define id's only for values that can change. All others shouldn't be needed
-!  outside of the vmec interface. Parameter id's start at 11 since 0-10 are
+!  outside of the vmec interface. Parameter id's start at 14 since 0-13 are
 !  reserved for non equilibrium model parameters. These numbers will need to be
 !  updated if any new model parameters are added.
 
 !  Variable Parameters
 !>  1D Array of function current profile parameters. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_ac_id          = 11
+      INTEGER, PARAMETER :: vmec_ac_id          = 14
 !>  1D Array of segment current profile s poitions. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_ac_aux_s_id    = 12
+      INTEGER, PARAMETER :: vmec_ac_aux_s_id    = 15
 !>  1D Array of segment current profile f values. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_ac_aux_f_id    = 13
+      INTEGER, PARAMETER :: vmec_ac_aux_f_id    = 16
 !>  1D Array of function iotabar profile parameters. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_ai_id          = 14
+      INTEGER, PARAMETER :: vmec_ai_id          = 17
 !>  1D Array of segment iotabar profile s poitions. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_ai_aux_s_id    = 15
+      INTEGER, PARAMETER :: vmec_ai_aux_s_id    = 18
 !>  1D Array of segment iotabar profile f values. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_ai_aux_f_id    = 16
+      INTEGER, PARAMETER :: vmec_ai_aux_f_id    = 19
 !>  1D Array of function pressure profile parameters. Defined in
 !>  @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_am_id          = 17
+      INTEGER, PARAMETER :: vmec_am_id          = 20
 !>  1D Array of segment pressure profile s poitions. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_am_aux_s_id    = 18
+      INTEGER, PARAMETER :: vmec_am_aux_s_id    = 21
 !>  1D Array of segment pressure profile f values. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_am_aux_f_id    = 19
+      INTEGER, PARAMETER :: vmec_am_aux_f_id    = 22
 !>  Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_bloat_id       = 20
+      INTEGER, PARAMETER :: vmec_bloat_id       = 23
 !>  2D Array of outer boundary R cosine coeffiecents. Defined in
 !>  @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_rbc_id         = 21
+      INTEGER, PARAMETER :: vmec_rbc_id         = 24
 !>  2D Array of outer boundary Z sine coeffiecents. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_zbs_id         = 22
+      INTEGER, PARAMETER :: vmec_zbs_id         = 25
 !>  2D Array of outer boundary R sine coeffiecents. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_rbs_id         = 23
+      INTEGER, PARAMETER :: vmec_rbs_id         = 26
 !>  2D Array of outer boundary Z cosine coeffiecents. Defined in
 !>  @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_zbc_id         = 24
+      INTEGER, PARAMETER :: vmec_zbc_id         = 27
 !>  1D Array of external currents. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_extcur_id      = 25
+      INTEGER, PARAMETER :: vmec_extcur_id      = 28
 !>  The toroidal current. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_curtor_id      = 26
+      INTEGER, PARAMETER :: vmec_curtor_id      = 29
 !>  The edge magnetic flux. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_phiedge_id     = 27
+      INTEGER, PARAMETER :: vmec_phiedge_id     = 30
 !>  The scaling parameter for the pressure. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_pres_scale_id  = 28
+      INTEGER, PARAMETER :: vmec_pres_scale_id  = 31
 
 !  Derived Parameters
 !>  2D Array of surface R cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_rmnc_id        = 29
+      INTEGER, PARAMETER :: vmec_rmnc_id        = 32
 !>  2D Array of surface Z sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_zmns_id        = 30
+      INTEGER, PARAMETER :: vmec_zmns_id        = 33
 !>  2D Array of surface lambda cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_lmns_id        = 31
+      INTEGER, PARAMETER :: vmec_lmns_id        = 34
 !>  2D Array of surface g cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_gmnc_id        = 32
+      INTEGER, PARAMETER :: vmec_gmnc_id        = 35
 !>  2D Array of surface B_s sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsubsmns_id    = 33
+      INTEGER, PARAMETER :: vmec_bsubsmns_id    = 36
 !>  2D Array of surface B_u cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsubumnc_id    = 34
+      INTEGER, PARAMETER :: vmec_bsubumnc_id    = 37
 !>  2D Array of surface B_v cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsubvmnc_id    = 35
+      INTEGER, PARAMETER :: vmec_bsubvmnc_id    = 38
 !>  2D Array of surface B^u cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsupumnc_id    = 36
+      INTEGER, PARAMETER :: vmec_bsupumnc_id    = 39
 !>  2D Array of surface B^v cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsupvmnc_id    = 37
+      INTEGER, PARAMETER :: vmec_bsupvmnc_id    = 40
 !>  2D Array of surface R sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_rmns_id        = 38
+      INTEGER, PARAMETER :: vmec_rmns_id        = 41
 !>  2D Array of surface Z cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_zmnc_id        = 39
+      INTEGER, PARAMETER :: vmec_zmnc_id        = 42
 !>  2D Array of surface lambda sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_lmnc_id        = 40
+      INTEGER, PARAMETER :: vmec_lmnc_id        = 43
 !>  2D Array of surface g sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_gmns_id        = 41
+      INTEGER, PARAMETER :: vmec_gmns_id        = 44
 !>  2D Array of surface B_s cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsubsmnc_id    = 42
+      INTEGER, PARAMETER :: vmec_bsubsmnc_id    = 45
 !>  2D Array of surface B_u sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsubumns_id    = 43
+      INTEGER, PARAMETER :: vmec_bsubumns_id    = 46
 !>  2D Array of surface B_v sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsubvmns_id    = 44
+      INTEGER, PARAMETER :: vmec_bsubvmns_id    = 47
 !>  2D Array of surface B^u sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsupumns_id    = 45
+      INTEGER, PARAMETER :: vmec_bsupumns_id    = 48
 !>  2D Array of surface B^v sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsupvmns_id    = 46
+      INTEGER, PARAMETER :: vmec_bsupvmns_id    = 49
 !>  Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_phi_id         = 47
+      INTEGER, PARAMETER :: vmec_phi_id         = 50
 !>  1D Array of full grid iotabar. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_iotaf_id       = 48
+      INTEGER, PARAMETER :: vmec_iotaf_id       = 51
 !>  1D Array of half grid iotabar. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_iotas_id       = 49
+      INTEGER, PARAMETER :: vmec_iotas_id       = 52
 !>  1D Array of magnetic axis R cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_raxis_cc_id    = 50
+      INTEGER, PARAMETER :: vmec_raxis_cc_id    = 53
 !>  1D Array of magnetic axis R sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_raxis_cs_id    = 51
+      INTEGER, PARAMETER :: vmec_raxis_cs_id    = 54
 !>  1D Array of magnetic axis Z cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_zaxis_cc_id    = 52
+      INTEGER, PARAMETER :: vmec_zaxis_cc_id    = 55
 !>  1D Array of magnetic axis Z sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_zaxis_cs_id    = 53
+      INTEGER, PARAMETER :: vmec_zaxis_cs_id    = 56
 !>  1D Array of full grid safety factor. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_qfact_id       = 54
+      INTEGER, PARAMETER :: vmec_qfact_id       = 57
 
 !  Auxiliary Model Parameters
 !>  1D Array of function density profile parameters. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ne_b_id     = 55
+      INTEGER, PARAMETER :: vmec_pp_ne_b_id     = 58
 !>  1D Array of segment density profile s poitions. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ne_as_id    = 56
+      INTEGER, PARAMETER :: vmec_pp_ne_as_id    = 59
 !>  1D Array of segment density profile f values. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ne_af_id    = 57
+      INTEGER, PARAMETER :: vmec_pp_ne_af_id    = 60
 !>  1D Array of function sxrem profile parameters. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_sxrem_b_id  = 58
+      INTEGER, PARAMETER :: vmec_pp_sxrem_b_id  = 61
 !>  1D Array of segment sxrem profile s poitions. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_sxrem_as_id = 59
+      INTEGER, PARAMETER :: vmec_pp_sxrem_as_id = 62
 !>  1D Array of segment sxrem profile f values. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_sxrem_af_id = 60
-!>  1D Array of function temperature profile parameters. Defined in
+      INTEGER, PARAMETER :: vmec_pp_sxrem_af_id = 63
+!>  1D Array of function electron temperature profile parameters. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_te_b_id     = 61
-!>  1D Array of segment temperature profile s poitions. Defined in
+      INTEGER, PARAMETER :: vmec_pp_te_b_id     = 64
+!>  1D Array of segment electron temperature profile s poitions. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_te_as_id    = 62
-!>  1D Array of segment temperature profile f values. Defined in
+      INTEGER, PARAMETER :: vmec_pp_te_as_id    = 65
+!>  1D Array of segment electron temperature profile f values. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_te_af_id    = 63
+      INTEGER, PARAMETER :: vmec_pp_te_af_id    = 66
+!>  1D Array of function ion temperature profile parameters. Defined in
+!>  @ref pprofile_T.
+      INTEGER, PARAMETER :: vmec_pp_ti_b_id     = 67
+!>  1D Array of segment ion temperature profile s poitions. Defined in
+!>  @ref pprofile_T.
+      INTEGER, PARAMETER :: vmec_pp_ti_as_id    = 68
+!>  1D Array of segment ion temperature profile f values. Defined in
+!>  @ref pprofile_T.
+      INTEGER, PARAMETER :: vmec_pp_ti_af_id    = 69
 !>  1D Array of function zeff profile parameters. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ze_b_id     = 64
+      INTEGER, PARAMETER :: vmec_pp_ze_b_id     = 70
 !>  1D Array of segment zeff profile s poitions. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ze_as_id    = 65
+      INTEGER, PARAMETER :: vmec_pp_ze_as_id    = 71
 !>  1D Array of segment zeff profile f values. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ze_af_id    = 66
+      INTEGER, PARAMETER :: vmec_pp_ze_af_id    = 72
 
 !  Derived Parameters
 !>  Internal inducance. Defined in @ref v3f_vmec_comm. Computed in @ref eqfor.
-      INTEGER, PARAMETER :: vmec_vvc_smaleli_id = 67
+      INTEGER, PARAMETER :: vmec_vvc_smaleli_id = 73
 !>  Mean elongation. Defined in @ref v3f_vmec_comm. Computed in @ref eqfor.
-      INTEGER, PARAMETER :: vmec_vvc_kappa_p_id = 68
+      INTEGER, PARAMETER :: vmec_vvc_kappa_p_id = 74
 !>  Total Beta. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_betatot_id     = 69
+      INTEGER, PARAMETER :: vmec_betatot_id     = 75
 !>  Poloidal Beta. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_betapol_id     = 70
+      INTEGER, PARAMETER :: vmec_betapol_id     = 76
 !>  Toroidal Beta. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_betator_id     = 71
+      INTEGER, PARAMETER :: vmec_betator_id     = 77
 !>  Beta on axis. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_betaxis_id     = 72
+      INTEGER, PARAMETER :: vmec_betaxis_id     = 78
 !>  Poloidal current density. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_jcuru_id       = 73
+      INTEGER, PARAMETER :: vmec_jcuru_id       = 79
 !>  Toroidal current density. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_jcurv_id       = 74
+      INTEGER, PARAMETER :: vmec_jcurv_id       = 80
 !>  Current density in direction of b field. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_jdotb_id       = 75
+      INTEGER, PARAMETER :: vmec_jdotb_id       = 81
 
 !>  Plasma Phi offset. This is a parameter to allow changing the phi angle of a
 !>  quasi helical state in an RFP. Defined in @ref vmec_equilibrium.
-      INTEGER, PARAMETER :: vmec_phi_offset_id  = 76
+      INTEGER, PARAMETER :: vmec_phi_offset_id  = 82
 !>  Plasma z offset. This is a parameter to allow changing the vertical shift of
 !>  the plasma
-      INTEGER, PARAMETER :: vmec_z_offset_id    = 77
+      INTEGER, PARAMETER :: vmec_z_offset_id    = 83
 
 !>  Virtual casing grid points for vacuum field measurements.
       INTEGER, PARAMETER :: magnetic_cache_vc_min_grid_points = 101
@@ -392,6 +404,8 @@
 !>  @ref pprofile_T describing a flux surface constant electron temperature
 !>  profile.
          TYPE (pprofile_class), POINTER         :: te => null()
+!>  @ref pprofile_T describing a flux surface constant ion temperature profile.
+         TYPE (pprofile_class), POINTER         :: ti => null()
 !>  @ref pprofile_T describing a flux surface conatsnt soft x-ray emissivity
 !>  profile.
          TYPE (pprofile_pointer), DIMENSION(:), POINTER ::                     &
@@ -481,7 +495,7 @@
       END INTERFACE
 
 !-------------------------------------------------------------------------------
-!>  Interface for the vmec temperature profile values.
+!>  Interface for the vmec electron temperature profile values.
 !-------------------------------------------------------------------------------
       INTERFACE vmec_get_te
          MODULE PROCEDURE vmec_get_te_cart,                                    &
@@ -489,12 +503,29 @@
       END INTERFACE
 
 !-------------------------------------------------------------------------------
-!>  Interface for the vmec guassian process temperature profile values.
+!>  Interface for the vmec guassian process electron temperature profile values.
 !-------------------------------------------------------------------------------
       INTERFACE vmec_get_gp_te
          MODULE PROCEDURE vmec_get_gp_te_ij,                                   &
      &                    vmec_get_gp_te_pi,                                   &
      &                    vmec_get_gp_te_pp
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
+!>  Interface for the vmec ion temperature profile values.
+!-------------------------------------------------------------------------------
+      INTERFACE vmec_get_ti
+         MODULE PROCEDURE vmec_get_ti_cart,                                    &
+     &                    vmec_get_ti_radial
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
+!>  Interface for the vmec guassian process ion temperature profile values.
+!-------------------------------------------------------------------------------
+      INTERFACE vmec_get_gp_ti
+         MODULE PROCEDURE vmec_get_gp_ti_ij,                                   &
+     &                    vmec_get_gp_ti_pi,                                   &
+     &                    vmec_get_gp_ti_pp
       END INTERFACE
 
 !-------------------------------------------------------------------------------
@@ -734,6 +765,7 @@
 !>  @param[in]    wout_file_name Filename of the vmec wout input file.
 !>  @param[in]    ne             @ref pprofile_T for the electron density.
 !>  @param[in]    te             @ref pprofile_T for the electron temperature.
+!>  @param[in]    ti             @ref pprofile_T for the ion temperature.
 !>  @param[in]    ze             @ref pprofile_T for Z effective.
 !>  @param[in]    sxrem          @ref pprofile_T for the soft x-ray emissivity.
 !>  @param[in]    phi_offset     Initial phi offset of the plasma relative to
@@ -751,7 +783,7 @@
 !>  @returns A pointer to a constructed @ref vmec_class object.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_construct_full(file_name, wout_file_name, ne, te,          &
-     &                             ze, sxrem, phi_offset, z_offset,            &
+     &                             ti, ze, sxrem, phi_offset, z_offset,        &
      &                             pol_rad_ratio, iou, eq_comm,                &
      &                             recon_comm, state_flags)
 
@@ -763,6 +795,7 @@
       CHARACTER (len=*), INTENT(in)        :: wout_file_name
       TYPE (pprofile_class), POINTER       :: ne
       TYPE (pprofile_class), POINTER       :: te
+      TYPE (pprofile_class), POINTER       :: ti
       TYPE (pprofile_class), POINTER       :: ze
       TYPE (pprofile_pointer), DIMENSION(:), POINTER  :: sxrem
       REAL (rprec), INTENT(in)             :: phi_offset
@@ -785,6 +818,7 @@
 
       vmec_construct_full%ne => ne
       vmec_construct_full%te => te
+      vmec_construct_full%ti => ti
       vmec_construct_full%ze => ze
       vmec_construct_full%sxrem => sxrem
 
@@ -828,6 +862,11 @@
       IF (ASSOCIATED(this%te)) THEN
          CALL pprofile_destruct(this%te)
          this%te => null()
+      END IF
+
+      IF (ASSOCIATED(this%ti)) THEN
+         CALL pprofile_destruct(this%ti)
+         this%ti => null()
       END IF
 
       IF (ASSOCIATED(this%ze)) THEN
@@ -1111,6 +1150,18 @@
          CASE (vmec_pp_te_af_id)
             state_flags = IBSET(state_flags, model_state_te_flag)
             this%te%af(i_index) = value
+
+         CASE (vmec_pp_ti_b_id)
+            state_flags = IBSET(state_flags, model_state_ti_flag)
+            this%ti%b(i_index) = value
+
+         CASE (vmec_pp_ti_as_id)
+            state_flags = IBSET(state_flags, model_state_ti_flag)
+            this%ti%as(i_index) = value
+
+         CASE (vmec_pp_ti_af_id)
+            state_flags = IBSET(state_flags, model_state_ti_flag)
+            this%ti%af(i_index) = value
 
          CASE (vmec_pp_ze_b_id)
             state_flags = IBSET(state_flags, model_state_ze_flag)
@@ -2166,6 +2217,15 @@
          CASE ('pp_te_af')
             vmec_get_param_id = vmec_pp_te_af_id
 
+         CASE ('pp_ti_b')
+            vmec_get_param_id = vmec_pp_ti_b_id
+
+         CASE ('pp_ti_as')
+            vmec_get_param_id = vmec_pp_ti_as_id
+
+         CASE ('pp_ti_af')
+            vmec_get_param_id = vmec_pp_ti_af_id
+
          CASE ('pp_ze_b')
             vmec_get_param_id = vmec_pp_ze_b_id
 
@@ -2424,6 +2484,15 @@
          CASE (vmec_pp_te_af_id)
             vmec_get_param_value = this%te%af(i_index)
 
+         CASE (vmec_pp_ti_b_id)
+            vmec_get_param_value = this%ti%b(i_index)
+
+         CASE (vmec_pp_ti_as_id)
+            vmec_get_param_value = this%ti%as(i_index)
+
+         CASE (vmec_pp_ti_af_id)
+            vmec_get_param_value = this%ti%af(i_index)
+
          CASE (vmec_pp_ze_b_id)
             vmec_get_param_value = this%ze%b(i_index)
 
@@ -2659,6 +2728,15 @@
 
          CASE (vmec_pp_te_af_id)
             vmec_get_param_name = 'pp_te_af'
+
+         CASE (vmec_pp_ti_b_id)
+            vmec_get_param_name = 'pp_ti_b'
+
+         CASE (vmec_pp_ti_as_id)
+            vmec_get_param_name = 'pp_ti_as'
+
+         CASE (vmec_pp_ti_af_id)
+            vmec_get_param_name = 'pp_ti_af'
 
          CASE (vmec_pp_ze_b_id)
             vmec_get_param_name = 'pp_ze_b'
@@ -3005,7 +3083,7 @@
 !>  @brief Gets the electron temperature profile af array.
 !>
 !>  This method overrides @ref equilibrium::equilibrium_get_te_af. If no
-!>  temperature profile was created a null pointer is returned.
+!>  electron temperature profile was created a null pointer is returned.
 !>
 !>  @param[in] this A @ref vmec_class instance.
 !>  @returns Pointer to the electron temperature profile af array.
@@ -3038,7 +3116,7 @@
 !>  @brief Get the electron temperature gp kernel value for the two indicies.
 !>
 !>  This method overrides @ref equilibrium::equilibrium_get_gp_te_ij. If no
-!>  temperature profile was created zero is returned.
+!>  electron temperature profile was created zero is returned.
 !>
 !>  @param[in] this A @ref vmec_class instance.
 !>  @param[in] i    ith profile position.
@@ -3076,7 +3154,7 @@
 !>  index.
 !>
 !>  This method overrides @ref equilibrium::equilibrium_get_gp_te_pi. If no
-!>  temperature profile was created zero is returned.
+!>  electron temperature profile was created zero is returned.
 !>
 !>  @param[in] this   A @ref vmec_class instance.
 !>  @param[in] x_cart Cartesian position to get the electron temperature at.
@@ -3116,7 +3194,7 @@
 !>  position.
 !>
 !>  This method overrides @ref equilibrium::equilibrium_get_gp_te_pp. If no
-!>  temperature profile was created zero is returned.
+!>  electron temperature profile was created zero is returned.
 !>
 !>  @param[in] this   A @ref vmec_class instance.
 !>  @param[in] x_cart First cartesian position to get the electron temperature
@@ -3160,7 +3238,7 @@
 !>  @brief Gets the electron temperature at a cartesian position.
 !>
 !>  This method overrides @ref equilibrium::equilibrium_get_te. If no
-!>  temperature profile was created, return zero.
+!>  electron temperature profile was created, return zero.
 !>
 !>  @param[in] this   A @ref vmec_class instance.
 !>  @param[in] x_cart Cartesian position to get the electron temperature at.
@@ -3190,7 +3268,7 @@
 !>  @brief Gets the electron temperature at a s position.
 !>
 !>  This method overrides @ref equilibrium::equilibrium_get_te. If no
-!>  temperature profile was created, return zero.
+!>  electron temperature profile was created, return zero.
 !>
 !>  @param[in] this A @ref vmec_class instance.
 !>  @param[in] s    Radial position to get the electron temperature at.
@@ -3217,6 +3295,259 @@
       END IF
 
       CALL profiler_set_stop_time('vmec_get_te_radial', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the number of ion temperature gp kernel hyper parameters.
+!>
+!>  This method overrides
+!>  @ref equilibrium::equilibrium_get_gp_ti_num_hyper_param. If no ion
+!>  temperature profile was created zero is returned.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @returns Number of kernel hyper parameters.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_gp_ti_num_hyper_param(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER                       :: vmec_get_gp_ti_num_hyper_param
+      TYPE (vmec_class), INTENT(in) :: this
+
+!  local variables
+      REAL (rprec)                  :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (ASSOCIATED(this%ti)) THEN
+         vmec_get_gp_ti_num_hyper_param =                                      &
+     &      pprofile_get_gp_num_hyper_param(this%ti)
+      ELSE
+         vmec_get_gp_ti_num_hyper_param = 0
+      END IF
+
+      CALL profiler_set_stop_time('vmec_get_gp_ti_num_hyper_param',            &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the ion temperature profile af array.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_ti_af. If no ion
+!>  temperature profile was created a null pointer is returned.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @returns Pointer to the ion temperature profile af array.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_ti_af(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:), POINTER :: vmec_get_ti_af
+      TYPE (vmec_class), INTENT(in)       :: this
+
+!  local variables
+      REAL (rprec)                        :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (ASSOCIATED(this%ti)) THEN
+         vmec_get_ti_af => this%ti%af
+      ELSE
+         vmec_get_ti_af => null()
+      END IF
+
+      CALL profiler_set_stop_time('vmec_get_ti_af', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the ion temperature gp kernel value for the two indicies.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_gp_ti_ij. If no ion
+!>  profile was created zero is returned.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @param[in] i    ith profile position.
+!>  @param[in] j    jth profile position.
+!>  @returns The value of the gp kernel function for i, j.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_gp_ti_ij(this, i, j)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                  :: vmec_get_gp_ti_ij
+      TYPE (vmec_class), INTENT(in) :: this
+      INTEGER, INTENT(in)           :: i
+      INTEGER, INTENT(in)           :: j
+
+!  local variables
+      REAL (rprec)                  :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (ASSOCIATED(this%ti)) THEN
+         vmec_get_gp_ti_ij = pprofile_get_gp(this%ti, i, j)
+      ELSE
+         vmec_get_gp_ti_ij = 0.0
+      END IF
+
+      CALL profiler_set_stop_time('vmec_get_gp_ti_ij', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the ion temperature gp kernel value for the position and
+!>  index.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_gp_ti_pi. If no ion
+!>  temperature profile was created zero is returned.
+!>
+!>  @param[in] this   A @ref vmec_class instance.
+!>  @param[in] x_cart Cartesian position to get the ion temperature at.
+!>  @param[in] i      Profile position index.
+!>  @returns The value of the gp kernel function for x_cart and i.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_gp_ti_pi(this, x_cart, i)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: vmec_get_gp_ti_pi
+      TYPE (vmec_class), INTENT(in)          :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      INTEGER, INTENT(in)                    :: i
+
+!  local variables
+      REAL (rprec)                           :: s
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      s = vmec_get_s(this, x_cart)
+      IF (ASSOCIATED(this%ti) .and. (s .le. 1.0)) THEN
+         vmec_get_gp_ti_pi = pprofile_get_gp(this%ti, s, i)
+      ELSE
+         vmec_get_gp_ti_pi = 0.0
+      END IF
+
+      CALL profiler_set_stop_time('vmec_get_gp_ti_pi', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the ion temperature gp kernel value for the position and
+!>  position.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_gp_ti_pp. If no ion
+!>  temperature profile was created zero is returned.
+!>
+!>  @param[in] this   A @ref vmec_class instance.
+!>  @param[in] x_cart First cartesian position to get the ion temperature at.
+!>  @param[in] y_cart Second cartesian position to get the ion temperature at.
+!>  @returns The value of the gp kernel function for x_cart and y_cart.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_gp_ti_pp(this, x_cart, y_cart)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: vmec_get_gp_ti_pp
+      TYPE (vmec_class), INTENT(in)          :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      REAL (rprec), DIMENSION(3), INTENT(in) :: y_cart
+
+!  local variables
+      REAL (rprec)                           :: s1
+      REAL (rprec)                           :: s2
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      s1 = vmec_get_s(this, x_cart)
+      s2 = vmec_get_s(this, y_cart)
+      IF (ASSOCIATED(this%ti) .and. (s1 .le. 1.0) .and.                        &
+     &    (s2 .le. 1.0)) THEN
+         vmec_get_gp_ti_pp = pprofile_get_gp(this%ti, s1, s2)
+      ELSE
+         vmec_get_gp_ti_pp = 0.0
+      END IF
+
+      CALL profiler_set_stop_time('vmec_get_gp_ti_pp', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the ion temperature at a cartesian position.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_ti. If no ion
+!>  temperature profile was created, return zero.
+!>
+!>  @param[in] this   A @ref vmec_class instance.
+!>  @param[in] x_cart Cartesian position to get the ion temperature at.
+!>  @returns The ion temperature at x_cart.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_ti_cart(this, x_cart)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: vmec_get_ti_cart
+      TYPE (vmec_class), INTENT(in)          :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+      vmec_get_ti_cart = vmec_get_ti(this, vmec_get_flux(this, x_cart))
+
+      CALL profiler_set_stop_time('vmec_get_ti_cart', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the ion temperature at a s position.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_ti. If no ion
+!>  temperature profile was created, return zero.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @param[in] s    Radial position to get the ion temperature at.
+!>  @returns The ion temperature at s.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_ti_radial(this, s)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                  :: vmec_get_ti_radial
+      TYPE (vmec_class), INTENT(in) :: this
+      REAL (rprec), INTENT(in)      :: s
+
+!  local variables
+      REAL (rprec)                  :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+      IF (ASSOCIATED(this%ti)) THEN
+         vmec_get_ti_radial = pprofile_get_value(this%ti, s)
+      ELSE
+         vmec_get_ti_radial = 0.0
+      END IF
+
+      CALL profiler_set_stop_time('vmec_get_ti_radial', start_time)
 
       END FUNCTION
 
@@ -3404,8 +3735,8 @@
 !>  @brief Get the soft x-ray emissivity gp kernel value for the position and
 !>  index.
 !>
-!>  This method overrides @ref equilibrium::equilibrium_get_gp_te_pi. If no
-!>  temperature profile was created zero is returned.
+!>  This method overrides @ref equilibrium::equilibrium_get_gp_sxrem_pi. If no
+!>  soft x-ray emissivity profile was created zero is returned.
 !>
 !>  @param[in] this   A @ref vmec_class instance.
 !>  @param[in] x_cart Cartesian position to get the soft x-ray emissivity at.
@@ -4706,6 +5037,7 @@
      &         vmec_am_id, vmec_am_aux_s_id, vmec_am_aux_f_id,                 &
      &         vmec_pp_ne_b_id, vmec_pp_ne_as_id, vmec_pp_ne_af_id,            &
      &         vmec_pp_te_b_id, vmec_pp_te_as_id, vmec_pp_te_af_id,            &
+     &         vmec_pp_ti_b_id, vmec_pp_ti_as_id, vmec_pp_ti_af_id,            &
      &         vmec_pp_ze_b_id, vmec_pp_ze_as_id, vmec_pp_ze_af_id,            &
      &         vmec_extcur_id, vmec_phi_id, vmec_iotaf_id,                     &
      &         vmec_iotas_id, vmec_jcuru_id, vmec_jcurv_id,                    &
@@ -4799,6 +5131,7 @@
      &         vmec_am_id, vmec_am_aux_s_id, vmec_am_aux_f_id,                 &
      &         vmec_pp_ne_b_id, vmec_pp_ne_as_id, vmec_pp_ne_af_id,            &
      &         vmec_pp_te_b_id, vmec_pp_te_as_id, vmec_pp_te_af_id,            &
+     &         vmec_pp_ti_b_id, vmec_pp_ti_as_id, vmec_pp_ti_af_id,            &
      &         vmec_pp_ze_b_id, vmec_pp_ze_as_id, vmec_pp_ze_af_id,            &
      &         vmec_pp_sxrem_b_id, vmec_pp_sxrem_as_id,                        &
      &         vmec_pp_sxrem_af_id, vmec_extcur_id, vmec_curtor_id,            &
@@ -5127,9 +5460,14 @@
       IF (ASSOCIATED(this%te)) THEN
          CALL pprofile_save_state(this%te)
       END IF
+      IF (ASSOCIATED(this%ti)) THEN
+         CALL pprofile_save_state(this%ti)
+      END IF
       IF (ASSOCIATED(this%sxrem)) THEN
          DO i = 1, SIZE(this%sxrem)
-            CALL pprofile_save_state(this%sxrem(i)%p)
+            IF (ASSOCIATED(this%sxrem(i)%p)) THEN
+               CALL pprofile_save_state(this%sxrem(i)%p)
+            END IF
          END DO
       END IF
 
@@ -5184,9 +5522,14 @@
       IF (ASSOCIATED(this%te)) THEN
          CALL pprofile_reset_state(this%te)
       END IF
+      IF (ASSOCIATED(this%ti)) THEN
+         CALL pprofile_reset_state(this%ti)
+      END IF
       IF (ASSOCIATED(this%sxrem)) THEN
          DO i = 1, SIZE(this%sxrem)
-            CALL pprofile_reset_state(this%sxrem(i)%p)
+            IF (ASSOCIATED(this%sxrem(i)%p)) THEN
+               CALL pprofile_reset_state(this%sxrem(i)%p)
+            END IF
          END DO
       END IF
 
@@ -5236,6 +5579,10 @@
 
       IF (ASSOCIATED(this%te)) THEN
          CALL pprofile_write(this%te, 'pp_te', iou)
+      END IF
+
+      IF (ASSOCIATED(this%ti)) THEN
+         CALL pprofile_write(this%ti, 'pp_ti', iou)
       END IF
 
       IF (ASSOCIATED(this%ze)) THEN
