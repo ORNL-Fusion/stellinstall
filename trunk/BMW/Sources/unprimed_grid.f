@@ -370,7 +370,8 @@
 !>  computes the vector potential, magnetic field and positions on the unprimed
 !>  grid. The primed grid is supplied as arbitrary r and z positions with a
 !>  uniformly spaced phi grid. Since the primed grid is arbitrary, this function
-!>  does not compute the magnetic field components.
+!>  does not compute the magnetic field components. The middle index represents
+!>  phi positions.
 !>
 !>  @param[in] mgrid    A @ref m_grid::m_grid_class object.
 !>  @param[in] pgrid    A @ref primed_grid::primed_grid_class object.
@@ -461,8 +462,8 @@
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO i = bmw_parallel_context_start(parallel, num_1),                      &
-     &       bmw_parallel_context_end(parallel, num_1)
+      DO i = bmw_parallel_context_start(parallel, num_2),                      &
+     &       bmw_parallel_context_end(parallel, num_2)
          phi(i) = (i - 1.0)*dphi
          cosv(i) = COS(phi(i))
          sinv(i) = SIN(phi(i))
@@ -505,8 +506,8 @@
 
          r = r_grid(ai,aj,ak)
          z = z_grid(ai,aj,ak)
-         x = r*cosv(ai)
-         y = r*sinv(ai)
+         x = r*cosv(aj)
+         y = r*sinv(aj)
 
          rp = SQRT((pgrid%x - x)**2.0 +                                        &
      &             (pgrid%y - y)**2.0 +                                        &
