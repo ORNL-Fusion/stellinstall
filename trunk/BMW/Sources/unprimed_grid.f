@@ -478,6 +478,8 @@
       END IF
 !$OMP END SINGLE
 
+      current = 0.0
+
       ALLOCATE(rp(SIZE(pgrid%x, 1),                                            &
      &            SIZE(pgrid%x, 2),                                            &
      &            SIZE(pgrid%x, 3)))
@@ -522,9 +524,9 @@
      &           unprimed_grid_construct_a%a_z(ai,aj,ak))
 
          unprimed_grid_construct_a%a_r(ai,aj,ak) =                             &
-     &      unprimed_grid_construct_a%a_r(ai,aj,ak) + x/r*ax + y/z*ay
+     &      unprimed_grid_construct_a%a_r(ai,aj,ak) + x/r*ax + y/r*ay
          unprimed_grid_construct_a%a_p(ai,aj,ak) =                             &
-     &      unprimed_grid_construct_a%a_p(ai,aj,ak) - y/r*ax + x/z*ay
+     &      unprimed_grid_construct_a%a_p(ai,aj,ak) - y/r*ax + x/r*ay
          unprimed_grid_construct_a%a_z(ai,aj,ak) =                             &
      &      unprimed_grid_construct_a%a_z(ai,aj,ak) +                          &
      &      SUM(pgrid%j_z/rp)*pgrid%dvol
