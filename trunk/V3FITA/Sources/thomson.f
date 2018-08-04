@@ -337,10 +337,10 @@
 !>  @param[in] this         A @ref thomson_class instance.
 !>  @param[in] a_model      A @ref model instance.
 !>  @param[in] i            Index of the position for the kernel.
-!>  @param[in] scale_factor Factor to scale the modeled signal.
+!>  @param[in] flags        State flags to send to the kernel.
 !>  @returns Kernel value for the position and the signal.
 !-------------------------------------------------------------------------------
-      FUNCTION thomson_get_gp_i(this, a_model, i, scale_factor)
+      FUNCTION thomson_get_gp_i(this, a_model, i, flags)
 
       IMPLICIT NONE
 
@@ -349,7 +349,7 @@
       TYPE (thomson_class), INTENT(in) :: this
       TYPE (model_class), INTENT(in)   :: a_model
       INTEGER, INTENT(in)              :: i
-      REAL (rprec), INTENT(in)         :: scale_factor
+      INTEGER, INTENT(in)              :: flags
 
 !  local variables
       REAL (rprec)                     :: start_time
@@ -360,12 +360,10 @@
       SELECT CASE(this%type)
 
          CASE (thomson_temperature_type)
-            thomson_get_gp_i =                                                 &
-     &         model_get_gp_te(a_model, this%xcart, i)*scale_factor
+            thomson_get_gp_i = model_get_gp_te(a_model, this%xcart, i)
 
          CASE (thomson_density_type)
-            thomson_get_gp_i =                                                 &
-     &         model_get_gp_ne(a_model, this%xcart, i)*scale_factor
+            thomson_get_gp_i = model_get_gp_ne(a_model, this%xcart, i)
 
          CASE DEFAULT
             thomson_get_gp_i = 0.0
@@ -386,10 +384,9 @@
 !>  @param[in] this         A @ref thomson_class instance.
 !>  @param[in] context      A @ref signal_class instance.
 !>  @param     callback     Function pointer to call back to signal module.
-!>  @param[in] scale_factor Factor to scale the modeled signal.
 !>  @returns Kernel value for the signal and the signal.
 !-------------------------------------------------------------------------------
-      FUNCTION thomson_get_gp_s(this, context, callback, scale_factor)
+      FUNCTION thomson_get_gp_s(this, context, callback)
 
       IMPLICIT NONE
 
@@ -408,7 +405,6 @@
          REAL (rprec), INTENT(in)               :: dx
          END FUNCTION
       END INTERFACE
-      REAL (rprec), INTENT(in)         :: scale_factor
 
 !  local variables
       REAL (rprec)                     :: start_time
@@ -423,7 +419,7 @@
 !  a dx of 1.
             thomson_get_gp_s = callback(context, this%xcart,                   &
      &                                  this%xcart, 1.0_rprec,                 &
-     &                                  1.0_rprec)*scale_factor
+     &                                  1.0_rprec)
 
          CASE DEFAULT
             thomson_get_gp_s = 0.0
@@ -447,10 +443,10 @@
 !>  @param[in] this         A @ref thomson_class instance.
 !>  @param[in] a_model      A @ref model instance.
 !>  @param[in] x_cart       The cartesian position of to get the kernel at.
-!>  @param[in] scale_factor Factor to scale the modeled signal.
+!>  @param[in] flags        State flags to send to the kernel.
 !>  @returns Kernel value for the signal and the signal.
 !-------------------------------------------------------------------------------
-      FUNCTION thomson_get_gp_x(this, a_model, x_cart, scale_factor)
+      FUNCTION thomson_get_gp_x(this, a_model, x_cart, flags)
 
       IMPLICIT NONE
 
@@ -459,7 +455,7 @@
       TYPE (thomson_class), INTENT(in)       :: this
       TYPE (model_class), INTENT(in)         :: a_model
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
-      REAL (rprec), INTENT(in)               :: scale_factor
+      INTEGER, INTENT(in)                    :: flags
 
 !  local variables
       REAL (rprec)                           :: start_time
@@ -471,11 +467,11 @@
 
          CASE (thomson_temperature_type)
             thomson_get_gp_x = model_get_gp_te(a_model, this%xcart,            &
-     &                                         x_cart)*scale_factor
+     &                                         x_cart)
 
          CASE (thomson_density_type)
             thomson_get_gp_x = model_get_gp_ne(a_model, this%xcart,            &
-     &                                         x_cart)*scale_factor
+     &                                         x_cart)
 
          CASE DEFAULT
             thomson_get_gp_x = 0.0

@@ -178,7 +178,7 @@
          xcart_f = signal_dot_parse_3_real(signal_dot_file_ref,                &
      &                                    'Error reading end ' //              &
      &                                    'position for chord.')
-      ENDIF
+      END IF
 
 !  Done reading information for this chord. Generate the chord
       IF (TRIM(coordinate_type) .eq. 'RPHiDegZ') THEN
@@ -188,8 +188,8 @@
          IF (PRESENT(xcart_f)) THEN
             xcart_f(2) = xcart_f(2)*degree  ! Convert from degrees to radians.
             xcart_f = cyl_to_cart(xcart_f)
-         ENDIF
-      ENDIF
+         END IF
+      END IF
 
       CALL profiler_set_stop_time('signal_dot_parse_chord', start_time)
 
@@ -439,7 +439,7 @@
      &                                      start_time)
 
                 RETURN
-             ENDIF
+             END IF
          END DO
       END DO
 

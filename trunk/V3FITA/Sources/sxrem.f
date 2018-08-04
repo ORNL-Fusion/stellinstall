@@ -44,7 +44,7 @@
 !>  @par Possible values are:
 !>  * @ref sxrem_no_type
 !>  * @ref sxrem_emiss_type
-!>  * @ref sxrem_te_type
+!>  * @ref sxrem_ti_type
          INTEGER                :: type
 !>  The complete path of the chord.
          TYPE (vertex), POINTER :: chord_path => null()
@@ -69,18 +69,14 @@
 !>  callback function for point.
 !-------------------------------------------------------------------------------
       TYPE sxrem_gp_context_i
-!>  Type descirptor of the intpol type.
-!>  @par Possible values are:
-!>  * @ref sxrem_no_type
-!>  * @ref sxrem_emiss_type
-!>  * @ref sxrem_te_type
-         INTEGER                     :: type
 !>  The index of the emissivity profile model.
          INTEGER                     :: profile_number
 !>  Reference to a @ref model::model_class object.
          TYPE (model_class), POINTER :: model => null()
 !>  Position index.
          INTEGER                     :: i
+!>  Gaussian process kernel flags.
+         INTEGER                     :: flags = model_state_all_off
       END TYPE
 
 !-------------------------------------------------------------------------------
@@ -88,18 +84,14 @@
 !>  callback function for signal.
 !-------------------------------------------------------------------------------
       TYPE sxrem_gp_context_x
-!>  Type descirptor of the intpol type.
-!>  @par Possible values are:
-!>  * @ref sxrem_no_type
-!>  * @ref sxrem_emiss_type
-!>  * @ref sxrem_te_type
-         INTEGER                     :: type
 !>  The index of the emissivity profile model.
          INTEGER                     :: profile_number
 !>  Reference to a @ref model::model_class object.
          TYPE (model_class), POINTER :: model => null()
 !>  First position.
          REAL (rprec), DIMENSION(3)  :: xcart
+!>  Gaussian process kernel flags.
+         INTEGER                     :: flags
       END TYPE
 
 !*******************************************************************************
@@ -282,15 +274,23 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      IF (this%type .eq. sxrem_emiss_type) THEN
-         sxrem_get_modeled_signal =                                            &
-     &      sxrem_get_modeled_emiss_signal(this, a_model, sigma,               &
+      SELECT CASE (this%type)
+
+         CASE (sxrem_emiss_type)
+            sxrem_get_modeled_signal =                                         &
+     &         sxrem_get_modeled_emiss_signal(this, a_model, sigma,            &
+     &                                        last_value, scale_factor)
+
+         CASE (sxrem_ti_type)
+            sxrem_get_modeled_signal =                                         &
+     &         sxrem_get_modeled_ti_signal(this, a_model, sigma,               &
      &                                     last_value, scale_factor)
-      ELSE
-         sxrem_get_modeled_signal =                                            &
-     &      sxrem_get_modeled_ti_signal(this, a_model, sigma,                  &
-     &                                  last_value, scale_factor)
-      END IF
+
+         CASE DEFAULT
+            sxrem_get_modeled_signal = 0.0
+            sigma = 0.0
+
+      END SELECT
 
       CALL profiler_set_stop_time('sxrem_get_modeled_signal',                  &
      &                            start_time)
@@ -459,13 +459,13 @@
       IF (this%type .eq. sxrem_emiss_type) THEN
          WRITE (sxrem_get_signal_type, 1000) this%profile_number
       ELSE
-         WRITE (sxrem_get_signal_type, 1001)
+         WRITE (sxrem_get_signal_type, 1001) this%profile_number
       END IF
 
       CALL profiler_set_stop_time('sxrem_get_signal_type', start_time)
 
 1000  FORMAT('sxrch(',i2,')')
-1001  FORMAT('xics te')
+1001  FORMAT('sxrch_ti(',i2,')')
 
       END FUNCTION
 
@@ -479,10 +479,10 @@
 !>  @param[in] this         A @ref sxrem_class instance.
 !>  @param[in] a_model      A @ref model instance.
 !>  @param[in] i            Index of the position for the kernel.
-!>  @param[in] scale_factor Factor to scale the modeled signal.
+!>  @param[in] flags        State flags to send to the kernel.
 !>  @returns Kernel value for the position and the signal.
 !-------------------------------------------------------------------------------
-      FUNCTION sxrem_get_gp_i(this, a_model, i, scale_factor)
+      FUNCTION sxrem_get_gp_i(this, a_model, i, flags)
 
       IMPLICIT NONE
 
@@ -497,7 +497,7 @@
       CHARACTER(len=1), ALLOCATABLE          :: context(:)
       INTEGER                                :: context_length
       TYPE (sxrem_gp_context_i)              :: gp_context
-      REAL (rprec), INTENT(in)               :: scale_factor
+      INTEGER, INTENT(in)                    :: flags
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -506,7 +506,7 @@
       gp_context%profile_number = this%profile_number
       gp_context%model => a_model
       gp_context%i = i
-      gp_context%type = this%type
+      gp_context%flags = flags
 
 !  Cast model into a data context. This is the equivalent to casting to a void
 !  pointer in C.
@@ -514,9 +514,23 @@
       ALLOCATE(context(context_length))
       context = TRANSFER(gp_context, context)
 
-      sxrem_get_gp_i = path_integrate(a_model%int_params,                      &
-     &                                this%chord_path, gp_function_i,          &
-     &                                context)*this%geo*scale_factor
+      SELECT CASE (this%type)
+
+         CASE (sxrem_emiss_type)
+            sxrem_get_gp_i = path_integrate(a_model%int_params,                &
+     &                                      this%chord_path,                   &
+     &                                      gp_function_i, context)            &
+     &                     * this%geo
+
+         CASE (sxrem_ti_type)
+            sxrem_get_gp_i = path_integrate(a_model%int_params,                &
+     &                                      this%chord_path,                   &
+     &                                      gp_function_i, context)
+
+         CASE DEFAULT
+            sxrem_get_gp_i = 0.0
+
+      END SELECT
 
       DEALLOCATE(context)
 
@@ -535,11 +549,9 @@
 !>  @param[in] a_model      A @ref model instance.
 !>  @param[in] gp_context   A @ref signal_class instance.
 !>  @param     gp_callback  Function pointer to call back to signal module.
-!>  @param[in] scale_factor Factor to scale the modeled signal.
 !>  @returns Kernel value for the signal and the signal.
 !-------------------------------------------------------------------------------
-      FUNCTION sxrem_get_gp_s(this, a_model, context, callback,                &
-     &                        scale_factor)
+      FUNCTION sxrem_get_gp_s(this, a_model, context, callback)
 
       IMPLICIT NONE
 
@@ -559,7 +571,6 @@
          REAL (rprec), INTENT(in)               :: dx
          END FUNCTION
       END INTERFACE
-      REAL (rprec), INTENT(in)       :: scale_factor
 
 !  local variables
       REAL (rprec)                   :: start_time
@@ -570,7 +581,11 @@
 !  The relevant data for the guassian process context.
       sxrem_get_gp_s = path_integrate(a_model%int_params,                      &
      &                                this%chord_path, callback,               &
-     &                                context)*this%geo*scale_factor
+     &                                context)
+
+      IF (this%type .eq. sxrem_emiss_type) THEN
+         sxrem_get_gp_s = sxrem_get_gp_s*this%geo
+      END IF
 
       CALL profiler_set_stop_time('sxrem_get_gp_s', start_time)
 
@@ -586,10 +601,10 @@
 !>  @param[in] this         A @ref sxrem_class instance.
 !>  @param[in] a_model      A @ref model instance.
 !>  @param[in] x_cart       The cartesian position of to get the kernel at.
-!>  @param[in] scale_factor Factor to scale the modeled signal.
+!>  @param[in] flags        State flags to send to the kernel.
 !>  @returns Kernel value for the signal and the signal.
 !-------------------------------------------------------------------------------
-      FUNCTION sxrem_get_gp_x(this, a_model, x_cart, scale_factor)
+      FUNCTION sxrem_get_gp_x(this, a_model, x_cart, flags)
 
       IMPLICIT NONE
 
@@ -598,7 +613,7 @@
       TYPE (sxrem_class), INTENT(in)         :: this
       TYPE (model_class), TARGET, INTENT(in) :: a_model
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
-      REAL (rprec), INTENT(in)               :: scale_factor
+      INTEGER, INTENT(in)                    :: flags
 
 !  local variables
       REAL (rprec)                           :: start_time
@@ -613,7 +628,7 @@
       gp_context%profile_number = this%profile_number
       gp_context%model => a_model
       gp_context%xcart = x_cart
-      gp_context%type = this%type
+      gp_context%flags = flags
 
 !  Cast model into a data context. This is the equivalent to casting to a void
 !  pointer in C.
@@ -623,11 +638,77 @@
 
       sxrem_get_gp_x =  path_integrate(a_model%int_params,                     &
      &                                 this%chord_path, gp_function_x,         &
-     &                                 context)*this%geo*scale_factor
+     &                                 context)
+
+      IF (this%type .eq. sxrem_emiss_type) THEN
+         sxrem_get_gp_x = sxrem_get_gp_x*this%geo
+      END IF
 
       DEALLOCATE(context)
 
       CALL profiler_set_stop_time('sxrem_get_gp_x', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the integration element for the signal.
+!>
+!>  Integrated signals may contain extra quanties that are integrated. In the on
+!>  context of gaussian process, the correlation of two signals measureing
+!>  different quanties but using the same kernel can be computed. This ensures
+!>  the one of the signals has the correct value. For XICS signals, dx can
+!>  change depending on if the emission or the ion temperature is the current
+!>  guassian process.
+!>
+!>  @param[in] this         A @ref intpol_class instance.
+!>  @param[in] a_model      A @ref model instance.
+!>  @param[in] xcart   The integration point.
+!>  @param[in] dxcart  A vector change in path. Not used in this function.
+!>  @param[in] length  Length along the integration.
+!>  @param[in] dx      A scalar change in path.
+!>  @param[in] flags   State flags to send to the kernel.
+!>  @returns dx value for the signal.
+!-------------------------------------------------------------------------------
+      FUNCTION sxrem_get_dx(this, a_model, xcart, dxcart, length, dx,          &
+     &                      flags)
+      REAL (rprec)                           :: sxrem_get_dx
+      TYPE (sxrem_class), INTENT(in)         :: this
+      TYPE (model_class), TARGET, INTENT(in) :: a_model
+      REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
+      REAL (rprec), DIMENSION(3), INTENT(in) :: dxcart
+      REAL (rprec), INTENT(in)               :: length
+      REAL (rprec), INTENT(in)               :: dx
+      INTEGER, INTENT(in)                    :: flags
+
+! local variables
+      REAL (rprec), DIMENSION(3)             :: bcart
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE(this%type)
+
+         CASE (sxrem_emiss_type)
+            sxrem_get_dx = dx
+
+         CASE (sxrem_ti_type)
+            IF (BTEST(flags, model_state_sxrem_flag +                          &
+     &                       (this%profile_number - 1))) THEN
+               sxrem_get_dx = model_get_ti(a_model, xcart)*dx
+            ELSE IF (BTEST(flags, model_state_ti_flag)) THEN
+               sxrem_get_dx = model_get_sxrem(a_model, xcart,                  &
+     &                                        this%profile_number)*dx
+            ELSE
+               sxrem_get_dx = 0.0
+            END IF
+
+         CASE DEFAULT
+            sxrem_get_dx = 0.0
+
+      END SELECT
+
+      CALL profiler_set_stop_time('sxrem_get_dx', start_time)
 
       END FUNCTION
 
@@ -762,15 +843,16 @@
       start_time = profiler_get_start_time()
 
       gp_context = TRANSFER(context, gp_context)
-      IF (gp_context%type .eq. sxrem_emiss_type) THEN
+      IF (BTEST(gp_context%flags, model_state_sxrem_flag +                     &
+     &                            (gp_context%profile_number - 1))) THEN
          gp_function_i = model_get_gp_sxrem(gp_context%model, xcart,           &
      &                                      gp_context%i,                      &
      &                                      gp_context%profile_number)
+      ELSE IF (BTEST(gp_context%flags, model_state_ti_flag)) THEN
+         gp_function_i = model_get_gp_ti(gp_context%model, xcart,              &
+     &                                   gp_context%i)
       ELSE
-!  XICS diagnostics involve two profiles. Not sure how this the guassian
-!  processes work in this situation. Assert if this is reached.
-         CALL assert(.false., 'Guassian processes not supported for ' //       &
-     &                        'XICS Ti cords')
+         gp_function_i = 0.0
       END IF
 
       gp_function_i = gp_function_i*dx
@@ -818,15 +900,16 @@
 
 !  This is the second signal so put xcart in the second position.
       gp_context = TRANSFER(context, gp_context)
-      IF (gp_context%type .eq. sxrem_emiss_type) THEN
+      IF (BTEST(gp_context%flags, model_state_sxrem_flag +                     &
+     &                            (gp_context%profile_number - 1))) THEN
          gp_function_x = model_get_gp_sxrem(gp_context%model,                  &
      &                                      xcart, gp_context%xcart,           &
      &                                      gp_context%profile_number)
+      ELSE IF (BTEST(gp_context%flags, model_state_ti_flag)) THEN
+         gp_function_x = model_get_gp_ti(gp_context%model, xcart,              &
+     &                                   gp_context%xcart)
       ELSE
-!  XICS diagnostics involve two profiles. Not sure how this the guassian
-!  processes work in this situation. Assert if this is reached.
-         CALL assert(.false., 'Guassian processes not supported for ' //       &
-     &                        'XICS Ti cords')
+         gp_function_x = 0.0
       END IF
 
       gp_function_x = gp_function_x*dx

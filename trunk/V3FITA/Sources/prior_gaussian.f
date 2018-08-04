@@ -23,18 +23,6 @@
       IMPLICIT NONE
 
 !*******************************************************************************
-!  prior_gaussian module parameters
-!*******************************************************************************
-!>  Type descriptor for prior_gaussian no type.
-      INTEGER, PARAMETER :: prior_gaussian_no_type = -1
-!>  Type descriptor for prior_gaussian type measureing temperature.
-      INTEGER, PARAMETER :: prior_gaussian_te_type = 0
-!>  Type descriptor for prior_gaussian type measureing denisty.
-      INTEGER, PARAMETER :: prior_gaussian_ne_type = 1
-!>  Type descriptor for prior_gaussian type measureing soft x-ray emission.
-      INTEGER, PARAMETER :: prior_gaussian_sxrem_type = 2
-
-!*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) prior_gaussian base class
 !
@@ -47,13 +35,6 @@
 !>  @ref prior_guassian
 !-------------------------------------------------------------------------------
       TYPE prior_gaussian_class
-!>  Type descirptor of the thomson type.
-!>  @par Possible values are:
-!>  * @ref prior_gaussian_no_type
-!>  * @ref prior_gaussian_te_type
-!>  * @ref prior_gaussian_ne_type
-!>  * @ref prior_gaussian_sxrem_type
-         INTEGER               :: type
 !>  Parameter id to check the guassian against.
          INTEGER               :: param_id = data_no_id
 !>  Indices of the parameter.
@@ -104,22 +85,6 @@
       start_time = profiler_get_start_time()
 
       ALLOCATE(prior_gaussian_construct)
-
-      SELECT CASE(TRIM(param_name))
-
-         CASE ('pp_ne_af')
-            prior_gaussian_construct%type = prior_gaussian_ne_type
-
-         CASE ('pp_te_af')
-            prior_gaussian_construct%type = prior_gaussian_te_type
-
-         CASE ('pp_sxrem_af_a')
-            prior_gaussian_construct%type = prior_gaussian_sxrem_type
-
-         CASE DEFAULT
-            prior_gaussian_construct%type = prior_gaussian_no_type
-
-      END SELECT
 
       prior_gaussian_construct%param_id =                                      &
      &   model_get_param_id(a_model, TRIM(param_name))
@@ -239,10 +204,10 @@
 !>  @param[in] this         A @ref prior_gaussian_class instance.
 !>  @param[in] a_model      A @ref model instance.
 !>  @param[in] i            Index of the position for the kernel.
-!>  @param[in] scale_factor Factor to scale the modeled signal.
+!>  @param[in] flags        State flags to send to the kernel.
 !>  @returns Kernel value for the position and the signal.
 !-------------------------------------------------------------------------------
-      FUNCTION prior_gaussian_get_gp_i(this, a_model, i, scale_factor)
+      FUNCTION prior_gaussian_get_gp_i(this, a_model, i, flags)
 
       IMPLICIT NONE
 
@@ -251,7 +216,7 @@
       TYPE (prior_gaussian_class), INTENT(in) :: this
       TYPE (model_class), INTENT(in)          :: a_model
       INTEGER, INTENT(in)                     :: i
-      REAL (rprec), INTENT(in)                :: scale_factor
+      INTEGER, INTENT(in)                     :: flags
 
 !  local variables
       REAL (rprec)                            :: start_time
@@ -259,25 +224,23 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      SELECT CASE(this%type)
-
-         CASE (prior_gaussian_ne_type)
-            prior_gaussian_get_gp_i =                                          &
-     &         model_get_gp_ne(a_model, this%indices(1), i)*scale_factor
-
-         CASE (prior_gaussian_te_type)
-            prior_gaussian_get_gp_i =                                          &
-     &         model_get_gp_te(a_model, this%indices(1), i)*scale_factor
-
-         CASE (prior_gaussian_sxrem_type)
-            prior_gaussian_get_gp_i =                                          &
-     &         model_get_gp_sxrem(a_model, this%indices(2), i,                 &
-     &                            this%indices(1))*scale_factor
-
-         CASE DEFAULT
-            prior_gaussian_get_gp_i = 0.0
-
-      END SELECT
+      IF (BTEST(flags, model_state_ne_flag)) THEN
+         prior_gaussian_get_gp_i =                                             &
+     &      model_get_gp_ne(a_model, this%indices(1), i)
+      ELSE IF (BTEST(flags, model_state_te_flag)) THEN
+         prior_gaussian_get_gp_i =                                             &
+     &      model_get_gp_te(a_model, this%indices(1), i)
+      ELSE IF (BTEST(flags, model_state_ti_flag)) THEN
+         prior_gaussian_get_gp_i =                                             &
+     &      model_get_gp_ti(a_model, this%indices(1), i)
+      ELSE IF (BTEST(flags, model_state_sxrem_flag +                           &
+     &                      (this%indices(1) - 1))) THEN
+         prior_gaussian_get_gp_i =                                             &
+     &      model_get_gp_sxrem(a_model, this%indices(2), i,                    &
+     &                         this%indices(1))
+      ELSE
+         prior_gaussian_get_gp_i = 0.0
+      END IF
 
       CALL profiler_set_stop_time('prior_gaussian_get_gp_i', start_time)
 
@@ -293,11 +256,10 @@
 !>  @param[in] this         A @ref prior_gaussian_class instance.
 !>  @param[in] context      A @ref signal_class instance.
 !>  @param     callback     Function pointer to call back to signal module.
-!>  @param[in] scale_factor Factor to scale the modeled signal.
+!>  @param[in] flags        State flags to send to the kernel.
 !>  @returns Kernel value for the signal and the signal.
 !-------------------------------------------------------------------------------
-      FUNCTION prior_gaussian_get_gp_s(this, context, callback,                &
-     &                                 scale_factor)
+      FUNCTION prior_gaussian_get_gp_s(this, context, callback, flags)
 
       IMPLICIT NONE
 
@@ -313,7 +275,7 @@
          INTEGER, INTENT(in)                  :: index
          END FUNCTION
       END INTERFACE
-      REAL (rprec), INTENT(in)                :: scale_factor
+      INTEGER, INTENT(in)                     :: flags
 
 !  local variables
       REAL (rprec)                            :: start_time
@@ -321,26 +283,16 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-!  The call back is an integation kernel. Since we are not integrating here pass
-!  a dx of 1.
-      SELECT CASE(this%type)
-
-         CASE (prior_gaussian_ne_type)
-            prior_gaussian_get_gp_s = callback(context, this%indices(1))       &
-     &                              * scale_factor
-
-         CASE (prior_gaussian_te_type)
-            prior_gaussian_get_gp_s = callback(context, this%indices(1))       &
-     &                              * scale_factor
-
-         CASE (prior_gaussian_sxrem_type)
-            prior_gaussian_get_gp_s = callback(context, this%indices(2))       &
-     &                              * scale_factor
-
-         CASE DEFAULT
-            prior_gaussian_get_gp_s = 0.0
-
-      END SELECT
+      IF (BTEST(flags, model_state_ne_flag) .or.                               &
+     &    BTEST(flags, model_state_te_flag) .or.                               &
+     &    BTEST(flags, model_state_ti_flag)) THEN
+         prior_gaussian_get_gp_s = callback(context, this%indices(1))
+      ELSE IF (BTEST(flags, model_state_sxrem_flag +                           &
+     &                      (this%indices(1) - 1))) THEN
+         prior_gaussian_get_gp_s = callback(context, this%indices(2))
+      ELSE
+         prior_gaussian_get_gp_s = 0.0
+      END IF
 
       CALL profiler_set_stop_time('prior_gaussian_get_gp_s', start_time)
 
@@ -359,11 +311,10 @@
 !>  @param[in] this         A @ref prior_gaussian_class instance.
 !>  @param[in] a_model      A @ref model instance.
 !>  @param[in] x_cart       The cartesian position of to get the kernel at.
-!>  @param[in] scale_factor Factor to scale the modeled signal.
+!>  @param[in] flags        State flags to send to the kernel.
 !>  @returns Kernel value for the signal and the signal.
 !-------------------------------------------------------------------------------
-      FUNCTION prior_gaussian_get_gp_x(this, a_model, x_cart,                  &
-     &                                 scale_factor)
+      FUNCTION prior_gaussian_get_gp_x(this, a_model, x_cart, flags)
 
       IMPLICIT NONE
 
@@ -372,37 +323,31 @@
       TYPE (prior_gaussian_class), INTENT(in) :: this
       TYPE (model_class), INTENT(in)          :: a_model
       REAL (rprec), DIMENSION(3), INTENT(in)  :: x_cart
-      REAL (rprec), INTENT(in)                :: scale_factor
+      INTEGER, INTENT(in)                     :: flags
 
 !  local variables
-      REAL (rprec)                           :: start_time
+      REAL (rprec)                            :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      SELECT CASE(this%type)
-
-         CASE (prior_gaussian_ne_type)
-            prior_gaussian_get_gp_x = model_get_gp_te(a_model,                 &
-     &                                                x_cart,                  &
-     &                                                this%indices(1))              &
-     &                              * scale_factor
-
-         CASE (prior_gaussian_te_type)
-            prior_gaussian_get_gp_x = model_get_gp_ne(a_model,                 &
-     &                                                x_cart,                  &
-     &                                                this%indices(1))              &
-     &                              * scale_factor
-
-         CASE (prior_gaussian_sxrem_type)
-            prior_gaussian_get_gp_x =                                          &
-     &         model_get_gp_sxrem(a_model, x_cart, this%indices(2),            &
-     &                            this%indices(1))*scale_factor
-
-         CASE DEFAULT
-            prior_gaussian_get_gp_x = 0.0
-
-      END SELECT
+      IF (BTEST(flags, model_state_ne_flag)) THEN
+         prior_gaussian_get_gp_x = model_get_gp_ne(a_model, x_cart,            &
+     &                                             this%indices(1))
+      ELSE IF (BTEST(flags, model_state_te_flag)) THEN
+         prior_gaussian_get_gp_x = model_get_gp_te(a_model, x_cart,            &
+     &                                             this%indices(1))
+      ELSE IF (BTEST(flags, model_state_ti_flag)) THEN
+         prior_gaussian_get_gp_x = model_get_gp_ti(a_model, x_cart,            &
+     &                                             this%indices(1))
+      ELSE IF (BTEST(flags, model_state_sxrem_flag +                           &
+     &                      (this%indices(1) - 1))) THEN
+         prior_gaussian_get_gp_x = model_get_gp_sxrem(a_model, x_cart,         &
+     &                                                this%indices(2),         &
+     &                                                this%indices(1))
+      ELSE
+         prior_gaussian_get_gp_x = 0.0
+      END IF
 
       CALL profiler_set_stop_time('prior_gaussian_get_gp_x', start_time)
 

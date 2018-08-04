@@ -131,10 +131,14 @@
 !>  callback function.
 !-------------------------------------------------------------------------------
       TYPE signal_gp_context
-!  An instance of an @ref signal_class object.
-         TYPE (signal_class), POINTER :: signal => null()
-!  An instance of an @ref model_class object.
+!>  First instance of an @ref signal_class object.
+         TYPE (signal_class), POINTER :: signal1 => null()
+!>  Second instance of an @ref signal_class object.
+         TYPE (signal_class), POINTER :: signal2 => null()
+!>  An instance of an @ref model_class object.
          TYPE (model_class), POINTER  :: model => null()
+!>  Gaussian process kernel flags.
+         INTEGER                      :: flags = model_state_all_off
       END TYPE
 
 !-------------------------------------------------------------------------------
@@ -150,7 +154,7 @@
 !>  * @ref combination_max
 !>  * @ref combination_min
          INTEGER :: type = combination_none
-!>  Array of @ref signal_class pointer presenting the sigals to combine.
+!>  Array of @ref signal_class pointer presenting the signals to combine.
          TYPE (signal_pointer), DIMENSION(:), POINTER :: signals
 !>  Array of coeffients to for the combined signals.
          REAL(rprec), DIMENSION(:), POINTER           :: a
@@ -611,7 +615,7 @@
 !>  returns the get_modeled_signal method of the subclass instance
 !>  @ref signal_class was constructed with unless the signal is read from the
 !>  cached value. Read from the cached value when the signal doesn't need to be
-!>  recalulated. If the sigal is to be recalculated, write these to the cache.
+!>  recalulated. If the signal is to be recalculated, write these to the cache.
 !>
 !>  @see diagnostic::diagnostic_get_modeled_signal
 !>  @see geometric::geometric_get_modeled_signal
@@ -991,18 +995,19 @@
 !>  @brief Gets the guassian process kernel for a signal and a position.
 !>
 !>  This method is meant to be overwritten by a subclass method. As a result,
-!>  returns the get_header method of the subclass instance
-!>  @ref signal_class was constructed with. Only @ref diagnostic signals have
-!>  an implementation.
+!>  returns the get_gp_i method of the subclass instance @ref signal_class was
+!>  constructed with.
 !>
 !>  @see diagnostic::diagnostic_get_gp_i
+!>  @see prior::prior_get_gp_i
 !>
 !>  @param[in] this    A @ref signal_class instance.
 !>  @param[in] a_model A @ref model_class instance.
 !>  @param[in] i       Index of the position for the kernel.
+!>  @param[in] flags   State flags to send to the kernel.
 !>  @returns Kernel value for the position and the signal.
 !-------------------------------------------------------------------------------
-      FUNCTION signal_get_gp_i(this, a_model, i)
+      FUNCTION signal_get_gp_i(this, a_model, i, flags)
 
       IMPLICIT NONE
 
@@ -1011,6 +1016,7 @@
       TYPE (signal_class), INTENT(in) :: this
       TYPE (model_class), INTENT(in)  :: a_model
       INTEGER, INTENT(in)             :: i
+      INTEGER, INTENT(in)             :: flags
 
 !  local variables
       REAL (rprec)                    :: scale_factor
@@ -1025,17 +1031,18 @@
 
          CASE (signal_diagnostic_type)
             signal_get_gp_i = diagnostic_get_gp(this%diagnostic,               &
-     &                                          a_model, i,                    &
-     &                                          scale_factor)
+     &                                          a_model, i, flags)
 
          CASE (signal_prior_type)
             signal_get_gp_i = prior_get_gp(this%prior, a_model, i,             &
-     &                                     scale_factor)
+     &                                     flags)
 
          CASE DEFAULT
             signal_get_gp_i = 0.0
 
       END SELECT
+
+      signal_get_gp_i = signal_get_gp_i*scale_factor
 
       CALL profiler_set_stop_time('signal_get_gp_i', start_time)
 
@@ -1045,27 +1052,29 @@
 !>  @brief Gets the guassian process kernel for a signal and a signal.
 !>
 !>  This method is meant to be overwritten by a subclass method. As a result,
-!>  returns the get_header method of the subclass instance
-!>  @ref signal_class was constructed with. Only @ref diagnostic signals have
-!>  an implementation. The second signal is cast to a void pointer so it can be
+!>  returns the get_gp_s method of the subclass instance @ref signal_class was
+!>  constructed with. The second signal is cast to a void pointer so it can be
 !>  send to the subclass instance.
 !>
 !>  @see diagnostic::diagnostic_get_gp_s
+!>  @see prior::prior_get_gp_s
 !>
 !>  @param[in] this    A @ref signal_class instance.
 !>  @param[in] a_model A @ref model_class instance.
 !>  @param[in] signal  A @ref signal_class instance for the second signal.
+!>  @param[in] flags   State flags to send to the kernel.
 !>  @returns Kernel value for the signal and the signal.
 !-------------------------------------------------------------------------------
-      FUNCTION signal_get_gp_s(this, a_model, signal)
+      FUNCTION signal_get_gp_s(this, a_model, signal, flags)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec)                            :: signal_get_gp_s
-      TYPE (signal_class), INTENT(in)         :: this
+      TYPE (signal_class), TARGET, INTENT(in) :: this
       TYPE (model_class), TARGET, INTENT(in)  :: a_model
       TYPE (signal_class), TARGET, INTENT(in) :: signal
+      INTEGER, INTENT(in)                     :: flags
 
 !  local variables
       CHARACTER(len=1), ALLOCATABLE           :: context(:)
@@ -1079,8 +1088,10 @@
 
       scale_factor = model_get_signal_factor(a_model, this%scale_index)
 
-      gp_context%signal => signal
+      gp_context%signal1 => this
+      gp_context%signal2 => signal
       gp_context%model => a_model
+      gp_context%flags = flags
 
 !  Cast the other signal into a data context. This is the equivalent to casting
 !  to a void pointer in C.
@@ -1093,18 +1104,19 @@
          CASE (signal_diagnostic_type)
             signal_get_gp_s = diagnostic_get_gp(this%diagnostic,               &
      &                                          a_model, context,              &
-     &                                          signal_kll_callback_p,         &
-     &                                          scale_factor)
+     &                                          signal_kll_callback_p)
 
          CASE (signal_prior_type)
             signal_get_gp_s = prior_get_gp(this%prior, context,                &
      &                                     signal_kll_callback_i,              &
-     &                                     scale_factor)
+     &                                     flags)
 
          CASE DEFAULT
             signal_get_gp_s = 0.0
 
       END SELECT
+
+      signal_get_gp_s = signal_get_gp_s*scale_factor
 
       DEALLOCATE(context)
 
@@ -1116,18 +1128,19 @@
 !>  @brief Gets the guassian process kernel for a signal and cartesian position.
 !>
 !>  This method is meant to be overwritten by a subclass method. As a result,
-!>  returns the get_header method of the subclass instance
-!>  @ref signal_class was constructed with. Only @ref diagnostic signals have
-!>  an implementation.
+!>  returns the get_gp_x method of the subclass instance @ref signal_class was
+!>  constructed with.
 !>
 !>  @see diagnostic::diagnostic_get_gp_x
+!>  @see prior::prior_get_gp_x
 !>
 !>  @param[in] this    A @ref signal_class instance.
 !>  @param[in] a_model A @ref model_class instance.
 !>  @param[in] x_cart  The cartesian position of to get the kernel at.
+!>  @param[in] flags   State flags to send to the kernel.
 !>  @returns Kernel value for position and the signal.
 !-------------------------------------------------------------------------------
-      FUNCTION signal_get_gp_x(this, a_model, x_cart)
+      FUNCTION signal_get_gp_x(this, a_model, x_cart, flags)
 
       IMPLICIT NONE
 
@@ -1136,6 +1149,7 @@
       TYPE (signal_class), INTENT(in)        :: this
       TYPE (model_class), INTENT(in)         :: a_model
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      INTEGER, INTENT(in)                    :: flags
 
 !  local variables
       REAL (rprec)                           :: scale_factor
@@ -1151,18 +1165,75 @@
          CASE (signal_diagnostic_type)
             signal_get_gp_x = diagnostic_get_gp(this%diagnostic,               &
      &                                          a_model, x_cart,               &
-     &                                          scale_factor)
+     &                                          flags)
 
          CASE (signal_prior_type)
             signal_get_gp_x = prior_get_gp(this%prior, a_model, x_cart,        &
-     &                                     scale_factor)
+     &                                     flags)
 
          CASE DEFAULT
             signal_get_gp_x = 0.0
 
       END SELECT
 
+      signal_get_gp_x = signal_get_gp_x*scale_factor
+
       CALL profiler_set_stop_time('signal_get_gp_x', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the integration element for the signal.
+!>
+!>  This method is meant to be overwritten by a subclass method. As a result,
+!>  returns the get_dx method of the subclass instance @ref signal_class was
+!>  constructed with.
+!>
+!>  @see diagnostic::diagnostic_get_dx
+!>
+!>  @param[in] this    A @ref signal_class instance.
+!>  @param[in] a_model A @ref model_class instance.
+!>  @param[in] xcart   The integration point.
+!>  @param[in] dxcart  A vector change in path. Not used in this function.
+!>  @param[in] length  Length along the integration.
+!>  @param[in] dx      A scalar change in path.
+!>  @param[in] flags   State flags to send to the kernel.
+!>  @returns dx value for the signal.
+!-------------------------------------------------------------------------------
+      FUNCTION signal_get_dx(this, a_model, xcart, dxcart, length, dx,         &
+     &                       flags)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: signal_get_dx
+      TYPE (signal_class), INTENT(in)        :: this
+      TYPE (model_class), TARGET, INTENT(in) :: a_model
+      REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
+      REAL (rprec), DIMENSION(3), INTENT(in) :: dxcart
+      REAL (rprec), INTENT(in)               :: length
+      REAL (rprec), INTENT(in)               :: dx
+      INTEGER, INTENT(in)                    :: flags
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE(this%type)
+
+         CASE (signal_diagnostic_type)
+            signal_get_dx = diagnostic_get_dx(this%diagnostic, a_model,        &
+     &                                        xcart, dxcart, length,           &
+     &                                        dx, flags)
+
+        CASE DEFAULT
+           signal_get_dx = 1.0
+
+      END SELECT
+
+      CALL profiler_set_stop_time('signal_get_dx', start_time)
 
       END FUNCTION
 
@@ -1384,9 +1455,13 @@
       start_time = profiler_get_start_time()
 
       gp_context = TRANSFER(context, gp_context)
-      signal_kll_callback_p = signal_get_gp(gp_context%signal,                 &
-     &                                      gp_context%model, xcart)           &
-     &                      * dx
+      signal_kll_callback_p = signal_get_gp(gp_context%signal2,                &
+     &                                      gp_context%model, xcart,           &
+     &                                      gp_context%flags)                  &
+     &                      * signal_get_dx(gp_context%signal1,                &
+     &                                      gp_context%model, xcart,           &
+     &                                      dxcart, length, dx,                &
+     &                                      gp_context%flags)
 
       CALL profiler_set_stop_time('signal_kll_callback_p', start_time)
 
@@ -1420,8 +1495,9 @@
       start_time = profiler_get_start_time()
 
       gp_context = TRANSFER(context, gp_context)
-      signal_kll_callback_i = signal_get_gp(gp_context%signal,                 &
-     &                                      gp_context%model, index)
+      signal_kll_callback_i = signal_get_gp(gp_context%signal2,                &
+     &                                      gp_context%model, index,           &
+     &                                      gp_context%flags)
 
       CALL profiler_set_stop_time('signal_kll_callback_i', start_time)
 

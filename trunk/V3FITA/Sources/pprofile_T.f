@@ -246,7 +246,7 @@
      &                    pprofile_construct%maxSplineIndex
                WRITE(*,*) pprofile_construct%as
                CALL EXIT(1)
-            ENDIF
+            END IF
             pprofile_construct%p_type = pprofile_cubic_spline_type
 
          CASE ('akima_spline')
@@ -256,7 +256,7 @@
      &                    pprofile_construct%maxSplineIndex
                WRITE(*,*) pprofile_construct%as
                CALL EXIT(1)
-            ENDIF
+            END IF
             pprofile_construct%p_type = pprofile_akima_spline_type
 
          CASE ('line_segment')
@@ -384,7 +384,7 @@
             IF (l_01) THEN
                pprofile_get_value = pprofile_get_value                         &
      &                            + two_power(s_arg, this%b(1:iub_b))
-            ENDIF
+            END IF
 
 ! v3fit uses an extra varible as an offset than vmec as a result the b array is
 ! one index shorter than what two_power takes. This profile reverses the s
@@ -395,7 +395,7 @@
                s_use = 1.0 - s_arg
                pprofile_get_value = pprofile_get_value                         &
      &                            + two_power(s_use, this%b(1:iub_b))
-            ENDIF
+            END IF
 
 ! v3fit uses an extra varible as an offset than vmec as a result the b array is
 ! one index shorter than what two_power_gs takes. As a result only 5 guassian
@@ -406,7 +406,7 @@
                pprofile_get_value = pprofile_get_value                         &
      &                            + two_power_gs(s_arg,                        &
      &                                           this%b(1:iub_b))
-            ENDIF
+            END IF
       
          CASE (pprofile_power_series_type)
             pprofile_get_value = zero
@@ -436,7 +436,7 @@
             ELSE
                WRITE (*,*) 'ERROR: pprofile: unknown error from ' //           &
      &                     'spline_cubic'
-            ENDIF
+            END IF
 !  Splines shuld not reach this point without triggering an error.
             CALL EXIT(1)
 
@@ -450,7 +450,7 @@
                WRITE (*,*) 'ERROR: pprofile: bad value from ' //               &
      &                     'spline_akima requested'
                CALL EXIT(1)
-            ENDIF
+            END IF
 
          CASE (pprofile_line_segment_type,                                     &
      &         pprofile_gp_1d_sexp_type,                                       &

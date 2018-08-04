@@ -273,23 +273,24 @@
 !>  @end_table
 !>
 !>  @table_section{gp_sec, Guassian process signal variables}
-!>     @item{n_gp,              Number of gaussian processes.,                      v3fit_input::n_gp}
-!>     @item{n_gp_signal,       Number of signals in a gaussian process signal.,    v3fit_input::n_gp_signal}
-!>     @item{gp_signal_indices, Indices of the signals to include in the GP.,       v3fit_input::gp_signal_indices}
+!>     @item{n_gp,              Number of gaussian processes.,                         v3fit_input::n_gp}
+!>     @item{n_gp_signal,       Number of signals in a gaussian process signal.,       v3fit_input::n_gp_signal}
+!>     @item{gp_signal_indices, Indices of the signals to include in the GP.,          v3fit_input::gp_signal_indices}
 !>     @item{gp_model_type,     Gaussian process profile the guassian process uses.
 !>                              -# @fixed_width{'none'}  No profile.
-!>                              -# @fixed_width{'te'}    Temperature profile.
+!>                              -# @fixed_width{'te'}    Electron temperature profile.
+!>                              -# @fixed_width{'ti'}    Ion profile.
 !>                              -# @fixed_width{'ne'}    Denisty profile.
-!>                              -# @fixed_width{'sxrem'} Soft X-ray profile.,       v3fit_input::gp_model_type}
-!>     @item{gp_model_index,    Profile index.,                                     v3fit_input::gp_model_index}
-!>     @item{gp_param_vrnc,     Array of Gaussian process parameter variances.,     v3fit_input::gp_param_vrnc}
+!>                              -# @fixed_width{'sxrem'} Soft X-ray profile.,          v3fit_input::gp_model_type}
+!>     @item{gp_model_index,    Profile index.,                                        v3fit_input::gp_model_index}
+!>     @item{gp_param_vrnc,     Array of Gaussian process parameter variances.,        v3fit_input::gp_param_vrnc}
 !>     @item{gp_tolerance,      Stopping criteria for the gradient ascent to
-!>                              maximize the log of the evidence.,                  v3fit_input::gp_tolerance}
-!>     @item{gp_cholesky_fact,  The Gaussian process uses a cholesky decompositions
-!>                              to factor a matrix. It assumes that the matrix is
-!>                              positive def. Which is true analytically. This
-!>                              input can be used to add a small offset to the
-!>                              matrix to insure positive def.,                     v3fit_input::gp_cholesky_fact}
+!>                              maximize the log of the evidence.,                     v3fit_input::gp_tolerance}
+!>     @item{gp_cholesky_fact,  The Gaussian process uses a cholesky decompositions to
+!>                              factor a matrix. It assumes that the matrix is
+!>                              positive def. Which is true analytically. This input
+!>                              can be used to add a small offset to the matrix to
+!>                              insure positive def.,                                  v3fit_input::gp_cholesky_fact}
 !>  @end_table
 !>
 !>  @table_section{coosig_sec, COOSIG - Combination Of Other SIGnals NLI Variables}

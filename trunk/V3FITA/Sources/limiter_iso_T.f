@@ -125,7 +125,7 @@
       IF (ASSOCIATED(this%vgrid)) THEN
          DEALLOCATE(this%vgrid)
          this%vgrid => null()
-      ENDIF
+      END IF
 
       DEALLOCATE(this)
 

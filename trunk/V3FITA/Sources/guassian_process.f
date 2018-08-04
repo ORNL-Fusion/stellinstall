@@ -14,18 +14,6 @@
       USE v3fit_params
 
 !*******************************************************************************
-!  gaussian process module parameters
-!*******************************************************************************
-!>  Type descriptor for  the gaussian process type no type.
-      INTEGER, PARAMETER :: gaussp_no_type    = -1
-!>  Type descriptor for the gaussian process sxrem type.
-      INTEGER, PARAMETER :: gaussp_ne_type    = 0
-!>  Type descriptor for the gaussian process te type.
-      INTEGER, PARAMETER :: gaussp_te_type    = 1
-!>  Type descriptor for the gaussian process ne type.
-      INTEGER, PARAMETER :: gaussp_sxrem_type = 2
-
-!*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) gaussian process base class
 !  2) gaussian process pointer type
@@ -42,7 +30,7 @@
 !>  * @ref gaussp_te_type
 !>  * @ref gaussp_ne_type
 !  Keep for now, but this might not be needed later.
-         INTEGER :: type = gaussp_no_type
+         INTEGER :: flags = model_state_all_off
 
 !>  Array of @ref signal_pointer
          TYPE (signal_pointer), DIMENSION(:), POINTER ::                       &
@@ -134,6 +122,7 @@
       INTEGER, DIMENSION(:,:), ALLOCATABLE :: indices
       CHARACTER (len=data_name_length)     :: param_name
       INTEGER                              :: status
+      CHARACTER (len=15)                   :: log_file
       REAL (rprec)                         :: start_time
 
 !  Local Parameters
@@ -152,7 +141,9 @@
          CASE ('sxrem')
             n_params = model_get_gp_sxrem_num_hyper_param(a_model,             &
      &                                                    profile_index)
-            gaussp_construct%type = gaussp_sxrem_type
+            gaussp_construct%flags = IBSET(gaussp_construct%flags,             &
+     &                                     model_state_sxrem_flag +            &
+     &                                     profile_index - 1)
             gaussp_construct%profile_index = profile_index
             gaussp_construct%fpoints =>                                        &
      &         model_get_sxrem_af(a_model, profile_index)
@@ -164,12 +155,12 @@
                indices(2,i) = i - 1
             END DO
             gaussp_construct%iou = 0
-            CALL safe_open(gaussp_construct%iou, status, 'sxrem_gp.log',       &
-     &                     'replace', 'formatted', delim_in='none')
+            WRITE (log_file,1001) 'sxrem', profile_index
 
          CASE ('te')
             n_params = model_get_gp_te_num_hyper_param(a_model)
-            gaussp_construct%type = gaussp_te_type
+            gaussp_construct%flags = IBSET(gaussp_construct%flags,             &
+     &                                     model_state_te_flag)
             gaussp_construct%fpoints => model_get_te_af(a_model)
             param_name = 'pp_te_b'
             ALLOCATE(indices(data_max_indices,n_params))
@@ -178,12 +169,26 @@
                indices(1,i) = i - 1
             END DO
             gaussp_construct%iou = 0
-            CALL safe_open(gaussp_construct%iou, status, 'te_gp.log',          &
-     &                     'replace', 'formatted', delim_in='none')
+            WRITE (log_file,1000) 'te'
+
+         CASE ('ti')
+            n_params = model_get_gp_te_num_hyper_param(a_model)
+            gaussp_construct%flags = IBSET(gaussp_construct%flags,             &
+     &                                     model_state_ti_flag)
+            gaussp_construct%fpoints => model_get_te_af(a_model)
+            param_name = 'pp_te_b'
+            ALLOCATE(indices(data_max_indices,n_params))
+            indices = 0
+            DO i = 1, n_params
+               indices(1,i) = i - 1
+            END DO
+            gaussp_construct%iou = 0
+            WRITE (log_file,1000) 'ti'
 
          CASE ('ne')
             n_params = model_get_gp_ne_num_hyper_param(a_model)
-            gaussp_construct%type = gaussp_ne_type
+            gaussp_construct%flags = IBSET(gaussp_construct%flags,             &
+     &                                     model_state_ne_flag)
             gaussp_construct%fpoints => model_get_ne_af(a_model)
             param_name = 'pp_ne_b'
             ALLOCATE(indices(data_max_indices,n_params))
@@ -192,10 +197,12 @@
                indices(1,i) = i - 1
             END DO
             gaussp_construct%iou = 0
-            CALL safe_open(gaussp_construct%iou, status, 'ne_gp.log',          &
-     &                     'replace', 'formatted', delim_in='none')
+            WRITE (log_file,1000) 'ne'
 
       END SELECT
+
+      CALL safe_open(gaussp_construct%iou, status, TRIM(log_file),             &
+     &               'replace', 'formatted', delim_in='none')
 
       n_points = SIZE(gaussp_construct%fpoints)
 
@@ -222,6 +229,9 @@
       DEALLOCATE(indices)
 
       CALL profiler_set_stop_time('gaussp_construct', start_time)
+
+1000  FORMAT(a,'_gp.log')
+1001  FORMAT(a,'_',i0.2,'_gp.log')
 
       END FUNCTION
 
@@ -345,35 +355,35 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (gaussp_class), INTENT(inout)     :: this
-      TYPE (model_class), INTENT(inout)       :: a_model
+      TYPE (gaussp_class), INTENT(inout)        :: this
+      TYPE (model_class), INTENT(inout)         :: a_model
 
 !  Local Variables
-      INTEGER                                 :: i
-      REAL (rprec)                            :: start_time
-      INTEGER                                 :: ierr
-      REAL (rprec), DIMENSION(:), ALLOCATABLE :: cached_value
-      REAL (rprec), DIMENSION(:), ALLOCATABLE :: gradient
-      REAL (rprec)                            :: evidence
-      REAL (rprec)                            :: new_evidence
+      INTEGER                                   :: i
+      INTEGER                                   :: j
+      REAL (rprec)                              :: start_time
+      INTEGER                                   :: ierr
+      REAL (rprec), DIMENSION(:), ALLOCATABLE   :: cached_value
+      REAL (rprec), DIMENSION(:), ALLOCATABLE   :: gradient
+      REAL (rprec)                              :: evidence
+      REAL (rprec)                              :: new_evidence
 
 !  local parameters
-      REAL(rprec), PARAMETER                  :: gamma = 1.0
+      REAL(rprec), PARAMETER                    :: gamma = 1.0
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
+!  Flags will have a single bit position of a corresponding profile set.
+!
+!    this%flags .and. a_model%state_flags
+!
+!  will value to true if the coresponding flag is set in the model state flags.
       IF (BTEST(a_model%state_flags, model_state_vmec_flag)   .or.             &
      &    BTEST(a_model%state_flags, model_state_siesta_flag) .or.             &
      &    BTEST(a_model%state_flags, model_state_shift_flag)  .or.             &
      &    BTEST(a_model%state_flags, model_state_signal_flag) .or.             &
-     &    (this%type .eq. gaussp_ne_type)    .and.                             &
-     &     BTEST(a_model%state_flags, model_state_ne_flag)    .or.             &
-     &    (this%type .eq. gaussp_te_type)    .and.                             &
-     &     BTEST(a_model%state_flags, model_state_te_flag)    .or.             &
-     &    (this%type .eq. gaussp_sxrem_type) .and.                             &
-     &     BTEST(a_model%state_flags, model_state_sxrem_flag +                 &
-     &                                this%profile_index - 1)) THEN
+     &    IAND(this%flags, a_model%state_flags) .ne. 0) THEN
 
 !  Use gradient ascent to fine the optimal hyper parameters by maximizing the
 !  the evidence.
@@ -386,8 +396,8 @@
             cached_value(i) = param_get_value(this%params(i)%p, a_model)
          END DO
 
-         WRITE (this%iou, 1000)
-         WRITE (this%iou, 1001) new_evidence
+         WRITE (this%iou,1000)
+         WRITE (this%iou,1001) new_evidence
 
          DO
             evidence = new_evidence
@@ -396,27 +406,31 @@
             DO i = 1, SIZE(this%params)
                CALL param_increment(this%params(i)%p, a_model,                 &
      &                              MPI_COMM_NULL, .false.)
-               gradient(i) = (gaussp_get_evidence(this, a_model) -             &
-     &                        evidence)
-               CALL param_set_value(this%params(i)%p, a_model,                 &
-     &                              cached_value(i), MPI_COMM_NULL,            &
-     &                              .false.)
+               gradient(i) = gaussp_get_evidence(this, a_model)                &
+     &                     - evidence
+
+               CALL param_increment(this%params(i)%p, a_model,                 &
+     &                              MPI_COMM_NULL, .false.)
             END DO
 
 !  Step towards the maximum.
+            cached_value = cached_value + gamma*gradient
             DO i = 1, SIZE(this%params)
-               cached_value(i) = cached_value(i) + gamma*gradient(i)
                CALL param_set_value(this%params(i)%p, a_model,                 &
      &                              cached_value(i), MPI_COMM_NULL,            &
      &                              .false.)
             END DO
             new_evidence = gaussp_get_evidence(this, a_model)
 
-            WRITE (this%iou, 1002) new_evidence, new_evidence - evidence
+            WRITE (this%iou,1002) new_evidence, new_evidence - evidence
+            FLUSH(this%iou)
 
             IF (ABS(new_evidence - evidence) < this%tolerance) EXIT
          END DO
       END IF
+
+      WRITE (this%iou,*) 'Final Parameters', cached_value
+      FLUSH(this%iou)
 
       DEALLOCATE(cached_value)
       DEALLOCATE(gradient)
@@ -487,7 +501,8 @@
 !$OMP& SCHEDULE(DYNAMIC)
       DO j = 1, SIZE(this%fpoints)
          DO i = 1, SIZE(this%signals)
-            this%kls(i,j) = signal_get_gp(this%signals(i)%p, a_model, j)
+            this%kls(i,j) = signal_get_gp(this%signals(i)%p, a_model, j,       &
+     &                                    this%flags)
             this%work(i,j + 1) = this%kls(i,j)
          END DO
       END DO
@@ -498,7 +513,7 @@
       DO j = 1, SIZE(this%signals)
          DO i = j, SIZE(this%signals)
             this%kll(i,j) = signal_get_gp(this%signals(i)%p, a_model,          &
-     &                                    this%signals(j)%p)
+     &                                    this%signals(j)%p, this%flags)
             IF (j .ne. i) THEN
                this%kll(j,i) = this%kll(i,j)
             END IF

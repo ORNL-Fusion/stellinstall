@@ -178,10 +178,12 @@
 
          IF (found) THEN
             ece_get_modeled_signal(1) =                                        &
-     &         model_get_te(a_model, ece_get_modeled_signal(2:4))
+     &         model_get_te(a_model, ece_get_modeled_signal(2:4))*             &
+     &         scale_factor
          ELSE
             ece_get_modeled_signal(1) = 0.0
          END IF
+
       END IF
 
       CALL profiler_set_stop_time('ece_get_modeled_signal', start_time)
@@ -312,10 +314,10 @@
 !>  @param[in] this         A @ref ece_class instance.
 !>  @param[in] a_model      A @ref model instance.
 !>  @param[in] i            Index of the position for the kernel.
-!>  @param[in] scale_factor Factor to scale the modeled signal.
+!>  @param[in] flags        State flags to send to the kernel.
 !>  @returns Kernel value for the position and the signal.
 !-------------------------------------------------------------------------------
-      FUNCTION ece_get_gp_i(this, a_model, i, scale_factor)
+      FUNCTION ece_get_gp_i(this, a_model, i, flags)
 
       IMPLICIT NONE
 
@@ -324,7 +326,7 @@
       TYPE (ece_class), INTENT(in)   :: this
       TYPE (model_class), INTENT(in) :: a_model
       INTEGER, INTENT(in)            :: i
-      REAL (rprec), INTENT(in)       :: scale_factor
+      INTEGER, INTENT(in)            :: flags
 
 !  local variables
       REAL (rprec), DIMENSION(3)     :: x_cart
@@ -336,7 +338,7 @@
 
       x_cart = ece_get_cart(this, a_model, found)
       IF (found) THEN
-         ece_get_gp_i = model_get_gp_te(a_model, x_cart, i)*scale_factor
+         ece_get_gp_i = model_get_gp_te(a_model, x_cart, i)
       ELSE
          ece_get_gp_i = 0.0
       END IF
@@ -355,11 +357,9 @@
 !>  @param[in] a_model      A @ref model instance.
 !>  @param[in] gp_context   A @ref signal_class instance.
 !>  @param     gp_callback  Function pointer to call back to signal module.
-!>  @param[in] scale_factor Factor to scale the modeled signal.
 !>  @returns Kernel value for the signal and the signal.
 !-------------------------------------------------------------------------------
-      FUNCTION ece_get_gp_s(this, a_model, context, callback,                  &
-     &                      scale_factor)
+      FUNCTION ece_get_gp_s(this, a_model, context, callback)
 
       IMPLICIT NONE
 
@@ -379,7 +379,6 @@
          REAL (rprec), INTENT(in)               :: dx
          END FUNCTION
       END INTERFACE
-      REAL (rprec), INTENT(in)       :: scale_factor
 
 !  local variables
       REAL (rprec), DIMENSION(3)     :: x_cart
@@ -392,7 +391,7 @@
       x_cart = ece_get_cart(this, a_model, found)
       IF (found) THEN
          ece_get_gp_s = callback(context, x_cart, x_cart, 1.0_rprec,           &
-     &                           1.0_rprec)*scale_factor
+     &                           1.0_rprec)
       ELSE
          ece_get_gp_s = 0.0
       END IF
@@ -413,10 +412,10 @@
 !>  @param[in] this         A @ref ece_class instance.
 !>  @param[in] a_model      A @ref model instance.
 !>  @param[in] x_cart       The cartesian position of to get the kernel at.
-!>  @param[in] scale_factor Factor to scale the modeled signal.
+!>  @param[in] flags        State flags to send to the kernel.
 !>  @returns Kernel value for the signal and the signal.
 !-------------------------------------------------------------------------------
-      FUNCTION ece_get_gp_x(this, a_model, x_cart, scale_factor)
+         FUNCTION ece_get_gp_x(this, a_model, x_cart, flags)
 
       IMPLICIT NONE
 
@@ -425,7 +424,7 @@
       TYPE (ece_class), INTENT(in)           :: this
       TYPE (model_class), INTENT(in)         :: a_model
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
-      REAL (rprec), INTENT(in)               :: scale_factor
+      INTEGER, INTENT(in)                    :: flags
 
 !  local variables
       REAL (rprec), DIMENSION(3)             :: y_cart
@@ -437,8 +436,7 @@
 
       y_cart = ece_get_cart(this, a_model, found)
       IF (found) THEN
-         ece_get_gp_x = model_get_gp_te(a_model, y_cart, x_cart)               &
-     &                * scale_factor
+         ece_get_gp_x = model_get_gp_te(a_model, y_cart, x_cart)
       ELSE
          ece_get_gp_x = 0.0
       END IF

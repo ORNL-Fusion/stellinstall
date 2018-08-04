@@ -628,10 +628,10 @@
 !>  @param[in] this         A @ref diagnostic_class instance.
 !>  @param[in] a_model      A @ref model_class instance.
 !>  @param[in] i            Index of the position for the kernel.
-!>  @param[in] scale_factor Factor to scale the modeled signal.
+!>  @param[in] flags        State flags to send to the kernel.
 !>  @returns Kernel value for the position and the signal.
 !-------------------------------------------------------------------------------
-      FUNCTION diagnostic_get_gp_i(this, a_model, i, scale_factor)
+      FUNCTION diagnostic_get_gp_i(this, a_model, i, flags)
 
       IMPLICIT NONE
 
@@ -640,7 +640,7 @@
       TYPE (diagnostic_class), INTENT(in) :: this
       TYPE (model_class), INTENT(in)      :: a_model
       INTEGER, INTENT(in)                 :: i
-      REAL (rprec), INTENT(in)            :: scale_factor
+      INTEGER, INTENT(in)                 :: flags
 
 !  local variables
       REAL (rprec)                        :: start_time
@@ -652,19 +652,19 @@
 
          CASE (diagnostic_sxrem_type)
             diagnostic_get_gp_i = sxrem_get_gp(this%sxrem, a_model, i,         &
-     &                                         scale_factor)
+     &                                         flags)
 
          CASE (diagnostic_intpol_type)
             diagnostic_get_gp_i = intpol_get_gp(this%intpol, a_model, i,       &
-     &                                          scale_factor)
+     &                                          flags)
 
          CASE (diagnostic_thomson_type)
             diagnostic_get_gp_i = thomson_get_gp(this%thomson, a_model,        &
-     &                                           i, scale_factor)
+     &                                           i, flags)
 
          CASE (diagnostic_ece_type)
             diagnostic_get_gp_i = ece_get_gp(this%ece, a_model, i,             &
-     &                                       scale_factor)
+     &                                       flags)
 
          CASE DEFAULT
             diagnostic_get_gp_i = 0.0
@@ -693,11 +693,10 @@
 !>  @param[in] a_model      A @ref model_class instance.
 !>  @param[in] context      A @ref signal_class instance.
 !>  @param     callback     Function pointer to call back to signal module.
-!>  @param[in] scale_factor Factor to scale the modeled signal.
+!>  @param[in] flags        State flags to send to the kernel.
 !>  @returns Kernel value for the position and the signal.
 !-------------------------------------------------------------------------------
-      FUNCTION diagnostic_get_gp_s(this, a_model, context, callback,           &
-     &                             scale_factor)
+      FUNCTION diagnostic_get_gp_s(this, a_model, context, callback)
 
       IMPLICIT NONE
 
@@ -717,7 +716,6 @@
          REAL (rprec), INTENT(in)               :: dx
          END FUNCTION
       END INTERFACE
-      REAL (rprec), INTENT(in)            :: scale_factor
 
 !  local variables
       REAL (rprec)                        :: start_time
@@ -729,22 +727,19 @@
 
          CASE (diagnostic_sxrem_type)
             diagnostic_get_gp_s = sxrem_get_gp(this%sxrem, a_model,            &
-     &                                         context, callback,              &
-     &                                         scale_factor)
+     &                                         context, callback)
 
          CASE (diagnostic_intpol_type)
             diagnostic_get_gp_s = intpol_get_gp(this%intpol, a_model,          &
-     &                                          context, callback,             &
-     &                                          scale_factor)
+     &                                          context, callback)
 
          CASE (diagnostic_thomson_type)
             diagnostic_get_gp_s = thomson_get_gp(this%thomson, context,        &
-     &                                           callback, scale_factor)
+     &                                           callback)
 
          CASE (diagnostic_ece_type)
             diagnostic_get_gp_s = ece_get_gp(this%ece, a_model,                &
-     &                                       context, callback,                &
-     &                                       scale_factor)
+     &                                       context, callback)
 
          CASE DEFAULT
             diagnostic_get_gp_s = 0.0
@@ -772,10 +767,10 @@
 !>  @param[in] this         A @ref diagnostic_class instance.
 !>  @param[in] a_model      A @ref model_class instance.
 !>  @param[in] x_cart       The cartesian position of to get the kernel at.
-!>  @param[in] scale_factor Factor to scale the modeled signal.
+!>  @param[in] flags        State flags to send to the kernel.
 !>  @returns Kernel value for position and the signal.
 !-------------------------------------------------------------------------------
-      FUNCTION diagnostic_get_gp_x(this, a_model, x_cart, scale_factor)
+      FUNCTION diagnostic_get_gp_x(this, a_model, x_cart, flags)
 
       IMPLICIT NONE
 
@@ -784,7 +779,7 @@
       TYPE (diagnostic_class), INTENT(in)    :: this
       TYPE (model_class), INTENT(in)         :: a_model
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
-      REAL (rprec), INTENT(in)               :: scale_factor
+      INTEGER, INTENT(in)                    :: flags
 
 !  local variables
       REAL (rprec)                           :: start_time
@@ -796,19 +791,19 @@
 
          CASE (diagnostic_sxrem_type)
             diagnostic_get_gp_x = sxrem_get_gp(this%sxrem, a_model,            &
-     &                                         x_cart, scale_factor)
+     &                                         x_cart, flags)
 
          CASE (diagnostic_intpol_type)
             diagnostic_get_gp_x = intpol_get_gp(this%intpol, a_model,          &
-     &                                          x_cart, scale_factor)
+     &                                          x_cart, flags)
 
          CASE (diagnostic_thomson_type)
             diagnostic_get_gp_x = thomson_get_gp(this%thomson, a_model,        &
-     &                                           x_cart, scale_factor)
+     &                                           x_cart, flags)
 
          CASE (diagnostic_ece_type)
-            diagnostic_get_gp_x = ece_get_gp(this%ece, a_model,                &
-     &                                       x_cart, scale_factor)
+            diagnostic_get_gp_x = ece_get_gp(this%ece, a_model, x_cart,        &
+     &                                       flags)
 
          CASE DEFAULT
             diagnostic_get_gp_x = 0.0
@@ -816,6 +811,66 @@
       END SELECT
 
       CALL profiler_set_stop_time('diagnostic_get_gp_x', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the integration element for the diagnostic.
+!>
+!>  This method is meant to be overwritten by a subclass method. As a result,
+!>  returns the get_dx method of the subclass instance @ref signal_class was
+!>  constructed with.
+!>
+!>  @see diagnostic::sxrem_get_dx
+!>  @see diagnostic::intpol_get_dx
+!>
+!>  @param[in] this    A @ref signal_class instance.
+!>  @param[in] a_model A @ref model_class instance.
+!>  @param[in] xcart   The integration point.
+!>  @param[in] dxcart  A vector change in path. Not used in this function.
+!>  @param[in] length  Length along the integration.
+!>  @param[in] dx      A scalar change in path.
+!>  @param[in] flags   State flags to send to the kernel.
+!>  @returns dx value for the signal.
+!-------------------------------------------------------------------------------
+      FUNCTION diagnostic_get_dx(this, a_model, xcart, dxcart, length,         &
+     &                           dx, flags)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: diagnostic_get_dx
+      TYPE (diagnostic_class), INTENT(in)    :: this
+      TYPE (model_class), TARGET, INTENT(in) :: a_model
+      REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
+      REAL (rprec), DIMENSION(3), INTENT(in) :: dxcart
+      REAL (rprec), INTENT(in)               :: length
+      REAL (rprec), INTENT(in)               :: dx
+      INTEGER, INTENT(in)                    :: flags
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE(this%type)
+
+         CASE (diagnostic_sxrem_type)
+            diagnostic_get_dx = sxrem_get_dx(this%sxrem, a_model, xcart,       &
+     &                                       dxcart, length, dx, flags)
+
+         CASE (diagnostic_intpol_type)
+            diagnostic_get_dx = intpol_get_dx(this%intpol, a_model,            &
+     &                                        xcart, dxcart, length, dx,       &
+     &                                        flags)
+
+         CASE DEFAULT
+            diagnostic_get_dx = 1.0
+
+      END SELECT
+
+      CALL profiler_set_stop_time('diagnostic_get_dx', start_time)
 
       END FUNCTION
 

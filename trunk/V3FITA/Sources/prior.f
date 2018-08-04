@@ -307,10 +307,10 @@
 !>  @param[in] this         A @ref prior_class instance.
 !>  @param[in] a_model      A @ref model_class instance.
 !>  @param[in] i            Index of the position for the kernel.
-!>  @param[in] scale_factor Factor to scale the modeled signal.
+!>  @param[in] flags        State flags to send to the kernel.
 !>  @returns Kernel value for the position and the signal.
 !-------------------------------------------------------------------------------
-      FUNCTION prior_get_gp_i(this, a_model, i, scale_factor)
+      FUNCTION prior_get_gp_i(this, a_model, i, flags)
 
       IMPLICIT NONE
 
@@ -319,7 +319,7 @@
       TYPE (prior_class), INTENT(in) :: this
       TYPE (model_class), INTENT(in) :: a_model
       INTEGER, INTENT(in)            :: i
-      REAL (rprec), INTENT(in)       :: scale_factor
+      INTEGER, INTENT(in)            :: flags
 
 !  local variables
       REAL (rprec)                   :: start_time
@@ -331,8 +331,7 @@
 
          CASE (prior_gaussian_type)
             prior_get_gp_i = prior_gaussian_get_gp(this%gaussian,              &
-     &                                             a_model, i,                 &
-     &                                             scale_factor)
+     &                                             a_model, i, flags)
 
          CASE DEFAULT
             prior_get_gp_i = 0.0
@@ -356,10 +355,10 @@
 !>  @param[in] this         A @ref prior_class instance.
 !>  @param[in] context      A @ref signal_class instance.
 !>  @param     callback     Function pointer to call back to signal module.
-!>  @param[in] scale_factor Factor to scale the modeled signal.
+!>  @param[in] flags        State flags to send to the kernel.
 !>  @returns Kernel value for the position and the signal.
 !-------------------------------------------------------------------------------
-      FUNCTION prior_get_gp_s(this, context, callback, scale_factor)
+      FUNCTION prior_get_gp_s(this, context, callback, flags)
 
       IMPLICIT NONE
 
@@ -375,7 +374,7 @@
          INTEGER, INTENT(in)           :: index
          END FUNCTION
       END INTERFACE
-      REAL (rprec), INTENT(in)         :: scale_factor
+      INTEGER, INTENT(in)              :: flags
 
 !  local variables
       REAL (rprec)                     :: start_time
@@ -388,7 +387,7 @@
          CASE (prior_gaussian_type)
             prior_get_gp_s = prior_gaussian_get_gp(this%gaussian,              &
      &                                             context, callback,          &
-     &                                             scale_factor)
+     &                                             flags)
 
          CASE DEFAULT
             prior_get_gp_s = 0.0
@@ -413,9 +412,10 @@
 !>  @param[in] a_model      A @ref model_class instance.
 !>  @param[in] x_cart       The cartesian position of to get the kernel at.
 !>  @param[in] scale_factor Factor to scale the modeled signal.
+!>  @param[in] flags        State flags to send to the kernel.
 !>  @returns Kernel value for position and the signal.
 !-------------------------------------------------------------------------------
-      FUNCTION prior_get_gp_x(this, a_model, x_cart, scale_factor)
+      FUNCTION prior_get_gp_x(this, a_model, x_cart, flags)
 
       IMPLICIT NONE
 
@@ -424,7 +424,7 @@
       TYPE (prior_class), INTENT(in)         :: this
       TYPE (model_class), INTENT(in)         :: a_model
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
-      REAL (rprec), INTENT(in)               :: scale_factor
+      INTEGER, INTENT(in)                    :: flags
 
 !  local variables
       REAL (rprec)                           :: start_time
@@ -437,7 +437,7 @@
          CASE (prior_gaussian_type)
             prior_get_gp_x = prior_gaussian_get_gp(this%gaussian,              &
      &                                             a_model, x_cart,            &
-     &                                             scale_factor)
+     &                                             flags)
 
          CASE DEFAULT
             prior_get_gp_x = 0.0
