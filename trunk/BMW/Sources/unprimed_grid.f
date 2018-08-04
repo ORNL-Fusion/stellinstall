@@ -518,6 +518,8 @@
          ax = SUM(pgrid%j_x/rp)*pgrid%dvol
          ay = SUM(pgrid%j_y/rp)*pgrid%dvol
 
+!  Interpolate from the mgrid grid to the unprimed R Z grid to add the vacuum
+!  vector potential.
          CALL m_grid_interpolate(mgrid, r, phi(ai), z,                         &
      &           unprimed_grid_construct_a%a_r(ai,aj,ak),                      &
      &           unprimed_grid_construct_a%a_p(ai,aj,ak),                      &
@@ -530,9 +532,6 @@
          unprimed_grid_construct_a%a_z(ai,aj,ak) =                             &
      &      unprimed_grid_construct_a%a_z(ai,aj,ak) +                          &
      &      SUM(pgrid%j_z/rp)*pgrid%dvol
-
-!  Interpolate from the mgrid grid to the unprimed R Z grid to add the vacuum
-!  vector potential.
 
       END DO
 !$OMP END DO
