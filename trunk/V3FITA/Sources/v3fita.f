@@ -1213,8 +1213,7 @@
      &                         mag_3D_a(signals_created), cut_comp_svd)
 
          context%signals(signals_created)%p => signal_construct(               &
-     &      diagnostic_construct(magnetic_object),                             &
-     &      mdsig_iou, sdo_data_a(signals_created),                            &
+     &      magnetic_object, mdsig_iou, sdo_data_a(signals_created),           &
      &      sdo_sigma_a(signals_created), sdo_weight_a(signals_created),       &
      &      v3fit_input_find_scale_index(signals_created))
 
@@ -1463,9 +1462,8 @@
       END IF
 
       context%signals(signals_created + 1)%p => signal_construct(              &
-     &   diagnostic_construct(extcurz_construct(extcurz_s0,                    &
-     &                                          extcurz_u0)),                  &
-     &   'extcurz', 'EXTernal CURrent along Z', 'A',                           &
+     &   extcurz_construct(extcurz_s0, extcurz_u0), 'extcurz',                 &
+     &   'EXTernal CURrent along Z', 'A',                                      &
      &   sdo_data_a(signals_created + 1),                                      &
      &   sdo_sigma_a(signals_created + 1),                                     &
      &   sdo_weight_a(signals_created + 1),                                    &

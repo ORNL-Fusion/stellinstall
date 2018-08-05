@@ -283,7 +283,7 @@
 !>  @param[inout] first_index        Index of the first instance of an intpol
 !>                                   signal.
 !>  @param[in]    use_geo            Chord contains geomtric factor.
-!>  @param[in]    is_te              Chord used electron temperature.
+!>  @param[in]    is_ti              Chord used electron temperature.
 !-------------------------------------------------------------------------------
       SUBROUTINE sxrch_dot_parse_chord(sxrch_dot_file_ref,                     &
      &                                 coordinate_type,                        &
@@ -291,7 +291,7 @@
      &                                 signals_created,                        &
      &                                 observed, sigma, weight,                &
      &                                 current_profile, first_index,           &
-     &                                 use_geo, is_te)
+     &                                 use_geo, is_ti)
       USE signal
       USE v3fit_input, only: v3fit_max_diagnostics,                            &
      &                       v3fit_input_find_scale_index
@@ -310,7 +310,7 @@
       INTEGER, INTENT(in)                    :: current_profile
       INTEGER, INTENT(inout)                 :: first_index
       LOGICAL, INTENT(in)                    :: use_geo
-      LOGICAL, INTENT(in)                    :: is_te
+      LOGICAL, INTENT(in)                    :: is_ti
 
 !  local variables
       REAL(rprec), DIMENSION(3)              :: xcart_i, xcart_f
@@ -340,18 +340,16 @@
      &            'Expected geometric factor for sxrem chord')
       END IF
 
-      IF (is_te) THEN
+      IF (is_ti) THEN
          signals(signals_created + 1)%p => signal_construct(                   &
-     &      diagnostic_construct(                                              &
-     &         sxrem_construct(xcart_i, xcart_f, current_profile)),            &
+     &      sxrem_construct(xcart_i, xcart_f, current_profile),                &
      &      chord_name, chord_name, 'eVm',                                     &
      &      observed(signals_created + 1), sigma(signals_created + 1),         &
      &      weight(signals_created + 1),                                       &
      &      v3fit_input_find_scale_index(signals_created + 1))
       ELSE
          signals(signals_created + 1)%p => signal_construct(                   &
-     &      diagnostic_construct(                                              &
-     &         sxrem_construct(xcart_i, xcart_f, geo, current_profile)),       &
+     &      sxrem_construct(xcart_i, xcart_f, geo, current_profile),           &
      &      chord_name, chord_name, 'arb',                                     &
      &      observed(signals_created + 1), sigma(signals_created + 1),         &
      &      weight(signals_created + 1),                                       &

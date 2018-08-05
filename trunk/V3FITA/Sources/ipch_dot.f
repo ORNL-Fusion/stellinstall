@@ -333,18 +333,15 @@
          wavelength = signal_dot_parse_real(ipch_dot_file_ref,                 &
      &                   'Expected wavelength for polarimetry chord')
          signals(signals_created + 1)%p => signal_construct(                   &
-     &      diagnostic_construct(                                              &
-     &         intpol_construct(wavelength, inDegrees, xcart)),                &
-     &      chord_name, chord_name, 'm^-2',                                    &
-     &      observed(signals_created + 1), sigma(signals_created + 1),         &
-     &      weight(signals_created + 1),                                       &
+     &      intpol_construct(wavelength, inDegrees, xcart), chord_name,        &
+     &      chord_name, 'm^-2', observed(signals_created + 1),                 &
+     &      sigma(signals_created + 1), weight(signals_created + 1),           &
      &      v3fit_input_find_scale_index(signals_created + 1))
       ELSE
          signals(signals_created + 1)%p => signal_construct(                   &
-     &      diagnostic_construct(                                              &
-     &         intpol_construct(xcart)), chord_name, chord_name,               &
-     &      'm^-2', observed(signals_created + 1),                             &
-     &      sigma(signals_created + 1), weight(signals_created + 1),           &
+     &      intpol_construct(xcart), chord_name, chord_name, 'm^-2',           &
+     &      observed(signals_created + 1), sigma(signals_created + 1),         &
+     &      weight(signals_created + 1),                                       &
      &      v3fit_input_find_scale_index(signals_created + 1))
       END IF
 

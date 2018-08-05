@@ -446,9 +446,8 @@
       END IF
 
       signals(signals_created + 1)%p => signal_construct(                      &
-     &   diagnostic_construct(                                                 &
-     &      mse_construct(xcart, view_start, view_end,                         &
-     &                    beam_start, beam_end, in_degrees, is_ratio)),        &
+     &   mse_construct(xcart, view_start, view_end, beam_start,                &
+     &                 beam_end, in_degrees, is_ratio),                        &
      &   point_name, point_name, 'arb', observed(signals_created + 1),         &
      &   sigma(signals_created + 1), weight(signals_created + 1),              &
      &   v3fit_input_find_scale_index(signals_created + 1))
@@ -547,10 +546,8 @@
       END IF
 
       signals(signals_created + 1)%p => signal_construct(                      &
-     &   diagnostic_construct(                                                 &
-     &      mse_construct(xcart, t_angles(1), t_angles(2),                     &
-     &                    h_angles(1), h_angles(2), in_degrees2,               &
-     &                    is_ratio)),                                          &
+     &   mse_construct(xcart, t_angles(1), t_angles(2), h_angles(1),           &
+     &                 h_angles(2), in_degrees2, is_ratio),                    &
      &   point_name, point_name, 'arb', observed(signals_created + 1),         &
      &   sigma(signals_created + 1), weight(signals_created + 1),              &
      &   v3fit_input_find_scale_index(signals_created + 1))

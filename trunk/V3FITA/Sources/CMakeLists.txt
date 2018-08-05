@@ -1,7 +1,6 @@
 # Append all source files to variable v3fit_sources. As new files are added this must be updated.
 list (APPEND v3fit_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/bivariate.f
-	${CMAKE_CURRENT_SOURCE_DIR}/diagnostic.f
 	${CMAKE_CURRENT_SOURCE_DIR}/extcurz.f
 	${CMAKE_CURRENT_SOURCE_DIR}/geometric.f
 	${CMAKE_CURRENT_SOURCE_DIR}/intpol.f

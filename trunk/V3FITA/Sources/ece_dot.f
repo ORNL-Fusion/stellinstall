@@ -245,9 +245,8 @@
      &               'Expected resonance for ECE chord')
 
       signals(signals_created + 1)%p => signal_construct(                      &
-     &   diagnostic_construct(                                                 &
-     &      ece_construct(xcart_i, xcart_f, resonance)),                       &
-     &   chord_name, chord_name, 'arb', observed(signals_created + 1),         &
+     &   ece_construct(xcart_i, xcart_f, resonance), chord_name,               &
+     &   chord_name, 'arb', observed(signals_created + 1),                     &
      &   sigma(signals_created + 1), weight(signals_created + 1),              &
      &   v3fit_input_find_scale_index(signals_created + 1))
       signals_created = signals_created + 1

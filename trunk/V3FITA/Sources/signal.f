@@ -22,7 +22,13 @@
 !*******************************************************************************
       MODULE signal
       USE stel_kinds, only: rprec
-      USE diagnostic
+      USE magnetic
+      USE sxrem
+      USE intpol
+      USE thomson
+      USE extcurz
+      USE mse
+      USE ece
       USE geometric
       USE prior
       USE feedback
@@ -35,17 +41,29 @@
 !*******************************************************************************
 !>  Type descriptor for the @ref signal_class no subclass.
       INTEGER, PARAMETER :: signal_no_type          = -1
-!>  Type descriptor for the @ref signal_class subclass @ref diagnostic
-      INTEGER, PARAMETER :: signal_diagnostic_type  = 0
+!>  Type descriptor for the @ref diagnostic_class subclass @ref magnetic
+      INTEGER, PARAMETER :: signal_magnetic_type    = 0
+!>  Type descriptor for the @ref diagnostic_class subclass @ref sxrem
+      INTEGER, PARAMETER :: signal_sxrem_type       = 1
+!>  Type descriptor for the @ref diagnostic_class subclass @ref intpol
+      INTEGER, PARAMETER :: signal_intpol_type      = 2
+!>  Type descriptor for the @ref diagnostic_class subclass @ref thomson
+      INTEGER, PARAMETER :: signal_thomson_type     = 3
+!>  Type descriptor for the @ref diagnostic_class subclass @ref extcurz
+      INTEGER, PARAMETER :: signal_extcurz_type     = 4
+!>  Type descriptor for the @ref diagnostic_class subclass @ref mse
+      INTEGER, PARAMETER :: signal_mse_type         = 5
+!>  Type descriptor for the @ref diagnostic_class subclass @ref ece
+      INTEGER, PARAMETER :: signal_ece_type         = 6
 !>  Type descriptor for the @ref signal_class subclass @ref geometric
-      INTEGER, PARAMETER :: signal_geometric_type   = 1
+      INTEGER, PARAMETER :: signal_geometric_type   = 7
 !>  Type descriptor for the @ref signal_class subclass @ref prior
-      INTEGER, PARAMETER :: signal_prior_type       = 2
+      INTEGER, PARAMETER :: signal_prior_type       = 8
 !>  Type descriptor for the @ref signal_class subclass @ref feedback
-      INTEGER, PARAMETER :: signal_feedback_type    = 3
+      INTEGER, PARAMETER :: signal_feedback_type    = 9
 !>  Type descriptor for the @ref signal_class subclass @ref combination_class
 !  Use combination_class since combination lacks it's own module.
-      INTEGER, PARAMETER :: signal_combination_type = 4
+      INTEGER, PARAMETER :: signal_combination_type = 10
 
 !*******************************************************************************
 !  combination module parameters
@@ -81,7 +99,13 @@
 !>  Type descirptor of the signal subclass type.
 !>  @par Possible values are:
 !>  * @ref signal_no_type
-!>  * @ref signal_diagnostic_type,
+!>  * @ref signal_magnetic_type,
+!>  * @ref signal_sxrem_type
+!>  * @ref signal_intpol_type,
+!>  * @ref signal_thomson_type
+!>  * @ref signal_extcurz_type
+!>  * @ref signal_mse_type
+!>  * @ref signal_ece_type
 !>  * @ref signal_geometric_type
 !>  * @ref signal_combination_type
 !>  * @ref signal_gaussp_type
@@ -104,8 +128,20 @@
          REAL (rprec), DIMENSION(4)         :: modeled_sigma
 !>  Scale factor index.
          INTEGER                            :: scale_index
-!>  An instance of a @ref diagnostic object.
-         TYPE (diagnostic_class), POINTER   :: diagnostic => null()
+!>  An instance of a @ref magnetic object.
+         TYPE (magnetic_class), POINTER     :: magnetic => null()
+!>  An instance of a @ref sxrem object.
+         TYPE (sxrem_class), POINTER        :: sxrem => null()
+!>  An instance of a @ref intpol object.
+         TYPE (intpol_class), POINTER       :: intpol => null()
+!>  An instance of a @ref thomson object.
+         TYPE (thomson_class), POINTER      :: thomson => null()
+!>  An instance of a @ref extcurz object.
+         TYPE (extcurz_class), POINTER      :: extcurz => null()
+!>  An instance of a @ref mse object.
+         TYPE (mse_class), POINTER          :: mse => null()
+!>  An instance of a @ref mse object.
+         TYPE (ece_class), POINTER          :: ece => null()
 !>  An instance of a @ref geometric object.
          TYPE (geometric_class), POINTER    :: geometric => null()
 !>  An instance of a @ref prior object.
@@ -173,7 +209,13 @@
 !-------------------------------------------------------------------------------
       INTERFACE signal_construct
          MODULE PROCEDURE signal_construct_new,                                &
-     &                    signal_construct_diagnostic,                         &
+     &                    signal_construct_magnetic,                           &
+     &                    signal_construct_sxrem,                              &
+     &                    signal_construct_intpol,                             &
+     &                    signal_construct_thomson,                            &
+     &                    signal_construct_extcurz,                            &
+     &                    signal_construct_mse,                                &
+     &                    signal_construct_ece,                                &
      &                    signal_construct_geometric,                          &
      &                    signal_construct_prior,                              &
      &                    signal_construct_feedback,                           &
@@ -256,50 +298,332 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Construct a @ref signal_class containing a @ref diagnostic object.
+!>  @brief Construct a @ref signal_class containing a @ref magnetic object.
 !>
 !>  Allocates memory and initializes a @ref signal_class object.
 !>
-!>  @param[in] diagnostic_object An instance of a @ref diagnostic subclass.
-!>  @param[in] s_name            The short name of the signal.
-!>  @param[in] l_name            The short name of the signal.
-!>  @param[in] units             The units of the signal.
-!>  @param[in] observed          Observed value of the signal.
-!>  @param[in] sigma             Observed sigma of the signal.
-!>  @param[in] weight            Weight factor of the signal.
-!>  @param[in] index             Index of the model signal scale factor.
+!>  @param[in] magnetic_object An instance of a @ref magnetic subclass.
+!>  @param[in] s_name          The short name of the signal.
+!>  @param[in] l_name          The short name of the signal.
+!>  @param[in] units           The units of the signal.
+!>  @param[in] observed        Observed value of the signal.
+!>  @param[in] sigma           Observed sigma of the signal.
+!>  @param[in] weight          Weight factor of the signal.
+!>  @param[in] index           Index of the model signal scale factor.
 !>  @returns A pointer to a constructed @ref signal_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION signal_construct_diagnostic(diagnostic_object, s_name,          &
-     &                                     l_name, units, observed,            &
-     &                                     sigma, weight, index)
+      FUNCTION signal_construct_magnetic(magnetic_object, s_name,              &
+     &                                   l_name, units, observed,              &
+     &                                   sigma, weight, index)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (signal_class), POINTER     :: signal_construct_diagnostic
-      TYPE (diagnostic_class), POINTER :: diagnostic_object
-      CHARACTER(len=*), INTENT(in)     :: s_name
-      CHARACTER(len=*), INTENT(in)     :: l_name
-      CHARACTER(len=*), INTENT(in)     :: units
-      REAL(rprec), INTENT(in)          :: observed
-      REAL(rprec), INTENT(in)          :: sigma
-      REAL(rprec), INTENT(in)          :: weight
-      INTEGER, INTENT(in)              :: index
+      TYPE (signal_class), POINTER   :: signal_construct_magnetic
+      TYPE (magnetic_class), POINTER :: magnetic_object
+      CHARACTER(len=*), INTENT(in)   :: s_name
+      CHARACTER(len=*), INTENT(in)   :: l_name
+      CHARACTER(len=*), INTENT(in)   :: units
+      REAL(rprec), INTENT(in)        :: observed
+      REAL(rprec), INTENT(in)        :: sigma
+      REAL(rprec), INTENT(in)        :: weight
+      INTEGER, INTENT(in)            :: index
 
 !  local variables
-      REAL (rprec)                     :: start_time
+      REAL (rprec)                   :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      signal_construct_diagnostic =>                                           &
-     &   signal_construct(signal_diagnostic_type, s_name, l_name, units,       &
+      signal_construct_magnetic =>                                             &
+     &   signal_construct(signal_magnetic_type, s_name, l_name, units,         &
      &                    observed, sigma, weight, index)
-      signal_construct_diagnostic%diagnostic => diagnostic_object
+      signal_construct_magnetic%magnetic => magnetic_object
 
-      CALL profiler_set_stop_time('signal_construct_diagnostic',               &
+      CALL profiler_set_stop_time('signal_construct_magnetic',                 &
      &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref signal_class containing a @ref sxrem object.
+!>
+!>  Allocates memory and initializes a @ref signal_class object.
+!>
+!>  @param[in] sxrem_object An instance of a @ref sxrem subclass.
+!>  @param[in] s_name       The short name of the signal.
+!>  @param[in] l_name       The short name of the signal.
+!>  @param[in] units        The units of the signal.
+!>  @param[in] observed     Observed value of the signal.
+!>  @param[in] sigma        Observed sigma of the signal.
+!>  @param[in] weight       Weight factor of the signal.
+!>  @param[in] index        Index of the model signal scale factor.
+!>  @returns A pointer to a constructed @ref signal_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION signal_construct_sxrem(sxrem_object, s_name, l_name,            &
+     &                                units, observed, sigma, weight,          &
+     &                                index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (signal_class), POINTER :: signal_construct_sxrem
+      TYPE (sxrem_class), POINTER  :: sxrem_object
+      CHARACTER(len=*), INTENT(in) :: s_name
+      CHARACTER(len=*), INTENT(in) :: l_name
+      CHARACTER(len=*), INTENT(in) :: units
+      REAL(rprec), INTENT(in)      :: observed
+      REAL(rprec), INTENT(in)      :: sigma
+      REAL(rprec), INTENT(in)      :: weight
+      INTEGER, INTENT(in)          :: index
+
+!  local variables
+      REAL (rprec)                 :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      signal_construct_sxrem =>                                                &
+     &   signal_construct(signal_sxrem_type, s_name, l_name, units,            &
+     &                    observed, sigma, weight, index)
+      signal_construct_sxrem%sxrem => sxrem_object
+
+      CALL profiler_set_stop_time('signal_construct_sxrem', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref signal_class containing a @ref intpol object.
+!>
+!>  Allocates memory and initializes a @ref signal_class object.
+!>
+!>  @param[in] intpol_object An instance of a @ref intpol subclass.
+!>  @param[in] s_name        The short name of the signal.
+!>  @param[in] l_name        The short name of the signal.
+!>  @param[in] units         The units of the signal.
+!>  @param[in] observed      Observed value of the signal.
+!>  @param[in] sigma         Observed sigma of the signal.
+!>  @param[in] weight        Weight factor of the signal.
+!>  @param[in] index         Index of the model signal scale factor.
+!>  @returns A pointer to a constructed @ref signal_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION signal_construct_intpol(intpol_object, s_name, l_name,          &
+     &                                 units, observed, sigma, weight,         &
+     &                                 index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (signal_class), POINTER :: signal_construct_intpol
+      TYPE (intpol_class), POINTER :: intpol_object
+      CHARACTER(len=*), INTENT(in) :: s_name
+      CHARACTER(len=*), INTENT(in) :: l_name
+      CHARACTER(len=*), INTENT(in) :: units
+      REAL(rprec), INTENT(in)      :: observed
+      REAL(rprec), INTENT(in)      :: sigma
+      REAL(rprec), INTENT(in)      :: weight
+      INTEGER, INTENT(in)          :: index
+
+!  local variables
+      REAL (rprec)                 :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      signal_construct_intpol =>                                               &
+     &   signal_construct(signal_intpol_type, s_name, l_name, units,           &
+     &                    observed, sigma, weight, index)
+      signal_construct_intpol%intpol => intpol_object
+
+      CALL profiler_set_stop_time('signal_construct_intpol', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref signal_class containing a @ref thomson object.
+!>
+!>  Allocates memory and initializes a @ref signal_class object.
+!>
+!>  @param[in] thomson_object An instance of a @ref thomson subclass.
+!>  @param[in] s_name         The short name of the signal.
+!>  @param[in] l_name         The short name of the signal.
+!>  @param[in] units          The units of the signal.
+!>  @param[in] observed       Observed value of the signal.
+!>  @param[in] sigma          Observed sigma of the signal.
+!>  @param[in] weight         Weight factor of the signal.
+!>  @param[in] index          Index of the model signal scale factor.
+!>  @returns A pointer to a constructed @ref signal_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION signal_construct_thomson(thomson_object, s_name, l_name,        &
+     &                                  units, observed, sigma, weight,        &
+     &                                  index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (signal_class), POINTER  :: signal_construct_thomson
+      TYPE (thomson_class), POINTER :: thomson_object
+      CHARACTER(len=*), INTENT(in)  :: s_name
+      CHARACTER(len=*), INTENT(in)  :: l_name
+      CHARACTER(len=*), INTENT(in)  :: units
+      REAL(rprec), INTENT(in)       :: observed
+      REAL(rprec), INTENT(in)       :: sigma
+      REAL(rprec), INTENT(in)       :: weight
+      INTEGER, INTENT(in)           :: index
+
+!  local variables
+      REAL (rprec)                  :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      signal_construct_thomson =>                                              &
+     &   signal_construct(signal_thomson_type, s_name, l_name, units,          &
+     &                    observed, sigma, weight, index)
+      signal_construct_thomson%thomson => thomson_object
+
+      CALL profiler_set_stop_time('signal_construct_thomson',                  &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref signal_class containing a @ref extcurz object.
+!>
+!>  Allocates memory and initializes a @ref signal_class object.
+!>
+!>  @param[in] extcurz_object An instance of a @ref extcurz subclass.
+!>  @param[in] s_name         The short name of the signal.
+!>  @param[in] l_name         The short name of the signal.
+!>  @param[in] units          The units of the signal.
+!>  @param[in] observed       Observed value of the signal.
+!>  @param[in] sigma          Observed sigma of the signal.
+!>  @param[in] weight         Weight factor of the signal.
+!>  @param[in] index          Index of the model signal scale factor.
+!>  @returns A pointer to a constructed @ref signal_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION signal_construct_extcurz(extcurz_object, s_name, l_name,        &
+     &                                  units, observed, sigma, weight,        &
+     &                                  index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (signal_class), POINTER  :: signal_construct_extcurz
+      TYPE (extcurz_class), POINTER :: extcurz_object
+      CHARACTER(len=*), INTENT(in)  :: s_name
+      CHARACTER(len=*), INTENT(in)  :: l_name
+      CHARACTER(len=*), INTENT(in)  :: units
+      REAL(rprec), INTENT(in)       :: observed
+      REAL(rprec), INTENT(in)       :: sigma
+      REAL(rprec), INTENT(in)       :: weight
+      INTEGER, INTENT(in)           :: index
+
+!  local variables
+      REAL (rprec)                  :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      signal_construct_extcurz =>                                              &
+     &   signal_construct(signal_extcurz_type, s_name, l_name, units,          &
+     &                    observed, sigma, weight, index)
+      signal_construct_extcurz%extcurz => extcurz_object
+
+      CALL profiler_set_stop_time('signal_construct_extcurz',                  &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref signal_class containing a @ref mse object.
+!>
+!>  Allocates memory and initializes a @ref signal_class object.
+!>
+!>  @param[in] mse_object An instance of a @ref mse subclass.
+!>  @param[in] s_name     The short name of the signal.
+!>  @param[in] l_name     The short name of the signal.
+!>  @param[in] units      The units of the signal.
+!>  @param[in] observed   Observed value of the signal.
+!>  @param[in] sigma      Observed sigma of the signal.
+!>  @param[in] weight     Weight factor of the signal.
+!>  @param[in] index      Index of the model signal scale factor.
+!>  @returns A pointer to a constructed @ref signal_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION signal_construct_mse(mse_object, s_name, l_name, units,         &
+     &                              observed, sigma, weight, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (signal_class), POINTER :: signal_construct_mse
+      TYPE (mse_class), POINTER    :: mse_object
+      CHARACTER(len=*), INTENT(in) :: s_name
+      CHARACTER(len=*), INTENT(in) :: l_name
+      CHARACTER(len=*), INTENT(in) :: units
+      REAL(rprec), INTENT(in)      :: observed
+      REAL(rprec), INTENT(in)      :: sigma
+      REAL(rprec), INTENT(in)      :: weight
+      INTEGER, INTENT(in)          :: index
+
+!  local variables
+      REAL (rprec)                  :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      signal_construct_mse =>                                                  &
+     &   signal_construct(signal_mse_type, s_name, l_name, units,              &
+     &                    observed, sigma, weight, index)
+      signal_construct_mse%mse => mse_object
+
+      CALL profiler_set_stop_time('signal_construct_mse', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref signal_class containing a @ref ece object.
+!>
+!>  Allocates memory and initializes a @ref signal_class object.
+!>
+!>  @param[in] ece_object An instance of a @ref ece subclass.
+!>  @param[in] s_name     The short name of the signal.
+!>  @param[in] l_name     The short name of the signal.
+!>  @param[in] units      The units of the signal.
+!>  @param[in] observed   Observed value of the signal.
+!>  @param[in] sigma      Observed sigma of the signal.
+!>  @param[in] weight     Weight factor of the signal.
+!>  @param[in] index      Index of the model signal scale factor.
+!>  @returns A pointer to a constructed @ref signal_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION signal_construct_ece(ece_object, s_name, l_name, units,         &
+     &                              observed, sigma, weight, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (signal_class), POINTER :: signal_construct_ece
+      TYPE (ece_class), POINTER    :: ece_object
+      CHARACTER(len=*), INTENT(in) :: s_name
+      CHARACTER(len=*), INTENT(in) :: l_name
+      CHARACTER(len=*), INTENT(in) :: units
+      REAL(rprec), INTENT(in)      :: observed
+      REAL(rprec), INTENT(in)      :: sigma
+      REAL(rprec), INTENT(in)      :: weight
+      INTEGER, INTENT(in)          :: index
+
+!  local variables
+      REAL (rprec)                  :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      signal_construct_ece =>                                                  &
+     &   signal_construct(signal_ece_type, s_name, l_name, units,              &
+     &                    observed, sigma, weight, index)
+      signal_construct_ece%ece => ece_object
+
+      CALL profiler_set_stop_time('signal_construct_ece', start_time)
 
       END FUNCTION
 
@@ -510,7 +834,7 @@
 !>  @param[in] index             Index of the model signal scale factor.
 !>  @returns A pointer to a constructed @ref signal_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION signal_construct_diagnostic_netcdf(diagnostic_object,           &
+      FUNCTION signal_construct_diagnostic_netcdf(magnetic_object,             &
      &                                            mdsig_iou, observed,         &
      &                                            sigma, weight, index)
       USE ezcdf
@@ -519,7 +843,7 @@
 
 !  Declare Arguments
       TYPE (signal_class), POINTER :: signal_construct_diagnostic_netcdf
-      TYPE (diagnostic_class), POINTER :: diagnostic_object
+      TYPE (magnetic_class), POINTER :: magnetic_object
       INTEGER, INTENT(in)                    :: mdsig_iou
       REAL(rprec), INTENT(in)                :: observed
       REAL(rprec), INTENT(in)                :: sigma
@@ -540,7 +864,7 @@
       CALL cdf_read(mdsig_iou, 'diagnostic_desc_units', units)
 
       signal_construct_diagnostic_netcdf =>                                    &
-     &   signal_construct(diagnostic_object, s_name, l_name, units,            &
+     &   signal_construct(magnetic_object, s_name, l_name, units,              &
      &                    observed, sigma, weight, index)
 
       CALL profiler_set_stop_time('signal_construct_diagnostic_netcdf',        &
@@ -566,9 +890,39 @@
       TYPE (signal_class), POINTER :: this
 
 !  Start of executable code
-      IF (ASSOCIATED(this%diagnostic)) THEN
-         CALL diagnostic_destruct(this%diagnostic)
-         this%diagnostic => null()
+      IF (ASSOCIATED(this%magnetic)) THEN
+         CALL magnetic_destruct(this%magnetic)
+         this%magnetic => null()
+      END IF
+
+      IF (ASSOCIATED(this%sxrem)) THEN
+         CALL sxrem_destruct(this%sxrem)
+         this%sxrem => null()
+      END IF
+
+      IF (ASSOCIATED(this%intpol)) THEN
+         CALL intpol_destruct(this%intpol)
+         this%intpol => null()
+      END IF
+
+      IF (ASSOCIATED(this%thomson)) THEN
+         CALL thomson_destruct(this%thomson)
+         this%thomson => null()
+      END IF
+
+      IF (ASSOCIATED(this%extcurz)) THEN
+         CALL extcurz_destruct(this%extcurz)
+         this%extcurz => null()
+      END IF
+
+      IF (ASSOCIATED(this%mse)) THEN
+         CALL mse_destruct(this%mse)
+         this%mse => null()
+      END IF
+
+      IF (ASSOCIATED(this%ece)) THEN
+         CALL ece_destruct(this%ece)
+         this%ece => null()
       END IF
 
       IF (ASSOCIATED(this%geometric)) THEN
@@ -617,7 +971,13 @@
 !>  cached value. Read from the cached value when the signal doesn't need to be
 !>  recalulated. If the signal is to be recalculated, write these to the cache.
 !>
-!>  @see diagnostic::diagnostic_get_modeled_signal
+!>  @see magnetic::magnetic_get_signal_type
+!>  @see sxrem::sxrem_get_signal_type
+!>  @see intpol::intpol_get_signal_type
+!>  @see thomson::thomson_get_signal_type
+!>  @see extcurz::extcurz_get_signal_type
+!>  @see mse::mse_get_signal_type
+!>  @see ece::ece_get_signal_type
 !>  @see geometric::geometric_get_modeled_signal
 !>  @see prior::prior_get_modeled_signal
 !>  @see combination_get_modeled_signal
@@ -661,12 +1021,44 @@
      &                                          this%scale_index)
 
          SELECT CASE(this%type)
-            CASE (signal_diagnostic_type)
+
+            CASE (signal_magnetic_type)
                signal_get_modeled_signal =                                     &
-     &            diagnostic_get_modeled_signal(this%diagnostic,               &
-     &                                          a_model, sigma,                &
-     &                                          last_value,                    &
-     &                                          scale_factor)
+     &            magnetic_get_modeled_signal(this%magnetic, a_model,          &
+     &                                        sigma, last_value,               &
+     &                                        scale_factor)
+
+            CASE (signal_sxrem_type)
+               signal_get_modeled_signal =                                     &
+     &            sxrem_get_modeled_signal(this%sxrem, a_model, sigma,         &
+     &                                     last_value, scale_factor)
+
+            CASE (signal_intpol_type)
+               signal_get_modeled_signal =                                     &
+     &            intpol_get_modeled_signal(this%intpol, a_model, sigma,       &
+     &                                      last_value, scale_factor)
+
+            CASE (signal_thomson_type)
+               signal_get_modeled_signal =                                     &
+     &            thomson_get_modeled_signal(this%thomson, a_model,            &
+     &                                       sigma, last_value,                &
+     &                                       scale_factor)
+
+            CASE (signal_extcurz_type)
+               signal_get_modeled_signal =                                     &
+     &            extcurz_get_modeled_signal(this%extcurz, a_model,            &
+     &                                       sigma, last_value,                &
+     &                                       scale_factor)
+
+            CASE (signal_mse_type)
+               signal_get_modeled_signal =                                     &
+     &            mse_get_modeled_signal(this%mse, a_model, sigma,             &
+     &                                   last_value, scale_factor)
+
+            CASE (signal_ece_type)
+               signal_get_modeled_signal =                                     &
+     &            ece_get_modeled_signal(this%ece, a_model, sigma,             &
+     &                                   last_value, scale_factor)
 
             CASE (signal_geometric_type)
                signal_get_modeled_signal =                                     &
@@ -886,7 +1278,13 @@
 !>  returns the get_signal_type method of the subclass instance
 !>  @ref signal_class was constructed with.
 !>
-!>  @see diagnostic::diagnostic_get_signal_type
+!>  @see magnetic::magnetic_get_signal_type
+!>  @see sxrem::sxrem_get_signal_type
+!>  @see intpol::intpol_get_signal_type
+!>  @see thomson::thomson_get_signal_type
+!>  @see extcurz::extcurz_get_signal_type
+!>  @see mse::mse_get_signal_type
+!>  @see ece::ece_get_signal_type
 !>  @see geometric::geometric_get_signal_type
 !>  @see prior::prior_get_signal_type
 !>  @see combination_get_signal_type
@@ -911,9 +1309,33 @@
 
       SELECT CASE(this%type)
 
-         CASE (signal_diagnostic_type)
-            signal_get_signal_type =                                           &
-     &         TRIM(diagnostic_get_signal_type(this%diagnostic))
+         CASE (signal_magnetic_type)
+            signal_get_signal_type = TRIM('diagnostic ' //                     &
+     &         magnetic_get_signal_type(this%magnetic))
+
+         CASE (signal_sxrem_type)
+            signal_get_signal_type = TRIM('diagnostic ' //                     &
+     &         sxrem_get_signal_type(this%sxrem))
+
+         CASE (signal_intpol_type)
+            signal_get_signal_type = TRIM('diagnostic ' //                     &
+     &         intpol_get_signal_type(this%intpol))
+
+         CASE (signal_thomson_type)
+            signal_get_signal_type = TRIM('diagnostic ' //                     &
+     &         thomson_get_signal_type(this%thomson))
+
+         CASE (signal_extcurz_type)
+            signal_get_signal_type = TRIM('diagnostic ' //                     &
+     &         extcurz_get_signal_type(this%extcurz))
+
+         CASE (signal_mse_type)
+            signal_get_signal_type = TRIM('diagnostic ' //                     &
+     &         mse_get_signal_type(this%mse))
+
+         CASE (signal_ece_type)
+            signal_get_signal_type = TRIM('diagnostic ' //                     &
+     &         ece_get_signal_type(this%ece))
 
          CASE (signal_geometric_type)
             signal_get_signal_type =                                           &
@@ -931,6 +1353,9 @@
             signal_get_signal_type =                                           &
      &         TRIM(combination_get_signal_type(this%combination))
 
+         CASE DEFAULT
+            signal_get_signal_type = ''
+
       END SELECT
 
       CALL profiler_set_stop_time('signal_get_signal_type', start_time)
@@ -944,7 +1369,9 @@
 !>  returns the get_header method of the subclass instance
 !>  @ref signal_class was constructed with.
 !>
-!>  @see diagnostic::diagnostic_get_header
+!>  @see magnetic::magnetic_get_header
+!>  @see mse::mse_get_header
+!>  @see ece::ece_get_header
 !>  @see geometric::geometric_get_header
 !>  @see prior::prior_get_header
 !>  @see combination_get_header
@@ -970,8 +1397,14 @@
 
       SELECT CASE(this%type)
 
-         CASE (signal_diagnostic_type)
-            signal_get_header = diagnostic_get_header(this%diagnostic)
+         CASE (signal_magnetic_type)
+            signal_get_header = magnetic_get_header(this%magnetic)
+
+         CASE (signal_mse_type)
+            signal_get_header = mse_get_header(this%mse)
+
+         CASE (signal_ece_type)
+            signal_get_header = ece_get_header(this%ece)
 
          CASE (signal_geometric_type)
             signal_get_header = geometric_get_header(this%geometric)
@@ -984,6 +1417,13 @@
 
          CASE (signal_combination_type)
             signal_get_header = combination_get_header(this%combination)
+
+         CASE DEFAULT
+            signal_get_header(1:3) = 'N/A'
+            signal_get_header(4) = 'model_sig(1)'
+            signal_get_header(5) = 'model_sig(2)'
+            signal_get_header(6) = 'model_sig(3)'
+            signal_get_header(7) = 'model_sig(4)'
 
       END SELECT
 
@@ -998,7 +1438,10 @@
 !>  returns the get_gp_i method of the subclass instance @ref signal_class was
 !>  constructed with.
 !>
-!>  @see diagnostic::diagnostic_get_gp_i
+!>  @see sxrem::sxrem_get_gp_i
+!>  @see intpol::intpol_get_gp_i
+!>  @see thomson::thomson_get_gp_i
+!>  @see ece::ece_get_gp_i
 !>  @see prior::prior_get_gp_i
 !>
 !>  @param[in] this    A @ref signal_class instance.
@@ -1029,9 +1472,20 @@
 
       SELECT CASE(this%type)
 
-         CASE (signal_diagnostic_type)
-            signal_get_gp_i = diagnostic_get_gp(this%diagnostic,               &
-     &                                          a_model, i, flags)
+         CASE (signal_sxrem_type)
+            signal_get_gp_i = sxrem_get_gp(this%sxrem, a_model, i,             &
+     &                                     flags)
+
+         CASE (signal_intpol_type)
+            signal_get_gp_i = intpol_get_gp(this%intpol, a_model, i,           &
+     &                                      flags)
+
+         CASE (signal_thomson_type)
+            signal_get_gp_i = thomson_get_gp(this%thomson, a_model, i,         &
+     &                                       flags)
+
+         CASE (signal_ece_type)
+            signal_get_gp_i = ece_get_gp(this%ece, a_model, i, flags)
 
          CASE (signal_prior_type)
             signal_get_gp_i = prior_get_gp(this%prior, a_model, i,             &
@@ -1056,7 +1510,10 @@
 !>  constructed with. The second signal is cast to a void pointer so it can be
 !>  send to the subclass instance.
 !>
-!>  @see diagnostic::diagnostic_get_gp_s
+!>  @see sxrem::sxrem_get_gp_s
+!>  @see intpol::intpol_get_gp_s
+!>  @see thomson::thomson_get_gp_s
+!>  @see ece::ece_get_gp_s
 !>  @see prior::prior_get_gp_s
 !>
 !>  @param[in] this    A @ref signal_class instance.
@@ -1101,10 +1558,22 @@
 
       SELECT CASE(this%type)
 
-         CASE (signal_diagnostic_type)
-            signal_get_gp_s = diagnostic_get_gp(this%diagnostic,               &
-     &                                          a_model, context,              &
-     &                                          signal_kll_callback_p)
+         CASE (signal_sxrem_type)
+            signal_get_gp_s = sxrem_get_gp(this%sxrem, a_model, context,       &
+     &                                     signal_kll_callback_p)
+
+         CASE (signal_intpol_type)
+            signal_get_gp_s = intpol_get_gp(this%intpol, a_model,              &
+     &                                      context,                           &
+     &                                      signal_kll_callback_p)
+
+         CASE (signal_thomson_type)
+            signal_get_gp_s = thomson_get_gp(this%thomson, context,            &
+     &                                       signal_kll_callback_p)
+
+         CASE (signal_ece_type)
+            signal_get_gp_s = ece_get_gp(this%ece, a_model, context,           &
+     &                                   signal_kll_callback_p)
 
          CASE (signal_prior_type)
             signal_get_gp_s = prior_get_gp(this%prior, context,                &
@@ -1131,7 +1600,10 @@
 !>  returns the get_gp_x method of the subclass instance @ref signal_class was
 !>  constructed with.
 !>
-!>  @see diagnostic::diagnostic_get_gp_x
+!>  @see sxrem::sxrem_get_gp_x
+!>  @see intpol::intpol_get_gp_x
+!>  @see thomson::thomson_get_gp_x
+!>  @see ece::ece_get_gp_x
 !>  @see prior::prior_get_gp_x
 !>
 !>  @param[in] this    A @ref signal_class instance.
@@ -1162,10 +1634,21 @@
 
       SELECT CASE(this%type)
 
-         CASE (signal_diagnostic_type)
-            signal_get_gp_x = diagnostic_get_gp(this%diagnostic,               &
-     &                                          a_model, x_cart,               &
-     &                                          flags)
+         CASE (signal_sxrem_type)
+            signal_get_gp_x = sxrem_get_gp(this%sxrem, a_model, x_cart,        &
+     &                                     flags)
+
+         CASE (signal_intpol_type)
+            signal_get_gp_x = intpol_get_gp(this%intpol, a_model,              &
+     &                                      x_cart, flags)
+
+         CASE (signal_thomson_type)
+            signal_get_gp_x = thomson_get_gp(this%thomson, a_model,            &
+     &                                       x_cart, flags)
+
+         CASE (signal_ece_type)
+            signal_get_gp_x = ece_get_gp(this%ece, a_model, x_cart,            &
+     &                                   flags)
 
          CASE (signal_prior_type)
             signal_get_gp_x = prior_get_gp(this%prior, a_model, x_cart,        &
@@ -1189,7 +1672,8 @@
 !>  returns the get_dx method of the subclass instance @ref signal_class was
 !>  constructed with.
 !>
-!>  @see diagnostic::diagnostic_get_dx
+!>  @see diagnostic::sxrem_get_dx
+!>  @see diagnostic::intpol_get_dx
 !>
 !>  @param[in] this    A @ref signal_class instance.
 !>  @param[in] a_model A @ref model_class instance.
@@ -1223,10 +1707,13 @@
 
       SELECT CASE(this%type)
 
-         CASE (signal_diagnostic_type)
-            signal_get_dx = diagnostic_get_dx(this%diagnostic, a_model,        &
-     &                                        xcart, dxcart, length,           &
-     &                                        dx, flags)
+         CASE (signal_sxrem_type)
+            signal_get_dx = sxrem_get_dx(this%sxrem, a_model, xcart,           &
+     &                                   dxcart, length, dx, flags)
+
+         CASE (signal_intpol_type)
+            signal_get_dx = intpol_get_dx(this%intpol, a_model, xcart,         &
+     &                                    dxcart, length, dx, flags)
 
         CASE DEFAULT
            signal_get_dx = 1.0
