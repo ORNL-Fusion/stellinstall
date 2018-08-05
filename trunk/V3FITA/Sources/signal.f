@@ -30,7 +30,7 @@
       USE mse
       USE ece
       USE geometric
-      USE prior
+      USE prior_gaussian
       USE feedback
       USE data_parameters
 
@@ -40,30 +40,30 @@
 !  signal module parameters
 !*******************************************************************************
 !>  Type descriptor for the @ref signal_class no subclass.
-      INTEGER, PARAMETER :: signal_no_type          = -1
+      INTEGER, PARAMETER :: signal_no_type             = -1
 !>  Type descriptor for the @ref diagnostic_class subclass @ref magnetic
-      INTEGER, PARAMETER :: signal_magnetic_type    = 0
+      INTEGER, PARAMETER :: signal_magnetic_type       = 0
 !>  Type descriptor for the @ref diagnostic_class subclass @ref sxrem
-      INTEGER, PARAMETER :: signal_sxrem_type       = 1
+      INTEGER, PARAMETER :: signal_sxrem_type          = 1
 !>  Type descriptor for the @ref diagnostic_class subclass @ref intpol
-      INTEGER, PARAMETER :: signal_intpol_type      = 2
+      INTEGER, PARAMETER :: signal_intpol_type         = 2
 !>  Type descriptor for the @ref diagnostic_class subclass @ref thomson
-      INTEGER, PARAMETER :: signal_thomson_type     = 3
+      INTEGER, PARAMETER :: signal_thomson_type        = 3
 !>  Type descriptor for the @ref diagnostic_class subclass @ref extcurz
-      INTEGER, PARAMETER :: signal_extcurz_type     = 4
+      INTEGER, PARAMETER :: signal_extcurz_type        = 4
 !>  Type descriptor for the @ref diagnostic_class subclass @ref mse
-      INTEGER, PARAMETER :: signal_mse_type         = 5
+      INTEGER, PARAMETER :: signal_mse_type            = 5
 !>  Type descriptor for the @ref diagnostic_class subclass @ref ece
-      INTEGER, PARAMETER :: signal_ece_type         = 6
+      INTEGER, PARAMETER :: signal_ece_type            = 6
 !>  Type descriptor for the @ref signal_class subclass @ref geometric
-      INTEGER, PARAMETER :: signal_geometric_type   = 7
+      INTEGER, PARAMETER :: signal_geometric_type      = 7
 !>  Type descriptor for the @ref signal_class subclass @ref prior
-      INTEGER, PARAMETER :: signal_prior_type       = 8
+      INTEGER, PARAMETER :: signal_prior_gaussian_type = 8
 !>  Type descriptor for the @ref signal_class subclass @ref feedback
-      INTEGER, PARAMETER :: signal_feedback_type    = 9
+      INTEGER, PARAMETER :: signal_feedback_type       = 9
 !>  Type descriptor for the @ref signal_class subclass @ref combination_class
 !  Use combination_class since combination lacks it's own module.
-      INTEGER, PARAMETER :: signal_combination_type = 10
+      INTEGER, PARAMETER :: signal_combination_type    = 10
 
 !*******************************************************************************
 !  combination module parameters
@@ -107,9 +107,10 @@
 !>  * @ref signal_mse_type
 !>  * @ref signal_ece_type
 !>  * @ref signal_geometric_type
+!>  * @ref signal_prior_gaussian_type
+!>  * @ref signal_feedback_type
 !>  * @ref signal_combination_type
-!>  * @ref signal_gaussp_type
-         INTEGER                            :: type = signal_no_type
+         INTEGER                             :: type = signal_no_type
 !>  Short name of the signal.
          CHARACTER (len=data_short_name_length) :: s_name
 !>  Long name of the signal.
@@ -117,39 +118,39 @@
 !>  Physical units the signal measures.
          CHARACTER (len=data_short_name_length) :: units
 !>  Eperimentally measured signal value.
-         REAL (rprec)                       :: observed
+         REAL (rprec)                        :: observed
 !>  Eperimentally measured signal uncertainty.
-         REAL (rprec)                       :: observed_sigma
+         REAL (rprec)                        :: observed_sigma
 !>  Weighting parameter of the signal.
-         REAL (rprec)                       :: weight
+         REAL (rprec)                        :: weight
 !>  Cached value of the modeled signal.
-         REAL (rprec), DIMENSION(4)         :: modeled
+         REAL (rprec), DIMENSION(4)          :: modeled
 !>  Cached value of the modeled sigma.
-         REAL (rprec), DIMENSION(4)         :: modeled_sigma
+         REAL (rprec), DIMENSION(4)          :: modeled_sigma
 !>  Scale factor index.
-         INTEGER                            :: scale_index
+         INTEGER                             :: scale_index
 !>  An instance of a @ref magnetic object.
-         TYPE (magnetic_class), POINTER     :: magnetic => null()
+         TYPE (magnetic_class), POINTER      :: magnetic => null()
 !>  An instance of a @ref sxrem object.
-         TYPE (sxrem_class), POINTER        :: sxrem => null()
+         TYPE (sxrem_class), POINTER         :: sxrem => null()
 !>  An instance of a @ref intpol object.
-         TYPE (intpol_class), POINTER       :: intpol => null()
+         TYPE (intpol_class), POINTER        :: intpol => null()
 !>  An instance of a @ref thomson object.
-         TYPE (thomson_class), POINTER      :: thomson => null()
+         TYPE (thomson_class), POINTER       :: thomson => null()
 !>  An instance of a @ref extcurz object.
-         TYPE (extcurz_class), POINTER      :: extcurz => null()
+         TYPE (extcurz_class), POINTER       :: extcurz => null()
 !>  An instance of a @ref mse object.
-         TYPE (mse_class), POINTER          :: mse => null()
+         TYPE (mse_class), POINTER           :: mse => null()
 !>  An instance of a @ref mse object.
-         TYPE (ece_class), POINTER          :: ece => null()
+         TYPE (ece_class), POINTER           :: ece => null()
 !>  An instance of a @ref geometric object.
-         TYPE (geometric_class), POINTER    :: geometric => null()
+         TYPE (geometric_class), POINTER     :: geometric => null()
 !>  An instance of a @ref prior object.
-         TYPE (prior_class), POINTER        :: prior => null()
+        TYPE (prior_gaussian_class), POINTER :: gaussian => null()
 !>  An instance of a @ref feedback object.
-         TYPE (feedback_class), POINTER     :: feedback => null()
+         TYPE (feedback_class), POINTER      :: feedback => null()
 !>  An instance of a @ref combination object.
-         TYPE (combination_class), POINTER  :: combination => null()
+         TYPE (combination_class), POINTER   :: combination => null()
       END TYPE signal_class
 
 !-------------------------------------------------------------------------------
@@ -217,7 +218,7 @@
      &                    signal_construct_mse,                                &
      &                    signal_construct_ece,                                &
      &                    signal_construct_geometric,                          &
-     &                    signal_construct_prior,                              &
+     &                    signal_construct_prior_gaussian,                     &
      &                    signal_construct_feedback,                           &
      &                    signal_construct_combination,                        &
      &                    signal_construct_diagnostic_netcdf
@@ -676,11 +677,12 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Construct a @ref signal_class containing a @ref prior object.
+!>  @brief Construct a @ref signal_class containing a @ref prior_gaussian
+!>  object.
 !>
 !>  Allocates memory and initializes a @ref signal_class object.
 !>
-!>  @param[in] prior_object An instance of a @ref prior subclass.
+!>  @param[in] prior_object An instance of a @ref prior_gaussian subclass.
 !>  @param[in] s_name       The short name of the signal.
 !>  @param[in] l_name       The short name of the signal.
 !>  @param[in] units        The units of the signal.
@@ -690,22 +692,23 @@
 !>  @param[in] index        Index of the model signal scale factor.
 !>  @returns A pointer to a constructed @ref signal_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION signal_construct_prior(prior_object, s_name, l_name,            &
-     &                                units, observed, sigma, weight,          &
-     &                                index)
+      FUNCTION signal_construct_prior_gaussian(prior_gaussian_object,          &
+     &                                         s_name, l_name, units,          &
+     &                                         observed, sigma, weight,        &
+     &                                         index)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (signal_class), POINTER :: signal_construct_prior
-      TYPE (prior_class), POINTER  :: prior_object
-      CHARACTER(len=*), INTENT(in) :: s_name
-      CHARACTER(len=*), INTENT(in) :: l_name
-      CHARACTER(len=*), INTENT(in) :: units
-      REAL(rprec), INTENT(in)      :: observed
-      REAL(rprec), INTENT(in)      :: sigma
-      REAL(rprec), INTENT(in)      :: weight
-      INTEGER, INTENT(in)          :: index
+      TYPE (signal_class), POINTER :: signal_construct_prior_gaussian
+      TYPE (prior_gaussian_class), POINTER  :: prior_gaussian_object
+      CHARACTER(len=*), INTENT(in)          :: s_name
+      CHARACTER(len=*), INTENT(in)          :: l_name
+      CHARACTER(len=*), INTENT(in)          :: units
+      REAL(rprec), INTENT(in)               :: observed
+      REAL(rprec), INTENT(in)               :: sigma
+      REAL(rprec), INTENT(in)               :: weight
+      INTEGER, INTENT(in)                   :: index
 
 !  local variables
       REAL (rprec)                 :: start_time
@@ -713,12 +716,13 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      signal_construct_prior =>                                                &
-     &   signal_construct(signal_prior_type, s_name, l_name, units,            &
-     &                    observed, sigma, weight, index)
-      signal_construct_prior%prior => prior_object
+      signal_construct_prior_gaussian =>                                       &
+     &   signal_construct(signal_prior_gaussian_type, s_name, l_name,          &
+     &                    units, observed, sigma, weight, index)
+      signal_construct_prior_gaussian%gaussian => prior_gaussian_object
 
-      CALL profiler_set_stop_time('signal_construct_prior', start_time)
+      CALL profiler_set_stop_time('signal_construct_prior_gaussian',           &
+     &                            start_time)
 
       END FUNCTION
 
@@ -930,9 +934,9 @@
          this%geometric => null()
       END IF
 
-      IF (ASSOCIATED(this%prior)) THEN
-         CALL prior_destruct(this%prior)
-         this%prior => null()
+      IF (ASSOCIATED(this%gaussian)) THEN
+         CALL prior_gaussian_destruct(this%gaussian)
+         this%gaussian => null()
       END IF
 
       IF (ASSOCIATED(this%feedback)) THEN
@@ -979,9 +983,9 @@
 !>  @see mse::mse_get_signal_type
 !>  @see ece::ece_get_signal_type
 !>  @see geometric::geometric_get_modeled_signal
-!>  @see prior::prior_get_modeled_signal
+!>  @see prior_guassian::prior_guassian_get_modeled_signal
+!>  @see feedback::feedback_get_modeled_signal
 !>  @see combination_get_modeled_signal
-!>  @see gaussp_get_modeled_signal
 !>
 !>  @param[inout] this      A @ref diagnostic_class instance.
 !>  @param[inout] a_model   A @ref model instance.
@@ -1066,11 +1070,12 @@
      &                                         a_model, sigma,                 &
      &                                         last_value, scale_factor)
 
-            CASE (signal_prior_type)
+            CASE (signal_prior_gaussian_type)
 !  There is no way to know if a prior changed. Since they are very low cost,
 !  just recompute them anyway. So priors don't use the last_value argument.
                signal_get_modeled_signal =                                     &
-     &            prior_get_modeled_signal(this%prior, a_model, sigma)
+     &            prior_gaussian_get_modeled_signal(this%gaussian,             &
+     &                                              a_model, sigma)
                signal_get_modeled_signal(1) =                                  &
      &            signal_get_modeled_signal(1)*scale_factor
 
@@ -1286,9 +1291,9 @@
 !>  @see mse::mse_get_signal_type
 !>  @see ece::ece_get_signal_type
 !>  @see geometric::geometric_get_signal_type
-!>  @see prior::prior_get_signal_type
+!>  @see prior_guassian::prior_guassian_get_signal_type
+!>  @see feedback::feedback_get_signal_type
 !>  @see combination_get_signal_type
-!>  @see gaussp_get_signal_type
 !>
 !>  @param[in] this A @ref signal_class instance.
 !>  @returns A string describing the signal type.
@@ -1341,9 +1346,9 @@
             signal_get_signal_type =                                           &
      &         TRIM(geometric_get_signal_type(this%geometric))
 
-         CASE (signal_prior_type)
+         CASE (signal_prior_gaussian_type)
             signal_get_signal_type =                                           &
-     &         TRIM(prior_get_signal_type(this%prior))
+     &         TRIM(prior_gaussian_get_signal_type(this%gaussian))
 
          CASE (signal_feedback_type)
             signal_get_signal_type =                                           &
@@ -1373,7 +1378,7 @@
 !>  @see mse::mse_get_header
 !>  @see ece::ece_get_header
 !>  @see geometric::geometric_get_header
-!>  @see prior::prior_get_header
+!>  @see feedback::feedback_get_header
 !>  @see combination_get_header
 !>  @see gaussp_get_header
 !>
@@ -1409,9 +1414,6 @@
          CASE (signal_geometric_type)
             signal_get_header = geometric_get_header(this%geometric)
 
-         CASE (signal_prior_type)
-            signal_get_header = prior_get_header(this%prior)
-
          CASE (signal_feedback_type)
             signal_get_header = feedback_get_header(this%feedback)
 
@@ -1442,7 +1444,7 @@
 !>  @see intpol::intpol_get_gp_i
 !>  @see thomson::thomson_get_gp_i
 !>  @see ece::ece_get_gp_i
-!>  @see prior::prior_get_gp_i
+!>  @see prior_gaussian::prior_gaussian_get_gp_i
 !>
 !>  @param[in] this    A @ref signal_class instance.
 !>  @param[in] a_model A @ref model_class instance.
@@ -1487,9 +1489,9 @@
          CASE (signal_ece_type)
             signal_get_gp_i = ece_get_gp(this%ece, a_model, i, flags)
 
-         CASE (signal_prior_type)
-            signal_get_gp_i = prior_get_gp(this%prior, a_model, i,             &
-     &                                     flags)
+         CASE (signal_prior_gaussian_type)
+            signal_get_gp_i = prior_gaussian_get_gp(this%gaussian,             &
+     &                                              a_model, i, flags)
 
          CASE DEFAULT
             signal_get_gp_i = 0.0
@@ -1575,10 +1577,10 @@
             signal_get_gp_s = ece_get_gp(this%ece, a_model, context,           &
      &                                   signal_kll_callback_p)
 
-         CASE (signal_prior_type)
-            signal_get_gp_s = prior_get_gp(this%prior, context,                &
-     &                                     signal_kll_callback_i,              &
-     &                                     flags)
+         CASE (signal_prior_gaussian_type)
+            signal_get_gp_s =                                                  &
+     &         prior_gaussian_get_gp(this%gaussian, context,                   &
+     &                               signal_kll_callback_i, flags)
 
          CASE DEFAULT
             signal_get_gp_s = 0.0
@@ -1650,9 +1652,10 @@
             signal_get_gp_x = ece_get_gp(this%ece, a_model, x_cart,            &
      &                                   flags)
 
-         CASE (signal_prior_type)
-            signal_get_gp_x = prior_get_gp(this%prior, a_model, x_cart,        &
-     &                                     flags)
+         CASE (signal_prior_gaussian_type)
+            signal_get_gp_x = prior_gaussian_get_gp(this%gaussian,             &
+     &                                              a_model, x_cart,           &
+     &                                              flags)
 
          CASE DEFAULT
             signal_get_gp_x = 0.0
@@ -1891,9 +1894,11 @@
 
       SELECT CASE (this%type)
 
-         CASE (signal_prior_type)
-            CALL prior_write_auxiliary(this%prior, iou, index,                 &
-     &                                 a_model)
+         CASE (signal_prior_gaussian_type)
+            WRITE (iou,*)
+            WRITE (iou,1000) index, signal_get_signal_type(this)
+            CALL prior_gaussian_write_auxiliary(this%gaussian, iou,            &
+     &                                          a_model)
 
          CASE (signal_feedback_type)
             CALL feedback_write_auxiliary(this%feedback, iou, index)
@@ -1902,9 +1907,11 @@
             CALL combination_write_auxiliary(this%combination,                 &
      &                                       iou, index)
 
+      END SELECT
+
       CALL profiler_set_stop_time('signals_write_auxiliary', start_time)
 
-      END SELECT
+1000  FORMAT('Signal',1x,i4,1x,'is a prior signal, type: ',a)
 
       END SUBROUTINE
 

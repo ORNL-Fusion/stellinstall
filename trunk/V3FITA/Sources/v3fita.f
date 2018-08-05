@@ -1755,10 +1755,9 @@
          END IF
 
          context%signals(signals_created + 1)%p => signal_construct(           &
-     &      prior_construct(                                                   &
-     &         prior_gaussian_construct(context%model,                         &
+     &      prior_gaussian_construct(context%model,                            &
      &                                  prior_param_name(i),                   &
-     &                                  prior_indices(i,:))),                  &
+     &                                  prior_indices(i,:)),                   &
      &      TRIM(signal_make_short_name('prior_', i)), prior_name(i),          &
      &      prior_units(i), sdo_data_a(signals_created + 1),                   &
      &      sdo_sigma_a(signals_created + 1),                                  &
