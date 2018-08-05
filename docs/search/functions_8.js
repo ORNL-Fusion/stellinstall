@@ -1,13 +1,13 @@
 var searchData=
 [
-  ['length',['length',['../classvector3d.html#a9244a31ca8c226ddd34190f158f7d298',1,'vector3d::length()'],['../classvertex.html#a239ccff8c5a25f711bde2b3860695147',1,'vertex::length(const vertex &amp;v1, const vertex &amp;v2, const vector3d &amp;p)'],['../classvertex.html#aea8b16f8d6cc4f625318fad2adf661c1',1,'vertex::length(const vertex &amp;v, const vector3d &amp;p)']]],
+  ['length',['length',['../classvector3d.html#a7b392ac9ba031e28fca3c11f4b8b26b4',1,'vector3d::length()'],['../classvertex.html#a239ccff8c5a25f711bde2b3860695147',1,'vertex::length(const vertex &amp;v1, const vertex &amp;v2, const vector3d &amp;p)'],['../classvertex.html#aea8b16f8d6cc4f625318fad2adf661c1',1,'vertex::length(const vertex &amp;v, const vector3d &amp;p)']]],
   ['limiter_5fconstruct_5fiso',['limiter_construct_iso',['../interfacelimiter_1_1limiter__construct.html#a74344fd75929e957bf8bbda6e81cb6d6',1,'limiter::limiter_construct::limiter_construct_iso()'],['../namespacelimiter.html#a6d71ecaac1acf5132aea3dfe83870ac7',1,'limiter::limiter_construct_iso()']]],
   ['limiter_5fconstruct_5fpolygon',['limiter_construct_polygon',['../namespacelimiter.html#a2f45769892e9503f3464ea74a3507d99',1,'limiter']]],
   ['limiter_5fdestruct',['limiter_destruct',['../namespacelimiter.html#aa44dc38dfbefb7c21d280e0ec4ed74ff',1,'limiter']]],
   ['limiter_5fget_5fheader',['limiter_get_header',['../namespacelimiter.html#a67380501830b6dbfc1f38cdaf865f7a4',1,'limiter']]],
   ['limiter_5fget_5fmodeled_5fiso_5fsignal',['limiter_get_modeled_iso_signal',['../namespacelimiter.html#a9bfda30b98f36049d63fd74a6859314f',1,'limiter']]],
   ['limiter_5fget_5fmodeled_5fpolygon_5fsignal',['limiter_get_modeled_polygon_signal',['../namespacelimiter.html#a61451c5d2dce89e305ab1e499d53356d',1,'limiter']]],
-  ['limiter_5fget_5fmodeled_5fsignal',['limiter_get_modeled_signal',['../namespacelimiter.html#a52736b5107d67938441622bdbaa95402',1,'limiter']]],
+  ['limiter_5fget_5fmodeled_5fsignal',['limiter_get_modeled_signal',['../namespacelimiter.html#a5c71c1b84ddc077e6793d4d5d28df127',1,'limiter']]],
   ['limiter_5fget_5fsignal_5ftype',['limiter_get_signal_type',['../namespacelimiter.html#a963eb7d5a45eea09e29359ca61a81609',1,'limiter']]],
   ['limiter_5fgrid_5fconstruct',['limiter_grid_construct',['../namespacelimiter__grid.html#a78e7b713c5781ea4043899c20e4a65a1',1,'limiter_grid']]],
   ['limiter_5fgrid_5fdestruct',['limiter_grid_destruct',['../namespacelimiter__grid.html#a9e2650f5959b58e6feb3e0c324969aea',1,'limiter_grid']]],
@@ -21,7 +21,7 @@ var searchData=
   ['line_5fseg_5ftest',['line_seg_test',['../namespaceline__segment.html#ad646e194dc6269ad6d052e6a7689b7c8',1,'line_segment']]],
   ['linesearch',['linesearch',['../namespaceshared__functions.html#a61e8b9047c8d56be66ec7ff0c7ca38c4',1,'shared_functions']]],
   ['linmin',['linmin',['../namespacef1dim__mod.html#a692c8e58cc18aa004a0e708a3fa77100',1,'f1dim_mod']]],
-  ['lorentz',['lorentz',['../namespacesiesta__force.html#a108a52a51a38a059873aa94f15e9765c',1,'siesta_force']]],
+  ['lorentz',['lorentz',['../namespacesiesta__force.html#a89d3a3e49372864458cb7f9aa83b7712',1,'siesta_force']]],
   ['lr2gr',['lr2gr',['../namespaceblocktridiagonalsolver__s.html#a28eddc1f764e0eaf9b4b2b2ad6b48280',1,'blocktridiagonalsolver_s::lr2gr()'],['../namespaceblocktridiagonalsolver.html#a88e831d590eb7abac76c038a2af00fe6',1,'blocktridiagonalsolver::lr2gr()']]],
   ['lr2rank',['lr2rank',['../namespaceblocktridiagonalsolver__s.html#a061b3edd1ae41a4ad97e28f66656d750',1,'blocktridiagonalsolver_s::lr2rank()'],['../namespaceblocktridiagonalsolver.html#ac0e2835282996e621ad51a99d16a0a54',1,'blocktridiagonalsolver::lr2rank()']]]
 ];

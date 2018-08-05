@@ -8,7 +8,7 @@ var searchData=
   ['weight',['weight',['../structsignal_1_1signal__class.html#ac8c29f7c1ffb2980dae3dc06bce53b0e',1,'signal::signal_class']]],
   ['weights',['weights',['../structintegration__path_1_1path__int__class.html#a941a34e204e484bc4cb178c31a04ab4e',1,'integration_path::path_int_class']]],
   ['wgt_5findex',['wgt_index',['../structsignal_1_1combination__class.html#a91726e171cb15143ddcdf0c85972be39',1,'signal::combination_class']]],
-  ['work',['work',['../structsignal_1_1gaussp__class.html#ad0662f215c7a2047503097aac5423bca',1,'signal::gaussp_class']]],
+  ['work',['work',['../structguassian__process_1_1gaussp__class.html#a13351589de2bb7fb5ba8951aceab8481',1,'guassian_process::gaussp_class']]],
   ['wout_5ffile',['wout_file',['../namespacesiesta__namelist.html#a21c9db52d45e79833d731b4be4bb346d',1,'siesta_namelist']]],
   ['wout_5ffile_5fname',['wout_file_name',['../structvmec__equilibrium_1_1vmec__class.html#a31929fb764bd503d781f77983a407797',1,'vmec_equilibrium::vmec_class']]],
   ['writeproblemfile',['writeproblemfile',['../namespaceblocktridiagonalsolver__s.html#afe31e2c8652ce53f977e4a31a2138bc7',1,'blocktridiagonalsolver_s::writeproblemfile()'],['../namespaceblocktridiagonalsolver.html#ab89347b7aed5e915d4f669934f4ff0f4',1,'blocktridiagonalsolver::writeproblemfile()']]],

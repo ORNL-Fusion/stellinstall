@@ -1,8 +1,6 @@
 var searchData=
 [
-  ['levelelement',['levelelement',['../structblocktridiagonalsolver_1_1levelelement.html',1,'blocktridiagonalsolver']]],
-  ['levelelement',['levelelement',['../structblocktridiagonalsolver__bst_1_1levelelement.html',1,'blocktridiagonalsolver_bst']]],
-  ['levelelement',['levelelement',['../structblocktridiagonalsolver__s_1_1levelelement.html',1,'blocktridiagonalsolver_s']]],
+  ['levelelement',['levelelement',['../structblocktridiagonalsolver_1_1levelelement.html',1,'blocktridiagonalsolver::levelelement'],['../structblocktridiagonalsolver__bst_1_1levelelement.html',1,'blocktridiagonalsolver_bst::levelelement'],['../structblocktridiagonalsolver__s_1_1levelelement.html',1,'blocktridiagonalsolver_s::levelelement']]],
   ['li_5fgbfa',['li_gbfa',['../interfaceliprec_1_1li__gbfa.html',1,'liprec']]],
   ['li_5fgbsl',['li_gbsl',['../interfaceliprec_1_1li__gbsl.html',1,'liprec']]],
   ['li_5fgefa',['li_gefa',['../interfaceliprec_1_1li__gefa.html',1,'liprec']]],

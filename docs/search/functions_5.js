@@ -6,7 +6,7 @@ var searchData=
   ['feedback_5fdestruct',['feedback_destruct',['../namespacefeedback.html#a773dacfa235d9941e9f08f946f913895',1,'feedback']]],
   ['feedback_5fget_5ffeedback_5ftype',['feedback_get_feedback_type',['../namespacefeedback.html#ae3ff15b9c81e330a11a2601a57cf716e',1,'feedback']]],
   ['feedback_5fget_5fheader',['feedback_get_header',['../namespacefeedback.html#aec1abe71858ef1daa5440fb815df41f8',1,'feedback']]],
-  ['feedback_5fget_5fmodeled_5fsignal',['feedback_get_modeled_signal',['../namespacefeedback.html#a64d2773e815f7ded9e3d186882415b0b',1,'feedback']]],
+  ['feedback_5fget_5fmodeled_5fsignal',['feedback_get_modeled_signal',['../namespacefeedback.html#a7d6a77d6b9df355eb44796db1fed4104',1,'feedback']]],
   ['feedback_5fget_5fobserved_5fsignal',['feedback_get_observed_signal',['../namespacefeedback.html#a5fa30547f1048ab0dc0f67a9a7bd44e7',1,'feedback']]],
   ['feedback_5fget_5fsignal_5ftype',['feedback_get_signal_type',['../namespacefeedback.html#ab69c4cc66c294d5d45b1e4eda4b5910a',1,'feedback']]],
   ['feedback_5fwrite_5fauxiliary',['feedback_write_auxiliary',['../namespacefeedback.html#a5cacff1f0a3bc61d2905bd193ea49583',1,'feedback']]],

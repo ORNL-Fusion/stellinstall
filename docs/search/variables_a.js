@@ -1,5 +1,7 @@
 var searchData=
 [
+  ['kll',['kll',['../structguassian__process_1_1gaussp__class.html#a0f7540c3c0c696e97a4c25974cdfcd6d',1,'guassian_process::gaussp_class']]],
+  ['kls',['kls',['../structguassian__process_1_1gaussp__class.html#a742fa9327a8e3700bb1acc75d2b34c3d',1,'guassian_process::gaussp_class']]],
   ['kp',['kp',['../namespacev3rfun__input.html#af2055829670b3481ab38b37d6e0c5052',1,'v3rfun_input']]],
   ['kp_5fshell',['kp_shell',['../namespacev3rfun__input.html#a09fbd44c38b097fc453fd6bfc8437950',1,'v3rfun_input']]],
   ['kp_5fshell_5fstore',['kp_shell_store',['../structv3rfun__context_1_1v3rfun__context__class.html#a9d5266103bd5b6ded4b1870e65018b78',1,'v3rfun_context::v3rfun_context_class']]],
