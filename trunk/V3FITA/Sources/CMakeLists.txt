@@ -2,7 +2,6 @@
 list (APPEND v3fit_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/bivariate.f
 	${CMAKE_CURRENT_SOURCE_DIR}/extcurz.f
-	${CMAKE_CURRENT_SOURCE_DIR}/geometric.f
 	${CMAKE_CURRENT_SOURCE_DIR}/intpol.f
 	${CMAKE_CURRENT_SOURCE_DIR}/ipch_dot.f
 	${CMAKE_CURRENT_SOURCE_DIR}/ece_dot.f

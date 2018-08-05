@@ -577,14 +577,14 @@
 !>  Maximum number of diagnostic signals.
       INTEGER, PARAMETER :: v3fit_max_diagnostics = 1000
 !>  Maximum number of geometric signals.
-      INTEGER, PARAMETER :: v3fit_max_geometrics = 1000
+      INTEGER, PARAMETER :: v3fit_max_limiters = 1000
 !>  Maximum number of prior signals.
       INTEGER, PARAMETER :: v3fit_max_priors = 1000
 !>  Maximum number of combination signals.
       INTEGER, PARAMETER :: v3fit_max_combinations = 1000
 !>  Maximum number of total signals.
       INTEGER, PARAMETER :: v3fit_max_signals = v3fit_max_diagnostics          &
-     &                                        + v3fit_max_geometrics           &
+     &                                        + v3fit_max_limiters             &
      &                                        + v3fit_max_priors               &
      &                                        + v3fit_max_combinations         &
      &                                        + max_gaussprocess
@@ -1006,27 +1006,25 @@
 
 !  Limiter iso function specification.
 !>  Number of specified limiter iso functions.
-      INTEGER                                       :: n_lif = 0
+      INTEGER                                     :: n_lif = 0
 !>  Number of phi planes for an iso functions.
-      INTEGER, DIMENSION(v3fit_max_geometrics)      :: n_phi_lif = 0
+      INTEGER, DIMENSION(v3fit_max_limiters)      :: n_phi_lif = 0
 !>  Array of r-z polynomial coefficients.
-      REAL (rprec), DIMENSION(v3fit_max_geometrics,0:4,0:4) ::                 &
+      REAL (rprec), DIMENSION(v3fit_max_limiters,0:4,0:4) ::                   &
      &   lif_arz = 0.0
 !>  Array of r offset values.
-      REAL (rprec), DIMENSION(v3fit_max_geometrics) ::                         &
-     &   lif_rc = 0.0
+      REAL (rprec), DIMENSION(v3fit_max_limiters) :: lif_rc = 0.0
 !>  Array of z offset values.
-      REAL (rprec), DIMENSION(v3fit_max_geometrics) ::                         &
-     &   lif_zc = 0.0
+      REAL (rprec), DIMENSION(v3fit_max_limiters) :: lif_zc = 0.0
 !>  Array of sigma values.
-      REAL (rprec), DIMENSION(v3fit_max_geometrics) ::                         &
+      REAL (rprec), DIMENSION(v3fit_max_limiters) ::                           &
      &   lif_sigma = 0.001_dp
 !>  Array of phi values. Number of phi values need to be match @ref n_phi_lif
-      REAL (rprec), DIMENSION(v3fit_max_geometrics,v3fit_max_lif_size)         &
+      REAL (rprec), DIMENSION(v3fit_max_limiters,v3fit_max_lif_size)           &
      &   :: lif_phi_degree = 0.0
 !>  True specifies that the edge hits the limiter. False specifies that the edge
 !>  is inside the limiter.
-      LOGICAL, DIMENSION(v3fit_max_geometrics)      ::                         &
+      LOGICAL, DIMENSION(v3fit_max_limiters)      ::                           &
      &   lif_on_edge = .false.
 
 !  Prior signal specification.
@@ -1327,7 +1325,7 @@
 
       IF ((r_major_radius .gt. 0.0) .and.                                      &
      &    (a_minor_radius .gt. 0.0)) THEN
-         IF (n_lif + 1 .le. v3fit_max_geometrics) THEN
+         IF (n_lif + 1 .le. v3fit_max_limiters) THEN
             n_lif = n_lif + 1 ! Add this as a new limiter.
             lif_arz(n_lif,:,:) = 0.0
             lif_arz(n_lif,0,0) = -a_minor_radius**2.0
@@ -1345,7 +1343,7 @@
          ELSE
             CALL err_fatal('Adding limiter by specifying ' //                  &
      &                     'major/minor radii causes n_lif to ' //             &
-     &                     'exceed v3fit_max_geometrics')
+     &                     'exceed v3fit_max_limiters')
          END IF
       END IF
 

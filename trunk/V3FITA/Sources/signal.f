@@ -9,11 +9,11 @@
 !>  @ref combination_class and @ref gaussp_class.
 !>  @par
 !>  signal Sub Classes:
-!>  @ref diagnostic, @ref geometric, @ref prior, @ref combination_class,
-!>  @ref gaussp_class
+!>  @ref magnetic, @ref sxrem, @ref intpol, @ref thomson, @ref extcurz,
+!>  @ref mse, @ref ece, @ref limiter, @ref prior_gaussian, and @ref feedback
 !>
 !>  @par
-!>  combination and gaussian process Super Class:
+!>  combination Super Class:
 !>  @ref signal
 !>
 !>  @note
@@ -29,7 +29,7 @@
       USE extcurz
       USE mse
       USE ece
-      USE geometric
+      USE limiter
       USE prior_gaussian
       USE feedback
       USE data_parameters
@@ -55,9 +55,9 @@
       INTEGER, PARAMETER :: signal_mse_type            = 5
 !>  Type descriptor for the @ref diagnostic_class subclass @ref ece
       INTEGER, PARAMETER :: signal_ece_type            = 6
-!>  Type descriptor for the @ref signal_class subclass @ref geometric
-      INTEGER, PARAMETER :: signal_geometric_type      = 7
-!>  Type descriptor for the @ref signal_class subclass @ref prior
+!>  Type descriptor for the @ref signal_class subclass @ref limiter
+      INTEGER, PARAMETER :: signal_limiter_type        = 7
+!>  Type descriptor for the @ref signal_class subclass @ref prior_gaussian
       INTEGER, PARAMETER :: signal_prior_gaussian_type = 8
 !>  Type descriptor for the @ref signal_class subclass @ref feedback
       INTEGER, PARAMETER :: signal_feedback_type       = 9
@@ -92,8 +92,9 @@
 !-------------------------------------------------------------------------------
 !>  Base class representing a signal.
 !>  @par Sub Classes:
-!>  @ref diagnostic, @ref geometric, @ref prior, @ref combination_class,
-!>  @ref gaussp_class
+!>  @ref magnetic, @ref sxrem, @ref intpol, @ref thomson, @ref extcurz,
+!>  @ref mse, @ref ece, @ref limiter, @ref prior_gaussian, and @ref feedback,
+!>  @ref combination_class
 !-------------------------------------------------------------------------------
       TYPE signal_class
 !>  Type descirptor of the signal subclass type.
@@ -106,7 +107,7 @@
 !>  * @ref signal_extcurz_type
 !>  * @ref signal_mse_type
 !>  * @ref signal_ece_type
-!>  * @ref signal_geometric_type
+!>  * @ref signal_limiter_type
 !>  * @ref signal_prior_gaussian_type
 !>  * @ref signal_feedback_type
 !>  * @ref signal_combination_type
@@ -143,9 +144,9 @@
          TYPE (mse_class), POINTER           :: mse => null()
 !>  An instance of a @ref mse object.
          TYPE (ece_class), POINTER           :: ece => null()
-!>  An instance of a @ref geometric object.
-         TYPE (geometric_class), POINTER     :: geometric => null()
-!>  An instance of a @ref prior object.
+!>  An instance of a @ref limiter object.
+         TYPE (limiter_class), POINTER       :: limiter => null()
+!>  An instance of a @ref prior_gaussian object.
         TYPE (prior_gaussian_class), POINTER :: gaussian => null()
 !>  An instance of a @ref feedback object.
          TYPE (feedback_class), POINTER      :: feedback => null()
@@ -204,9 +205,12 @@
 !*******************************************************************************
 !-------------------------------------------------------------------------------
 !>  Interface for the construction of @ref signal_class types using
-!>  @ref signal_construct_diagnostic, @ref signal_construct_geometric,
-!>  @ref signal_construct_combination, @ref signal_construct_gaussp,
-!>  or @ref signal_construct_diagnostic_netcdf
+!>  @ref signal_construct_magnetic, @ref signal_construct_sxrem,
+!>  @ref signal_construct_intpol, @ref signal_construct_thomson,
+!>  @ref signal_construct_extcurz, @ref signal_construct_mse,
+!>  @ref signal_construct_ece, @ref signal_construct_limiter,
+!>  @ref signal_construct_prior_gaussian, @ref signal_construct_feedback,
+!>  @ref signal_construct_combination or @ref signal_construct_diagnostic_netcdf
 !-------------------------------------------------------------------------------
       INTERFACE signal_construct
          MODULE PROCEDURE signal_construct_new,                                &
@@ -217,7 +221,7 @@
      &                    signal_construct_extcurz,                            &
      &                    signal_construct_mse,                                &
      &                    signal_construct_ece,                                &
-     &                    signal_construct_geometric,                          &
+     &                    signal_construct_limiter,                            &
      &                    signal_construct_prior_gaussian,                     &
      &                    signal_construct_feedback,                           &
      &                    signal_construct_combination,                        &
@@ -629,11 +633,11 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Construct a @ref signal_class containing a @ref geometric object.
+!>  @brief Construct a @ref signal_class containing a @ref limiter object.
 !>
 !>  Allocates memory and initializes a @ref signal_class object.
 !>
-!>  @param[in] geometric_object An instance of a @ref geometric subclass.
+!>  @param[in] limiter_object An instance of a @ref limiter subclass.
 !>  @param[in] s_name           The short name of the signal.
 !>  @param[in] l_name           The short name of the signal.
 !>  @param[in] units            The units of the signal.
@@ -643,35 +647,35 @@
 !>  @param[in] index            Index of the model signal scale factor.
 !>  @returns A pointer to a constructed @ref signal_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION signal_construct_geometric(geometric_object, s_name,            &
-     &                                    l_name, units, observed,             &
-     &                                    sigma, weight, index)
+      FUNCTION signal_construct_limiter(limiter_object, s_name, l_name,        &
+     &                                  units, observed, sigma, weight,        &
+     &                                  index)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (signal_class), POINTER    :: signal_construct_geometric
-      TYPE (geometric_class), POINTER :: geometric_object
-      CHARACTER(len=*), INTENT(in)    :: s_name
-      CHARACTER(len=*), INTENT(in)    :: l_name
-      CHARACTER(len=*), INTENT(in)    :: units
-      REAL(rprec), INTENT(in)         :: observed
-      REAL(rprec), INTENT(in)         :: sigma
-      REAL(rprec), INTENT(in)         :: weight
-      INTEGER, INTENT(in)             :: index
+      TYPE (signal_class), POINTER  :: signal_construct_limiter
+      TYPE (limiter_class), POINTER :: limiter_object
+      CHARACTER(len=*), INTENT(in)  :: s_name
+      CHARACTER(len=*), INTENT(in)  :: l_name
+      CHARACTER(len=*), INTENT(in)  :: units
+      REAL(rprec), INTENT(in)       :: observed
+      REAL(rprec), INTENT(in)       :: sigma
+      REAL(rprec), INTENT(in)       :: weight
+      INTEGER, INTENT(in)           :: index
 
 !  local variables
-      REAL (rprec)                    :: start_time
+      REAL (rprec)                  :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      signal_construct_geometric =>                                            &
-     &   signal_construct(signal_geometric_type, s_name, l_name, units,        &
+      signal_construct_limiter =>                                              &
+     &   signal_construct(signal_limiter_type, s_name, l_name, units,          &
      &                    observed, sigma, weight, index)
-      signal_construct_geometric%geometric => geometric_object
+      signal_construct_limiter%limiter => limiter_object
 
-      CALL profiler_set_stop_time('signal_construct_geometric',                &
+      CALL profiler_set_stop_time('signal_construct_limiter',                  &
      &                            start_time)
 
       END FUNCTION
@@ -929,9 +933,9 @@
          this%ece => null()
       END IF
 
-      IF (ASSOCIATED(this%geometric)) THEN
-         CALL geometric_destruct(this%geometric)
-         this%geometric => null()
+      IF (ASSOCIATED(this%limiter)) THEN
+         CALL limiter_destruct(this%limiter)
+         this%limiter => null()
       END IF
 
       IF (ASSOCIATED(this%gaussian)) THEN
@@ -982,7 +986,7 @@
 !>  @see extcurz::extcurz_get_signal_type
 !>  @see mse::mse_get_signal_type
 !>  @see ece::ece_get_signal_type
-!>  @see geometric::geometric_get_modeled_signal
+!>  @see limiter::limiter_get_modeled_signal
 !>  @see prior_guassian::prior_guassian_get_modeled_signal
 !>  @see feedback::feedback_get_modeled_signal
 !>  @see combination_get_modeled_signal
@@ -1064,11 +1068,11 @@
      &            ece_get_modeled_signal(this%ece, a_model, sigma,             &
      &                                   last_value, scale_factor)
 
-            CASE (signal_geometric_type)
+            CASE (signal_limiter_type)
                signal_get_modeled_signal =                                     &
-     &            geometric_get_modeled_signal(this%geometric,                 &
-     &                                         a_model, sigma,                 &
-     &                                         last_value, scale_factor)
+     &            limiter_get_modeled_signal(this%limiter, a_model,            &
+     &                                       sigma, last_value,                &
+     &                                       scale_factor)
 
             CASE (signal_prior_gaussian_type)
 !  There is no way to know if a prior changed. Since they are very low cost,
@@ -1290,7 +1294,7 @@
 !>  @see extcurz::extcurz_get_signal_type
 !>  @see mse::mse_get_signal_type
 !>  @see ece::ece_get_signal_type
-!>  @see geometric::geometric_get_signal_type
+!>  @see limiter::limiter_get_signal_type
 !>  @see prior_guassian::prior_guassian_get_signal_type
 !>  @see feedback::feedback_get_signal_type
 !>  @see combination_get_signal_type
@@ -1342,9 +1346,9 @@
             signal_get_signal_type = TRIM('diagnostic ' //                     &
      &         ece_get_signal_type(this%ece))
 
-         CASE (signal_geometric_type)
+         CASE (signal_limiter_type)
             signal_get_signal_type =                                           &
-     &         TRIM(geometric_get_signal_type(this%geometric))
+     &         TRIM(limiter_get_signal_type(this%limiter))
 
          CASE (signal_prior_gaussian_type)
             signal_get_signal_type =                                           &
@@ -1377,7 +1381,7 @@
 !>  @see magnetic::magnetic_get_header
 !>  @see mse::mse_get_header
 !>  @see ece::ece_get_header
-!>  @see geometric::geometric_get_header
+!>  @see limiter::limiter_get_header
 !>  @see feedback::feedback_get_header
 !>  @see combination_get_header
 !>  @see gaussp_get_header
@@ -1411,8 +1415,8 @@
          CASE (signal_ece_type)
             signal_get_header = ece_get_header(this%ece)
 
-         CASE (signal_geometric_type)
-            signal_get_header = geometric_get_header(this%geometric)
+         CASE (signal_limiter_type)
+            signal_get_header = limiter_get_header(this%limiter)
 
          CASE (signal_feedback_type)
             signal_get_header = feedback_get_header(this%feedback)
@@ -1516,7 +1520,7 @@
 !>  @see intpol::intpol_get_gp_s
 !>  @see thomson::thomson_get_gp_s
 !>  @see ece::ece_get_gp_s
-!>  @see prior::prior_get_gp_s
+!>  @see prior_gaussian::prior_gaussian_get_gp_s
 !>
 !>  @param[in] this    A @ref signal_class instance.
 !>  @param[in] a_model A @ref model_class instance.
@@ -1606,7 +1610,7 @@
 !>  @see intpol::intpol_get_gp_x
 !>  @see thomson::thomson_get_gp_x
 !>  @see ece::ece_get_gp_x
-!>  @see prior::prior_get_gp_x
+!>  @see prior_gaussian::prior_gaussian_get_gp_x
 !>
 !>  @param[in] this    A @ref signal_class instance.
 !>  @param[in] a_model A @ref model_class instance.

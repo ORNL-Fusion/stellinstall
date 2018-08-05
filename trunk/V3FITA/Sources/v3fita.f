@@ -1092,7 +1092,7 @@
          CALL init_ece_signals(context, signals_created)
       END IF
 
-      CALL init_geometric_signals(context, signals_created)
+      CALL init_limiter_signals(context, signals_created)
 
       CALL init_prior_signals(context, signals_created)
 
@@ -1608,15 +1608,15 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!>  @brief Constructs @ref geometric signals.
+!>  @brief Constructs @ref limiter signals.
 !>
-!>  For now only @ref limiter signals are constructed.
+!>  Constructs all iso and grid based limiters.
 !>
 !>  @param[inout] context         An instance of a @ref v3fit_context object.
 !>  @param[inout] signals_created Count of the current number of signals
 !>                                constructed.
 !-------------------------------------------------------------------------------
-      SUBROUTINE init_geometric_signals(context, signals_created)
+      SUBROUTINE init_limiter_signals(context, signals_created)
       USE v3fit_context
       USE stel_constants, only: degree
 
@@ -1636,21 +1636,21 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      WRITE (*,*) ' *** Constructing geometric signals'
-      WRITE (context%runlog_iou,*) ' *** Constructing geometric signals'
+      WRITE (*,*) ' *** Constructing limiter signals'
+      WRITE (context%runlog_iou,*) ' *** Constructing limiter signals'
 
 !  For now, only limiter functions can be created.
       DO i = 1, n_lif
 !  Check if there are two many signals
          IF (signals_created + 1 .gt. v3fit_max_signals) THEN
-            CALL err_fatal('init_geometric_signals: created signals' //        &
+            CALL err_fatal('init_limiter_signals: created signals' //          &
      &                     ' exceeds v3fit_max_signals')
          END IF
 
-!  Check if there are two many geometric signals.
-         IF (i .gt. v3fit_max_geometrics) THEN
-            CALL err_fatal('init_geometric_signals: created signals' //        &
-     &                     ' exceeds v3fit_max_geometrics')
+!  Check if there are two many limiter signals.
+         IF (i .gt. v3fit_max_limiters) THEN
+            CALL err_fatal('init_limiter_signals: created signals' //          &
+     &                     ' exceeds v3fit_max_limits')
          END IF
 
          s_name = TRIM(signal_make_short_name('edge_lim_', i))
@@ -1664,11 +1664,10 @@
          END IF
 
          context%signals(signals_created + 1)%p => signal_construct(           &
-     &      geometric_construct(                                               &
-     &         limiter_construct(                                              &
-     &            limiter_iso_construct(lif_arz(i,:,:), lif_rc(i),             &
-     &               lif_zc(i), 20, lif_phi_degree(i,1:num_phi)*degree),       &
-     &            lif_on_edge(i))),                                            &
+     &      limiter_construct(                                                 &
+     &         limiter_iso_construct(lif_arz(i,:,:), lif_rc(i),                &
+     &            lif_zc(i), 20, lif_phi_degree(i,1:num_phi)*degree),          &
+     &         lif_on_edge(i)),                                                &
      &      s_name, l_name, 'm', sdo_data_a(signals_created + 1),              &
      &      sdo_sigma_a(signals_created + 1),                                  &
      &      sdo_weight_a(signals_created + 1),                                 &
@@ -1689,10 +1688,8 @@
          s_name = TRIM(signal_make_short_name('edge_lim_', i))
          WRITE (l_name,'(a,i4)') 'edge limiter polygon ', i
          context%signals(signals_created + 1)%p => signal_construct(           &
-     &      geometric_construct(                                               &
-     &         limiter_construct(                                              &
-     &            limiter_grid_construct(limiter_grid_file),                   &
-     &                                   lif_on_edge(n_lif + 1))),             &
+     &      limiter_construct(limiter_grid_construct(limiter_grid_file),       &
+     &                        lif_on_edge(n_lif + 1)),                         &
      &      s_name, l_name, 'm', sdo_data_a(signals_created + 1),              &
      &      sdo_sigma_a(signals_created + 1),                                  &
      &      sdo_weight_a(signals_created + 1),                                 &
@@ -1708,7 +1705,7 @@
 
       END IF
 
-      CALL profiler_set_stop_time('init_geometric_signals', start_time)
+      CALL profiler_set_stop_time('init_limiter_signals', start_time)
 
       END SUBROUTINE
 
@@ -1748,7 +1745,7 @@
      &                     ' exceeds v3fit_max_signals')
          END IF
 
-!  Check if there are two many geometric signals.
+!  Check if there are two many prior signals.
          IF (i .gt. v3fit_max_priors) THEN
             CALL err_fatal('init_prior_signals: created signals' //            &
      &                     ' exceeds v3fit_max_priors')
@@ -1872,7 +1869,7 @@
      &                     'signals exceeds v3fit_max_signals')
          END IF
 
-!  Check if there are two many geometric signals.
+!  Check if there are two many combination signals.
          IF (i .gt. v3fit_max_combinations) THEN
             CALL err_fatal('init_combination_signals: created ' //             &
      &                     'signals exceeds v3fit_max_combinations')
