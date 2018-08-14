@@ -437,9 +437,9 @@
       ALLOCATE(unprimed_grid_construct_a%a_p(num_1,num_2,num_3))
       ALLOCATE(unprimed_grid_construct_a%a_z(num_1,num_2,num_3))
 
-      ALLOCATE(cosv(num_1))
-      ALLOCATE(sinv(num_1))
-      ALLOCATE(phi(num_1))
+      ALLOCATE(cosv(num_2))
+      ALLOCATE(sinv(num_2))
+      ALLOCATE(phi(num_2))
 
       total = bmw_parallel_context_end(parallel, num_1*num_2*num_3)
       total = CEILING(total/parallel%num_threads)
@@ -520,7 +520,7 @@
 
 !  Interpolate from the mgrid grid to the unprimed R Z grid to add the vacuum
 !  vector potential.
-         CALL m_grid_interpolate(mgrid, r, phi(ai), z,                         &
+         CALL m_grid_interpolate(mgrid, r, phi(aj), z,                         &
      &           unprimed_grid_construct_a%a_r(ai,aj,ak),                      &
      &           unprimed_grid_construct_a%a_p(ai,aj,ak),                      &
      &           unprimed_grid_construct_a%a_z(ai,aj,ak))
@@ -532,13 +532,23 @@
          unprimed_grid_construct_a%a_z(ai,aj,ak) =                             &
      &      unprimed_grid_construct_a%a_z(ai,aj,ak) +                          &
      &      SUM(pgrid%j_z/rp)*pgrid%dvol
-
       END DO
 !$OMP END DO
 
       DEALLOCATE(rp)
 
 !$OMP END PARALLEL
+
+!  Multi process did not fill out the entire array. Get the missing pieces from
+!  the other processes.
+      IF (parallel%stride .gt. 1) THEN
+         CALL bmw_parallel_context_reduce(parallel,                            &
+     &           unprimed_grid_construct_a%a_r)
+         CALL bmw_parallel_context_reduce(parallel,                            &
+     &           unprimed_grid_construct_a%a_p)
+         CALL bmw_parallel_context_reduce(parallel,                            &
+     &           unprimed_grid_construct_a%a_z)
+      END IF
 
       IF (parallel%offset .eq. 0) THEN
          WRITE (io_unit,1001) clear_screen

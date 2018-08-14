@@ -280,6 +280,11 @@
          khigh = CEILING(k)
       END IF
 
+!  Scale index from 0 - 1.
+      i = i - ilow
+      j = j - jlow
+      k = k - klow
+
       ar = m_grid_intf(                                                        &
      &        m_grid_intf(                                                     &
      &           m_grid_intf(                                                  &
