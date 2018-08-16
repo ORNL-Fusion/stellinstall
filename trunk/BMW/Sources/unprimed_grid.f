@@ -427,6 +427,16 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
+      IF (MAXVAL(r_grid) .gt. mgrid%rmax .or.                            &
+     &    MINVAL(r_grid) .lt. mgrid%rmin .or.                            &
+     &    MAXVAL(z_grid) .gt. mgrid%zmax .or.                            &
+     &    MINVAL(z_grid) .lt. mgrid%zmin) THEN
+         IF (parallel%offset .eq. 0) THEN
+            WRITE (io_unit, 2000)
+         END IF
+         CALL bmw_parallel_context_abort(-1)
+      END IF
+
       ALLOCATE(unprimed_grid_construct_a)
 
       num_1 = SIZE(r_grid, 1)
@@ -559,6 +569,8 @@
 
 1000  FORMAT(a,a,f6.2,' % Finished')
 1001  FORMAT(a,'Unprimed Grid Finished')
+
+2000  FORMAT('Error: Unprimed grid extends beyond the mgrid grid.')
 
       END FUNCTION
 
