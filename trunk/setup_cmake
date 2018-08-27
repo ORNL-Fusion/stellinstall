@@ -264,8 +264,8 @@ elif [ $MACHINE_ID == "edison01" ] || \
      [ $MACHINE_ID == "cori12"   ]
 then
 
-	# Config for NERSC Edison Machine. OLCF systems use a module system. Load the cmake                                                                                                                                                                                        
-	# module to get a compatable version first.                               
+	# Config for NERSC Edison Machine. OLCF systems use a module system. Load the cmake
+	# module to get a compatable version first.
 	module load cmake
 	module load python
 	module load cray-netcdf
@@ -394,6 +394,18 @@ then
 	      -DCMAKE_CXX_COMPILER=g++                                 \
 	      -DCMAKE_Fortran_COMPILER=gfortran                        \
 	      -DCMAKE_PREFIX_PATH:FILEPATH="$MPICH_DIR;$SCALAPACK_DIR"
+
+elif [ $MACHINE_ID == "fusion3" ]
+then
+	# Config for ORNL fusion3 machine.
+
+        cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE                  \
+              -DNETCDF_INC_PATH=/home/m4c/libraries/install/include/ \
+              -DNETCDF_LIB_PATH=/home/m4c/libraries/install/lib      \
+	      -DCMAKE_PREFIX_PATH=/home/m4c/libraries/install        \
+              -DEXTRA_FLAGS="-fopenmp -DNEW_CODE"                    \
+              -DUSE_PARVMEC=ON                                       \
+              -DUSE_FAST_COPY=ON
 
 else
 # MACHINE_ID is new and unknown. Inform the user how to add support for this new machine.
