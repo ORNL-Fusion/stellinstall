@@ -268,6 +268,13 @@
 !>     @item{br_grid (num_p\, num_z\, num_r), Magnetic field in R direction.,     unprimed_grid::unprimed_grid_class::b_r}
 !>     @item{bp_grid (num_p\, num_z\, num_r), Magnetic field in Phi direction.,   unprimed_grid::unprimed_grid_class::b_p}
 !>     @item{bz_grid (num_p\, num_z\, num_r), Magnetic field in Z direction.,     unprimed_grid::unprimed_grid_class::b_z}
+!>     @item{px_grid (num_s\, num_u\, num_v), X position of the primed grid.,     primed_grid::primed_grid_class::x}
+!>     @item{py_grid (num_s\, num_u\, num_v), Y position of the primed grid.,     primed_grid::primed_grid_class::y}
+!>     @item{pz_grid (num_s\, num_u\, num_v), Z position of the primed grid.,     primed_grid::primed_grid_class::z}
+!>     @item{jx_grid (num_s\, num_u\, num_v), X position of the primed grid.,     primed_grid::primed_grid_class::j_x}
+!>     @item{jy_grid (num_s\, num_u\, num_v), Y position of the primed grid.,     primed_grid::primed_grid_class::j_y}
+!>     @item{jz_grid (num_s\, num_u\, num_v), Z position of the primed grid.,     primed_grid::primed_grid_class::j_z}
+
 !>  @end_table
 !-------------------------------------------------------------------------------
 !>  @brief Initialize NetCDF based result file.
@@ -321,7 +328,9 @@
 
 !  local parameters
       CHARACTER (len=*), DIMENSION(3), PARAMETER  ::                           &
-     &   dims = (/ 'r  ','z  ','phi' /)
+     &   up_dims = (/ 'r  ','z  ','phi' /)
+      CHARACTER (len=*), DIMENSION(3), PARAMETER  ::                           &
+     &   p_dims = (/ 'u','v','s' /)
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -339,18 +348,32 @@
          CALL cdf_define(result_iou, 'zmax', this%m_grid%zmax)
 
          CALL cdf_define(result_iou, 'ar_grid', this%up_grid%a_r,              &
-     &                   dimname=dims)
+     &                   dimname=up_dims)
          CALL cdf_define(result_iou, 'ap_grid', this%up_grid%a_p,              &
-     &                   dimname=dims)
+     &                   dimname=up_dims)
          CALL cdf_define(result_iou, 'az_grid', this%up_grid%a_z,              &
-     &                   dimname=dims)
+     &                   dimname=up_dims)
 
          CALL cdf_define(result_iou, 'br_grid', this%up_grid%b_r,              &
-     &                   dimname=dims)
+     &                   dimname=up_dims)
          CALL cdf_define(result_iou, 'bp_grid', this%up_grid%b_p,              &
-     &                   dimname=dims)
+     &                   dimname=up_dims)
          CALL cdf_define(result_iou, 'bz_grid', this%up_grid%b_z,              &
-     &                   dimname=dims)
+     &                   dimname=up_dims)
+
+         CALL cdf_define(result_iou, 'px_grid', this%p_grid%x,                 &
+     &                   dimname=p_dims)
+         CALL cdf_define(result_iou, 'py_grid', this%p_grid%y,                 &
+     &                   dimname=p_dims)
+         CALL cdf_define(result_iou, 'pz_grid', this%p_grid%z,                 &
+     &                   dimname=p_dims)
+
+         CALL cdf_define(result_iou, 'jx_grid', this%p_grid%j_x,               &
+     &                   dimname=p_dims)
+         CALL cdf_define(result_iou, 'jy_grid', this%p_grid%j_y,               &
+     &                   dimname=p_dims)
+         CALL cdf_define(result_iou, 'jz_grid', this%p_grid%j_z,               &
+     &                   dimname=p_dims)
 
          CALL cdf_write(result_iou, 'series', series)
 
@@ -368,6 +391,14 @@
          CALL cdf_write(result_iou, 'br_grid', this%up_grid%b_r)
          CALL cdf_write(result_iou, 'bp_grid', this%up_grid%b_p)
          CALL cdf_write(result_iou, 'bz_grid', this%up_grid%b_z)
+
+         CALL cdf_write(result_iou, 'px_grid', this%p_grid%x)
+         CALL cdf_write(result_iou, 'py_grid', this%p_grid%y)
+         CALL cdf_write(result_iou, 'pz_grid', this%p_grid%z)
+
+         CALL cdf_write(result_iou, 'jx_grid', this%p_grid%j_x)
+         CALL cdf_write(result_iou, 'jy_grid', this%p_grid%j_y)
+         CALL cdf_write(result_iou, 'jz_grid', this%p_grid%j_z)
 
          CALL cdf_close(result_iou)
       END IF
