@@ -166,7 +166,7 @@
 
 !  local parameters
       INTEGER, PARAMETER                            :: num_u = 101
-      REAL (rprec)                                  :: du = twopi/num_u
+      REAL (rprec), PARAMETER                       :: du = twopi/num_u
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -455,7 +455,7 @@
 
 !  local parameters
       INTEGER, PARAMETER                            :: num_u = 101
-      REAL (rprec)                                  :: du = twopi/num_u
+      REAL (rprec), PARAMETER                       :: du = twopi/num_u
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -806,7 +806,7 @@
 
 !  local parameters
       INTEGER, PARAMETER                            :: num_u = 101
-      REAL (rprec)                                  :: du = twopi/num_u
+      REAL (rprec), PARAMETER                       :: du = twopi/num_u
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -1157,7 +1157,7 @@
 
 !  local parameters
       INTEGER, PARAMETER                            :: num_u = 101
-      REAL (rprec)                                  :: du = twopi/num_u
+      REAL (rprec), PARAMETER                       :: du = twopi/num_u
 
 !  Start of executable code
       start_time = profiler_get_start_time()
