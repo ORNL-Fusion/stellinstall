@@ -65,6 +65,23 @@
 
       cl_parser => bmw_commandline_parser_construct(parallel)
 
+!  Check if the required flags are set.
+      IF (.not.bmw_commandline_parser_is_flag_set(cl_parser,                   &
+     &    '-mgridf')) THEN
+         WRITE (*,1001) '-mgridf'
+         CALL bmw_commandline_parser_print_help
+      END IF
+      IF (.not.bmw_commandline_parser_is_flag_set(cl_parser,                   &
+     &    '-woutf')) THEN
+         WRITE (*,1001) '-woutf'
+         CALL bmw_commandline_parser_print_help
+      END IF
+      IF (.not.bmw_commandline_parser_is_flag_set(cl_parser,                   &
+     &    '-outf')) THEN
+         WRITE (*,1001) '-outf'
+         CALL bmw_commandline_parser_print_help
+      END IF
+
       CALL bmw_parallel_context_set_threads(parallel,                          &
      &        bmw_commandline_parser_get_integer(cl_parser, '-para', 1))
 
@@ -131,5 +148,6 @@
      &                                  )
 
 1000  FORMAT('BMW ',i4,' Series.')
+1001  FORMAT('Required flag ',a,' not set.')
 
       END PROGRAM

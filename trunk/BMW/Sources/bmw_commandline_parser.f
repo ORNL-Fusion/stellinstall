@@ -173,6 +173,9 @@
      &            temp(value_index + 1:LEN_TRIM(temp))
             END IF
           END IF
+
+          CALL bmw_commandline_parser_flag_requires_value(                     &
+     &            bmw_commandline_parser_construct, i)
       END DO
 
       CALL profiler_set_stop_time('bmw_commandline_parser_construct',          &
@@ -234,11 +237,11 @@
 !  Declare Arguments
       CHARACTER (len=path_length) :: bmw_commandline_parser_get_string
       TYPE (bmw_commandline_parser_class), INTENT(in) :: this
-      CHARACTER (len=*), INTENT(in)               :: arg
+      CHARACTER (len=*), INTENT(in)                   :: arg
 
 !  Local arguments
-      INTEGER                                     :: i
-      REAL (rprec)                                :: start_time
+      INTEGER                                         :: i
+      REAL (rprec)                                    :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -285,13 +288,13 @@
 !  Declare Arguments
       INTEGER :: bmw_commandline_parser_get_integer
       TYPE (bmw_commandline_parser_class), INTENT(in) :: this
-      CHARACTER (len=*), INTENT(in)               :: arg
-      INTEGER, INTENT(in)                         :: default_value
+      CHARACTER (len=*), INTENT(in)                   :: arg
+      INTEGER, INTENT(in)                             :: default_value
 
 !  Local arguments
-      CHARACTER (len=path_length)                 :: value
-      INTEGER                                     :: status
-      REAL (rprec)                                :: start_time
+      CHARACTER (len=path_length)                     :: value
+      INTEGER                                         :: status
+      REAL (rprec)                                    :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -340,13 +343,13 @@
 !  Declare Arguments
       REAL (rprec) :: bmw_commandline_parser_get_real
       TYPE (bmw_commandline_parser_class), INTENT(in) :: this
-      CHARACTER (len=*), INTENT(in)               :: arg
-      REAL (rprec), INTENT(in)                    :: default_value
+      CHARACTER (len=*), INTENT(in)                   :: arg
+      REAL (rprec), INTENT(in)                        :: default_value
 
 !  Local arguments
-      CHARACTER (len=path_length)                 :: value
-      INTEGER                                     :: status
-      REAL (rprec)                                :: start_time
+      CHARACTER (len=path_length)                     :: value
+      INTEGER                                         :: status
+      REAL (rprec)                                    :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -393,11 +396,11 @@
 !  Declare Arguments
       LOGICAL :: bmw_commandline_parser_is_flag_set
       TYPE (bmw_commandline_parser_class), INTENT(in) :: this
-      CHARACTER (len=*), INTENT(in)               :: arg
+      CHARACTER (len=*), INTENT(in)                   :: arg
 
 !  Local arguments
-      INTEGER                                     :: i
-      REAL (rprec)                                :: start_time
+      INTEGER                                         :: i
+      REAL (rprec)                                    :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -426,6 +429,56 @@
 !*******************************************************************************
 !  UTILITY SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Check if a command line argument requires a value.
+!>
+!>  Command line arguments for
+!>
+!>    * -mgridf
+!>    * -woutf
+!>    * -siestaf
+!>    * -outf
+!>    * -logf
+!>
+!>  require a value to be set.
+!>
+!>  @param[in] this A @ref bmw_commandline_parser_class instance.
+!>  @param[in] index  A argument string to search for.
+!>  @returns True if the argument has a value.
+!-------------------------------------------------------------------------------
+      SUBROUTINE bmw_commandline_parser_flag_requires_value(this, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (bmw_commandline_parser_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                             :: index
+
+!  Local arguments
+      REAL (rprec)                                    :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE (TRIM(this%arg(index)))
+
+         CASE ('-mgridf','-woutf','-siestaf','-outf','-logf')
+            IF (TRIM(this%value(index)) .eq. '') THEN
+               WRITE (*,1000) TRIM(this%arg(index)),                           &
+     &                        TRIM(this%arg(index))
+
+               CALL bmw_commandline_parser_print_help
+            END IF
+
+      END SELECT
+
+      CALL profiler_set_stop_time(                                             &
+     &        'bmw_commandline_parser_flag_requires_value', start_time)
+
+1000  FORMAT(a,' flag requires value. Usage: ',a,'=value')
+
+      END SUBROUTINE
+
 !-------------------------------------------------------------------------------
 !>  @brief Print out help text.
 !>
