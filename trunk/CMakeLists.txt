@@ -74,14 +74,17 @@ if (MPI_Fortran_FOUND)
 
 #  Some of the tests need to be oversubscribbed to run. There is a problem where
 #  depending on the current platform or implementation of MPI the oversubscribe
-#  flag changes.
-	execute_process(COMMAND ${MPIEXEC} --version OUTPUT_VARIABLE MPI_VERSION)
-	if (${MPI_VERSION} MATCHES "Open MPI" OR
-	    ${MPI_VERSION} MATCHES "OpenRTE"  OR
-	    ${MPI_VERSION} MATCHES "slurm"    OR
-	    ${MPI_VERSION} MATCHES "aprun")
-		set (MPI_OVERSUBSCRIBE_FLAG "--oversubscribe")
- 	endif ()
+#  flag changes. MPIEXEC may not write to stdout correctly. Add the ability to
+#  set this variable manually.
+	if (NOT ${MPI_OVERSUBSCRIBE_FLAG}) 
+		execute_process(COMMAND ${MPIEXEC} --version OUTPUT_VARIABLE MPI_VERSION)
+		if (${MPI_VERSION} MATCHES "Open MPI" OR
+		    ${MPI_VERSION} MATCHES "OpenRTE"  OR
+		    ${MPI_VERSION} MATCHES "slurm"    OR
+		    ${MPI_VERSION} MATCHES "aprun")
+			set (MPI_OVERSUBSCRIBE_FLAG "--oversubscribe")
+	 	endif ()
+	endif ()
 endif ()
 
 # Set a directories to build all binary files.
