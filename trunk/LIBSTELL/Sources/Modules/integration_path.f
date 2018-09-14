@@ -277,14 +277,14 @@
 !>  last vertex is found, integrate alone that path. The integrand is proveded
 !>  by means of call back function.
 !>
-!>  @param[in]    this                 In instance of a @ref path_int_class
-!>                                     instance.
-!>  @param[inout] path                 Starting @ref vertex to of the path to
-!>                                     integrate.
-!>  @param        integration_function Function pointer that defines the
-!>                                     integrand.
-!>  @param[in]    context              Generic object that contains data for the
-!>                                     integration function.
+!>  @param[in] this                 In instance of a @ref path_int_class
+!>                                  instance.
+!>  @param[in] path                 Starting @ref vertex to of the path to
+!>                                  integrate.
+!>  @param     integration_function Function pointer that defines the
+!>                                  integrand.
+!>  @param[in] context              Generic object that contains data for the
+!>                                  integration function.
 !>  @returns The total integrated path to the end.
 !-------------------------------------------------------------------------------
       RECURSIVE FUNCTION path_integrate(this, path,                            &
@@ -294,10 +294,10 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec)                       :: total
-      TYPE (path_int_class), INTENT(in)  :: this
-      TYPE (vertex), INTENT(inout)       :: path
-      CHARACTER (len=1), INTENT(in)      :: context(:)
+      REAL (rprec)                      :: total
+      TYPE (path_int_class), INTENT(in) :: this
+      TYPE (vertex), INTENT(in)         :: path
+      CHARACTER (len=1), INTENT(in)     :: context(:)
       INTERFACE
          FUNCTION integration_function(context, xcart, dxcart,                 &
      &                                 length, dx)
@@ -330,12 +330,12 @@
 !>  last vertex is found, a new vertex is allocated and appended to the path.
 !>  The integrand is proveded by means of call back function.
 !>
-!>  @param[inout] path            Starting vertex to begin search.
-!>  @param        search_function Function pointer that defines the search
-!>                                criteria.
-!>  @param[in]    context         Generic object that contains data for the
-!>                                integration function.
-!>  @param[out]   found           Signals if the condition was met.
+!>  @param[in]  path            Starting vertex to begin search.
+!>  @param      search_function Function pointer that defines the search
+!>                              criteria.
+!>  @param[in]  context         Generic object that contains data for the
+!>                              integration function.
+!>  @param[out] found           Signals if the condition was met.
 !>  @returns The vertex position along the path where the search condition was
 !>           found.
 !-------------------------------------------------------------------------------
@@ -345,7 +345,7 @@
       IMPLICIT NONE
 
       REAL (rprec), DIMENSION(3)    :: xcart
-      TYPE (vertex), INTENT(inout)  :: path
+      TYPE (vertex), INTENT(in)     :: path
       CHARACTER (len=1), INTENT(in) :: context(:)
       LOGICAL, INTENT(out)          :: found
       INTERFACE
