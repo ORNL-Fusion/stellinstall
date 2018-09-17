@@ -6,9 +6,10 @@ This guide is meant as a quick reference to get the code compiled, and generate 
 ## Requirements
 
 1. NetCDF library: Availble from your operating system package management or from [Unidata](http://www.unidata.ucar.edu).
-2. LAPACK/BLAS library: Should be available with your operating system or compiler.
-3. SCALAPACK library: Availble from your operating system package management or from [SCALAPACK](http://www.netlib.org/scalapack/).
-4. CMake: Available from your operating system’s package management or from [cmake.org](https://cmake.org).
+2. MPI library: Any mpi library will work. For local machines there is [OpenMPI](https://www.open-mpi.org).
+3. LAPACK/BLAS library: Should be available with your operating system or compiler.
+4. SCALAPACK library: Availble from your operating system package management or from [SCALAPACK](http://www.netlib.org/scalapack/).
+5. CMake: Available from your operating system’s package management or from [cmake.org](https://cmake.org).
 
 ### Optional
 1. Doxygen: Available from your operating system’s package management or from [Doxygen](http://www.stack.nl/~dimitri/doxygen/).
