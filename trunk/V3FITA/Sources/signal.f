@@ -6,7 +6,7 @@
 !  found in the Module not the file.
 !
 !>  Defines the base class of the type @ref signal_class and the base class of
-!>  @ref combination_class and @ref gaussp_class.
+!>  @ref combination_class.
 !>  @par
 !>  signal Sub Classes:
 !>  @ref magnetic, @ref sxrem, @ref intpol, @ref thomson, @ref extcurz,

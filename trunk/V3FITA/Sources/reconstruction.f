@@ -666,7 +666,7 @@
 !>  @param[inout] this     A @ref reconstruction_class instance.
 !>  @param[inout] signals  Array of @ref signal objects.
 !>  @param[inout] a_model  A @ref model instance.
-!>  @param[inout] gaussp   Array of @ref gaussp_class objects.
+!>  @param[inout] gaussp   Array of @ref guassian_process::gaussp_class objects.
 !>  @param[inout] eq_steps Number of steps for the equilibrium to take.
 !>  @param[in]    iou      Input/output file to write log messages to.
 !>  @param[in]    eq_comm  MPI communicator for the child equilibrium processes.
@@ -1636,8 +1636,9 @@
 !>  @param[inout] signals    Array of @ref signal objects.
 !>  @param[inout] locks      Array of @ref lock objects.
 !>  @param[inout] a_model    A @ref model instance.
-!>  @param[inout] gaussp     Array of @ref gaussp_class objects.
-!>  @param[inout] params     Array of @ref parameter objects.
+!>  @param[inout] gaussp     Array of @ref guassian_process::gaussp_class
+!>                           objects.
+!>  @param[inout] params     Array of @ref v3fit_params::param_class objects.
 !>  @param[inout] eq_steps   Number of steps the equilibrium took.
 !>  @param[in]    iou        Input/output file to write log messages to.
 !>  @param[in]    recon_comm MPI communicator for the child jacobian processes.
