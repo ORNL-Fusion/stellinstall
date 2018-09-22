@@ -367,9 +367,10 @@
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: gradient
       REAL (rprec)                              :: evidence
       REAL (rprec)                              :: new_evidence
+      REAL (rprec)                              :: gamma
 
 !  local parameters
-      REAL(rprec), PARAMETER                    :: gamma = 1.0
+      REAL (rprec), PARAMETER                   :: gamma_init = 1.0
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -399,6 +400,8 @@
          WRITE (this%iou,1000)
          WRITE (this%iou,1001) new_evidence
 
+         gamma = gamma_init
+
          DO
             evidence = new_evidence
 
@@ -422,7 +425,12 @@
             END DO
             new_evidence = gaussp_get_evidence(this, a_model)
 
-            WRITE (this%iou,1002) new_evidence, new_evidence - evidence
+            IF (new_evidence - evidence < 0.0) THEN
+               gamma = 0.5*gamma
+            END IF
+
+            WRITE (this%iou,1002) new_evidence, new_evidence - evidence,       &
+     &                            gamma
             FLUSH(this%iou)
 
             IF (ABS(new_evidence - evidence) < this%tolerance) EXIT
@@ -454,7 +462,8 @@
 
 1000  FORMAT('New Process')
 1001  FORMAT('Log Evidence : ',es12.5)
-1002  FORMAT('Log Evidence : ',es12.5,' Change :',es12.5)
+1002  FORMAT('Log Evidence : ',es12.5,' Change : ',es12.5,                     &
+     &       ' Gamma : ',es12.5)
 
       END SUBROUTINE
 
@@ -511,14 +520,13 @@
 !$OMP DO
 !$OMP& SCHEDULE(DYNAMIC)
       DO j = 1, SIZE(this%signals)
-         DO i = j, SIZE(this%signals)
+         DO i = j + 1, SIZE(this%signals)
             this%kll(i,j) = signal_get_gp(this%signals(i)%p, a_model,          &
      &                                    this%signals(j)%p, this%flags)
-            IF (j .ne. i) THEN
-               this%kll(j,i) = this%kll(i,j)
-            END IF
+            this%kll(j,i) = this%kll(i,j)
          END DO
-         this%kll(j,j) = this%kll(j,j)                                         &
+         this%kll(j,j) = signal_get_gp(this%signals(j)%p, a_model,             &
+     &                                 this%signals(j)%p, this%flags)          &
      &                 + signal_get_sigma2(this%signals(j)%p)                  &
      &                 + this%cholesky_fac
          this%work(j,1) = signal_get_observed_signal(this%signals(j)%p,        &

@@ -136,15 +136,17 @@
 !>
 !>  @see sxrem_ratio::sxrem_ratio_get_modeled_signal
 !>
-!>  @param[in]  this         A @ref feedback_class instance.
-!>  @param[in]  a_model      A @ref model instance.
-!>  @param[out] sigma        The modeled sigma.
-!>  @param[in]  last_value   Last good value in case the signal did not change.
-!>  @param[in]  scale_factor Factor to scale the modeled signal.
+!>  @param[in]  this          A @ref feedback_class instance.
+!>  @param[in]  a_model       A @ref model instance.
+!>  @param[out] sigma         The modeled sigma.
+!>  @param[in]  last_value    Last good value in case the signal did not change.
+!>  @param[in]  scale_factor  Factor to scale the modeled signal.
+!>  @param[in]  offset_factor Factor to offset the modeled signal.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION feedback_get_modeled_signal(this, a_model, sigma,               &
-     &                                     last_value, scale_factor)
+     &                                     last_value, scale_factor,           &
+     &                                     offset_factor)
 
       IMPLICIT NONE
 
@@ -155,6 +157,7 @@
       REAL (rprec), DIMENSION(:), INTENT(out) :: sigma
       REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
       REAL (rprec), INTENT(in)                :: scale_factor
+      REAL (rprec), INTENT(in)                :: offset_factor
 
 !  local variables
       REAL (rprec)                            :: start_time
@@ -168,7 +171,8 @@
             feedback_get_modeled_signal =                                      &
      &         sxrem_ratio_get_modeled_signal(this%ratio, a_model,             &
      &                                        sigma, last_value,               &
-     &                                        scale_factor)
+     &                                        scale_factor,                    &
+     &                                        offset_factor)
 
       END SELECT
 

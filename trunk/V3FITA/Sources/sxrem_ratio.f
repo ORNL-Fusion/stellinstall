@@ -107,15 +107,17 @@
 !>
 !>  The modeled signal is the ratio of the soft x-ray emissivity profiles.
 !>
-!>  @param[in]  this         A @ref sxrem_ratio_class instance.
-!>  @param[in]  a_model      A @ref model instance.
-!>  @param[out] sigma        The modeled sigma.
-!>  @param[in]  last_value   Last good value in case the signal did not change.
-!>  @param[in]  scale_factor Factor to scale the modeled signal.
+!>  @param[in]  this          A @ref sxrem_ratio_class instance.
+!>  @param[in]  a_model       A @ref model instance.
+!>  @param[out] sigma         The modeled sigma.
+!>  @param[in]  last_value    Last good value in case the signal did not change.
+!>  @param[in]  scale_factor  Factor to scale the modeled signal.
+!>  @param[in]  offset_factor Factor to offset the modeled signal.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION sxrem_ratio_get_modeled_signal(this, a_model, sigma,            &
-     &                                        last_value, scale_factor)
+     &                                        last_value, scale_factor,        &
+     &                                        offset_factor)
 
       IMPLICIT NONE
 
@@ -126,6 +128,7 @@
       REAL (rprec), DIMENSION(:), INTENT(out) :: sigma
       REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
       REAL (rprec), INTENT(in)                :: scale_factor
+      REAL (rprec), INTENT(in)                :: offset_factor
 
 !  local variables
       REAL (rprec)                            :: emissivity
@@ -158,7 +161,8 @@
          END IF
 
          sxrem_ratio_get_modeled_signal(1) =                                   &
-     &      sxrem_ratio_get_modeled_signal(1)*scale_factor
+     &      (sxrem_ratio_get_modeled_signal(1) +                               &
+     &       offset_factor)*scale_factor
       END IF
 
       CALL profiler_set_stop_time('sxrem_ratio_get_modeled_signal',            &

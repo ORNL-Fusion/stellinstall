@@ -232,15 +232,17 @@
 !>  integration function is provided by @ref int_function for interferometer
 !>  diagnostics and @ ref pol_function for polarimetry diagnostics.
 !>
-!>  @param[in]  this         A @ref intpol_class instance.
-!>  @param[in]  a_model      A @ref model instance.
-!>  @param[out] sigma        The modeled sigma.
-!>  @param[in]  last_value   Last good value in case the signal did not change.
-!>  @param[in]  scale_factor Factor to scale the modeled signal.
+!>  @param[in]  this          A @ref intpol_class instance.
+!>  @param[in]  a_model       A @ref model instance.
+!>  @param[out] sigma         The modeled sigma.
+!>  @param[in]  last_value    Last good value in case the signal did not change.
+!>  @param[in]  scale_factor  Factor to scale the modeled signal.
+!>  @param[in]  offset_factor Factor to offset the modeled signal.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION intpol_get_modeled_signal(this, a_model, sigma,                 &
-     &                                   last_value, scale_factor)
+     &                                   last_value, scale_factor,             &
+     &                                   offset_factor)
 
       IMPLICIT NONE
 
@@ -251,6 +253,7 @@
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
       REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
       REAL (rprec), INTENT(in)                :: scale_factor
+      REAL (rprec), INTENT(in)                :: offset_factor
 
 !  local variables
       CHARACTER(len=1), ALLOCATABLE           :: context(:)
@@ -294,8 +297,8 @@
 
          END SELECT
 
-         intpol_get_modeled_signal(1) = intpol_get_modeled_signal(1)           &
-     &                                * scale_factor
+         intpol_get_modeled_signal(1) =                                        &
+     &      (intpol_get_modeled_signal(1) + offset_factor)*scale_factor
 
          DEALLOCATE(context)
       END IF

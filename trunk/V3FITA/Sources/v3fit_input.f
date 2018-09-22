@@ -223,10 +223,14 @@
 !>        @item{mag_spec_imin,        Array of minimum index values for specifying plasma only signals,                                    v3fit_input::mag_spec_imin}
 !>        @item{mag_spec_imax,        Array of maximum index values for specifying plasma only signals,                                    v3fit_input::mag_spec_imax}
 !>        @item{mag_spec_use_induced, Array of logicals for specifying plasma only signals,                                                v3fit_input::mag_spec_use_induced}
-!>     @table_subsection{sfactor_spec_sec, Signal Factor Specification}
-!>        @item{sfactor_spec_imin,    Array of minimum index values for specifying thomson scale factors,                                  v3fit_input::sfactor_spec_imin}
-!>        @item{sfactor_spec_imax,    Array of minimum index values for specifying thomson scale factors,                                  v3fit_input::sfactor_spec_imax}
-!>        @item{sfactor_spec_fac,     Array of minimum index values for specifying thomson scale factors,                                  v3fit_input::sfactor_spec_fac}
+!>     @table_subsection{sfactor_spec_sec, Signal Scale Factor Specification}
+!>        @item{sfactor_spec_imin,    Array of minimum index values for specifying signal scale factors,                                   v3fit_input::sfactor_spec_imin}
+!>        @item{sfactor_spec_imax,    Array of maximum index values for specifying signal scale factors,                                   v3fit_input::sfactor_spec_imax}
+!>        @item{sfactor_spec_fac,     Array of scale values for specifying signal scale factors,                                           v3fit_input::sfactor_spec_fac}
+!>     @table_subsection{soffset_spec_sec, Signal Offset Specification}
+!>        @item{soffset_spec_imin,    Array of minimum index values for specifying signal offset factors,                                   v3fit_input::soffset_spec_imin}
+!>        @item{soffset_spec_imax,    Array of maximum index values for specifying signal offset factors,                                   v3fit_input::soffset_spec_imax}
+!>        @item{soffset_spec_fac,     Array of offset values for specifying signal offset factors,                                          v3fit_input::soffset_spec_fac}
 !>  @end_table
 !>
 !>  @table_section{magnetic_sec, Magnetic signal parameters}
@@ -990,6 +994,17 @@
       REAL (rprec), DIMENSION(v3fit_max_spec_size) ::                          &
      &   sfactor_spec_fac = 0.0
 
+!  Signal factor parameter specification.
+!>  Signal factor specification lower index.
+      INTEGER, DIMENSION(v3fit_max_spec_size)      ::                          &
+     &   soffset_spec_imin = 0
+!>  Signal factor specification upper index.
+      INTEGER, DIMENSION(v3fit_max_spec_size)      ::                          &
+     &   soffset_spec_imax = 0
+!>  Signal scale factor.
+      REAL (rprec), DIMENSION(v3fit_max_spec_size) ::                          &
+     &   soffset_spec_fac = 0.0
+
 !  External current signal specification
 !>  External Z current radial position.
 !>  @todo FIXME: The label of s0 and u0 are vmec specific. These should be
@@ -1199,6 +1214,8 @@
      &   pol_rad_ratio,                                                        &
 !  Signal factor parameters
      &   sfactor_spec_imin, sfactor_spec_imax, sfactor_spec_fac,               &
+!  Signal offset parameters
+     &   soffset_spec_imin, soffset_spec_imax, soffset_spec_fac,               &
 !  External current signal specification
 !>  @todo FIXME: The label of s0 and u0 are vmec specific. These should be
 !>  changed to a radial coordinate and poloidal angle.
@@ -1529,6 +1546,44 @@
       END DO
 
       CALL profiler_set_stop_time('v3fit_input_find_scale_index',              &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Finds the index of the offset spec.
+!>
+!>  The signal offset specification sets ranges of signal indices associated
+!>  with a reconstructable offset factor. If the index is not within one of
+!>  these ranges an index of -1 is returned.
+!>
+!>  @param[in] index Index of the current signal.
+!-------------------------------------------------------------------------------
+      FUNCTION v3fit_input_find_offset_index(index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER             :: v3fit_input_find_offset_index
+      INTEGER, INTENT(in) :: index
+
+!  local variables
+      INTEGER             :: i
+      REAL (rprec)        :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      v3fit_input_find_offset_index = 0;
+      DO i = 1, v3fit_max_spec_size
+         IF (soffset_spec_imin(i) .le. index .and.                             &
+     &       soffset_spec_imax(i) .ge. index) THEN
+            v3fit_input_find_offset_index = i
+            EXIT
+         END IF
+      END DO
+
+      CALL profiler_set_stop_time('v3fit_input_find_offset_index',             &
      &                            start_time)
 
       END FUNCTION

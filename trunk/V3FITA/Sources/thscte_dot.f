@@ -245,7 +245,8 @@
      &                                  first_index)
       USE signal
       USE v3fit_input, only: v3fit_max_diagnostics,                            &
-     &                       v3fit_input_find_scale_index
+     &                       v3fit_input_find_scale_index,                     &
+     &                       v3fit_input_find_offset_index
       USE v3_utilities, only: err_fatal
       IMPLICIT NONE
 
@@ -302,7 +303,8 @@
      &   thomson_obj, point_name, point_name, units,                           &
      &   observed(signals_created + 1), sigma(signals_created + 1),            &
      &   weight(signals_created + 1),                                          &
-     &   v3fit_input_find_scale_index(signals_created + 1))
+     &   v3fit_input_find_scale_index(signals_created + 1),                    &
+     &   v3fit_input_find_offset_index(signals_created + 1))
 
       signals_created = signals_created + 1
 

@@ -291,7 +291,8 @@
      &                                first_index)
       USE signal
       USE v3fit_input, only: v3fit_max_diagnostics,                            &
-     &                       v3fit_input_find_scale_index
+     &                       v3fit_input_find_scale_index,                     &
+     &                       v3fit_input_find_offset_index
       USE v3_utilities, only: err_fatal
 
       IMPLICIT NONE
@@ -336,13 +337,15 @@
      &      intpol_construct(wavelength, inDegrees, xcart), chord_name,        &
      &      chord_name, 'm^-2', observed(signals_created + 1),                 &
      &      sigma(signals_created + 1), weight(signals_created + 1),           &
-     &      v3fit_input_find_scale_index(signals_created + 1))
+     &      v3fit_input_find_scale_index(signals_created + 1),                 &
+     &      v3fit_input_find_offset_index(signals_created + 1))
       ELSE
          signals(signals_created + 1)%p => signal_construct(                   &
      &      intpol_construct(xcart), chord_name, chord_name, 'm^-2',           &
      &      observed(signals_created + 1), sigma(signals_created + 1),         &
      &      weight(signals_created + 1),                                       &
-     &      v3fit_input_find_scale_index(signals_created + 1))
+     &      v3fit_input_find_scale_index(signals_created + 1),                 &
+     &      v3fit_input_find_offset_index(signals_created + 1))
       END IF
 
       signals_created = signals_created + 1

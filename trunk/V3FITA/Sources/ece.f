@@ -137,15 +137,16 @@
 !>  Calculates the ECE signal by searching along the chord for the resonance.
 !>  The search criteria is provided by the @ref ece_function.
 !>
-!>  @param[in]  this         A @ref ece_class instance.
-!>  @param[in]  a_model      A @ref model instance.
-!>  @param[out] sigma        The modeled sigma.
-!>  @param[in]  last_value   Last good value in case the signal did not change.
-!>  @param[in]  scale_factor Factor to scale the modeled signal.
+!>  @param[in]  this          A @ref ece_class instance.
+!>  @param[in]  a_model       A @ref model instance.
+!>  @param[out] sigma         The modeled sigma.
+!>  @param[in]  last_value    Last good value in case the signal did not change.
+!>  @param[in]  scale_factor  Factor to scale the modeled signal.
+!>  @param[in]  offset_factor Factor to offset the modeled signal.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION ece_get_modeled_signal(this, a_model, sigma, last_value,        &
-     &                                scale_factor)
+     &                                scale_factor, offset_factor)
 
       IMPLICIT NONE
 
@@ -156,6 +157,7 @@
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
       REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
       REAL (rprec), INTENT(in)                :: scale_factor
+      REAL (rprec), INTENT(in)                :: offset_factor
 
 ! local variables
       LOGICAL                                 :: found
@@ -178,12 +180,13 @@
 
          IF (found) THEN
             ece_get_modeled_signal(1) =                                        &
-     &         model_get_te(a_model, ece_get_modeled_signal(2:4))*             &
-     &         scale_factor
+     &         model_get_te(a_model, ece_get_modeled_signal(2:4))
          ELSE
             ece_get_modeled_signal(1) = 0.0
          END IF
 
+         ece_get_modeled_signal(1) =                                           &
+     &     (ece_get_modeled_signal(1) + offset_factor)*scale_factor
       END IF
 
       CALL profiler_set_stop_time('ece_get_modeled_signal', start_time)

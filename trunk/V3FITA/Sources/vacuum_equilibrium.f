@@ -50,7 +50,7 @@
 
 !  Variable Parameters
 !>  1D Array of external currents.
-      INTEGER, PARAMETER :: vacuum_extcur_id = 14
+      INTEGER, PARAMETER :: vacuum_extcur_id = 15
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS

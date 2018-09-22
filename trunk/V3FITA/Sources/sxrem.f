@@ -245,15 +245,17 @@
 !>  Calculates the soft x-ray emissivity signal by integrating along the chord
 !>  path. The signal is computed based on the type.
 !>
-!>  @param[in]  this         A @ref sxrem_class instance.
-!>  @param[in]  a_model      A @ref model instance.
-!>  @param[out] sigma        The modeled sigma.
-!>  @param[in]  last_value   Last good value in case the signal did not change.
-!>  @param[in]  scale_factor Factor to scale the modeled signal.
+!>  @param[in]  this          A @ref sxrem_class instance.
+!>  @param[in]  a_model       A @ref model instance.
+!>  @param[out] sigma         The modeled sigma.
+!>  @param[in]  last_value    Last good value in case the signal did not change.
+!>  @param[in]  scale_factor  Factor to scale the modeled signal.
+!>  @param[in]  offset_factor Factor to offset the modeled signal.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION sxrem_get_modeled_signal(this, a_model, sigma,                  &
-     &                                  last_value, scale_factor)
+     &                                  last_value, scale_factor,              &
+     &                                  offset_factor)
 
       IMPLICIT NONE
 
@@ -264,6 +266,7 @@
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
       REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
       REAL (rprec), INTENT(in)                :: scale_factor
+      REAL (rprec), INTENT(in)                :: offset_factor
 
 ! local variables
       CHARACTER(len=1), ALLOCATABLE           :: context(:)
@@ -279,12 +282,14 @@
          CASE (sxrem_emiss_type)
             sxrem_get_modeled_signal =                                         &
      &         sxrem_get_modeled_emiss_signal(this, a_model, sigma,            &
-     &                                        last_value, scale_factor)
+     &                                        last_value, scale_factor,        &
+     &                                        offset_factor)
 
          CASE (sxrem_ti_type)
             sxrem_get_modeled_signal =                                         &
      &         sxrem_get_modeled_ti_signal(this, a_model, sigma,               &
-     &                                     last_value, scale_factor)
+     &                                     last_value, scale_factor,           &
+     &                                     offset_factor)
 
          CASE DEFAULT
             sxrem_get_modeled_signal = 0.0
@@ -303,15 +308,17 @@
 !>  Calculates the soft x-ray emissivity signal by integrating along the chord
 !>  path. The emissivity is provided by the @ref sxr_function.
 !>
-!>  @param[in]  this         A @ref sxrem_class instance.
-!>  @param[in]  a_model      A @ref model instance.
-!>  @param[out] sigma        The modeled sigma.
-!>  @param[in]  last_value   Last good value in case the signal did not change.
-!>  @param[in]  scale_factor Factor to scale the modeled signal.
+!>  @param[in]  this          A @ref sxrem_class instance.
+!>  @param[in]  a_model       A @ref model instance.
+!>  @param[out] sigma         The modeled sigma.
+!>  @param[in]  last_value    Last good value in case the signal did not change.
+!>  @param[in]  scale_factor  Factor to scale the modeled signal.
+!>  @param[in]  offset_factor Factor to offset the modeled signal.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION sxrem_get_modeled_emiss_signal(this, a_model, sigma,            &
-     &                                        last_value, scale_factor)
+     &                                        last_value, scale_factor,        &
+     &                                        offset_factor)
 
       IMPLICIT NONE
 
@@ -322,6 +329,7 @@
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
       REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
       REAL (rprec), INTENT(in)                :: scale_factor
+      REAL (rprec), INTENT(in)                :: offset_factor
 
 ! local variables
       CHARACTER(len=1), ALLOCATABLE           :: context(:)
@@ -353,9 +361,9 @@
          context = TRANSFER(sxr_context, context)
 
          sxrem_get_modeled_emiss_signal(1) =                                   &
-     &      path_integrate(a_model%int_params, this%chord_path,                &
-     &                     sxr_function, context)*                             &
-     &         this%geo*scale_factor
+     &      (path_integrate(a_model%int_params, this%chord_path,               &
+     &                      sxr_function, context)*this%geo +                  &
+     &       offset_factor)*scale_factor
 
          DEALLOCATE(context)
       END IF
@@ -371,15 +379,17 @@
 !>  Calculates the soft x-ray emissivity/ion temperature signal by integrating
 !>  along the chord path. The emissivity is provided by the @ref ti_function.
 !>
-!>  @param[in]  this         A @ref sxrem_class instance.
-!>  @param[in]  a_model      A @ref model instance.
-!>  @param[out] sigma        The modeled sigma.
-!>  @param[in]  last_value   Last good value in case the signal did not change.
-!>  @param[in]  scale_factor Factor to scale the modeled signal.
+!>  @param[in]  this          A @ref sxrem_class instance.
+!>  @param[in]  a_model       A @ref model instance.
+!>  @param[out] sigma         The modeled sigma.
+!>  @param[in]  last_value    Last good value in case the signal did not change.
+!>  @param[in]  scale_factor  Factor to scale the modeled signal.
+!>  @param[in]  offset_factor Factor to offset the modeled signal.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION sxrem_get_modeled_ti_signal(this, a_model, sigma,               &
-     &                                     last_value, scale_factor)
+     &                                     last_value, scale_factor,           &
+     &                                     offset_factor)
 
       IMPLICIT NONE
 
@@ -390,6 +400,7 @@
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
       REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
       REAL (rprec), INTENT(in)                :: scale_factor
+      REAL (rprec), INTENT(in)                :: offset_factor
 
 ! local variables
       CHARACTER(len=1), ALLOCATABLE           :: context(:)
@@ -422,8 +433,9 @@
          context = TRANSFER(sxr_context, context)
 
          sxrem_get_modeled_ti_signal(1) =                                      &
-     &      path_integrate(a_model%int_params, this%chord_path,                &
-     &                     ti_function, context)*scale_factor
+     &      (path_integrate(a_model%int_params, this%chord_path,               &
+     &                      ti_function, context) +                            &
+     &       offset_factor)* scale_factor
 
          DEALLOCATE(context)
       END IF

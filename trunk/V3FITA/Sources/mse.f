@@ -273,15 +273,16 @@
 !>  * theta: Angle between the view and the horizontal. Defined such that 90 is
 !>    in the positive z direction.
 !>
-!>  @param[in]  this         A @ref mse_class instance.
-!>  @param[in]  a_model      A @ref model instance.
-!>  @param[out] sigma        The modeled sigma.
-!>  @param[in]  last_value   Last good value in case the signal did not change.
-!>  @param[in]  scale_factor Factor to scale the modeled signal.
+!>  @param[in]  this          A @ref mse_class instance.
+!>  @param[in]  a_model       A @ref model instance.
+!>  @param[out] sigma         The modeled sigma.
+!>  @param[in]  last_value    Last good value in case the signal did not change.
+!>  @param[in]  scale_factor  Factor to scale the modeled signal.
+!>  @param[in]  offset_factor Factor to offset the modeled signal.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION mse_get_modeled_signal(this, a_model, sigma, last_value,        &
-     &                                scale_factor)
+     &                                scale_factor, offset_factor)
       USE model
 
       IMPLICIT NONE
@@ -293,6 +294,7 @@
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
       REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
       REAL (rprec), INTENT(in)                :: scale_factor
+      REAL (rprec), INTENT(in)                :: offset_factor
 
 !  local variables
       REAL (rprec), DIMENSION(3)              :: b_cyl
@@ -341,8 +343,8 @@
             END IF
          END IF
 
-         mse_get_modeled_signal(1) = mse_get_modeled_signal(1)                 &
-     &                             * scale_factor
+         mse_get_modeled_signal(1) =                                           &
+     &     (mse_get_modeled_signal(1) + offset_factor)*scale_factor
       END IF
 
       CALL profiler_set_stop_time('mse_get_modeled_signal', start_time)

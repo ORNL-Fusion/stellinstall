@@ -875,6 +875,7 @@
      &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range, coosig_wgts,          &
      &   state_flags,                                                          &
      &   sfactor_spec_fac(:MINLOC(sfactor_spec_imin, 1) - 1),                  &
+     &   soffset_spec_fac(:MINLOC(soffset_spec_imin, 1) - 1),                  &
      &   path_construct(int_method, int_num_points, int_size))
 
       CALL profiler_set_stop_time('init_vmec_equilibrium', start_time)
@@ -921,7 +922,8 @@
      &                         force_solve),                                   &
      &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range, coosig_wgts,          &
      &   model_state_all_off,                                                  &
-     &   sfactor_spec_fac(:MINLOC(sfactor_spec_imin, 1)),                      &
+     &   sfactor_spec_fac(:MINLOC(sfactor_spec_imin, 1) - 1),                  &
+     &   soffset_spec_fac(:MINLOC(soffset_spec_imin, 1) - 1),                  &
      &   path_construct(int_method, int_num_points, int_size))
 
       CALL profiler_set_stop_time('init_vacuum_equilibrium', start_time)
@@ -1015,7 +1017,9 @@
      &   emission_func, equilibrium_construct_siesta(siesta,                   &
      &                                               force_solve),             &
      &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range, coosig_wgts,          &
-     &   state_flags, sfactor_spec_fac(:MINLOC(sfactor_spec_imin, 1)),         &
+     &   state_flags,                                                          &
+     &   sfactor_spec_fac(:MINLOC(sfactor_spec_imin, 1) - 1),                  &
+     &   soffset_spec_fac(:MINLOC(soffset_spec_imin, 1) - 1),                  &
      &   path_construct(int_method, int_num_points, int_size))
 
       CALL profiler_set_stop_time('init_siesta_equilibrium', start_time)
@@ -1215,7 +1219,8 @@
          context%signals(signals_created)%p => signal_construct(               &
      &      magnetic_object, mdsig_iou, sdo_data_a(signals_created),           &
      &      sdo_sigma_a(signals_created), sdo_weight_a(signals_created),       &
-     &      v3fit_input_find_scale_index(signals_created))
+     &      v3fit_input_find_scale_index(signals_created),                     &
+     &      v3fit_input_find_offset_index(signals_created))
 
          CALL cdf_close(mdsig_iou)
 
@@ -1467,7 +1472,8 @@
      &   sdo_data_a(signals_created + 1),                                      &
      &   sdo_sigma_a(signals_created + 1),                                     &
      &   sdo_weight_a(signals_created + 1),                                    &
-     &   v3fit_input_find_scale_index(signals_created + 1))
+     &   v3fit_input_find_scale_index(signals_created + 1),                    &
+     &   v3fit_input_find_offset_index(signals_created + 1))
 
       signals_created = signals_created + 1
 
@@ -1671,7 +1677,8 @@
      &      s_name, l_name, 'm', sdo_data_a(signals_created + 1),              &
      &      sdo_sigma_a(signals_created + 1),                                  &
      &      sdo_weight_a(signals_created + 1),                                 &
-     &      v3fit_input_find_scale_index(signals_created + 1))
+     &      v3fit_input_find_scale_index(signals_created + 1),                 &
+     &      v3fit_input_find_offset_index(signals_created + 1))
 
          signals_created = signals_created + 1
 
@@ -1693,7 +1700,8 @@
      &      s_name, l_name, 'm', sdo_data_a(signals_created + 1),              &
      &      sdo_sigma_a(signals_created + 1),                                  &
      &      sdo_weight_a(signals_created + 1),                                 &
-     &      v3fit_input_find_scale_index(signals_created + 1))
+     &      v3fit_input_find_scale_index(signals_created + 1),                 &
+     &      v3fit_input_find_offset_index(signals_created + 1))
 
          signals_created = signals_created + 1
 
@@ -1753,13 +1761,14 @@
 
          context%signals(signals_created + 1)%p => signal_construct(           &
      &      prior_gaussian_construct(context%model,                            &
-     &                                  prior_param_name(i),                   &
-     &                                  prior_indices(i,:)),                   &
+     &                               prior_param_name(i),                      &
+     &                               prior_indices(i,:)),                      &
      &      TRIM(signal_make_short_name('prior_', i)), prior_name(i),          &
      &      prior_units(i), sdo_data_a(signals_created + 1),                   &
      &      sdo_sigma_a(signals_created + 1),                                  &
      &      sdo_weight_a(signals_created + 1),                                 &
-     &      v3fit_input_find_scale_index(signals_created + 1))
+     &      v3fit_input_find_scale_index(signals_created + 1),                 &
+     &      v3fit_input_find_offset_index(signals_created + 1))
 
          signals_created = signals_created + 1
 
@@ -1896,7 +1905,8 @@
      &      coosig_units(i), sdo_data_a(signals_created + 1),                  &
      &      sdo_sigma_a(signals_created + 1),                                  &
      &      sdo_weight_a(signals_created + 1),                                 &
-     &      v3fit_input_find_scale_index(signals_created + 1))
+     &      v3fit_input_find_scale_index(signals_created + 1),                 &
+     &      v3fit_input_find_offset_index(signals_created + 1))
 
          signals_created = signals_created + 1
 

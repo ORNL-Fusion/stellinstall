@@ -26,6 +26,7 @@
 !>     @item{pressure_fraction, Fractional portion of the pressure due to the electrons., @ref model::model_class::pressure_fraction}
 !>     @item{coosig_wgts,       Combination signal weights.,                              @ref model::model_class::coosig_wgts}
 !>     @item{signal_factor,     Signal scaling factor for signal models.,                 @ref model::model_class::signal_factor}
+!>     @item{signal_offset,     Signal offset factor for signal models.,                  @ref model::model_class::signal_offset}
 !>  @end_table
 !>
 !>  @section model_derived_param_sec Model Derived Parameters
@@ -109,18 +110,20 @@
       INTEGER, PARAMETER :: model_coosig_wgts_id       = 7
 !>  Parameter id for the modeled signal scale factors.
       INTEGER, PARAMETER :: model_signal_factor_id     = 8
+!>  Parameter id for the modeled signal offset factors.
+      INTEGER, PARAMETER :: model_signal_offset_id     = 9
 
 !  Derived Parameters
 !>  Parameter id for the electrion density grid.
-      INTEGER, PARAMETER :: model_ne_grid_id           = 9
+      INTEGER, PARAMETER :: model_ne_grid_id           = 10
 !>  Parameter id for the electrion temperature grid.
-      INTEGER, PARAMETER :: model_te_grid_id           = 10
+      INTEGER, PARAMETER :: model_te_grid_id           = 11
 !>  Parameter id for the ion temperature grid.
-      INTEGER, PARAMETER :: model_ti_grid_id           = 11
+      INTEGER, PARAMETER :: model_ti_grid_id           = 12
 !>  Parameter id for the soft x-ray emissivity grid.
-      INTEGER, PARAMETER :: model_sxrem_grid_id        = 12
+      INTEGER, PARAMETER :: model_sxrem_grid_id        = 13
 !>  Parameter id for the effective charge grid.
-      INTEGER, PARAMETER :: model_ze_grid_id           = 13
+      INTEGER, PARAMETER :: model_ze_grid_id           = 14
 !  NOTE: When model parameters are added here, the equilibrium id's need to be
 !  updated in additon.
 
@@ -204,6 +207,8 @@
 
 !>  Model Signal factor
          REAL (rprec), DIMENSION(:), POINTER :: signal_factor => null()
+!>  Model Signal offset
+         REAL (rprec), DIMENSION(:), POINTER :: signal_offset => null()
 
 !>  Integration parameters.
          TYPE (path_int_class), POINTER      :: int_params => null()
@@ -319,8 +324,11 @@
 !>                               unconverged state.
 !>  @param[in] state_flags       Bitwise flags to indicate which parts of the
 !>                               model changed.
-!>  @param[in] signal_factor     Array of signal factors to add scale model
+!>  @param[in] signal_factor     Array of signal factors to scale model signals
+!>                               by.
+!>  @param[in] signal_offset     Array of signal factors to offset model
 !>                               signals by.
+!>  @param[in] int_params        Parameters for the integration method.
 !>  @returns A pointer to a constructed @ref model_class object.
 !-------------------------------------------------------------------------------
       FUNCTION model_construct(ne_type, sxrem_type, te_type, ti_type,          &
@@ -328,7 +336,8 @@
      &                         ze_min, sxrem_min, pressure_fraction,           &
      &                         emission, equilibrium, sxrem_te,                &
      &                         sxrem_ratio, resonace_range, coosig_wgts,       &
-     &                         state_flags, signal_factor, int_params)
+     &                         state_flags, signal_factor,                     &
+     &                         signal_offset, int_params)
       USE model_state
 
       IMPLICIT NONE
@@ -356,6 +365,7 @@
       REAL (rprec), DIMENSION(:), INTENT(in)        :: coosig_wgts
       INTEGER, INTENT(in)                           :: state_flags
       REAL (rprec), DIMENSION(:)                    :: signal_factor
+      REAL (rprec), DIMENSION(:)                    :: signal_offset
       TYPE (path_int_class), POINTER                :: int_params
 
 !  local variables
@@ -518,6 +528,9 @@
       ALLOCATE(model_construct%signal_factor(SIZE(signal_factor)))
       model_construct%signal_factor = signal_factor
 
+      ALLOCATE(model_construct%signal_offset(SIZE(signal_offset)))
+      model_construct%signal_offset = signal_offset
+
       model_construct%resonace_range = resonace_range
 
       model_construct%int_params => int_params
@@ -607,6 +620,11 @@
       IF (ASSOCIATED(this%signal_factor)) THEN
          DEALLOCATE(this%signal_factor)
          this%signal_factor => null()
+      END IF
+
+      IF (ASSOCIATED(this%signal_offset)) THEN
+         DEALLOCATE(this%signal_offset)
+         this%signal_offset => null()
       END IF
 
       IF (ASSOCIATED(this%int_params)) THEN
@@ -706,6 +724,11 @@
             this%state_flags = IBSET(this%state_flags,                         &
      &                               model_state_signal_flag)
             this%signal_factor(i_index) = value
+
+         CASE (model_signal_offset_id)
+            this%state_flags = IBSET(this%state_flags,                         &
+     &                               model_state_signal_flag)
+            this%signal_offset(i_index) = value
 
          CASE DEFAULT
             CALL equilibrium_set_param(this%equilibrium, id,                   &
@@ -899,6 +922,9 @@
          CASE ('signal_factor', 'sfactor_spec_fac')
             model_get_param_id = model_signal_factor_id
 
+         CASE ('signal_offset', 'soffset_spec_fac')
+            model_get_param_id = model_signal_offset_id
+
          CASE ('ne_grid')
             model_get_param_id = model_ne_grid_id
 
@@ -982,6 +1008,9 @@
 
          CASE (model_signal_factor_id)
             model_get_param_value = this%signal_factor(i_index)
+
+         CASE (model_signal_offset_id)
+            model_get_param_value = this%signal_offset(i_index)
 
 !  Not every equilibrium will provide a grid for these profiles.
          CASE (model_ne_grid_id)
@@ -1088,6 +1117,9 @@
 
          CASE (model_signal_factor_id)
             model_get_param_name = 'signal_factor'
+
+         CASE (model_signal_offset_id)
+            model_get_param_name = 'signal_offset'
 
          CASE (model_ne_grid_id)
             model_get_param_name = 'ne_grid'
@@ -2489,7 +2521,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Get the scale factor for a signal.
 !>
-!>  Gets the model scale factor.
+!>  Gets the model scale factor. The scaling defaults to 1.
 !>
 !>  @param[in] this  A @ref model_class instance.
 !>  @param[in] index Index of the scale factor.
@@ -2517,6 +2549,40 @@
       END IF
 
       CALL profiler_set_stop_time('model_get_signal_factor', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the offset factor for a signal.
+!>
+!>  Gets the model offset factor. The offset defaults to 0.
+!>
+!>  @param[in] this  A @ref model_class instance.
+!>  @param[in] index Index of the scale factor.
+!>  @returns Scale factor value.
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_signal_offset(this, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                   :: model_get_signal_offset
+      TYPE (model_class), INTENT(in) :: this
+      INTEGER, INTENT(in)            :: index
+
+!  local variables
+      REAL (rprec)                   :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (index .lt. 1) THEN
+         model_get_signal_offset = 0.0
+      ELSE
+         model_get_signal_offset = this%signal_offset(index)
+      END IF
+
+      CALL profiler_set_stop_time('model_get_signal_offset', start_time)
 
       END FUNCTION
 
@@ -2553,7 +2619,7 @@
          CASE (model_ne_unit_id, model_ne_min_id, model_te_min_id,             &
      &         model_ti_min_id, model_sxrem_min_id,                            &
      &         model_pressure_fraction_id, model_coosig_wgts_id,               &
-     &         model_signal_factor_id)
+     &         model_signal_factor_id, model_signal_offset_id)
             model_is_recon_param = .true.
 
          CASE DEFAULT

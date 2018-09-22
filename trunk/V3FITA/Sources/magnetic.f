@@ -171,15 +171,17 @@
 !>  The modeled signal can be computed in one of two ways. Modeled as a full
 !>  coil or as a point measurement.
 !>
-!>  @param[in]  this         A @ref magnetic_class instance.
-!>  @param[in]  a_model      A @ref model instance.
-!>  @param[out] sigma        The modeled sigma.
-!>  @param[in]  last_value   Last good value in case the signal did not change.
-!>  @param[in]  scale_factor Factor to scale the modeled signal.
+!>  @param[in]  this          A @ref magnetic_class instance.
+!>  @param[in]  a_model       A @ref model instance.
+!>  @param[out] sigma         The modeled sigma.
+!>  @param[in]  last_value    Last good value in case the signal did not change.
+!>  @param[in]  scale_factor  Factor to scale the modeled signal.
+!>  @param[in]  offset_factor Factor to offset the modeled signal.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION magnetic_get_modeled_signal(this, a_model, sigma,               &
-     &                                     last_value, scale_factor)
+     &                                     last_value, scale_factor,           &
+     &                                     offset_factor)
       USE model
 
       IMPLICIT NONE
@@ -191,6 +193,7 @@
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
       REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
       REAL (rprec), INTENT(in)                :: scale_factor
+      REAL (rprec), INTENT(in)                :: offset_factor
 
 !  local variables
       REAL (rprec)                            :: start_time
@@ -214,8 +217,8 @@
      &         magnetic_get_modeled_signal_coil(this, a_model, sigma)
          END IF
 
-         magnetic_get_modeled_signal = magnetic_get_modeled_signal             &
-     &                               * scale_factor
+         magnetic_get_modeled_signal =                                         &
+     &      (magnetic_get_modeled_signal + offset_factor)*scale_factor
       END IF
 
       CALL profiler_set_stop_time('magnetic_get_modeled_signal',               &

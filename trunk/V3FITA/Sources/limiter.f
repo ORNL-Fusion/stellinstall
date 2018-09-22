@@ -193,18 +193,20 @@
 !>  If the limiter is defined by an iso function returns the value of
 !>  @ref limiter_get_modeled_iso_signal. Otherwise returns zero.
 !>
-!>  @param[in]  this         A @ref limiter_class instance.
-!>  @param[in]  a_model      A @ref model instance.
-!>  @param[out] sigma        If the limiter type is defined by an iso function,
-!>                           sigma value of @ref limiter_get_modeled_iso_signal.
-!>  @param[in]  last_value   Last good value in case the signal did not change.
-!>  @param[in]  scale_factor Factor to scale the modeled signal.
+!>  @param[in]  this          A @ref limiter_class instance.
+!>  @param[in]  a_model       A @ref model instance.
+!>  @param[out] sigma         If the limiter type is defined by an iso function,
+!>                            sigma value of @ref limiter_get_modeled_iso_signal.
+!>  @param[in]  last_value    Last good value in case the signal did not change.
+!>  @param[in]  scale_factor  Factor to scale the modeled signal.
+!>  @param[in]  offset_factor Factor to offset the modeled signal.
 !>  @returns If the limiter type is defined by an iso function, return the value
 !>           of @ref limiter_get_modeled_iso_signal. Otherwise returns zero.
 !>  @note Polygon limiters have not be implemented yet.
 !-------------------------------------------------------------------------------
       FUNCTION limiter_get_modeled_signal(this, a_model, sigma,                &
-     &                                    last_value, scale_factor)
+     &                                    last_value, scale_factor,            &
+     &                                    offset_factor)
       USE model
 
       IMPLICIT NONE
@@ -216,6 +218,7 @@
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
       REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
       REAL (rprec), INTENT(in)                :: scale_factor
+      REAL (rprec), INTENT(in)                :: offset_factor
 
 !  local variables
       REAL (rprec)                            :: start_time
@@ -243,8 +246,8 @@
 
          END SELECT
 
-         limiter_get_modeled_signal(1) = limiter_get_modeled_signal(1)         &
-     &                                 * scale_factor
+         limiter_get_modeled_signal(1) =                                       &
+     &      (limiter_get_modeled_signal(1) + offset_factor)*scale_factor
       END IF
 
       CALL profiler_set_stop_time('limiter_get_modeled_signal',                &

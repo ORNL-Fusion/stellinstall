@@ -221,15 +221,17 @@
 !>  @ref model::model_get_te. Denisty is provided by @ref model::model_get_ne.
 !>  Pressure is provided by @ref equilibrium::equilibrium_get_p.
 !>
-!>  @param[in]  this         A @ref thomson_class instance.
-!>  @param[in]  a_model      A @ref model instance.
-!>  @param[out] sigma        The modeled sigma.
-!>  @param[in]  last_value   Last good value in case the signal did not change.
-!>  @param[in]  scale_factor Factor to scale the modeled signal.
+!>  @param[in]  this          A @ref thomson_class instance.
+!>  @param[in]  a_model       A @ref model instance.
+!>  @param[out] sigma         The modeled sigma.
+!>  @param[in]  last_value    Last good value in case the signal did not change.
+!>  @param[in]  scale_factor  Factor to scale the modeled signal.
+!>  @param[in]  offset_factor Factor to offset the modeled signal.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION thomson_get_modeled_signal(this, a_model, sigma,                &
-     &                                    last_value, scale_factor)
+     &                                    last_value, scale_factor,            &
+     &                                    offset_factor)
       USE model
       USE coordinate_utilities
 
@@ -242,6 +244,7 @@
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
       REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
       REAL (rprec), INTENT(in)                :: scale_factor
+      REAL (rprec), INTENT(in)                :: offset_factor
 
 !  local variables
       REAL (rprec)                            :: start_time
@@ -262,7 +265,8 @@
      &          BTEST(a_model%state_flags,                                     &
      &                model_state_signal_flag)) THEN
                thomson_get_modeled_signal(1) =                                 &
-     &            model_get_te(a_model, this%xcart)*scale_factor
+     &            (model_get_te(a_model, this%xcart) +                         &
+     &             offset_factor)*scale_factor
             END IF
 
          CASE (thomson_density_type)
@@ -273,7 +277,8 @@
      &          BTEST(a_model%state_flags,                                     &
      &                model_state_signal_flag)) THEN
                thomson_get_modeled_signal(1) =                                 &
-     &            model_get_ne(a_model, this%xcart)*scale_factor
+     &            (model_get_ne(a_model, this%xcart) +                         &
+     &             offset_factor)*scale_factor
             END IF
 
          CASE (thomson_pressure_type)
@@ -283,8 +288,8 @@
      &          BTEST(a_model%state_flags,                                     &
      &                model_state_signal_flag)) THEN
                thomson_get_modeled_signal(1) =                                 &
-     &            equilibrium_get_p(a_model%equilibrium, this%xcart) *         &
-     &            scale_factor
+     &            (equilibrium_get_p(a_model%equilibrium, this%xcart) +        &
+     &             offset_factor)*scale_factor
             END IF
 
       END SELECT

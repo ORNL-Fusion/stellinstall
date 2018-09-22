@@ -28,6 +28,10 @@ sfactor_spec_imin = 17,
 sfactor_spec_imax = 20,
 sfactor_spec_fac = 2.0,
 
+soffset_spec_imin = 29,
+soffset_spec_imax = 32,
+soffset_spec_fac = 1.0,
+
 nrstep = 20,
 dg2_stop = 0.1,
 cut_svd = 2.0E-5,
@@ -90,7 +94,7 @@ dp_type(16) = 'vvc_smaleli',
 dp_type(17) = 'rmnc'
 dp_index(17,:) = 1, 1,
 
-n_rp = 8,
+n_rp = 9,
 
 rp_type(1) = 'pp_ne_af',
 rp_vrnc(1) = 0.1,
@@ -142,6 +146,10 @@ rp_type(8) = 'signal_factor',
 rp_vrnc(8) = 0.001,
 rp_index(8) = 1,
 
+rp_type(9) = 'signal_offset',
+rp_vrnc(9) = 0.01,
+rp_index(9) = 1,
+
 mag_3D_a(5:8) = T, T, T, T, 
 
 sdo_data_a(1:12) = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -189,7 +197,7 @@ sdo_s_spec_imax(7) = 40,
 sdo_s_spec_floor(7) = 0.1,
 sdo_s_spec_fraction(7) = 0.01,
 
-n_prior = 9,
+n_prior = 10,
 
 sdo_data_a(41) = 1.0,
 prior_name(1) = 'pp_ne_prior',
@@ -271,6 +279,15 @@ sdo_s_spec_imin(16) = 49,
 sdo_s_spec_imax(16) = 49,
 sdo_s_spec_floor(16) = 0.0001,
 sdo_s_spec_fraction(16) = 0.0001,
+
+sdo_data_a(50) = 0.0,
+prior_name(10) = 'signal_offset_prior',
+prior_param_name(10) = 'signal_offset',
+prior_indices(10,1) = 1,
+sdo_s_spec_imin(17) = 50,
+sdo_s_spec_imax(17) = 50,
+sdo_s_spec_floor(17) =1.0E-5,
+sdo_s_spec_fraction(17) = 0.0001,
 
 n_sdata_o = 49,
 
