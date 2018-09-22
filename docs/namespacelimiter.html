@@ -265,7 +265,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 <dl class="section return"><dt>Returns</dt><dd>A string describing the model and model sigma array indices. </dd></dl>
 <dl class="section note"><dt>Note</dt><dd>Polygon limiters have not be implemented yet. This coding may change when those are supported. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="limiter_8f_source.html#l00304">304</a> of file <a class="el" href="limiter_8f_source.html">limiter.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="limiter_8f_source.html#l00307">307</a> of file <a class="el" href="limiter_8f_source.html">limiter.f</a>.</p>
 
 </div>
 </div>
@@ -314,7 +314,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 <dl class="section return"><dt>Returns</dt><dd>If <a class="el" href="structlimiter_1_1limiter__class.html#acc47d59bce2c2ac652f7fe31a5188c1a">limiter_class::on_edge</a> or the plasma edge extends beyond the limiter, returns the R, Phi and Z posiiton of the maximum of the iso function value. Otherwise returns zero. </dd></dl>
 <dl class="section note"><dt>Note</dt><dd>Polygon limiters have not be implemented yet. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="limiter_8f_source.html#l00353">353</a> of file <a class="el" href="limiter_8f_source.html">limiter.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="limiter_8f_source.html#l00356">356</a> of file <a class="el" href="limiter_8f_source.html">limiter.f</a>.</p>
 
 </div>
 </div>
@@ -362,7 +362,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>If <a class="el" href="structlimiter_1_1limiter__class.html#acc47d59bce2c2ac652f7fe31a5188c1a">limiter_class::on_edge</a> or the plasma edge extends beyond the limiter, returns the R, Phi and Z position of the maximum of the iso grid value. Otherwise returns zero. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="limiter_8f_source.html#l00448">448</a> of file <a class="el" href="limiter_8f_source.html">limiter.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="limiter_8f_source.html#l00451">451</a> of file <a class="el" href="limiter_8f_source.html">limiter.f</a>.</p>
 
 </div>
 </div>
@@ -407,13 +407,14 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
     <tr><td class="paramdir">[out]</td><td class="paramname">sigma</td><td>If the limiter type is defined by an iso function, sigma value of <a class="el" href="namespacelimiter.html#a9bfda30b98f36049d63fd74a6859314f">limiter_get_modeled_iso_signal</a>. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">last_value</td><td>Last good value in case the signal did not change. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">scale_factor</td><td>Factor to scale the modeled signal. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">offset_factor</td><td>Factor to offset the modeled signal. </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>If the limiter type is defined by an iso function, return the value of <a class="el" href="namespacelimiter.html#a9bfda30b98f36049d63fd74a6859314f">limiter_get_modeled_iso_signal</a>. Otherwise returns zero. </dd></dl>
 <dl class="section note"><dt>Note</dt><dd>Polygon limiters have not be implemented yet. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="limiter_8f_source.html#l00207">207</a> of file <a class="el" href="limiter_8f_source.html">limiter.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="limiter_8f_source.html#l00208">208</a> of file <a class="el" href="limiter_8f_source.html">limiter.f</a>.</p>
 
 </div>
 </div>
@@ -443,7 +444,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A string describing the limiter type. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="limiter_8f_source.html#l00264">264</a> of file <a class="el" href="limiter_8f_source.html">limiter.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="limiter_8f_source.html#l00267">267</a> of file <a class="el" href="limiter_8f_source.html">limiter.f</a>.</p>
 
 </div>
 </div>
@@ -470,7 +471,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sun Aug 5 2018 12:42:52 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Sep 22 2018 12:26:21 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

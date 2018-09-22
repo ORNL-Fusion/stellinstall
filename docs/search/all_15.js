@@ -19,6 +19,7 @@ var searchData=
   ['v3fit_5fcontext_5fwrite_5fstep_5fdata',['v3fit_context_write_step_data',['../namespacev3fit__context.html#a155168a6032c9a2dddb66932e2c296ee',1,'v3fit_context']]],
   ['v3fit_5finput',['v3fit_input',['../namespacev3fit__input.html',1,'']]],
   ['v3fit_5finput_2ef',['v3fit_input.f',['../v3fit__input_8f.html',1,'']]],
+  ['v3fit_5finput_5ffind_5foffset_5findex',['v3fit_input_find_offset_index',['../namespacev3fit__input.html#ad531a9ffbbbb3228686b5f7b8152dead',1,'v3fit_input']]],
   ['v3fit_5finput_5ffind_5fscale_5findex',['v3fit_input_find_scale_index',['../namespacev3fit__input.html#a3ebb1c33783f13106c703abf6927e186',1,'v3fit_input']]],
   ['v3fit_5finput_5fread_5fnamelist',['v3fit_input_read_namelist',['../namespacev3fit__input.html#a3ee7923a0e8823098df46d2929d1b0ab',1,'v3fit_input']]],
   ['v3fit_5finput_5fwrite_5fnamelist',['v3fit_input_write_namelist',['../namespacev3fit__input.html#a7d975a942827c32691153410374be732',1,'v3fit_input']]],

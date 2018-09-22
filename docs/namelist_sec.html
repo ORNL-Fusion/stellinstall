@@ -80,7 +80,8 @@ $(function() {
 <li class="level2"><a href="#signal_spec_sec">Signal Data specification</a><ul><li class="level3"><a href="#sigma_spec_sec">Signal Data sigma specification</a></li>
 <li class="level3"><a href="#weight_spec_sec">Signal Data weight specification</a></li>
 <li class="level3"><a href="#magnetic_spec_sec">Magnetic signal specification</a></li>
-<li class="level3"><a href="#sfactor_spec_sec">Signal Factor Specification</a></li>
+<li class="level3"><a href="#sfactor_spec_sec">Signal Scale Factor Specification</a></li>
+<li class="level3"><a href="#soffset_spec_sec">Signal Offset Specification</a></li>
 </ul>
 </li>
 <li class="level2"><a href="#magnetic_sec">Magnetic signal parameters</a></li>
@@ -450,14 +451,24 @@ Magnetic signal specification</h3>
 <td width="20%"><code>mag_spec_use_induced</code></td><td width="50%">Array of logicals for specifying plasma only signals</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a35eea91e2c76dcd3e49b9d20574e3157">v3fit_input::mag_spec_use_induced</a> </td></tr>
 </table>
 <h3><a class="anchor" id="sfactor_spec_sec"></a>
-Signal Factor Specification</h3>
+Signal Scale Factor Specification</h3>
 <table border="1px" width="80%">
 <tr>
-<td width="20%"><code>sfactor_spec_imin</code></td><td width="50%">Array of minimum index values for specifying thomson scale factors</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a7d7388793df867a50aae96474807c9ae">v3fit_input::sfactor_spec_imin</a> </td></tr>
+<td width="20%"><code>sfactor_spec_imin</code></td><td width="50%">Array of minimum index values for specifying signal scale factors</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a7d7388793df867a50aae96474807c9ae">v3fit_input::sfactor_spec_imin</a> </td></tr>
 <tr>
-<td width="20%"><code>sfactor_spec_imax</code></td><td width="50%">Array of minimum index values for specifying thomson scale factors</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a0c9e757dd5e7fc3203b6da6363cbd31b">v3fit_input::sfactor_spec_imax</a> </td></tr>
+<td width="20%"><code>sfactor_spec_imax</code></td><td width="50%">Array of maximum index values for specifying signal scale factors</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a0c9e757dd5e7fc3203b6da6363cbd31b">v3fit_input::sfactor_spec_imax</a> </td></tr>
 <tr>
-<td width="20%"><code>sfactor_spec_fac</code></td><td width="50%">Array of minimum index values for specifying thomson scale factors</td><td width="30%"><a class="el" href="namespacev3fit__input.html#aeedb001946f7995fdb6e7549e4fc1729">v3fit_input::sfactor_spec_fac</a> </td></tr>
+<td width="20%"><code>sfactor_spec_fac</code></td><td width="50%">Array of scale values for specifying signal scale factors</td><td width="30%"><a class="el" href="namespacev3fit__input.html#aeedb001946f7995fdb6e7549e4fc1729">v3fit_input::sfactor_spec_fac</a> </td></tr>
+</table>
+<h3><a class="anchor" id="soffset_spec_sec"></a>
+Signal Offset Specification</h3>
+<table border="1px" width="80%">
+<tr>
+<td width="20%"><code>soffset_spec_imin</code></td><td width="50%">Array of minimum index values for specifying signal offset factors</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a2899fb18ce5ae15243a0b67f9adbef94">v3fit_input::soffset_spec_imin</a> </td></tr>
+<tr>
+<td width="20%"><code>soffset_spec_imax</code></td><td width="50%">Array of maximum index values for specifying signal offset factors</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a865f82a521a5c0de1a798076bf9b5e12">v3fit_input::soffset_spec_imax</a> </td></tr>
+<tr>
+<td width="20%"><code>soffset_spec_fac</code></td><td width="50%">Array of offset values for specifying signal offset factors</td><td width="30%"><a class="el" href="namespacev3fit__input.html#afcd1be81ddae51729f5642e4fd2f0fa5">v3fit_input::soffset_spec_fac</a> </td></tr>
 </table>
 <h2><a class="anchor" id="magnetic_sec"></a>
 Magnetic signal parameters</h2>
@@ -652,7 +663,7 @@ Programmers Reference</h1>
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sun Aug 5 2018 12:42:51 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Sep 22 2018 12:26:21 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

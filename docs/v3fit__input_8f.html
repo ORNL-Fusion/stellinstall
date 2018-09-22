@@ -91,6 +91,9 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:a3ebb1c33783f13106c703abf6927e186"><td class="memItemLeft" align="right" valign="top">integer function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacev3fit__input.html#a3ebb1c33783f13106c703abf6927e186">v3fit_input::v3fit_input_find_scale_index</a> (index)</td></tr>
 <tr class="memdesc:a3ebb1c33783f13106c703abf6927e186"><td class="mdescLeft">&#160;</td><td class="mdescRight">Finds the index of the scaling spec.  <a href="namespacev3fit__input.html#a3ebb1c33783f13106c703abf6927e186">More...</a><br /></td></tr>
 <tr class="separator:a3ebb1c33783f13106c703abf6927e186"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad531a9ffbbbb3228686b5f7b8152dead"><td class="memItemLeft" align="right" valign="top">integer function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacev3fit__input.html#ad531a9ffbbbb3228686b5f7b8152dead">v3fit_input::v3fit_input_find_offset_index</a> (index)</td></tr>
+<tr class="memdesc:ad531a9ffbbbb3228686b5f7b8152dead"><td class="mdescLeft">&#160;</td><td class="mdescRight">Finds the index of the offset spec.  <a href="namespacev3fit__input.html#ad531a9ffbbbb3228686b5f7b8152dead">More...</a><br /></td></tr>
+<tr class="separator:ad531a9ffbbbb3228686b5f7b8152dead"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7d975a942827c32691153410374be732"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacev3fit__input.html#a7d975a942827c32691153410374be732">v3fit_input::v3fit_input_write_namelist</a> (namelist_file)</td></tr>
 <tr class="memdesc:a7d975a942827c32691153410374be732"><td class="mdescLeft">&#160;</td><td class="mdescRight">Write the namelist input file.  <a href="namespacev3fit__input.html#a7d975a942827c32691153410374be732">More...</a><br /></td></tr>
 <tr class="separator:a7d975a942827c32691153410374be732"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -555,6 +558,18 @@ integer, dimension(v3fit_max_spec_size)&#160;</td><td class="memItemRight" valig
 real(rprec), dimension(v3fit_max_spec_size)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacev3fit__input.html#aeedb001946f7995fdb6e7549e4fc1729">v3fit_input::sfactor_spec_fac</a> = 0.0</td></tr>
 <tr class="memdesc:aeedb001946f7995fdb6e7549e4fc1729"><td class="mdescLeft">&#160;</td><td class="mdescRight">Signal scale factor. <br /></td></tr>
 <tr class="separator:aeedb001946f7995fdb6e7549e4fc1729"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2899fb18ce5ae15243a0b67f9adbef94"><td class="memItemLeft" align="right" valign="top"><a id="a2899fb18ce5ae15243a0b67f9adbef94"></a>
+integer, dimension(v3fit_max_spec_size)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacev3fit__input.html#a2899fb18ce5ae15243a0b67f9adbef94">v3fit_input::soffset_spec_imin</a> = 0</td></tr>
+<tr class="memdesc:a2899fb18ce5ae15243a0b67f9adbef94"><td class="mdescLeft">&#160;</td><td class="mdescRight">Signal factor specification lower index. <br /></td></tr>
+<tr class="separator:a2899fb18ce5ae15243a0b67f9adbef94"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a865f82a521a5c0de1a798076bf9b5e12"><td class="memItemLeft" align="right" valign="top"><a id="a865f82a521a5c0de1a798076bf9b5e12"></a>
+integer, dimension(v3fit_max_spec_size)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacev3fit__input.html#a865f82a521a5c0de1a798076bf9b5e12">v3fit_input::soffset_spec_imax</a> = 0</td></tr>
+<tr class="memdesc:a865f82a521a5c0de1a798076bf9b5e12"><td class="mdescLeft">&#160;</td><td class="mdescRight">Signal factor specification upper index. <br /></td></tr>
+<tr class="separator:a865f82a521a5c0de1a798076bf9b5e12"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afcd1be81ddae51729f5642e4fd2f0fa5"><td class="memItemLeft" align="right" valign="top"><a id="afcd1be81ddae51729f5642e4fd2f0fa5"></a>
+real(rprec), dimension(v3fit_max_spec_size)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacev3fit__input.html#afcd1be81ddae51729f5642e4fd2f0fa5">v3fit_input::soffset_spec_fac</a> = 0.0</td></tr>
+<tr class="memdesc:afcd1be81ddae51729f5642e4fd2f0fa5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Signal scale factor. <br /></td></tr>
+<tr class="separator:afcd1be81ddae51729f5642e4fd2f0fa5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a11987511aea794ac429ac277a0e5ea9d"><td class="memItemLeft" align="right" valign="top">real(rprec)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacev3fit__input.html#a11987511aea794ac429ac277a0e5ea9d">v3fit_input::extcurz_s0</a> = -1.0</td></tr>
 <tr class="memdesc:a11987511aea794ac429ac277a0e5ea9d"><td class="mdescLeft">&#160;</td><td class="mdescRight">External Z current radial position.  <a href="namespacev3fit__input.html#a11987511aea794ac429ac277a0e5ea9d">More...</a><br /></td></tr>
 <tr class="separator:a11987511aea794ac429ac277a0e5ea9d"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -767,7 +782,7 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sun Aug 5 2018 12:42:51 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Sep 22 2018 12:26:21 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

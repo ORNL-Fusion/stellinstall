@@ -322,7 +322,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
     <tr><td class="paramdir">[in,out]</td><td class="paramname">this</td><td>A <a class="el" href="structreconstruction_1_1reconstruction__class.html">reconstruction_class</a> instance. </td></tr>
     <tr><td class="paramdir">[in,out]</td><td class="paramname">signals</td><td>Array of <a class="el" href="namespacesignal.html">signal</a> objects. </td></tr>
     <tr><td class="paramdir">[in,out]</td><td class="paramname">a_model</td><td>A <a class="el" href="namespacemodel.html">model</a> instance. </td></tr>
-    <tr><td class="paramdir">[in,out]</td><td class="paramname">gaussp</td><td>Array of gaussp_class objects. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">gaussp</td><td>Array of <a class="el" href="structguassian__process_1_1gaussp__class.html">guassian_process::gaussp_class</a> objects. </td></tr>
     <tr><td class="paramdir">[in,out]</td><td class="paramname">eq_steps</td><td>Number of steps for the equilibrium to take. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">iou</td><td>Input/output file to write log messages to. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">eq_comm</td><td>MPI communicator for the child equilibrium processes. </td></tr>
@@ -473,7 +473,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="reconstruction_8f_source.html#l02142">2142</a> of file <a class="el" href="reconstruction_8f_source.html">reconstruction.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="reconstruction_8f_source.html#l02143">2143</a> of file <a class="el" href="reconstruction_8f_source.html">reconstruction.f</a>.</p>
 
 </div>
 </div>
@@ -794,7 +794,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="reconstruction_8f_source.html#l02261">2261</a> of file <a class="el" href="reconstruction_8f_source.html">reconstruction.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="reconstruction_8f_source.html#l02262">2262</a> of file <a class="el" href="reconstruction_8f_source.html">reconstruction.f</a>.</p>
 
 </div>
 </div>
@@ -977,7 +977,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="reconstruction_8f_source.html#l02340">2340</a> of file <a class="el" href="reconstruction_8f_source.html">reconstruction.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="reconstruction_8f_source.html#l02341">2341</a> of file <a class="el" href="reconstruction_8f_source.html">reconstruction.f</a>.</p>
 
 </div>
 </div>
@@ -1025,7 +1025,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="reconstruction_8f_source.html#l02558">2558</a> of file <a class="el" href="reconstruction_8f_source.html">reconstruction.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="reconstruction_8f_source.html#l02559">2559</a> of file <a class="el" href="reconstruction_8f_source.html">reconstruction.f</a>.</p>
 
 </div>
 </div>
@@ -1179,8 +1179,8 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
     <tr><td class="paramdir">[in,out]</td><td class="paramname">signals</td><td>Array of <a class="el" href="namespacesignal.html">signal</a> objects. </td></tr>
     <tr><td class="paramdir">[in,out]</td><td class="paramname">locks</td><td>Array of lock objects. </td></tr>
     <tr><td class="paramdir">[in,out]</td><td class="paramname">a_model</td><td>A <a class="el" href="namespacemodel.html">model</a> instance. </td></tr>
-    <tr><td class="paramdir">[in,out]</td><td class="paramname">gaussp</td><td>Array of gaussp_class objects. </td></tr>
-    <tr><td class="paramdir">[in,out]</td><td class="paramname">params</td><td>Array of parameter objects. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">gaussp</td><td>Array of <a class="el" href="structguassian__process_1_1gaussp__class.html">guassian_process::gaussp_class</a> objects. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">params</td><td>Array of <a class="el" href="structv3fit__params_1_1param__class.html">v3fit_params::param_class</a> objects. </td></tr>
     <tr><td class="paramdir">[in,out]</td><td class="paramname">eq_steps</td><td>Number of steps the equilibrium took. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">iou</td><td>Input/output file to write log messages to. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">recon_comm</td><td>MPI communicator for the child jacobian processes. </td></tr>
@@ -1190,7 +1190,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>True if the step was successfull and false otherwise. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="reconstruction_8f_source.html#l01649">1649</a> of file <a class="el" href="reconstruction_8f_source.html">reconstruction.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="reconstruction_8f_source.html#l01650">1650</a> of file <a class="el" href="reconstruction_8f_source.html">reconstruction.f</a>.</p>
 
 </div>
 </div>
@@ -1241,7 +1241,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="reconstruction_8f_source.html#l02725">2725</a> of file <a class="el" href="reconstruction_8f_source.html">reconstruction.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="reconstruction_8f_source.html#l02726">2726</a> of file <a class="el" href="reconstruction_8f_source.html">reconstruction.f</a>.</p>
 
 </div>
 </div>
@@ -1281,7 +1281,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="reconstruction_8f_source.html#l02626">2626</a> of file <a class="el" href="reconstruction_8f_source.html">reconstruction.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="reconstruction_8f_source.html#l02627">2627</a> of file <a class="el" href="reconstruction_8f_source.html">reconstruction.f</a>.</p>
 
 </div>
 </div>
@@ -1321,7 +1321,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="reconstruction_8f_source.html#l02667">2667</a> of file <a class="el" href="reconstruction_8f_source.html">reconstruction.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="reconstruction_8f_source.html#l02668">2668</a> of file <a class="el" href="reconstruction_8f_source.html">reconstruction.f</a>.</p>
 
 </div>
 </div>
@@ -1377,7 +1377,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The lowest q^2 value. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="reconstruction_8f_source.html#l01811">1811</a> of file <a class="el" href="reconstruction_8f_source.html">reconstruction.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="reconstruction_8f_source.html#l01812">1812</a> of file <a class="el" href="reconstruction_8f_source.html">reconstruction.f</a>.</p>
 
 </div>
 </div>
@@ -1417,7 +1417,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="reconstruction_8f_source.html#l02378">2378</a> of file <a class="el" href="reconstruction_8f_source.html">reconstruction.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="reconstruction_8f_source.html#l02379">2379</a> of file <a class="el" href="reconstruction_8f_source.html">reconstruction.f</a>.</p>
 
 </div>
 </div>
@@ -1464,7 +1464,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="reconstruction_8f_source.html#l02432">2432</a> of file <a class="el" href="reconstruction_8f_source.html">reconstruction.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="reconstruction_8f_source.html#l02433">2433</a> of file <a class="el" href="reconstruction_8f_source.html">reconstruction.f</a>.</p>
 
 </div>
 </div>
@@ -1504,14 +1504,14 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="reconstruction_8f_source.html#l02476">2476</a> of file <a class="el" href="reconstruction_8f_source.html">reconstruction.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="reconstruction_8f_source.html#l02477">2477</a> of file <a class="el" href="reconstruction_8f_source.html">reconstruction.f</a>.</p>
 
 </div>
 </div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sun Aug 5 2018 12:42:52 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Sep 22 2018 12:26:22 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

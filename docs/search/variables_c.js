@@ -49,6 +49,7 @@ var searchData=
   ['model_5fnone_5ftype',['model_none_type',['../namespacemodel.html#a965a5f9f1fb814d9bd3f814fc8c535ce',1,'model']]],
   ['model_5fpressure_5ffraction_5fid',['model_pressure_fraction_id',['../namespacemodel.html#ad2b6317fad31953186ed8f7a7fad9303',1,'model']]],
   ['model_5fsignal_5ffactor_5fid',['model_signal_factor_id',['../namespacemodel.html#a0fac5822f775417cfde63cc60ba7fc95',1,'model']]],
+  ['model_5fsignal_5foffset_5fid',['model_signal_offset_id',['../namespacemodel.html#a5859376b779689c5e2bd30c6defea193',1,'model']]],
   ['model_5fstate_5fall_5foff',['model_state_all_off',['../namespacemodel__state.html#ac26f74486eb854b9e8d57b0ab737f1a2',1,'model_state']]],
   ['model_5fstate_5fne_5fflag',['model_state_ne_flag',['../namespacemodel__state.html#a891347707630b005a6b996f347f0edab',1,'model_state']]],
   ['model_5fstate_5fshift_5fflag',['model_state_shift_flag',['../namespacemodel__state.html#a4ca4e4ee2690e92983d3b8c6382d643f',1,'model_state']]],

@@ -68,7 +68,7 @@ $(function() {
 </div><!--header-->
 <div class="contents">
 
-<p>Defines the base class of the type <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> and the base class of <a class="el" href="structsignal_1_1combination__class.html">combination_class</a> and gaussp_class.  
+<p>Defines the base class of the type <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> and the base class of <a class="el" href="structsignal_1_1combination__class.html">combination_class</a>.  
 <a href="#details">More...</a></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
@@ -294,7 +294,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 <tr class="separator:adb49d45fc37b7b65a849e60911a8438d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Defines the base class of the type <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> and the base class of <a class="el" href="structsignal_1_1combination__class.html">combination_class</a> and gaussp_class. </p>
+<div class="textblock"><p>Defines the base class of the type <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> and the base class of <a class="el" href="structsignal_1_1combination__class.html">combination_class</a>. </p>
 <dl class="section user"><dt></dt><dd>signal Sub Classes: <a class="el" href="namespacemagnetic.html">magnetic</a>, <a class="el" href="namespacesxrem.html">sxrem</a>, <a class="el" href="namespaceintpol.html">intpol</a>, <a class="el" href="namespacethomson.html">thomson</a>, <a class="el" href="namespaceextcurz.html">extcurz</a>, <a class="el" href="namespacemse.html">mse</a>, <a class="el" href="namespaceece.html">ece</a>, <a class="el" href="namespacelimiter.html">limiter</a>, <a class="el" href="namespaceprior__gaussian.html">prior_gaussian</a>, and <a class="el" href="namespacefeedback.html">feedback</a></dd></dl>
 <dl class="section user"><dt></dt><dd>combination Super Class: <a class="el" href="namespacesignal.html">signal</a></dd></dl>
 <dl class="section note"><dt>Note</dt><dd>Combination and Gaussian process are defined in the signal module to avoid a circular module dependency. </dd></dl>
@@ -337,7 +337,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed <a class="el" href="structsignal_1_1combination__class.html">combination_class</a> object. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l02167">2167</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l02221">2221</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -367,7 +367,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section note"><dt>Note</dt><dd>The destructors of the signals in the signal array are not called her because the combination signals do not own the memory for those signals. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l02229">2229</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l02283">2283</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -397,7 +397,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A string describing the model and model sigma array indices. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l02475">2475</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l02533">2533</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -442,12 +442,13 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
     <tr><td class="paramdir">[out]</td><td class="paramname">sigma</td><td>The modeled sigma. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">last_value</td><td>Last good value in case the signal did not change. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">scale_factor</td><td>Factor to scale the modeled signal. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">offset_factor</td><td>Factor to offset the modeled signal. </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The model value. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l02334">2334</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l02389">2389</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -477,7 +478,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A string describing the magnetic type. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l02432">2432</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l02490">2490</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -531,7 +532,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section note"><dt>Note</dt><dd>Only signals that were created before this combination can be added. Otherwise there it will creat an infinitely recursive loop in <a class="el" href="namespacesignal.html#ac479c4c38545accc4096074a40bd2a23">combination_get_modeled_signal</a> </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l02267">2267</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l02321">2321</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -571,7 +572,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l02299">2299</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l02353">2353</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -618,7 +619,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l02514">2514</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l02572">2572</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -659,13 +660,14 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
     <tr><td class="paramdir">[in]</td><td class="paramname">observed</td><td>Observed value of the signal. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">sigma</td><td>Observed sigma of the signal. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">weight</td><td>Weight factor of the signal. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">index</td><td>Index of the model signal scale factor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">s_index</td><td>Index of the model signal scale factor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">o_index</td><td>Index of the model signal offset factor. </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> object. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00799">799</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00830">830</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -694,13 +696,14 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
     <tr><td class="paramdir">[in]</td><td class="paramname">observed</td><td>Observed value of the signal. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">sigma</td><td>Observed sigma of the signal. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">weight</td><td>Weight factor of the signal. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">index</td><td>Index of the model signal scale factor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">s_index</td><td>Index of the model signal scale factor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">o_index</td><td>Index of the model signal offset factor. </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> object. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00846">846</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00881">881</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -753,13 +756,14 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
     <tr><td class="paramdir">[in]</td><td class="paramname">observed</td><td>Observed value of the signal. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">sigma</td><td>Observed sigma of the signal. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">weight</td><td>Weight factor of the signal. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">index</td><td>Index of the model signal scale factor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">s_index</td><td>Index of the model signal scale factor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">o_index</td><td>Index of the model signal offset factor. </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> object. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00605">605</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00626">626</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -806,13 +810,14 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
     <tr><td class="paramdir">[in]</td><td class="paramname">observed</td><td>Observed value of the signal. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">sigma</td><td>Observed sigma of the signal. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">weight</td><td>Weight factor of the signal. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">index</td><td>Index of the model signal scale factor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">s_index</td><td>Index of the model signal scale factor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">o_index</td><td>Index of the model signal offset factor. </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> object. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00511">511</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00527">527</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -853,13 +858,14 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
     <tr><td class="paramdir">[in]</td><td class="paramname">observed</td><td>Observed value of the signal. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">sigma</td><td>Observed sigma of the signal. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">weight</td><td>Weight factor of the signal. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">index</td><td>Index of the model signal scale factor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">s_index</td><td>Index of the model signal scale factor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">o_index</td><td>Index of the model signal offset factor. </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> object. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00749">749</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00778">778</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -906,13 +912,14 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
     <tr><td class="paramdir">[in]</td><td class="paramname">observed</td><td>Observed value of the signal. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">sigma</td><td>Observed sigma of the signal. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">weight</td><td>Weight factor of the signal. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">index</td><td>Index of the model signal scale factor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">s_index</td><td>Index of the model signal scale factor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">o_index</td><td>Index of the model signal offset factor. </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> object. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00416">416</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00428">428</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -959,13 +966,14 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
     <tr><td class="paramdir">[in]</td><td class="paramname">observed</td><td>Observed value of the signal. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">sigma</td><td>Observed sigma of the signal. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">weight</td><td>Weight factor of the signal. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">index</td><td>Index of the model signal scale factor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">s_index</td><td>Index of the model signal scale factor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">o_index</td><td>Index of the model signal offset factor. </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> object. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00651">651</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00675">675</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -1006,13 +1014,14 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
     <tr><td class="paramdir">[in]</td><td class="paramname">observed</td><td>Observed value of the signal. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">sigma</td><td>Observed sigma of the signal. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">weight</td><td>Weight factor of the signal. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">index</td><td>Index of the model signal scale factor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">s_index</td><td>Index of the model signal scale factor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">o_index</td><td>Index of the model signal offset factor. </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> object. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00321">321</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00328">328</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -1065,13 +1074,14 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
     <tr><td class="paramdir">[in]</td><td class="paramname">observed</td><td>Observed value of the signal. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">sigma</td><td>Observed sigma of the signal. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">weight</td><td>Weight factor of the signal. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">index</td><td>Index of the model signal scale factor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">s_index</td><td>Index of the model signal scale factor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">o_index</td><td>Index of the model signal offset factor. </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> object. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00559">559</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00577">577</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -1124,13 +1134,14 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
     <tr><td class="paramdir">[in]</td><td class="paramname">observed</td><td>Observed value of the signal. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">sigma</td><td>Observed sigma of the signal. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">weight</td><td>Weight factor of the signal. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">index</td><td>Index of the model signal scale factor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">s_index</td><td>Index of the model signal scale factor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">o_index</td><td>Index of the model signal offset factor. </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> object. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00260">260</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00263">263</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -1161,13 +1172,14 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
     <tr><td class="paramdir">[in]</td><td class="paramname">observed</td><td>Observed value of the signal. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">sigma</td><td>Observed sigma of the signal. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">weight</td><td>Weight factor of the signal. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">index</td><td>Index of the model signal scale factor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">s_index</td><td>Index of the model signal scale factor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">o_index</td><td>Index of the model signal offset factor.. </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> object. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00700">700</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00726">726</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -1214,13 +1226,14 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
     <tr><td class="paramdir">[in]</td><td class="paramname">observed</td><td>Observed value of the signal. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">sigma</td><td>Observed sigma of the signal. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">weight</td><td>Weight factor of the signal. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">index</td><td>Index of the model signal scale factor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">s_index</td><td>Index of the model signal scale factor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">o_index</td><td>Index of the model signal offset factor. </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> object. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00369">369</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00379">379</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -1267,13 +1280,14 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
     <tr><td class="paramdir">[in]</td><td class="paramname">observed</td><td>Observed value of the signal. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">sigma</td><td>Observed sigma of the signal. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">weight</td><td>Weight factor of the signal. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">index</td><td>Index of the model signal scale factor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">s_index</td><td>Index of the model signal scale factor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">o_index</td><td>Index of the model signal offset factor. </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> object. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00463">463</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00477">477</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -1302,7 +1316,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00894">894</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00931">931</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -1375,7 +1389,7 @@ diagnostic::intpol_get_dx</dd></dl>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>dx value for the signal. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01695">1695</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01749">1749</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -1430,7 +1444,7 @@ diagnostic::intpol_get_dx</dd></dl>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The e value. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01209">1209</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01260">1260</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -1485,7 +1499,7 @@ diagnostic::intpol_get_dx</dd></dl>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The g^2 value. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01170">1170</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01221">1221</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -1549,7 +1563,7 @@ diagnostic::intpol_get_dx</dd></dl>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Kernel value for the position and the signal. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01460">1460</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01511">1511</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -1613,7 +1627,7 @@ diagnostic::intpol_get_dx</dd></dl>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Kernel value for the signal and the signal. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01532">1532</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01583">1583</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -1677,7 +1691,7 @@ diagnostic::intpol_get_dx</dd></dl>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Kernel value for position and the signal. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01622">1622</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01673">1673</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -1720,7 +1734,7 @@ gaussp_get_header</dd></dl>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A string describing the model and model sigma array indices. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01393">1393</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01444">1444</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -1791,7 +1805,7 @@ prior_guassian::prior_guassian_get_modeled_signal </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The model value. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01004">1004</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01041">1041</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -1833,7 +1847,7 @@ prior_guassian::prior_guassian_get_modeled_signal </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The observed value. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01126">1126</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01177">1177</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -1864,7 +1878,7 @@ prior_guassian::prior_guassian_get_modeled_signal </dd>
 <dl class="section return"><dt>Returns</dt><dd>The e value. </dd></dl>
 <dl class="section note"><dt>Note</dt><dd>this assumes that modeled sigma value has already been cached by a call to <a class="el" href="namespacesignal.html#a8034448ca903e65b32f4438d80062a58">signal_get_modeled_signal</a> </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01262">1262</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01313">1313</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -1915,7 +1929,7 @@ prior_guassian::prior_guassian_get_signal_type </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A string describing the signal type. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01306">1306</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01357">1357</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -1956,7 +1970,7 @@ prior_guassian::prior_guassian_get_signal_type </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The kernel value for the position and the signal. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01980">1980</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l02034">2034</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -2018,7 +2032,7 @@ prior_guassian::prior_guassian_get_signal_type </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The kernel value for the position and the signal. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01937">1937</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01991">1991</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -2059,7 +2073,7 @@ prior_guassian::prior_guassian_get_signal_type </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A string an appended string. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01748">1748</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01802">1802</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -2106,7 +2120,7 @@ prior_guassian::prior_guassian_get_signal_type </dd>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l02105">2105</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l02159">2159</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -2161,7 +2175,7 @@ prior_guassian::prior_guassian_get_signal_type </dd>
 </dl>
 <dl class="section note"><dt>Note</dt><dd>This assumes that signals have already been calculated. The model isn't used by signal_get_g2 since it is reading from the cache but must be passed in anyway. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01792">1792</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01846">1846</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -2202,7 +2216,7 @@ prior_guassian::prior_guassian_get_signal_type </dd>
 </dl>
 <dl class="section note"><dt>Note</dt><dd>This should only be called when the type of signal changes. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01844">1844</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01898">1898</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -2254,7 +2268,7 @@ prior_guassian::prior_guassian_get_signal_type </dd>
 </dl>
 <dl class="section note"><dt>Note</dt><dd>This assumes that signals have already been calculated. The model isn't used by signal_get_g2 since it is reading from the cache but must be passed in anyway. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l02024">2024</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l02078">2078</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -2311,14 +2325,14 @@ gaussp_write_auxiliary</dd></dl>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01884">1884</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l01938">1938</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sun Aug 5 2018 12:42:53 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Sep 22 2018 12:26:22 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

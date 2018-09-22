@@ -83,7 +83,7 @@ Public Member Functions</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Interface for the construction of <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> types using <a class="el" href="namespacesignal.html#a3fc70302f641f5f8f322559bc755a2b5">signal_construct_magnetic</a>, <a class="el" href="namespacesignal.html#a24943ee41920e060fef1cdc17865ad52">signal_construct_sxrem</a>, <a class="el" href="namespacesignal.html#ae088500bb40cda50490f567b95b45542">signal_construct_intpol</a>, <a class="el" href="namespacesignal.html#aec7d3a084b4a5128ab70f4cb379b0281">signal_construct_thomson</a>, <a class="el" href="namespacesignal.html#acb54d38c39667a46ae7906bd2038496c">signal_construct_extcurz</a>, <a class="el" href="namespacesignal.html#a2450a1cf884e30e338dbf40aa49b0110">signal_construct_mse</a>, <a class="el" href="namespacesignal.html#a5dad00bfbfef936d17cb67e63737f728">signal_construct_ece</a>, <a class="el" href="namespacesignal.html#a37f2e1d9b8145062defbb7cd3672e03b">signal_construct_limiter</a>, <a class="el" href="namespacesignal.html#a7ab504bbf10f78eb85e364d0f26ceb5d">signal_construct_prior_gaussian</a>, <a class="el" href="namespacesignal.html#aae2591cfcbd29b112d1c289f8e04cc2f">signal_construct_feedback</a>, <a class="el" href="namespacesignal.html#a77e2d5f1361537d8775cf642dc4c7c78">signal_construct_combination</a> or <a class="el" href="namespacesignal.html#af5442e3184fa60844ec67641354386fd">signal_construct_diagnostic_netcdf</a>. </p>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00215">215</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00217">217</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 </div><h2 class="groupheader">Member Function/Subroutine Documentation</h2>
 <a id="ae9eda815485ee6f9e748dd720991d967"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ae9eda815485ee6f9e748dd720991d967">&#9670;&nbsp;</a></span>signal_construct_new()</h2>
@@ -134,13 +134,14 @@ Public Member Functions</h2></td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">observed</td><td>Observed value of the signal. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">sigma</td><td>Observed sigma of the signal. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">weight</td><td>Weight factor of the signal. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">index</td><td>Index of the model signal scale factor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">s_index</td><td>Index of the model signal scale factor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">o_index</td><td>Index of the model signal offset factor. </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed <a class="el" href="structsignal_1_1signal__class.html">signal_class</a> object. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00260">260</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="signal_8f_source.html#l00263">263</a> of file <a class="el" href="signal_8f_source.html">signal.f</a>.</p>
 
 </div>
 </div>
@@ -150,7 +151,7 @@ Public Member Functions</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sun Aug 5 2018 12:42:53 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Sep 22 2018 12:26:22 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

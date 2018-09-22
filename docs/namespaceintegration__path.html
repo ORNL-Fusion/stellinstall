@@ -831,7 +831,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">type (<a class="el" href="structintegration__path_1_1vertex.html">vertex</a>), intent(inout)&#160;</td>
+          <td class="paramtype">type (<a class="el" href="structintegration__path_1_1vertex.html">vertex</a>), intent(in)&#160;</td>
           <td class="paramname"><em>path</em>&#160;</td>
         </tr>
         <tr>
@@ -847,7 +847,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">this</td><td>In instance of a <a class="el" href="structintegration__path_1_1path__int__class.html">path_int_class</a> instance. </td></tr>
-    <tr><td class="paramdir">[in,out]</td><td class="paramname">path</td><td>Starting <a class="el" href="classvertex.html">vertex</a> to of the path to integrate. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">path</td><td>Starting <a class="el" href="classvertex.html">vertex</a> to of the path to integrate. </td></tr>
     <tr><td class="paramdir"></td><td class="paramname">integration_function</td><td>Function pointer that defines the integrand. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">context</td><td>Generic object that contains data for the integration function. </td></tr>
   </table>
@@ -868,7 +868,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
         <tr>
           <td class="memname">recursive function integration_path::path_search </td>
           <td>(</td>
-          <td class="paramtype">type (<a class="el" href="structintegration__path_1_1vertex.html">vertex</a>), intent(inout)&#160;</td>
+          <td class="paramtype">type (<a class="el" href="structintegration__path_1_1vertex.html">vertex</a>), intent(in)&#160;</td>
           <td class="paramname"><em>path</em>, </td>
         </tr>
         <tr>
@@ -895,7 +895,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 <p>Recursively runs through the next vertex to find the last vertex. Once the last vertex is found, a new vertex is allocated and appended to the path. The integrand is proveded by means of call back function.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in,out]</td><td class="paramname">path</td><td>Starting vertex to begin search. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">path</td><td>Starting vertex to begin search. </td></tr>
     <tr><td class="paramdir"></td><td class="paramname">search_function</td><td>Function pointer that defines the search criteria. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">context</td><td>Generic object that contains data for the integration function. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">found</td><td>Signals if the condition was met. </td></tr>
@@ -1058,7 +1058,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sun Aug 5 2018 12:42:52 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Sep 22 2018 12:26:21 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

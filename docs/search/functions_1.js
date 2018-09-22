@@ -11,6 +11,7 @@ var searchData=
   ['bmw',['bmw',['../bmw_8f.html#a4f602db0c6bca6f11a8e484d7f59a519',1,'bmw.f']]],
   ['bmw_5fcommandline_5fparser_5fconstruct',['bmw_commandline_parser_construct',['../namespacebmw__commandline__parser.html#a32287042342ae1050dd8feaf02968562',1,'bmw_commandline_parser']]],
   ['bmw_5fcommandline_5fparser_5fdestruct',['bmw_commandline_parser_destruct',['../namespacebmw__commandline__parser.html#acd4277b174db8cc4f89ef2a8572a1edb',1,'bmw_commandline_parser']]],
+  ['bmw_5fcommandline_5fparser_5fflag_5frequires_5fvalue',['bmw_commandline_parser_flag_requires_value',['../namespacebmw__commandline__parser.html#a6d8473eb19b6303db674c9feb3e7dc91',1,'bmw_commandline_parser']]],
   ['bmw_5fcommandline_5fparser_5fget_5finteger',['bmw_commandline_parser_get_integer',['../namespacebmw__commandline__parser.html#ad311be7940039e1cd0c096abfa22ae63',1,'bmw_commandline_parser']]],
   ['bmw_5fcommandline_5fparser_5fget_5freal',['bmw_commandline_parser_get_real',['../namespacebmw__commandline__parser.html#aa180c53f7f1b7fde097928a15e31a13f',1,'bmw_commandline_parser']]],
   ['bmw_5fcommandline_5fparser_5fget_5fstring',['bmw_commandline_parser_get_string',['../namespacebmw__commandline__parser.html#ad5848fd3324ee4897a91b684097532be',1,'bmw_commandline_parser']]],

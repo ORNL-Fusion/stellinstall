@@ -254,6 +254,9 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:ad1458152390260f06d7442de36bdbd98"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#ad1458152390260f06d7442de36bdbd98">model::model_get_signal_factor</a> (this, index)</td></tr>
 <tr class="memdesc:ad1458152390260f06d7442de36bdbd98"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the scale factor for a signal.  <a href="namespacemodel.html#ad1458152390260f06d7442de36bdbd98">More...</a><br /></td></tr>
 <tr class="separator:ad1458152390260f06d7442de36bdbd98"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6a2f06f9f5990ecfdc9813ed5d3eba11"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a6a2f06f9f5990ecfdc9813ed5d3eba11">model::model_get_signal_offset</a> (this, index)</td></tr>
+<tr class="memdesc:a6a2f06f9f5990ecfdc9813ed5d3eba11"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the offset factor for a signal.  <a href="namespacemodel.html#a6a2f06f9f5990ecfdc9813ed5d3eba11">More...</a><br /></td></tr>
+<tr class="separator:a6a2f06f9f5990ecfdc9813ed5d3eba11"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae92f9c0950727e71610455ca8498fca1"><td class="memItemLeft" align="right" valign="top">logical function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#ae92f9c0950727e71610455ca8498fca1">model::model_is_recon_param</a> (this, id)</td></tr>
 <tr class="memdesc:ae92f9c0950727e71610455ca8498fca1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Determines if a parameter id is a reconstruction parameter.  <a href="namespacemodel.html#ae92f9c0950727e71610455ca8498fca1">More...</a><br /></td></tr>
 <tr class="separator:ae92f9c0950727e71610455ca8498fca1"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -362,24 +365,28 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a0fac5822f775417cfde63cc60ba7fc95">model::model_signal_factor_id</a> = 8</td></tr>
 <tr class="memdesc:a0fac5822f775417cfde63cc60ba7fc95"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parameter id for the modeled signal scale factors. <br /></td></tr>
 <tr class="separator:a0fac5822f775417cfde63cc60ba7fc95"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5859376b779689c5e2bd30c6defea193"><td class="memItemLeft" align="right" valign="top"><a id="a5859376b779689c5e2bd30c6defea193"></a>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a5859376b779689c5e2bd30c6defea193">model::model_signal_offset_id</a> = 9</td></tr>
+<tr class="memdesc:a5859376b779689c5e2bd30c6defea193"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parameter id for the modeled signal offset factors. <br /></td></tr>
+<tr class="separator:a5859376b779689c5e2bd30c6defea193"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8ec59b67723de5350e1243bd13d57308"><td class="memItemLeft" align="right" valign="top"><a id="a8ec59b67723de5350e1243bd13d57308"></a>
-integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a8ec59b67723de5350e1243bd13d57308">model::model_ne_grid_id</a> = 9</td></tr>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a8ec59b67723de5350e1243bd13d57308">model::model_ne_grid_id</a> = 10</td></tr>
 <tr class="memdesc:a8ec59b67723de5350e1243bd13d57308"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parameter id for the electrion density grid. <br /></td></tr>
 <tr class="separator:a8ec59b67723de5350e1243bd13d57308"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a252cedeee618d79814de7327ef8838d1"><td class="memItemLeft" align="right" valign="top"><a id="a252cedeee618d79814de7327ef8838d1"></a>
-integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a252cedeee618d79814de7327ef8838d1">model::model_te_grid_id</a> = 10</td></tr>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a252cedeee618d79814de7327ef8838d1">model::model_te_grid_id</a> = 11</td></tr>
 <tr class="memdesc:a252cedeee618d79814de7327ef8838d1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parameter id for the electrion temperature grid. <br /></td></tr>
 <tr class="separator:a252cedeee618d79814de7327ef8838d1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7a6ad268d4278577494f334adebb6896"><td class="memItemLeft" align="right" valign="top"><a id="a7a6ad268d4278577494f334adebb6896"></a>
-integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a7a6ad268d4278577494f334adebb6896">model::model_ti_grid_id</a> = 11</td></tr>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a7a6ad268d4278577494f334adebb6896">model::model_ti_grid_id</a> = 12</td></tr>
 <tr class="memdesc:a7a6ad268d4278577494f334adebb6896"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parameter id for the ion temperature grid. <br /></td></tr>
 <tr class="separator:a7a6ad268d4278577494f334adebb6896"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acd7336c016d4b58107cc3c8cf899fea9"><td class="memItemLeft" align="right" valign="top"><a id="acd7336c016d4b58107cc3c8cf899fea9"></a>
-integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#acd7336c016d4b58107cc3c8cf899fea9">model::model_sxrem_grid_id</a> = 12</td></tr>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#acd7336c016d4b58107cc3c8cf899fea9">model::model_sxrem_grid_id</a> = 13</td></tr>
 <tr class="memdesc:acd7336c016d4b58107cc3c8cf899fea9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parameter id for the soft x-ray emissivity grid. <br /></td></tr>
 <tr class="separator:acd7336c016d4b58107cc3c8cf899fea9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abf8473dd73c6fe4b0f9ee2bd243cd0f8"><td class="memItemLeft" align="right" valign="top"><a id="abf8473dd73c6fe4b0f9ee2bd243cd0f8"></a>
-integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#abf8473dd73c6fe4b0f9ee2bd243cd0f8">model::model_ze_grid_id</a> = 13</td></tr>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#abf8473dd73c6fe4b0f9ee2bd243cd0f8">model::model_ze_grid_id</a> = 14</td></tr>
 <tr class="memdesc:abf8473dd73c6fe4b0f9ee2bd243cd0f8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parameter id for the effective charge grid. <br /></td></tr>
 <tr class="separator:abf8473dd73c6fe4b0f9ee2bd243cd0f8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:adee0096c51cfba8e688b2e2f073ec866"><td class="memItemLeft" align="right" valign="top"><a id="adee0096c51cfba8e688b2e2f073ec866"></a>
@@ -394,7 +401,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sun Aug 5 2018 12:42:51 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Sep 22 2018 12:26:21 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

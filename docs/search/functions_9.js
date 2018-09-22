@@ -58,6 +58,7 @@ var searchData=
   ['model_5fget_5fparam_5fname',['model_get_param_name',['../namespacemodel.html#a3ca24f831d2002ee26314de823344ef6',1,'model']]],
   ['model_5fget_5fparam_5fvalue',['model_get_param_value',['../namespacemodel.html#a1505f0e988ed7337652bf62874052820',1,'model']]],
   ['model_5fget_5fsignal_5ffactor',['model_get_signal_factor',['../namespacemodel.html#ad1458152390260f06d7442de36bdbd98',1,'model']]],
+  ['model_5fget_5fsignal_5foffset',['model_get_signal_offset',['../namespacemodel.html#a6a2f06f9f5990ecfdc9813ed5d3eba11',1,'model']]],
   ['model_5fget_5fsxrem_5faf',['model_get_sxrem_af',['../namespacemodel.html#a84634e1e0804a4e8d6d2b9fb8e1ccc1f',1,'model']]],
   ['model_5fget_5fsxrem_5fcart',['model_get_sxrem_cart',['../interfacemodel_1_1model__get__sxrem.html#a46d9aabd15dad34f3fd6eb300cd4cd59',1,'model::model_get_sxrem::model_get_sxrem_cart()'],['../namespacemodel.html#afee0b0995d6fb4b7021336d13745e512',1,'model::model_get_sxrem_cart()']]],
   ['model_5fget_5fsxrem_5fradial',['model_get_sxrem_radial',['../namespacemodel.html#ab6613013e6047eab5cde6d6107dc65e6',1,'model']]],

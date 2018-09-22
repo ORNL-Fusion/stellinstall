@@ -97,6 +97,9 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:a722146ae07d9b51c77d8ed47be850431"><td class="memItemLeft" align="right" valign="top">logical function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacebmw__commandline__parser.html#a722146ae07d9b51c77d8ed47be850431">bmw_commandline_parser_is_flag_set</a> (this, arg)</td></tr>
 <tr class="memdesc:a722146ae07d9b51c77d8ed47be850431"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if a command line argument was set.  <a href="#a722146ae07d9b51c77d8ed47be850431">More...</a><br /></td></tr>
 <tr class="separator:a722146ae07d9b51c77d8ed47be850431"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6d8473eb19b6303db674c9feb3e7dc91"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacebmw__commandline__parser.html#a6d8473eb19b6303db674c9feb3e7dc91">bmw_commandline_parser_flag_requires_value</a> (this, index)</td></tr>
+<tr class="memdesc:a6d8473eb19b6303db674c9feb3e7dc91"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if a command line argument requires a value.  <a href="#a6d8473eb19b6303db674c9feb3e7dc91">More...</a><br /></td></tr>
+<tr class="separator:a6d8473eb19b6303db674c9feb3e7dc91"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a20f83d807faa76fb1702c909adf762d8"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacebmw__commandline__parser.html#a20f83d807faa76fb1702c909adf762d8">bmw_commandline_parser_print_help</a></td></tr>
 <tr class="memdesc:a20f83d807faa76fb1702c909adf762d8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print out help text.  <a href="#a20f83d807faa76fb1702c909adf762d8">More...</a><br /></td></tr>
 <tr class="separator:a20f83d807faa76fb1702c909adf762d8"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -179,7 +182,56 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="bmw__commandline__parser_8f_source.html#l00195">195</a> of file <a class="el" href="bmw__commandline__parser_8f_source.html">bmw_commandline_parser.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="bmw__commandline__parser_8f_source.html#l00198">198</a> of file <a class="el" href="bmw__commandline__parser_8f_source.html">bmw_commandline_parser.f</a>.</p>
+
+</div>
+</div>
+<a id="a6d8473eb19b6303db674c9feb3e7dc91"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6d8473eb19b6303db674c9feb3e7dc91">&#9670;&nbsp;</a></span>bmw_commandline_parser_flag_requires_value()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">subroutine bmw_commandline_parser::bmw_commandline_parser_flag_requires_value </td>
+          <td>(</td>
+          <td class="paramtype">type (<a class="el" href="structbmw__commandline__parser_1_1bmw__commandline__parser__class.html">bmw_commandline_parser_class</a>), intent(in)&#160;</td>
+          <td class="paramname"><em>this</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
+          <td class="paramname"><em>index</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Check if a command line argument requires a value. </p>
+<p>Command line arguments for</p>
+<ul>
+<li>-mgridf</li>
+<li>-woutf</li>
+<li>-siestaf</li>
+<li>-outf</li>
+<li>-logf</li>
+</ul>
+<p>require a value to be set.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">this</td><td>A <a class="el" href="structbmw__commandline__parser_1_1bmw__commandline__parser__class.html">bmw_commandline_parser_class</a> instance. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">index</td><td>A argument string to search for. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>True if the argument has a value. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="bmw__commandline__parser_8f_source.html#l00450">450</a> of file <a class="el" href="bmw__commandline__parser_8f_source.html">bmw_commandline_parser.f</a>.</p>
 
 </div>
 </div>
@@ -221,7 +273,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The argument value. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="bmw__commandline__parser_8f_source.html#l00281">281</a> of file <a class="el" href="bmw__commandline__parser_8f_source.html">bmw_commandline_parser.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="bmw__commandline__parser_8f_source.html#l00284">284</a> of file <a class="el" href="bmw__commandline__parser_8f_source.html">bmw_commandline_parser.f</a>.</p>
 
 </div>
 </div>
@@ -269,7 +321,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The argument value. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="bmw__commandline__parser_8f_source.html#l00337">337</a> of file <a class="el" href="bmw__commandline__parser_8f_source.html">bmw_commandline_parser.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="bmw__commandline__parser_8f_source.html#l00340">340</a> of file <a class="el" href="bmw__commandline__parser_8f_source.html">bmw_commandline_parser.f</a>.</p>
 
 </div>
 </div>
@@ -310,7 +362,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The argument value. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="bmw__commandline__parser_8f_source.html#l00231">231</a> of file <a class="el" href="bmw__commandline__parser_8f_source.html">bmw_commandline_parser.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="bmw__commandline__parser_8f_source.html#l00234">234</a> of file <a class="el" href="bmw__commandline__parser_8f_source.html">bmw_commandline_parser.f</a>.</p>
 
 </div>
 </div>
@@ -351,7 +403,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>True if the argument was found, false if it was not found. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="bmw__commandline__parser_8f_source.html#l00390">390</a> of file <a class="el" href="bmw__commandline__parser_8f_source.html">bmw_commandline_parser.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="bmw__commandline__parser_8f_source.html#l00393">393</a> of file <a class="el" href="bmw__commandline__parser_8f_source.html">bmw_commandline_parser.f</a>.</p>
 
 </div>
 </div>
@@ -373,14 +425,14 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 <p>Print out help text. </p>
 <p>Command line help text should take the form of '-flag' that is maximum length of <a class="el" href="namespacebmw__commandline__parser.html#acca17c4316f79e516f90e044933d34f5">max_arg_length</a> followed by a space. A Y or N indicating the flag takes a value or not followed by a space. A short message describing the flag. A reference for all the command line arguments can be found at <a class="el" href="cl_parsing_sec.html">Command Line Arguments</a>. </p>
 
-<p class="definition">Definition at line <a class="el" href="bmw__commandline__parser_8f_source.html#l00439">439</a> of file <a class="el" href="bmw__commandline__parser_8f_source.html">bmw_commandline_parser.f</a>.</p>
+<p class="definition">Definition at line <a class="el" href="bmw__commandline__parser_8f_source.html#l00492">492</a> of file <a class="el" href="bmw__commandline__parser_8f_source.html">bmw_commandline_parser.f</a>.</p>
 
 </div>
 </div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sun Aug 5 2018 12:42:51 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Sep 22 2018 12:26:21 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>
