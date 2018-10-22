@@ -15,6 +15,9 @@
 !  bloat            used to expand the current profile
 !  pcurr_type       character, specifies the parameterization of the profile
 !                     | - X for parametrization of I-prime(s), _ for I(s)
+!    sum_cossq_s      X    Sum of cos**2-waves - I-prime
+!    sum_cossq_sqrts  X    Sum of cos**2-waves with respect to sqrt(s) - I-prime
+!    sum_cossq_s_free X    Sum of cos**2-waves up to 7, free position and width - I-prime
 !    gauss_trunc      X    Truncated Gaussian - I-prime
 !    two_power        X    Two powers - ac(0) * (1 - s ** ac(1)) ** ac(2)
 !    two_power_gs     X    Two powers with gaussian peaks -
@@ -74,6 +77,10 @@
      &   0.1346333596549982, 0.1095431812579910, 0.0747256745752903,           &
      &   0.03333567215434407 /)
       REAL(rprec) :: g1,g2,g3,g4,a8,a12
+      REAL(rprec), dimension(21) :: xi, bsta, bend, wd
+      REAL(rprec) :: sqx,delx,delxsq,pisq
+      INTEGER :: ni
+      INTEGER :: ncssq
 
 !-----------------------------------------------
 !
@@ -92,6 +99,227 @@
       CALL tolower(pcurr_type_lc)
       SELECT CASE(TRIM(pcurr_type_lc))
       
+      CASE ('sum_cossq_s')
+! 20180218, Joachim Geiger
+! The idea was to use the combination of cos**2-waves located at
+! different radial locations to build up a current density in a
+! hopefully quite flexible way. Since the current is needed, the
+! integration is done analytically.
+!  Sum of ncssq cos**2 terms put at different radial locations
+!  and with a windowing around the maxima as current density:
+!  ac(0) holds ncssq
+!     ac(1)*(H(x)-H(x-dx))*(cos(pi*(x-xi(1))/(2*dx))**2 
+!    +ac(2)*(H(x-(xi(2)-dx))-H(x-(xi(2)+dx)))*cos(pi*(x-xi(2))/(2*dx))**2
+!    + ... 
+!    +ac(ncssq)*(H(x-(xi(ncssq)-dx))-H(x-(xi(ncssq))))*cos(pi*(x-xi(ncssq))/(2*dx))**2
+!  windowing is done with the Heavyside-functions producing the
+!  Boxcar Function: H(x-a)-H(x-b) is, for a<b, 1 for a<x<b and zero otherwise.
+!  use of variables:
+!     half of interval width : dx=1/(ncssq-1.0)   .
+!     location of ith: xi=(i-1)*dx = (i-1)/(ncssq-1)
+!     example: ncssq=5, dx=1/4.0=0.25, locations:0.0, 0.25, 0.5, ...
+!     interval for first  wave:  0.00 to 0.25, maximum at 0.00
+!     interval for second wave:  0.00 to 0.50, maximum at 0.25
+!     interval for third  wave:  0.25 to 0.75, maximum at 0.50
+!     interval for fourth wave:  0.50 to 1.00, maximum at 0.75
+!     interval for fifth  wave:  0.75 to 1.00, maximum at 1.00
+!  Analytic integration results in a sum of sine-functions with
+!  linear increases:
+!  int(x(i)-dy to x) cos(pi*(t-xi(i))/(2*dx))**2 dx =
+!       =0.5*(x-(x(i)-dx)+(dx/pi)*sin(pi(x-x(i))/dx))
+!  For the very first part integration start at mid-interval,
+!  i.e. x=0, x(i)=0:
+!  int(0 to x) cos(pi*(t)/(2*dx))**2 dx =
+!       =0.5*(x+(dx/pi)*sin(pi(x)/dx))
+!  When adding up fully integrated intervals the first needs
+!  also to be accounted for differently.
+!
+      ncssq=int(ac(0))
+      if (ncssq .lt. 1 .or. ncssq .gt. 20) then
+        write(6,*) "Number of coeff.s for sum_cos_sq :",  
+     &             "1<= sum_cos_sq <= 21!"
+        stop 'Check input!'
+      endif
+      delx=1.0_dp/(ncssq-1.0_dp)
+      bsta = 2.0_dp
+      bend = 2.0_dp
+      do i=1,ncssq
+        xi(i)=(i-1)*delx               ! location of maximum curr. dens.
+        bsta(i)=max(0.0_dp,xi(i)-delx) ! interval start of curr.dens.part
+        bend(i)=min(xi(i)+delx,1.0_dp) ! interval end of curr.dens.part
+      enddo
+      ni=1           ! first interval initially.
+      do i=1,ncssq   ! check the interval of x in ( bsta(i) : bend(i) ]
+        if( x .le. bend(i) .and. x .gt. bsta(i))then
+          ni=i
+        endif
+      enddo
+      pcurr=0.0
+      do i=1,ni
+        if( x .gt. bsta(i) .and. x .le. bend(i) ) then
+          if(i .eq. 1) then   ! the first has no linear term.
+            pcurr=pcurr + 0.5*ac(i)*(x+                                        &
+     &          delx*sin(pi*(x-xi(i))/delx)/pi)
+          else
+            pcurr=pcurr + 0.5*ac(i)*(x-xi(i)+delx+                             &
+     &          delx*sin(pi*(x-xi(i))/delx)/pi)
+          endif
+        else
+          if(i .eq. 1) then   !the first is only a half interval
+            pcurr=pcurr+0.5*ac(i)*delx
+          else
+            pcurr=pcurr+ac(i)*delx
+          endif
+        endif
+      enddo
+
+      CASE ('sum_cossq_sqrts')
+! 20180219, Joachim Geiger
+! This is the implementation for using sqrt(s) as coordinate.
+! The same idea as for sum_cos_sq.
+! The analytical integration give different integrals.
+!  Sum of ncssq cos**2 terms put at different radial locations
+!  and with a windowing around the maxima as current density:
+!  ac(0) holds ncssq
+!     ac(1)*(H(x)-H(x-dx))*(cos(pi*(x-xi(1))/(2*dx))**2 
+!    +ac(2)*(H(x-(xi(2)-dx))-H(x-(xi(2)+dx)))*cos(pi*(x-xi(2))/(2*dx))**2
+!    + ... 
+!    +ac(ncssq)*(H(x-(xi(ncssq)-dx))-H(x-(xi(ncssq))))*cos(pi*(x-xi(ncssq))/(2*dx))**2
+!  windowing is done with the Heavyside-functions producing the
+!  Boxcar Function: H(x-a)-H(x-b) is, for a<b, 1 for a<x<b and zero otherwise.
+!  use of variables:
+!     half of interval width : dx=1/(ncssq-1.0)   .
+!     location of ith: xi=(i-1)*dx = (i-1)/(ncssq-1)
+!     example: ncssq=5, dx=1/4.0=0.25, locations:0.0, 0.25, 0.5, ...
+!       Note the locations are with respect to sqrt(s), the s-value is given in brackets
+!     interval for first  wave:  0.00 to 0.25, maximum at 0.00  (0.0)
+!     interval for second wave:  0.00 to 0.50, maximum at 0.25  (0.0625)
+!     interval for third  wave:  0.25 to 0.75, maximum at 0.50  (0.25)
+!     interval for fourth wave:  0.50 to 1.00, maximum at 0.75  (0.5625)
+!     interval for fifth  wave:  0.75 to 1.00, maximum at 1.00  (1.0)
+!  Analytic integration now wrt sqrt(s)=x results in a more complicated sum of
+!  sine-functions and cosine-functions with and a linear increase:
+!  int(x(i)-dy to x) cos(pi*(t-xi(i))/(2*dx))**2 x dx =
+!       =  0.25*(x-(x(i))+dx**2/(2*pi**2)+
+!        + (dx/(2*pi))*x*sin(pi(x-x(i))/dx)) +
+!        + (dx**2/(2*pi**2))*x*cos(pi(x-x(i))/dx))
+!  For the very first part integration start at mid-interval,
+!  i.e. x=0, x(i)=0:
+!  int(0 to x) cos(pi*(t)/(2*dx))**2 x dx =
+!       =0.25*x+(dx/(2*pi)) * x  * sin(pi(x)/dx)
+!              +(dx**2/(2*pi**2))*(cos(pi(x)/dx)-1)
+!  When adding up fully integrated intervals the first needs
+!  also to be accounted for differently.
+!
+      ncssq=int(ac(0))
+      if (ncssq .lt. 1 .or. ncssq .gt. 20) then
+        write(6,*) "Number of coeff.s for sum_cos_sq :",  
+     &             "1<= sum_cos_sq <= 21!"
+        stop 'Check input!'
+      endif
+      sqx=sqrt(x)
+      delx=1.0_dp/(ncssq-1.0_dp)
+      delxsq=delx*delx
+      pisq=pi*pi
+      bsta = 2.0_dp
+      bend = 2.0_dp
+      do i=1,ncssq
+        xi(i)=(i-1)*delx               ! location of maximum curr. dens.
+        bsta(i)=max(0.0_dp,xi(i)-delx) ! interval start of curr.dens.part
+        bend(i)=min(xi(i)+delx,1.0_dp) ! interval end of curr.dens.part
+      enddo
+      ni=1           ! first interval initially.
+      do i=1,ncssq   ! check the interval of x in ( bsta(i) : bend(i) ]
+        if( sqx .le. bend(i) .and. sqx .gt. bsta(i))then
+          ni=i
+        endif
+      enddo
+      pcurr=0.0
+      do i=1,ni
+        if( sqx .gt. bsta(i) .and. sqx .le. bend(i) ) then
+          if(i .eq. 1) then   ! the first has no linear term.
+            pcurr=pcurr + ac(i)*(0.25_dp*x+                                    &
+     &          (delx/(2*pi)*sqx*sin(pi*sqx/delx))+                            &
+     &          delxsq/(2*pisq)*(cos(pi*sqx/delx)-1.0_dp))
+          else
+            pcurr=pcurr + ac(i)*(0.25_dp*x+                                    &
+     &          delx/(2*pi)*sqx*sin(pi*(sqx-xi(i))/delx)+                      &
+     &          delxsq/(2*pisq)*cos(pi*(sqx-xi(i))/delx)-                      &
+     &          0.25_dp*bsta(i)**2 + delxsq/(2*pisq))
+          endif
+        else
+          if(i .eq. 1) then   !the first is only a half interval
+!           if(x .gt. 0.0_dp )
+!    &          pcurr=pcurr+ac(i)*(0.25_dp-1/pisq)*delxsq
+            pcurr=pcurr+ac(i)*(0.25_dp-1/pisq)*delxsq
+          else
+            pcurr=pcurr+ac(i)*delx*xi(i)
+          endif
+        endif
+      enddo
+
+      CASE ('sum_cossq_s_free')
+! 20180628, Joachim Geiger
+! The idea was to use the combination of cos**2-waves located at
+! different radial locations to build up a current density in a
+! hopefully quite flexible way. Since the current is needed, the
+! integration is done analytically.
+! This implementation allows a free positioning of up to seven
+! waves with individual periodicity length. This means broad and
+! small ones can be combined. The waves have not to fit fully or
+! with one half into the s-range from 0 to 1. This is the reason
+! that no version with sqrt(s) is used.
+! Every three coefficients hold the amplitude, the max-location
+! and the width, i.e. min. to min. distance:
+! AC(0+3*i) = amplitude
+! AC(1+3*i) = location
+! AC(2+3*i) = width
+! with i=0 to 6, the index thus runs from 0 to 20!
+!  Sum of ncssq=7 cos**2 terms put at different radial locations
+!  and with a windowing around the maxima as current density:
+!  ac(0) holds ncssq
+!     ac(0)*(H(x-(ac(1)-ac(2)/2.))-H(x-(ac(1)+ac(2)/2.)))*cos(pi*(x-ac(1))/(ac(2)))**2
+!    +ac(3)*(H(x-(ac(4)-ac(5)/2.))-H(x-(ac(4)+ac(5)/2.)))*cos(pi*(x-ac(4))/(ac(5)))**2
+!    + ... 
+!    +ac(18)*(H(x-(ac(19)-ac(20)/2.))-H(x-(ac(19)+ac(20)/2.)))*cos(pi*(x-ac(19))/(ac(20)))**2
+!  windowing is done with the Heavyside-functions producing the
+!  Boxcar Function: H(x-a)-H(x-b) is, for a<b, 1 for a<x<b and zero otherwise.
+!
+      ncssq=7
+      bsta = 2.0_dp
+      bend = 2.0_dp
+      xi = 0.0_dp                       ! initialize to a finite value
+      wd = 1.0_dp                       ! initialize to a finite value
+      do i=1,ncssq
+        xi(i)=ac(1+3*(i-1))             ! location of maximum curr. dens.
+        wd(i)=ac(2+3*(i-1))             ! half width of interval
+!       bsta(i)=max(0.0_dp,xi(i)-wd(i)) ! interval start of curr.dens.part
+!       bend(i)=min(xi(i)+wd(i),1.0_dp) ! interval end of curr.dens.part
+        bsta(i)=max(0.0_dp,xi(i)-wd(i)) ! interval start of curr.dens.part
+        bend(i)=min(xi(i)+wd(i),1.0_dp) ! interval end of curr.dens.part
+      enddo
+!     write(6,*) xi(1:ncssq)
+!     write(6,*) wd(1:ncssq)
+!     write(6,*) bsta(1:ncssq)
+!     write(6,*) bend(1:ncssq)
+
+      pcurr=0.0
+      do i=1,ncssq
+        if(ac(3*(i-1)) .ne. 0.0_dp)then     ! do only if the amplitude contributes
+          if(x .gt. bsta(i) .and. x .le. bend(i))then
+            pcurr = pcurr + ac(3*(i-1))*0.5*( (x-bsta(i))                    &
+     &            + wd(i)/pi*( sin(pi*(  x    -xi(i))/wd(i) ) -            &
+     &                         sin(pi*(bsta(i)-xi(i))/wd(i) ) ) )
+          elseif(x .gt. bend(i))then
+            pcurr = pcurr + ac(3*(i-1))*0.5*((bend(i)-bsta(i))                    &
+     &            + wd(i)/pi*( sin(pi*(bend(i)-xi(i))/wd(i) ) -            &
+     &                         sin(pi*(bsta(i)-xi(i))/wd(i) ) ) )
+          endif
+        endif
+      enddo
+!      write(6,*)x,pcurr
+!     stop "Test"
+
       CASE ('gauss_trunc')
 !  Truncated Gaussian
 !  I-prime(s) = ac(0) * (exp(-(s/ac(1))**2) - exp(-(1/ac(1))**2)
