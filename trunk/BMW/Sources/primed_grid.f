@@ -43,6 +43,8 @@
          REAL (rprec), DIMENSION(:,:,:), POINTER :: j_y => null()
 !>  Current density in the Z direction.
          REAL (rprec), DIMENSION(:,:,:), POINTER :: j_z => null()
+
+         REAL (rprec), DIMENSION(:,:,:), POINTER :: vol => null()  ! TEMP
       END TYPE
 
       CONTAINS
@@ -121,7 +123,7 @@
       USE read_wout_mod, ONLY: mnmax, mnmax_nyq, lasym, isigng, ns,            &
      &                         xm, xn, xm_nyq, xn_nyq,                         &
      &                         rmnc, zmns, currumnc, currvmnc,                 &
-     &                         rmns, zmnc, currumns, currvmns
+     &                         rmns, zmnc, currumns, currvmns!, gmnc   ! TEMP ,gmnc
 
       IMPLICIT NONE
 
@@ -187,6 +189,8 @@
       ALLOCATE(primed_grid_construct_both%j_y(ns,num_u,num_v_use))
       ALLOCATE(primed_grid_construct_both%j_z(ns,num_u,num_v_use))
 
+!      ALLOCATE(primed_grid_construct_both%vol(ns,num_u,num_v_use)) !TEMP
+
       ALLOCATE(cosv(num_v_use))
       ALLOCATE(sinv(num_v_use))
       ALLOCATE(cosmu(mnmax,num_u))
@@ -236,6 +240,7 @@
       DO i = bmw_parallel_context_start(parallel, num_u),                      &
      &       bmw_parallel_context_end(parallel, num_u)
          x = (i - 0.5)*du
+!         WRITE (*,*) x      ! TEMP
          cosmu(:,i) = COS(xm*x)
          sinmu(:,i) = SIN(xm*x)
          cosmu_nyq(:,i) = COS(xm_nyq*x)
@@ -248,6 +253,7 @@
       DO i = bmw_parallel_context_start(parallel, num_v_use),                  &
      &       bmw_parallel_context_end(parallel, num_v_use)
          x = (i - 0.5)*primed_grid_construct_both%dv
+!         WRITE (*,*) x     ! TEMP
          cosv(i) = COS(x)
          sinv(i) = SIN(x)
          cosnv(:,i) = COS(xn*x)
@@ -291,9 +297,11 @@
          sinmn = sinmu(:,ui)*cosnv(:,vi) - cosmu(:,ui)*sinnv(:,vi)
          cosmn_nyq = cosmu_nyq(:,ui)*cosnv_nyq(:,vi)                           &
      &             + sinmu_nyq(:,ui)*sinnv_nyq(:,vi)
-
+!         x = (vi - 0.5)*primed_grid_construct_both%dv
          r = SUM(rmnc(:,si)*cosmn(:))
          z = SUM(zmns(:,si)*sinmn(:))
+
+!         IF (si .eq. ns) WRITE (20000,*) '{',r,',',x,',',z,'},'
 
          ru = -SUM(xm*rmnc(:,si)*sinmn(:))
          rv =  SUM(xn*rmnc(:,si)*sinmn(:))
@@ -302,6 +310,9 @@
 
          ju = SUM(currumnc(:,si)*cosmn_nyq(:))*mu0
          jv = SUM(currvmnc(:,si)*cosmn_nyq(:))*mu0
+
+!         primed_grid_construct_both%vol(si,ui,vi) =                            &
+!     &      SUM(gmnc(:,si)*cosmn_nyq(:))  ! TEMP
 
          IF (lasym) THEN
             sinmn_nyq = sinmu_nyq(:,ui)*cosnv_nyq(:,vi)                        &
@@ -328,6 +339,9 @@
             jp = jp/2.0
             primed_grid_construct_both%j_z(si,ui,vi) =                         &
      &         primed_grid_construct_both%j_z(si,ui,vi)/2.0
+
+!            primed_grid_construct_both%vol(si,ui,vi) =                         &
+!     &         primed_grid_construct_both%vol(si,ui,vi)/2.0    ! TEMP
          END IF
 
          primed_grid_construct_both%j_x(si,ui,vi) = jr*cosv(vi)                &

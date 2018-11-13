@@ -32,3 +32,9 @@
       CALL siesta_run_destruct(context, .true., .true.)
 
       END PROGRAM SIESTA
+
+     ! siesta_run_set_vmec 
+     ! -> init_metric_elements (in metrics)
+     ! -> grid_extender (in grid_extension)
+     ! siesta_run_converge
+     ! -> run_pchelms 

@@ -28,6 +28,10 @@
       REAL(dp), DIMENSION(:), ALLOCATABLE         :: xc0, gc0
       REAL(dp), DIMENSION(:,:,:,:), ALLOCATABLE   :: col_scale  !<column scaling factor
 
+      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE     ::                      &
+                r1_i, z1_i, ru_i, zu_i, rv_i, zv_i
+
+
       REAL(dp)        :: fsq_total                 !< |F|^2 WITH column scaling
       REAL(dp)        :: fsq_total1                !< |F|^2 WITHOUT column scaling (raw forces)
       REAL(dp)        :: fsq_gmres, fsq_lin, etak_tol
@@ -40,6 +44,11 @@
       REAL(dp)        :: bsbu_ratio_s, jsju_ratio_s
       REAL(dp)        :: bsbu_ratio_a, jsju_ratio_a
       REAL(dp)        :: scale_s, scale_u          !Remove this once col_scale implemented
+
+      !Added SKS
+      REAL(dp)        :: jsupvdotA
+      REAL(dp), ALLOCATABLE, DIMENSION(:) :: torflux, polflux
+      INTEGER                             :: nsp !Total no. of flux surface in the VMEC (plasma) region 
 
       
 !Logicals for evolving origin and edge
@@ -64,4 +73,7 @@
       LOGICAL         :: lverbose = .TRUE.
       LOGICAL         :: lequi1=.TRUE.              !=T, equilibrate matrix with col 1-norm; =F, equilibrate with col infinity-norm
 
+      REAL(dp), POINTER, DIMENSION(:,:,:) ::                              &
+        asubsmnsf, asubumncf, asubvmncf, fsupsmnsf, fsupumncf, fsupvmncf, &
+	      asubsmncf, asubumnsf, asubvmnsf, fsupsmncf, fsupumnsf, fsupvmnsf
       END MODULE shared_data

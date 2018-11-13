@@ -86,7 +86,7 @@
 !-----------------------------------------------
        REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                       &
                  pijf1
-       INTEGER  :: istat, n1, n2
+       INTEGER  :: istat, n1, n2, i, j, k
        REAL(dp)    :: ton, toff, skston, skstoff
        LOGICAL     :: ltest=.TRUE.
 !-----------------------------------------------
@@ -113,7 +113,6 @@
                 jbsupvmnh_i(0:mpol,-ntor:ntor,nsmin:nsmax),             &  
                 jpmnh_i    (0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)  
        CALL ASSERT(istat.EQ.0,'Allocation failed before INCFIELDS')
-
        CALL IncFields ( jbsupsmnsh,  jbsupumnch,  jbsupvmnch,  jpmnch,  &
                        djbsupsmnsh, djbsupumnch, djbsupvmnch, djpmnch,  &
                         isym)
@@ -145,7 +144,6 @@
 
        ALLOCATE(pijf1(ntheta,nzeta,n1:n2), stat=istat)
        CALL ASSERT(istat.EQ.0,'Allocation2 failed in UPDATE_FORCE')
-
 !
 !Update FULL-MESH components of BSUPX and PRESSURE in real-space by averaging
        CALL bhalftobfull (bsupsijh, bsupuijh, bsupvijh,                 &
@@ -183,8 +181,10 @@
                        ksupsijf, ksupuijf, ksupvijf,  f_none)
        END IF
 
-       IF (nsmax .EQ. ns) ltest = ALL(bsupsijf(:,:,ns).EQ.zero)
-       CALL ASSERT(ltest, 'bsupsijf(ns) != 0 in UPDATE_FORCE')
+       IF (nsmax.EQ.ns .AND. .NOT.l_vessel) THEN
+          ltest = ALL(bsupsijf(:,:,ns).EQ.zero)
+          CALL ASSERT(ltest, 'bsupsijf(ns) != 0 in UPDATE_FORCE')
+       END IF
 
        n2 = MIN(ns,endglobrow+1)
 
@@ -224,7 +224,7 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER  :: fours, fouru, fourv, fcomb, istat
+      INTEGER  :: fours, fouru, fourv, fcomb, istat, i, j, k
 !----------------------------------------------- 
       IF (ipar .EQ. isym) THEN
          fcomb = f_none; fours = f_sin; fouru = f_cos; fourv = f_cos
@@ -235,6 +235,7 @@
 !     IF nonlinear force, add perturbation to unperturbed value
 !     IF linear force, compute JUST perturbed fields here
 !
+      
       jbsupsmnh_i = djbsupsmnh
       jbsupumnh_i = djbsupumnh
       jbsupvmnh_i = djbsupvmnh
@@ -322,7 +323,7 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER  ::  fours, fouru, fourv
+      INTEGER  ::  fours, fouru, fourv, n, i, j, k
       REAL(dp), POINTER, DIMENSION(:,:,:)  :: KxBsmn, KXBumn, KXBvmn
       LOGICAL  ::  ltest
 !----------------------------------------------- 
@@ -462,55 +463,47 @@
       ENDDO
        
        
-!#undef _TESTF
-#define _TESTF
-#if defined(_TESTF)
-       ltest = ALL(f_smnf(m0,-ntor:-1,:).EQ.zero)
-       CALL ASSERT(ltest,'f_smnf != 0, m=0, n<0')
-       ltest = ALL(f_umnf(m0,-ntor:-1,:).EQ.zero)
-       CALL ASSERT(ltest,'f_umnf != 0, m=0, n<0')
-       ltest = ALL(f_vmnf(m0,-ntor:-1,:).EQ.zero)
-       CALL ASSERT(ltest,'f_vmnf != 0, m=0, n<0')
-#endif
-       IF (ipar .EQ. isym) THEN
-          CALL AddParDamping(f_smnf, f_umnf, f_vmnf,                    &
-                             gvsupsmncf, gvsupumnsf, gvsupvmnsf, ipar)
-#if defined(_TESTF)                             
-          ltest = ALL(f_umnf(m0,0,:).EQ.zero)
-          CALL ASSERT(ltest,'f_umnf(m0,0) != 0')
-          ltest = ALL(f_vmnf(m0,0,:).EQ.zero)
-          CALL ASSERT(ltest,'f_vmnf(m0,0) != 0')
-#endif          
-       ELSE
-          CALL AddParDamping(f_smnf, f_umnf, f_vmnf,                    &
-                             gvsupsmnsf, gvsupumncf, gvsupvmncf, ipar)
-#if defined(_TESTF)                             
-          ltest = ALL(f_smnf(m0,0,:).EQ.zero)
-          CALL ASSERT(ltest,'f_smnf(m0,0) != 0')
-#endif          
-       END IF
+      ltest = ALL(f_smnf(m0,-ntor:-1,:).EQ.zero)
+      CALL ASSERT(ltest,'f_smnf != 0, m=0, n<0')
+      ltest = ALL(f_umnf(m0,-ntor:-1,:).EQ.zero)
+      CALL ASSERT(ltest,'f_umnf != 0, m=0, n<0')
+      ltest = ALL(f_vmnf(m0,-ntor:-1,:).EQ.zero)
+      CALL ASSERT(ltest,'f_vmnf != 0, m=0, n<0')
+      IF (ipar .EQ. isym) THEN
+         CALL AddParDamping(f_smnf, f_umnf, f_vmnf,                     &
+                            gvsupsmncf, gvsupumnsf, gvsupvmnsf, ipar)
+         ltest = ALL(f_umnf(m0,0,:).EQ.zero)
+         CALL ASSERT(ltest,'f_umnf(m0,0) != 0')
+         ltest = ALL(f_vmnf(m0,0,:).EQ.zero)
+         CALL ASSERT(ltest,'f_vmnf(m0,0) != 0')
+      ELSE
+         CALL AddParDamping(f_smnf, f_umnf, f_vmnf,                     &
+                            gvsupsmnsf, gvsupumncf, gvsupvmncf, ipar)
+         ltest = ALL(f_smnf(m0,0,:).EQ.zero)
+         CALL ASSERT(ltest,'f_smnf(m0,0) != 0')
+      END IF
 
 !GATHER BDY FORCES AND PRINT OUT ON PROC=0
        PRINT_O: IF (l_PrintOriginForces) THEN
-          IF (nsmin .eq. 1 .and. nsmax .ge. 2) THEN
-             fbdy(1) = SQRT(SUM(f_smnf(m1,:,1)**2))
-             fbdy(2) = SQRT(SUM(f_smnf(m1,:,2)**2))
-             fbdy(3) = SQRT(SUM(f_smnf(m0,:,2)**2) + SUM(f_smnf(m2:,:,2)**2))
+          IF (nsmin .EQ. 1) THEN
+          fbdy(1) = SQRT(SUM(f_smnf(m1,:,1)**2))
+          fbdy(2) = SQRT(SUM(f_smnf(m1,:,2)**2))
+          fbdy(3) = SQRT(SUM(f_smnf(m0,:,2)**2) + SUM(f_smnf(m2:,:,2)**2))
 
-             fbdy(4) = SQRT(SUM(f_umnf(m1,:,1)**2))
-             fbdy(5) = SQRT(SUM(f_umnf(m1,:,2)**2))
-             fbdy(6) = SQRT(SUM(f_umnf(m0,:,2)**2) + SUM(f_umnf(m2:,:,2)**2))
+          fbdy(4) = SQRT(SUM(f_umnf(m1,:,1)**2))
+          fbdy(5) = SQRT(SUM(f_umnf(m1,:,2)**2))
+          fbdy(6) = SQRT(SUM(f_umnf(m0,:,2)**2) + SUM(f_umnf(m2:,:,2)**2))
 
-             fbdy(7) = SQRT(SUM(f_vmnf(m0,:,1)**2))
-             fbdy(8) = SQRT(SUM(f_vmnf(m0,:,2)**2))
-             fbdy(9) = SQRT(SUM(f_vmnf(m1:,:,2)**2))
+          fbdy(7) = SQRT(SUM(f_vmnf(m0,:,1)**2))
+          fbdy(8) = SQRT(SUM(f_vmnf(m0,:,2)**2))
+          fbdy(9) = SQRT(SUM(f_vmnf(m1:,:,2)**2))
           END IF
 
-          IF (nsmax .eq. ns .and. nsmin .le. ns - 1) THEN
-             fbdy(11) = SQRT(SUM(f_umnf(:,:,ns)**2))
-             fbdy(10) = SQRT(SUM(f_umnf(:,:,ns-1)**2))
-             fbdy(13) = SQRT(SUM(f_vmnf(:,:,ns)**2))
-             fbdy(12) = SQRT(SUM(f_vmnf(:,:,ns-1)**2))
+          IF (nsmax .EQ. ns) THEN
+          fbdy(11) = SQRT(SUM(f_umnf(:,:,ns)**2))
+          fbdy(10) = SQRT(SUM(f_umnf(:,:,ns-1)**2))
+          fbdy(13) = SQRT(SUM(f_vmnf(:,:,ns)**2))
+          fbdy(12) = SQRT(SUM(f_vmnf(:,:,ns-1)**2))
           END IF
 
 #if defined(MPI_OPT)

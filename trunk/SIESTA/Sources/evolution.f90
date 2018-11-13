@@ -44,6 +44,7 @@
 #endif
 !-----------------------------------------------
       CONTAINS
+      
 
 !>  \brief Performs initial convergence of force residuals using diagonal preconditioner only.
 !!  Terminates when the force residual stops changing by more than a factor of 2
@@ -90,9 +91,9 @@
 #endif         
          IF (l_output_alliter) CALL write_output (wout_file, niter, .FALSE.)   !MRC Do not close wout_file
 
-         l_iterate = (fsq_ratio.LE.0.5_dp .AND. fsq_total.GT.fsq_block)
+         l_iterate = (fsq_ratio1.LE.0.5_dp .AND. fsq_total1.GT.fsq_block)
 
-         IF (ladd_pert .AND. fsq_total.lt.100*fsq_block) THEN
+         IF (ladd_pert .AND. fsq_total1.lt.100*fsq_block) THEN
             l_init_state=.TRUE.
             CALL second0(t1)
             CALL add_perturb(xc, getwmhd)
@@ -193,6 +194,7 @@
                             fsubsmnsf, fsubumncf, fsubvmncf,            &
                             fsupsmncf, fsupumnsf, fsupvmnsf,            &
                             fsupsmnsf, fsupumncf, fsupvmncf
+      USE shared_functions, ONLY: init_ptrs
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -210,8 +212,8 @@
       l_push_v = .FALSE.
 
       IF (l_push_u) l_push_s = .FALSE.                                    !avoid linear dependency
-      l_push_edge=.TRUE.
-!      l_push_edge=.FALSE.
+!      l_push_edge=.TRUE.
+      l_push_edge=.FALSE.
 
       scale_s = hs
       scale_u = SQRT(scale_s)
@@ -238,6 +240,7 @@
 
       n1 = ns*mnmax
       neqs = ndims*n1
+!      PRINT *,"neqs: ", neqs, __LINE__, __FILE__, ndims
 
       ALLOCATE(xc(neqs), col_scale(0:mpol,-ntor:ntor,ndims,ns), stat=istat)
       CALL ASSERT(istat.eq.0,'Allocate xc failed!')
@@ -264,28 +267,6 @@
       END IF
 
       END SUBROUTINE init_evolution
-
-!>    \brief Initializes pointers for xc (displacement variables) and gc (force) arrays
-      SUBROUTINE init_ptrs (xtarget, ptr1, ptr2, ptr3, ptr4, ptr5, ptr6)
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), TARGET, INTENT(IN)        :: xtarget(0:mpol,-ntor:ntor,ndims,ns) !<input 3D, ndims-component arrays
-      REAL(dp), POINTER, DIMENSION(:,:,:) :: ptr1, ptr4  !<1st (s) array subsection (lasym=F,T)
-      REAL(dp), POINTER, DIMENSION(:,:,:) :: ptr2, ptr5  !<2nd (u) array subsection
-      REAL(dp), POINTER, DIMENSION(:,:,:) :: ptr3, ptr6  !<3rd (v) array subsection
-
-!-----------------------------------------------
-      ptr1 => xtarget(:,:,1,:)
-      ptr2 => xtarget(:,:,2,:)
-      ptr3 => xtarget(:,:,3,:)
-      IF (ndims .EQ. 6) THEN
-         ptr4 => xtarget(:,:,4,:)
-         ptr5 => xtarget(:,:,5,:)
-         ptr6 => xtarget(:,:,6,:)
-      END IF
-
-      END SUBROUTINE init_ptrs
 
 !>   \brief Evolves one step toward MHD equilibrium
       SUBROUTINE evolve
@@ -349,13 +330,13 @@
          f1 = fsq_total1**f2
 
          f2 = 1
-         IF (fsq_ratio1.GT.0.25_dp .AND. fsq_ratio1.LT.1.5_dp) f2 = 0.75_dp
+         IF (fsq_ratio1.GT.0.25_dp .AND. fsq_ratio1.LT.1.5_dp) f2 = 0.5_dp
          IF (fsq_ratio1.GT.1.5_dp) f2 = 1.5_dp
          IF (fsq_ratio1.GT.10._dp) f2 = 3
-         levm_loc = f2*levm_loc
+         levm_loc = MAX(0.1_dp,MIN(10._dp,f2*levm_loc))
 
-         f1 = MIN(one, f1*levm_scale)
-!         f1 = MIN(one, f1*levm_scale*levm_loc)
+!         f1 = MIN(one, f1*levm_scale)
+         f1 = MIN(one, f1*levm_scale*levm_loc)
 
          levmarq_param = (levmarq_param0 - levm_ped)*f1 + levm_ped
          IF (levmarq_param0 .EQ. zero) levmarq_param = 0
@@ -481,10 +462,10 @@
 #if defined(MPI_OPT)   
       snum_funct(1)=in_hess_nfunct; snum_funct(2)=out_hess_nfunct
       CALL MPI_ALLREDUCE(snum_funct, rnum_funct, 2, MPI_INTEGER,        &
-                         MPI_SUM, MPI_COMM_WORLD, MPI_ERR)
-      nfun_calls=nfun_calls+(rnum_funct(1)+rnum_funct(2))/nprocs
+                         MPI_MAX, SIESTA_COMM, MPI_ERR)
+      nfun_calls=(rnum_funct(1)+rnum_funct(2))
 #else 
-      nfun_calls=nfun_calls+(in_hess_nfunct+out_hess_nfunct)
+      nfun_calls=(in_hess_nfunct+out_hess_nfunct)
 #endif
 
      IF (niter .EQ. 1) THEN
@@ -568,8 +549,8 @@
              ' NITER (W-W0)/W0*1E6    F2(MHD)    F2(LIN)',              &
              '    F2SUBS     F2SUBU     F2SUBV     |V|rms     NCALLS')
  100 FORMAT(1x,i5,1x, 1pe12.4, 2x, 1x,1pe10.3, 2x,9 ('-'),              &
-           4(1x,1pe10.3),3x,i8)
- 102 FORMAT(1x,i5,1x, 1pe12.4, 2x, 6(1x,1pe10.3),3x,i8)
+           4(1x,1pe10.3),i9)
+ 102 FORMAT(1x,i5,1x, 1pe12.4, 2x, 6(1x,1pe10.3),i9)
  110 FORMAT(' |B^s-r12*B^u|/|B^s+r12*B^u| (m=1,r->0,  sym) : ',1pe10.3,/, &
             ' |J^s-r12*J^u|/|J^s+r12*J^u| (m=1,r->0,  sym) : ',1pe10.3,/, &
             ' JBSUPSH(JS=2-6,M=1)/r12  (sym): ',1p5e10.3,/,             &

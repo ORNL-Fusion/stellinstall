@@ -54,6 +54,40 @@
       CONTAINS
  
 !#if defined(SKS)
+      SUBROUTINE vtoijsp(xmn, xuv, dflag, ipar)
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      REAL(dp), DIMENSION(:,:), INTENT(IN)     :: xmn
+      REAL(dp), DIMENSION(:,:), INTENT(INOUT)  :: xuv
+      INTEGER, INTENT(IN):: dflag ! DFLAG = order of poloidal/toroidal derivative
+      INTEGER, INTENT(IN):: ipar  ! cosine (EVEN); = 1, sine (ODD)
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
+      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE :: xmn_3, xuv_3
+      INTEGER :: mpol_s, ntor_s, n1, n2, i1, i2
+!-----------------------------------------------
+      n1 = SIZE(xmn,1);  n2 = SIZE(xmn,2)
+	  i1 = SIZE(xuv,1);  i2 = SIZE(xuv,2)
+
+      ALLOCATE(xmn_3(n1,n2,1), xuv_3(i1,i2,1))
+
+      mpol_s = mpol; ntor_s = ntor
+	  mpol = mpol_v; ntor = ntor_v
+
+	  xmn_3 = RESHAPE(xmn, SHAPE(xmn_3))
+	  xuv_3 = RESHAPE(xuv, SHAPE(xuv_3))
+
+	  CALL toijsp_par(xmn_3, xuv_3, dflag, ipar)
+
+	  xuv = RESHAPE(xuv_3, SHAPE(xuv))
+
+      DEALLOCATE(xmn_3, xuv_3)
+      mpol = mpol_s; ntor = ntor_s
+
+	  END SUBROUTINE vtoijsp
+
       SUBROUTINE TOIJSP_PAR(XMN, XUV, DFLAG, IPAR)
 !
 !       DESCRIPTION:  This subroutine moves a quantity X to real space by summing over its Fourier harmonics X_MN.
@@ -180,6 +214,7 @@
 
       END SUBROUTINE TOIJSP_PAR
 
+
       SUBROUTINE TOMNSP_PAR(XUV, XMN, IPAR)
 !
 !       Description: This subroutine moves a quantity X to Fourier space producing its harmonics X_MN by
@@ -190,7 +225,6 @@
 !       IHALF = 0, means quantity is on the radial full mesh; =1, on the half radial mesh
 !
       USE stel_kinds
-      USE nscalingtools, ONLY: startglobrow, endglobrow
       USE mpi_inc
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -206,7 +240,7 @@
       REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: work1, work2, xuv1, xmn1
       REAL(dp), ALLOCATABLE, DIMENSION(:)   :: t1, t2, work3, work4
       REAL(dp) :: skston, skstoff
-      INTEGER :: ii, jj, kk 
+      INTEGER :: ii, jj, kk
       INTEGER :: counter, nx
       INTEGER, SAVE :: PTOMNSPPASS=1
 !-----------------------------------------------
@@ -255,8 +289,8 @@
       ENDDO 
 
       xmn1(0,-ntor:-1) = zero                                             ! Redundant: To avoid counting (0,-n) for non-zero n.
-
       xmn(:,:,js) = orthonorm(0:mpol,-ntor:ntor)*xmn1(:,:)
+      
 
       END DO NS_LOOP
 
@@ -377,7 +411,7 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-        INTEGER :: m, n, jk, lk, js, istat
+        INTEGER :: m, n, jk, lk, js, istat, ns_save
         REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: work1, work2,        &
           work3, work4, lambda, dupdu, cos1l, sin1l, cosml, sinml
         REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: cosmuip, sinmuip
@@ -385,6 +419,8 @@
 !-----------------------------------------------
         CALL second0(ton)
         skston=ton
+        ns_save = ns
+        ns = MIN(SIZE(lmns, 3), SIZE(xmn,3))                            !only up to s=1, NOT vacuum
 
 !
 !       1. COMPUTE LAMBDA
@@ -507,6 +543,8 @@
         IF(DIAGONALDONE.AND.INHESSIAN) tomnsp_time=tomnsp_time+(skstoff-skston)
 #endif
         time_tomnsp = time_tomnsp + (toff-ton)
+        
+        ns = ns_save
 
         END SUBROUTINE TOMNSP_PEST
 
@@ -625,7 +663,7 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
         REAL(dp), PARAMETER :: nfactor = 1.41421356237310_dp              ! RS: Normalization of m=0/n=0 Fourier modes.
-        INTEGER     :: jk, m, n, lk, istat, ntheta1
+        INTEGER     :: jk, m, n, lk, istat, ntheta1, mpol1, ntor1
         REAL(dp)    :: arg, cosi, sini
         REAL(dp)    :: pinorm
 !-----------------------------------------------
@@ -642,15 +680,17 @@
            pinorm = pi
         END IF
 
+        mpol1 = MAX(mpol_v, mpol)
+		ntor1 = MAX(ntor_v, ntor)
        
 !       EXTEND mpol, ntor FOR POST-PROCESSING OF PRESSURE B dot GRAD P
 !        mpol = mpol32_i;  ntor = ntor32_i
 
-        ALLOCATE(cosmu(ntheta,0:mpol), cosmum(ntheta,0:mpol),           &
-                 cosmui(ntheta,0:mpol), sinmu(ntheta,0:mpol),           &
-                 sinmum(ntheta,0:mpol), sinmui(ntheta,0:mpol),          &
-                 cosnv(nzeta,0:ntor), cosnvn(nzeta,0:ntor),             &
-                 sinnv(nzeta,0:ntor), sinnvn(nzeta,0:ntor), stat=istat)
+        ALLOCATE(cosmu(ntheta,0:mpol1), cosmum(ntheta,0:mpol1),         &
+                 cosmui(ntheta,0:mpol1), sinmu(ntheta,0:mpol1),         &
+                 sinmum(ntheta,0:mpol1), sinmui(ntheta,0:mpol1),        &
+                 cosnv(nzeta,0:ntor1), cosnvn(nzeta,0:ntor1),           &
+                 sinnv(nzeta,0:ntor1), sinnvn(nzeta,0:ntor1), stat=istat)
 
         CALL ASSERT(istat.eq.0,'Allocation error in fixarray')
         
@@ -658,7 +698,7 @@
 
         DO jk = 1, ntheta
           arg = pinorm*(jk-1)/ntheta1                                     ! Poloidal collocation points*m
-          DO m = 0, mpol
+          DO m = 0, mpol1
             cosi = COS(m*arg)
             sini = SIN(m*arg)
 
@@ -682,7 +722,7 @@
 !
         DO lk = 1, nzeta
           arg = twopi*(lk-1)/nzeta                                ! Toroidal collocation points*ABS(n*nfp_i)
-          DO n = 0, ntor
+          DO n = 0, ntor1
             cosi = COS(n*arg)                                     ! sign of "n" taken care later through ISIGN
             sini = SIN(n*arg)
             
@@ -699,7 +739,7 @@
 !SO THAT <cos(mu+nv)*cos(m'u+n'v)> * orthonorm(m,n) = 1 (for m=m',n=n')
 !BE SURE TO FIX THIS WHEN DOING ASYMMETRIC CASE!
 
-        ALLOCATE (orthonorm(0:mpol,-ntor:ntor), stat=istat)
+        ALLOCATE (orthonorm(0:mpol1,-ntor1:ntor1), stat=istat)
         CALL ASSERT(istat.EQ.0,'Allocate ORTHONORM failed in FIXARRAY!')
         orthonorm = nfactor                                       ! SQRT(2)
         orthonorm(0,0) = 1

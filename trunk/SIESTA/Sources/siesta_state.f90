@@ -55,10 +55,6 @@
       CALL second0(toff)
       time_update_state = time_update_state + (toff-ton)
 
-!     fsq_total == 0 when updating from add_resistivity
-      IF (fsq_total.NE.zero .AND. fsq_total.LT.10*ftol)                 &
-         CALL write_profiles(fsq_total)                                 ! SPH: write pmn, jbsupsmn profiles
-
       IF (.NOT.lprint) RETURN
 
       CALL second0(ton)

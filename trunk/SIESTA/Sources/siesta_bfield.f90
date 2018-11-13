@@ -8,7 +8,6 @@
        USE fourier 
        USE nscalingtools, ONLY: startglobrow, endglobrow
        USE timer_mod
-       USE utilities, ONLY: GradientHalf, to_half_mesh
        IMPLICIT NONE
        
        PRIVATE
@@ -16,9 +15,9 @@
        INTEGER            :: nsmin, nsmax
 
        REAL(dp), DIMENSION(:,:,:), ALLOCATABLE ::                       &
-         esubsijf, esubuijf, esubvijf,                                  &
-         esubsmnf, esubumnf, esubvmnf,                                  &
-         esubsmnh, esubumnh, esubvmnh, de_uds, de_vds
+         esubsijf, esubuijf, esubvijf
+       REAL(dp), DIMENSION(:,:,:), POINTER     ::                       &
+         esubsmnf, esubumnf, esubvmnf
 
        PUBLIC :: update_bfield
 
@@ -49,7 +48,7 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
        INTEGER  :: istat, js
-       LOGICAL  :: ladd_pert, ltest=.TRUE.
+       LOGICAL  :: ladd_pert0, ltest=.TRUE.
        REAL(dp), DIMENSION(:,:,:), ALLOCATABLE :: resistivity
        REAL(dp) :: ton, toff, rho
        REAL(dp) :: delt_cfl, eta_prof
@@ -66,9 +65,6 @@
                 esubvijf(ntheta,nzeta,nsmin:nsmax), stat=istat)   
        CALL ASSERT(istat.EQ.0,'Allocation1 failed in UPDATE_BFIELD')
 
-       ALLOCATE(de_uds(0:mpol,-ntor:ntor,nsmin:nsmax),                  &
-                de_vds(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
-       CALL ASSERT(istat.EQ.0,'Allocation2 failed in UPDATE_BFIELD')
 
        esubsijf =-(jvsupuijf(:,:,nsmin:nsmax)*bsupvijf0(:,:,nsmin:nsmax) &
                  - jvsupvijf(:,:,nsmin:nsmax)*bsupuijf0(:,:,nsmin:nsmax))  ! -E_s = V^uB^v - V^vB^u  (SINE): jv -> jac*v
@@ -89,13 +85,13 @@
 !so the magnetic energy DECREASES due to this term. Note ksubX=JsubX are the
 !covariant components of the current
 !
-       ladd_pert = ALLOCATED(buv_res)
-       IF (lresistive .AND. (l_add_res .or. ladd_pert)) THEN
+       ladd_pert0 = ALLOCATED(buv_res)
+       IF (lresistive .AND. (l_add_res .or. ladd_pert0)) THEN
           delt_cfl = hs_i**2*ABS(eta_factor)
           IF (fsq_total < fsq_res) delt_cfl = delt_cfl*SQRT(fsq_total/fsq_res)
 
           ALLOCATE(resistivity(ntheta,nzeta,nsmin:nsmax), stat=istat)
-          CALL ASSERT(istat.EQ.0,'Allocation3 failed in UPDATE_BFIELD')
+          CALL ASSERT(istat.EQ.0,'Allocation2 failed in UPDATE_BFIELD')
 
           DO js = nsmin, nsmax
              rho = hs_i*(js-1)
@@ -103,37 +99,35 @@
              resistivity(:,:,js) = delt_cfl*eta_prof
           END DO
 
-          IF (ladd_pert) THEN
+          IF (ladd_pert0) THEN
              resistivity = resistivity*buv_res(:,:,nsmin:nsmax)
           ELSE
              resistivity = resistivity/jacobf(:,:,nsmin:nsmax)            !divide out jacobf factor from cv_currents
           ENDIF
 
-!Isotropic resistivity, E ~ eta*J; for ladd_pert=TRUE, K ~ B in init_state
+!Isotropic resistivity, E ~ eta*J; for ladd_pert0=TRUE, K ~ B in init_state
           esubsijf = esubsijf + resistivity*ksubsijf(:,:,nsmin:nsmax)
           esubuijf = esubuijf + resistivity*ksubuijf(:,:,nsmin:nsmax)
           esubvijf = esubvijf + resistivity*ksubvijf(:,:,nsmin:nsmax)
 
           DEALLOCATE (resistivity)
        ENDIF 
+        
 
 !Allocate working arrays used in Faraday
        ALLOCATE(esubsmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                &
                 esubumnf(0:mpol,-ntor:ntor,nsmin:nsmax),                & 
-                esubvmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                &
-                esubsmnh(0:mpol,-ntor:ntor,nsmin:nsmax),                &
-                esubumnh(0:mpol,-ntor:ntor,nsmin:nsmax),                &
-                esubvmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)  
-       CALL ASSERT(istat.EQ.0,'Allocation4 failed in UPDATE_BFIELD')
+                esubvmnf(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)  
+       CALL ASSERT(istat.EQ.0,'Allocation3 failed in UPDATE_BFIELD')
 
 !Update Bfield using Faraday's Law
        CALL Faraday(djbsupsmnsh, djbsupumnch, djbsupvmnch, isym)
        IF (lasym)                                                       &
        CALL Faraday(djbsupsmnch, djbsupumnsh, djbsupvmnsh, iasym)
 
-       DEALLOCATE (esubsijf, esubuijf, esubvijf, de_uds, de_vds,        &    
-                   esubsmnf, esubumnf, esubvmnf,                        & 
-                   esubsmnh, esubumnh, esubvmnh, stat=istat)    
+       DEALLOCATE (esubsijf, esubuijf, esubvijf,                        &
+                   esubsmnf, esubumnf, esubvmnf, stat=istat)    
+       CALL ASSERT(istat.EQ.0,'Deallocation failed in UPDATE_BFIELD')
 
        CALL second0(toff)
        time_update_bfield = time_update_bfield + (toff-ton)
@@ -147,6 +141,7 @@
        SUBROUTINE Faraday(djbsupsmnh, djbsupumnh, djbsupvmnh, ipar)
        USE shared_data, ONLY: l_natural, delta_t 
        USE hessian, ONLY: l_compute_hessian
+       USE utilities, ONLY: Curl_FtoH
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -181,60 +176,18 @@
           esubvmnf(m1:,:,1) = 0
           
           IF (.NOT.l_natural) THEN
-             esubsmnh(m1,:,2) = (esubsmnf(m1,:,1) + esubsmnf(m1,:,2))/2
-             esubumnh(m1,:,2) = (esubumnf(m1,:,1) + esubumnf(m1,:,2))/2
-             djbsupsmnh(m1,:,1) = r12*esubsmnh(m1,:,2) - esubumnh(m1,:,2)          !-> 0
+             djbsupsmnh(m1,:,2) = (esubsmnf(m1,:,1) + esubsmnf(m1,:,2))/2
+             djbsupumnh(m1,:,2) = (esubumnf(m1,:,1) + esubumnf(m1,:,2))/2
+             djbsupsmnh(m1,:,1) = r12*djbsupsmnh(m1,:,2) - djbsupumnh(m1,:,2)          !-> 0
              !This constrains [esubs(2)*r12 - esubu(2)] = 0 at s=r12 (first half grid pt)
              !needed to make djb^s ~ r12*djb^u there
              esubsmnf(m1,:,1) = esubsmnf(m1,:,1) - djbsupsmnh(m1,:,1)/r12
              esubumnf(m1,:,1) = esubumnf(m1,:,1) + djbsupsmnh(m1,:,1)
           END IF
-       END IF       
-
-!On exit, esubXh valid on [nsmin+1:nsmax]
-       CALL to_half_mesh(esubsmnf, esubsmnh)
-       CALL to_half_mesh(esubumnf, esubumnh)
-       CALL to_half_mesh(esubvmnf, esubvmnh)
-      
-
-!Gradients of full-grid esubu,v on half grid j-half=2,ns: note v(1) components used at j-half=2
-!On exit, de_u,vds are valid on [nsmin+1:nsmax]
-!       IF (nsmin .EQ. 1) esubumnf(m1,:,1) = 0  !Keep this: impacts Hessian symmetry!
-       CALL GradientHalf(de_uds, esubumnf)
-       CALL GradientHalf(de_vds, esubvmnf)
-#undef _DUMP_BFIELD
-!#define _DUMP_BFIELD       
-#if defined(_DUMP_BFIELD)
-       IF (nsmin.EQ.1 .AND. .NOT.l_Compute_Hessian .AND.                &
-           ANY(ABS(esubsmnf(m1,:,2)).GT.1.E-12_dp)) THEN
-        PRINT *,'IPAR: ', ipar
-          PRINT *,'  n      E_s(1)   E_u(1)/r12   E_s(2)     ' //       &
-                  'E_u(2)/r12   E_s(3)     E_u(3)/r12'
-          DO n = -ntor, ntor
-             PRINT 20, n, esubsmnf(m1,n,1), esubumnf(m1,n,1)/r12,       &
-                          esubsmnf(m1,n,2), esubumnf(m1,n,2)/r12,       &
-                          esubsmnf(m1,n,3), esubumnf(m1,n,3)/r12
-          END DO
- 20    FORMAT(i4,1p,6e12.4)          
        END IF
-#endif
        
-!Compute contravariant components of -jacobian*curl(E) = r.h.s. of 
-!Faraday's equation used to evolve components of jacobh*BSUPX
-!Need nmax=endglobrow+1 to compute perturbed currents on full mesh in siesta_forces
-       nmin=startglobrow
-       DO m = 0, mpol
-         mp = sparity*m                                                   ! -mp  ~ d/du
-         DO n = -ntor, ntor                                  
-           np = sparity*n*nfp                                             ! -np  ~ d/dv
-           djbsupsmnh(m,n,nmin:nmax) = mp*esubvmnh(m,n,nmin:nmax)       & 
-                                     - np*esubumnh(m,n,nmin:nmax)         
-           djbsupumnh(m,n,nmin:nmax) =-np*esubsmnh(m,n,nmin:nmax)       &
-		                             + de_vds(m,n,nmin:nmax)
-           djbsupvmnh(m,n,nmin:nmax) = mp*esubsmnh(m,n,nmin:nmax)       &
-		                             - de_uds(m,n,nmin:nmax)
-          ENDDO
-       ENDDO
+       CALL CURL_FtoH( esubsmnf,   esubumnf,   esubvmnf,                &
+                     djbsupsmnh, djbsupumnh, djbsupvmnh, isym, nmin, nmax)
 
 !BOUNDARY CONDITIONS AT ORIGIN (used to compute bfields at origin in siesta_init, siesta_forces)
        IF (nmin .EQ. 1) THEN
@@ -246,10 +199,12 @@
 !      Calculate INCREMENT of magnetic field harmonics: use Euler scheme with DT given by VSUBMN advance equations.
 !      Results computed here for HALF-GRID perturbations in MN space are used in the calculation of the force and
 !      to advance the B's in UPDATE_STATE (in siesta_state module)
+!      Minus sign since Faraday is dB = -CURL(E)
 !
-       djbsupsmnh = delta_t*djbsupsmnh
-       djbsupumnh = delta_t*djbsupumnh
-       djbsupvmnh = delta_t*djbsupvmnh
+
+       djbsupsmnh = -delta_t*djbsupsmnh
+       djbsupumnh = -delta_t*djbsupumnh
+       djbsupvmnh = -delta_t*djbsupvmnh
        
        END SUBROUTINE Faraday
 

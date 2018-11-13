@@ -29,6 +29,7 @@
 !>                             force residuals.}
 !>     @item{l_VMEC_Uniform,   }
 !>     @item{lasym,            Use non stellarator symmetric terms.}
+!>     @item{l_vessel,         Use free-boundary grid extension to vessel wall.}
 !>     @item{lrecon,           Add additional output to the restart file when
 !>                             used in a reconstruction context.}
 !>  @end_table
@@ -75,7 +76,6 @@
 !>  @table_section{siesta_file_name_sec, File Names}
 !>      @item{wout_file,   Filename of the VMEC woutfile.}
 !>      @item{restart_ext, Name of the restart file extension.}
-!>      @item{boundary,    Filename of the boundary extension coefficients.}
 !>  @end_table
 !>
 !>  @table_section{siesta_test_sec, Test Controls}
@@ -140,6 +140,8 @@
       LOGICAL :: l_output_alliter = .FALSE.
 !>  FIXME: Unknown
       LOGICAL :: l_VMEC_Uniform
+!>  If extended grid is to be used using an available vessel file
+      LOGICAL :: l_vessel = .FALSE.
 
 !  Algrothim Control Variables}
 !>  Maximum number of iterations after diagonal prec.
@@ -187,8 +189,6 @@
       CHARACTER(LEN=siesta_namelist_name_length) :: wout_file = ''
 !>  Name of the restart file extension.
       CHARACTER(LEN=siesta_namelist_name_length) :: restart_ext = ''
-!>  Filename of the extended boundary coefficents.
-      CHARACTER(LEN=siesta_namelist_name_length) :: boundary = ''
 
 ! Deprecated Parameters
 !>  @deprecated
@@ -217,26 +217,26 @@
       REAL(dp) :: HelPert2
 
 !  Declare Namelist
-      NAMELIST/siesta_info/                                                    &
+      NAMELIST/siesta_info/                                             &
 !  Control flags
-     &   ladd_pert, lresistive, lrestart, l_tracing, lcolscale,                &
-     &   l_silo_output, l_silo_output, l_silo3D, l_output_alliter,             &
-     &   l_VMEC_Uniform, lasym, lrecon,                                        &
+        ladd_pert, lresistive, lrestart, l_tracing, lcolscale,          &
+        l_silo_output, l_silo_output, l_silo3D, l_output_alliter,       &
+        l_VMEC_Uniform, lasym, lrecon, l_vessel,                        &
 !  Algrothim Control Variables
-     &   niter, ftol, mupar, levmarq_param, eta_factor, nprecon,               &
-     &   ngmres_type, iortho,                                                  &
+        niter, ftol, mupar, levmarq_param, eta_factor, nprecon,         &
+        ngmres_type, iortho,                                            &
 !  Island parameters Island Parameters
-     &   mres, HelPert, HelPertA,                                              &
+        mres, HelPert, HelPertA,                                        &
 !  Input grid sizes
-     &   nsin, nsin_ext, mpolin, ntorin,                                       &
+        nsin, nsin_ext, mpolin, ntorin,                                 &
 !  Output grid sizes
-     &   nphis, nrs, nzs, nvs, nus, nss,                                       &
+        nphis, nrs, nzs, nvs, nus, nss,                                 &
 !  File names
-     &   wout_file, restart_ext, boundary,                                     &
+        wout_file, restart_ext,                                         &
 !  Test controls
-     &   hesspass_test, mupar_test,                                            &
+        hesspass_test, mupar_test,                                      &
 !  Deprecated Parameters
-     &   mres1, nres1, rad1, HelPert1, mres2, nres2, rad2, HelPert2
+        mres1, nres1, rad1, HelPert1, mres2, nres2, rad2, HelPert2
 
       CONTAINS
 
@@ -265,23 +265,23 @@
 
 !  Initalize a default value of the I\O unit. SIESTA increments from there.
       iou_mnli = 0
-      CALL safe_open(iou_mnli, status, TRIM(namelist_file),                    &
-     &               'old', 'formatted')
-      CALL assert_eq(0, status, 'siesta_namelist_read' //                      &
-     &   ': Safe_open of ' // TRIM(namelist_file) // ' failed')
+      CALL safe_open(iou_mnli, status, TRIM(namelist_file),             &
+                    'old', 'formatted')
+      CALL assert_eq(0, status, 'siesta_namelist_read' //               &
+        ': Safe_open of ' // TRIM(namelist_file) // ' failed')
 
 !  Read the namelist input file.
       READ (iou_mnli, nml=siesta_info)
       CLOSE (iou_mnli, iostat=status)
-      CALL assert_eq(0, status, 'siesta_namelist_read' //                      &
-     &   ': Error closing ' // TRIM(namelist_file) // ' failed')
+      CALL assert_eq(0, status, 'siesta_namelist_read' //               &
+        ': Error closing ' // TRIM(namelist_file) // ' failed')
 
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!>  @brief Reads the namelist input file.
+!>  @brief Writes the namelist input file.
 !>
-!>  Reads the namelist input file.
+!>  Writes the namelist input file.
 !>
 !>  @param[in] namelist_file The file name of the namelist input file.
 !-------------------------------------------------------------------------------

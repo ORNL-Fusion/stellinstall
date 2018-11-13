@@ -50,7 +50,7 @@
 !-----------------------------------------------
        INTEGER            :: istat, n1, n2, nmax, endr, startr
        REAL(dp)           :: ton, toff, stes(2), rtes(2)
-       LOGICAL            :: ladd_pert, lpar
+       LOGICAL            :: ladd_pert0, lpar
 !-----------------------------------------------
 !NOTE: jbupXmnPh, jpmnPh are initially computed on FULL ns mesh, and are GATHERED to that 
 !      FULL ns mesh in update_state
@@ -65,8 +65,8 @@
        nsmin=MAX(1,startglobrow-1); nsmax=MIN(ns,endglobrow+2)
        
 !Unnecessary to recompute magnetic fields or currents: already stored at this point!
-       ladd_pert = ALLOCATED(buv_res)
-       IF (ladd_pert) GOTO 100
+       ladd_pert0 = ALLOCATED(buv_res)
+       IF (ladd_pert0) GOTO 100
        
        CALL Init_Allocate_Arrays (lpar)
 
@@ -78,9 +78,9 @@
        IF (lasym)                                                       &
        CALL GetFields(jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh, iasym)
        
-! Convert jac*bsubXh to bsupXh and jac*pres to presh in real space
+!Convert jac*bsubXh to bsupXh and jac*pres to presh in real space
 
-!      On exit, bsupXf, pf0 valid on [nsmin, nsmax-1]
+!On exit, bsupXf, pf0 valid on [nsmin, nsmax-1]
        CALL bhalftobfull (bsupsijh0, bsupuijh0, bsupvijh0,              &
                           bsupsijf0, bsupuijf0, bsupvijf0,              &
                           pijh0, pijf0)
@@ -95,13 +95,13 @@
 !Need this for resistive diffusion (|| resistivity) and mupar damping
  100   CONTINUE
  
-       IF (ladd_pert .OR. muPar.NE.zero) THEN
+       IF (ladd_pert0 .OR. muPar.NE.zero) THEN
           nmax=MIN(endglobrow+1,ns)
           CALL tolowerf(bsupsijf0,bsupuijf0,bsupvijf0,                  & ! Calculate K || B
                         bsubsijf, bsubuijf, bsubvijf,                   &
                         nsmin, nmax)  
 !     IN UPDATE-BFIELD, KSUB = jacob*JSUB: PARALLEL CURRENT
-          IF (ladd_pert) THEN
+          IF (ladd_pert0) THEN
              ksubsijf(:,:,nsmin:nmax) = bsubsijf(:,:,nsmin:nmax)
              ksubuijf(:,:,nsmin:nmax) = bsubuijf(:,:,nsmin:nmax)
              ksubvijf(:,:,nsmin:nmax) = bsubvijf(:,:,nsmin:nmax)

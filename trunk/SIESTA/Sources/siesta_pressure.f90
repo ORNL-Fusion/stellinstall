@@ -63,7 +63,7 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-       INTEGER             :: istat
+       INTEGER             :: istat, i, j, k
        REAL(dp)            :: ton, toff
        LOGICAL, PARAMETER  :: l_upwind=.FALSE.                            !does not work well, keep it off
 !-----------------------------------------------
@@ -102,6 +102,7 @@
 !On exit, vgradph is valid on [nsmin+1:nsmax]
 !MIXED HALF/FULL FORM: DIAGONAL IN ANGULAR DERIVATIVES - EXACTLY CANCEL 
 !div(pV) TERM WHEN div(V) = 0
+
        work1 = pijf0_ds(:,:,nsmin:nsmax)*jvsupsijf(:,:,nsmin:nsmax)
        CALL to_half_mesh(work1, vgradph)
        vgradph = vgradph                                                &
@@ -125,7 +126,7 @@
 !On exit, work1 is valid on [nsmin+1:nsmax]
        CALL GradientHalf(work1, work2)
 
-       nsmin=MAX(1,startglobrow)
+       nsmin=MAX(2,startglobrow)
        work2(:,:,nsmin:nsmax) = pijh0(:,:,nsmin:nsmax)*jvsupuijh(:,:,nsmin:nsmax)
        work3(:,:,nsmin:nsmax) = pijh0(:,:,nsmin:nsmax)*jvsupvijh(:,:,nsmin:nsmax)
        DEALLOCATE(jvsupuijh, jvsupvijh)
@@ -154,7 +155,7 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-       INTEGER   :: fours, fouru, fourv, m, n, np
+       INTEGER   :: fours, fouru, fourv, m, n, np, i, j, k
        REAL(dp)  :: sparity
 !-----------------------------------------------
 !      djpmnh needed up to nsmax=endglobrow+1 to compute perturbed pressure
@@ -177,9 +178,9 @@
        djpmnh(:,:,nsmin:nsmax) = gamm1*work4(:,:,nsmin:nsmax)            ! Harmonics of r.h.s. of pres eq. (half mesh) 
 
 !FFT of -Div(p*Flux) terms 
-       CALL tomnsp_par(work1, work4, fours)
-       CALL tomnsp_par(work2, work5, fouru)
-       CALL tomnsp_par(work3, work6, fourv)
+       CALL tomnsp_par(work1(:,:,nsmin:nsmax), work4(:,:,nsmin:nsmax), fours)
+       CALL tomnsp_par(work2(:,:,nsmin:nsmax), work5(:,:,nsmin:nsmax), fouru)
+       CALL tomnsp_par(work3(:,:,nsmin:nsmax), work6(:,:,nsmin:nsmax), fourv)
 
 !multiply angular derivatives by m ~d/du, n*nfp ~d/dv (*sparity below)
        DO m = 0, mpol
@@ -191,16 +192,17 @@
        ENDDO
      
 !sum radial and angular div terms     
-       work4 = work4 + (work5 + work6)*sparity
+       work4(:,:,nsmin:nsmax) = work4(:,:,nsmin:nsmax) +                &
+      (work5(:,:,nsmin:nsmax) + work6(:,:,nsmin:nsmax))*sparity
        
 !Gamma = adiabatic factor
        djpmnh(:,:,nsmin:nsmax) = djpmnh(:,:,nsmin:nsmax)                &
                                - gamma*work4(:,:,nsmin:nsmax)
 
 !SPH Evolve harmonics of (jacobh * pres)mn to conserve pressure
-       djpmnh = delta_t*djpmnh                                           ! calculate increment of pressure harmonics.
+       djpmnh(:,:,nsmin:nsmax) = delta_t*djpmnh(:,:,nsmin:nsmax)         ! calculate increment of pressure harmonics.
 
-       IF (nsmin .EQ. 1) THEN
+       IF (startglobrow .EQ. 1) THEN
           djpmnh(:,:,1)  = 0
           djpmnh(m0,:,1) = djpmnh(m0,:,2)                                ! store js=1, m=0 value
           CALL ASSERT(ALL(djpmnh(m0,-ntor:-1,:).EQ.zero),'djpmn(m0,-n) NONZERO')

@@ -61,14 +61,16 @@
 !>  @param[in] wout_file_name   Path and name of the wout file.
 !>  @param[in] siesta_file_name Path and name of the siesta file.
 !>  @param[in] flags            Option flags.
+!>  @param[in] num_p            Number of phi planes per field period.
 !>  @param[in] parallel         @ref bmw_parallel_context_class object instance.
 !>  @param[in] io_unit          Unit number to write messages to.
 !>  @returns A pointer to a constructed @ref bmw_context_class object.
 !-------------------------------------------------------------------------------
       FUNCTION bmw_context_construct(mgrid_file_name, wout_file_name,          &
-     &                               siesta_file_name, flags, parallel,        &
-     &                               io_unit)
+     &                               siesta_file_name, flags, num_p,           &
+     &                               parallel, io_unit)
       USE read_wout_mod, Only: read_wout_file, extcur
+      USE bmw_state_flags, Only: bmw_state_flags_mgrid
 
       IMPLICIT NONE
 
@@ -78,13 +80,13 @@
       CHARACTER (len=*), INTENT(in)     :: wout_file_name
       CHARACTER (len=*), INTENT(in)     :: siesta_file_name
       INTEGER, INTENT(in)               :: flags
+      INTEGER, INTENT(inout)            :: num_p
       TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
       INTEGER, INTENT(in)               :: io_unit
 
 !  local variables
       REAL (rprec)                      :: start_time
       INTEGER                           :: status
-      INTEGER                           :: num_p
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -108,7 +110,9 @@
       bmw_context_construct%m_grid =>                                          &
      &   m_grid_construct(mgrid_file_name, parallel, io_unit)
 
-      num_p = SIZE(bmw_context_construct%m_grid%a_p, 3)
+      IF (BTEST(flags, bmw_state_flags_mgrid)) THEN
+         num_p = SIZE(bmw_context_construct%m_grid%a_p, 3)
+      END IF
 
       bmw_context_construct%p_grid =>                                          &
      &   primed_grid_construct(num_p*bmw_context_construct%m_grid%nfp,         &

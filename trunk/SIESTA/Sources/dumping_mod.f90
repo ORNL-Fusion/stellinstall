@@ -673,7 +673,7 @@
      
         SUBROUTINE prepare_quantities
         USE stel_kinds
-        USE fourier, ONLY: tomnsp, toijsp
+        USE fourier, ONLY: tomnsp, toijsp, orthonorm, tomnsp_par
         USE diagnostics_mod, ONLY: divj, divb, bdotj, lcurr_init,       &
                                    bdotjijh
         USE siesta_namelist, ONLY: lresistive
@@ -689,7 +689,7 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-        INTEGER :: istat, start, endr
+        INTEGER :: istat, start, endr, js
         LOGICAL :: lresist
         REAL(dp) :: pp
         REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                      &
@@ -698,9 +698,12 @@
 !
 !   Deal with metrics first
 !        
+        js = SIZE(rmnc_i,3)
+        CALL ASSERT(js.EQ.ns,' rmnc_i NOT allocated on extended mesh!')
         ALLOCATE(rmnc_ih(0:mpol,-ntor:ntor,ns),                         &    
                  zmns_ih(0:mpol,-ntor:ntor,ns), stat=istat)
         rmnc_ih = zero; zmns_ih = zero
+        
         CALL to_half_mesh(rmnc_i, rmnc_ih)                                 ! We need RMNC and ZMNS on half mesh.
         CALL to_half_mesh(zmns_i, zmns_ih)                                 ! RMNC_i, ZMNS_i from METRIC. Deallocated elsewhere.
         ALLOCATE(jacmnch(0:mpol,-ntor:ntor,ns), stat=istat)                ! Get harmonics of jacobian on half mesh
@@ -711,6 +714,7 @@
         ALLOCATE(rmns_ih(0:mpol,-ntor:ntor,ns),                         &
                  zmnc_ih(0:mpol,-ntor:ntor,ns), stat=istat)
         rmns_ih = zero; zmnc_ih = zero
+
         CALL to_half_mesh(rmns_i, rmns_ih)                                 ! We need RMNC and ZMNS on half mesh.
         CALL to_half_mesh(zmnc_i, zmnc_ih)                                 ! RMNS_i, ZMNC_i from METRIC. Deallocated elsewhere.
         ALLOCATE(jacmnsh(0:mpol,-ntor:ntor,ns), stat=istat)                ! Get harmonics of jacobian on half mesh
@@ -1171,18 +1175,18 @@
         CALL ASSERT(istat.eq.0,'Alloc. problem #1 in TOIJSP_1P')
         work0 = zero
                             
-        work0(:,:,1) = orthonorm(:,:)*xmn(:,:,ns_in)
-        work0(:,:,2) = orthonorm(:,:)*xmn(:,:,ns_out)
+        work0(:,:,1) = orthonorm(0:mpol,-ntor:ntor)*xmn(:,:,ns_in)
+        work0(:,:,2) = orthonorm(0:mpol,-ntor:ntor)*xmn(:,:,ns_out)
         IF (BTEST(dflag, b_ds)) THEN
           IF (ihalf == 0) THEN
             IF (ns_in .GT. 1) work0(:,:,ndum-1) =                       &
-              orthonorm(:,:)*xmn(:,:,ns_in-1)                              ! ...compute quantity at previous...
+              orthonorm(0:mpol,-ntor:ntor)*xmn(:,:,ns_in-1)                ! ...compute quantity at previous...
           ELSE
             IF (ns_in .GT. 2) work0(:,:,ndum-1) =                       &
-              orthonorm(:,:)*xmn(:,:,ns_in-1)          
+              orthonorm(0:mpol,-ntor:ntor)*xmn(:,:,ns_in-1)          
           ENDIF
           IF (ns_out .LT. ns) work0(:,:,ndum) =                         &
-            orthonorm(:,:)*xmn(:,:,ns_out+1)                               ! ...and next surfaces as well
+            orthonorm(0:mpol,-ntor:ntor)*xmn(:,:,ns_out+1)                 ! ...and next surfaces as well
         ENDIF
                    
         ALLOCATE(work1(-ntor:ntor,ndum),                                &

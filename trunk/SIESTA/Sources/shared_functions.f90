@@ -4,10 +4,10 @@
       MODULE shared_functions
       USE v3_utilities, ONLY: assert
       USE shared_data
+      USE utilities
       USE descriptor_mod, ONLY: INHESSIAN, nprocs, iam, SIESTA_COMM
-      USE island_params, ns=>ns_i, hs=>hs_i
+      USE island_params, ns=>ns_i, hs=>hs_i, mpol=>mpol_i, ntor=>ntor_i
       USE hessian, ONLY: apply_precond, l_Compute_Hessian, apply_colscale
-      USE quantities, ONLY: wb, wp
       USE timer_mod, ONLY: time_init_state, time_funci
       USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR,       &
                                PARSOLVER
@@ -21,7 +21,7 @@
       CONTAINS
 
 !>  \brief Parallel/Serial routine to compute forces for perturbed state.
-!!  \author S. P. Hirshman, R. Sanchez, S. K. Seal
+!!  \author S. K. Seal and S. P. Hirshman
       SUBROUTINE funct_island
 !-----------------------------------------------
 !     PARALLEL (in N rows, PARSOLVER=T)
@@ -32,6 +32,7 @@
       USE siesta_force, ONLY: update_force
       USE siesta_displacement, ONLY: update_upperv
       USE siesta_init, ONLY: init_state
+      USE quantities, ONLY: wb, wp
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -247,5 +248,26 @@
  
       END SUBROUTINE LineSearch
 
+!>    \brief Initializes pointers for xc (displacement variables) and gc (force) arrays
+      SUBROUTINE init_ptrs (xtarget, ptr1, ptr2, ptr3, ptr4, ptr5, ptr6)
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      REAL(dp), TARGET, INTENT(IN)        :: xtarget(0:mpol,-ntor:ntor,ndims,ns) !<input 3D, ndims-component arrays
+      REAL(dp), POINTER, DIMENSION(:,:,:) :: ptr1, ptr4  !<1st (s) array subsection (lasym=F,T)
+      REAL(dp), POINTER, DIMENSION(:,:,:) :: ptr2, ptr5  !<2nd (u) array subsection
+      REAL(dp), POINTER, DIMENSION(:,:,:) :: ptr3, ptr6  !<3rd (v) array subsection
+
+!-----------------------------------------------
+      ptr1 => xtarget(:,:,1,:)
+      ptr2 => xtarget(:,:,2,:)
+      ptr3 => xtarget(:,:,3,:)
+      IF (ndims .EQ. 6) THEN
+         ptr4 => xtarget(:,:,4,:)
+         ptr5 => xtarget(:,:,5,:)
+         ptr6 => xtarget(:,:,6,:)
+      END IF
+
+      END SUBROUTINE init_ptrs
 
       END MODULE shared_functions

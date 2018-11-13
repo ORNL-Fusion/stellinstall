@@ -119,9 +119,11 @@
         REAL(dp)                 :: average(ns)
 !-----------------------------------------------
 !
-!       IT IS ASSUMED COMING IN HERE THAT THE PROFILES HAVE BEEN GATHERED
-!       (IN UPDATE_STATE)
+!       IT IS ASSUMED COMING IN HERE THAT THE PROFILES HAVE BEEN PREVIOUSLY
+!       GATHERED (IN UPDATE_STATE) AND PREPARE_QUANTITIES HAS BEEN CALLED
 !
+        IF (iam .NE. 0) RETURN
+        
         ALLOCATE (pijh(ntheta,nzeta,ns),                                &
                   pmnh(0:mpol,-ntor:ntor,ns), stat=istat)      
         CALL ASSERT(istat.EQ.0,'Allocation failed in WRITE_PROFILES')
@@ -133,54 +135,40 @@
 
         CALL ASSERT(istat.EQ.0,'Error opening siesta profiles data file')
 
+!Check that init_state was initialized so start/end globrow = (1,ns)
+        CALL ASSERT(startglobrow.EQ.1 .AND. endglobrow.EQ.ns,           &
+          ' INIT_STATE NOT INITIALIZED IN WRITE_PROFILES!')
+          
 !USE pijh, pmnh scratch arrays to compute pressure and bsupX components on half-mesh
 
 !pressure
-        CALL toijsp(jpmnch, pijh, f_none, f_cos)
-        IF (lasym) CALL toijsp(jpmnsh, pijh, f_sum, f_sin)
-        CALL WRITE_SPECTRA (pijh, pmnh, f_cos, f_sin, ihalf, 'p', fsq_total)
+        CALL WRITE_SPECTRA(pijf0, pmnh, f_cos, f_sin, ifull, 'p', fsq_total)
 
 !BSUPS
-        CALL toijsp(jbsupsmnsh, pijh, f_none, f_sin)
-        IF (lasym) CALL toijsp(jbsupsmnch, pijh, f_sum, f_cos)
-        CALL WRITE_SPECTRA (pijh, pmnh, f_sin, f_cos, ihalf, 'B^s', fsq_total)
+        CALL WRITE_SPECTRA (bsupsijf0, pmnh, f_sin, f_cos, ifull, 'B^s', fsq_total)
 
 !BSUPU
-        CALL toijsp(jbsupumnch, pijh, f_none, f_cos)
-        IF (lasym) CALL toijsp(jbsupumnsh, pijh, f_sum, f_sin)
-        CALL WRITE_SPECTRA (pijh, pmnh, f_cos, f_sin, ihalf, 'B^u', fsq_total)
+        CALL WRITE_SPECTRA (bsupuijf0, pmnh, f_cos, f_sin, ifull, 'B^u', fsq_total)
 
 !BSUPV
-        CALL toijsp(jbsupvmnch, pijh, f_none, f_cos)
-        IF (lasym) CALL toijsp(jbsupvmnsh, pijh, f_sum, f_sin)
-        CALL WRITE_SPECTRA (pijh, pmnh, f_cos, f_sin, ihalf, 'B^v', fsq_total)
+        CALL WRITE_SPECTRA (bsupvijf0, pmnh, f_cos, f_sin, ifull, 'B^v', fsq_total)
 
 !KSUPS CRCook
-        CALL toijsp(ksupsmnsf, pijh, f_none, f_sin)
-        IF (lasym) CALL toijsp(ksupsmncf, pijh, f_sum, f_cos)
-        pijh = pijh/jacobf
+        pijh = ksupsijf0/jacobf
         CALL WRITE_SPECTRA (pijh, pmnh, f_sin, f_cos, ifull, 'J^s', fsq_total)
 
 !KSUPU CRCook
-        CALL toijsp(ksupumncf, pijh, f_none, f_cos)
-        IF (lasym) CALL toijsp(ksupumnsf, pijh, f_sum, f_sin)
-        pijh = pijh/jacobf
+        pijh = ksupuijf0/jacobf
         CALL WRITE_SPECTRA (pijh, pmnh, f_cos, f_sin, ifull, 'J^u', fsq_total)
 
 !KSUPV CRCook
-        CALL toijsp(ksupvmncf, pijh, f_none, f_cos)
-        IF (lasym) CALL toijsp(ksupvmnsf, pijh, f_sum, f_sin)
-        pijh = pijh/jacobf
+        pijh = ksupvijf0/jacobf
         CALL WRITE_SPECTRA (pijh, pmnh, f_cos, f_sin, ifull, 'J^v', fsq_total)
 
 !K|| = (J*B)/B**2 (SPH:040915)
-        lcurr_init=.TRUE.                             
-        CALL init_state(lcurr_init)
         CALL bdotj(bdotjijh)
-        pijh = 0
-        WHERE (bsq .NE. zero) pijh = bdotjijh/bsq
+        pijh = bdotjijh*jacobh
         DEALLOCATE(bdotjijh)
-        pijh = pijh*jacobh
         CALL WRITE_SPECTRA (pijh, pmnh, f_cos, f_sin, ihalf, 'K||', fsq_total)
 
 
@@ -203,7 +191,6 @@
         IF (lasym) CALL siesta_profiles (unit35, jvsupumncf, 'vel^u_cosmn;  fsq_total: ', fsq_total)
         CALL siesta_profiles (unit35, jvsupvmnsf, 'vel^v_sinmn;  fsq_total: ', fsq_total)
         IF (lasym) CALL siesta_profiles (unit35, jvsupvmncf, 'vel^v_cosmn;  fsq_total: ', fsq_total)
-
 
         DEALLOCATE (pijh, pmnh)
 
@@ -234,10 +221,10 @@
          ALLOCATE(xijf(n1,n2,n3))
          CALL to_full_mesh(xij, xijf)
          xij = xijf
+         xij = xij/jacobf
          DEALLOCATE(xijf)
       END IF
  
-      xij = xij/jacobf
 
       IF (fsym .EQ. f_cos) MYLABEL = TRIM(LABEL) // "_cosmn; fsq_total: "
       IF (fsym .EQ. f_sin) MYLABEL = TRIM(LABEL) // "_sinmn; fsq_total: "
@@ -354,7 +341,7 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER     :: istat, n1, n2
+      INTEGER     :: istat, n1, n2, i, j, k
       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)  ::  dpduijf, dpdvijf
       REAL(dp)    :: s1(2), r1(2), ton, toff
 !-----------------------------------------------
@@ -389,9 +376,9 @@
                    +      bsupvijf0(:,:,n1:nsmax)**2)                   &
                    *          pijf0(:,:,n1:nsmax)**2*wint(:,:,n1:nsmax))
 
-!SPH10-31-16: ignore inner s<.1 for this diagnostic
+!SPH10-31-16: ignore inner s<0.1 for this diagnostic
       n1 = MAX(ns/20, nsmin)
-      wbgradp = SUM(bgradpf(:,:, n1:n2)**2*wint(:,:,n1:nsmax))
+      wbgradp = SUM(bgradpf(:,:, n1:n2)**2*wint(:,:,n1:n2))
       s1(1)=tnorm_bgradp;  s1(2)=wbgradp
       IF (PARSOLVER) THEN
 #if defined(MPI_OPT)
@@ -509,37 +496,16 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
         INTEGER      :: istat
-        REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: bsupsijh,            &
-          bsupuijh, bsupvijh,                                           &
+        REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                      &
+!          bsupsijh, bsupuijh, bsupvijh,                                 &
           bsubsijh, bsubuijh, bsubvijh, ksubsijh, ksubuijh,             &
           ksubvijh, ksupsijh, ksupuijh, ksupvijh, work1, work2,         &
           work3, work4, work5, work6
         REAL(dp)  :: tnorm, tnorm2, ton, toff
 !-----------------------------------------------
         CALL second0(ton)
-
-        CALL ASSERT(lcurr_init,'MUST CALL init_state(.TRUE.) BEFORE bdotj')
+        CALL ASSERT(SIZE(bsupsijh0,3).EQ.ns, 'bsupsijh0 wrong size in bdotj')
 ! 
-!     Compute contravariant components of magnetic field
-!       
-        ALLOCATE(bsupsijh(ntheta,nzeta,ns),                             &
-                 bsupuijh(ntheta,nzeta,ns),                             &
-                 bsupvijh(ntheta,nzeta,ns), stat=istat)
-        bsupsijh=0; bsupuijh=0; bsupvijh=0
-        CALL ASSERT(istat.EQ.0,'Allocation #1 failed in BDOTJ')
-
-        CALL toijsp(jbsupsmnsh, bsupsijh, f_none, f_sin)
-        CALL toijsp(jbsupumnch, bsupuijh, f_none, f_cos)
-        CALL toijsp(jbsupvmnch, bsupvijh, f_none, f_cos)
-        IF (lasym) THEN
-        CALL toijsp(jbsupsmnch, bsupsijh, f_sum, f_sin)
-        CALL toijsp(jbsupumnsh, bsupuijh, f_sum, f_cos)
-        CALL toijsp(jbsupvmnsh, bsupvijh, f_sum, f_cos)
-        END IF
-        bsupsijh = bsupsijh/jacobh
-        bsupuijh = bsupuijh/jacobh
-        bsupvijh = bsupvijh/jacobh
-!
 !   Compute covariant field. Used for normalization.
 !        
         ALLOCATE(bsubsijh(ntheta,nzeta,ns),                             &
@@ -548,7 +514,7 @@
         CALL ASSERT(istat.EQ.0, 'Allocation #2 failed in BDOTJ')
         bsubsijh=0; bsubvijh=0; bsubuijh=0
       
-        CALL tolowerh(bsupsijh, bsupuijh, bsupvijh,                     &
+        CALL tolowerh(bsupsijh0, bsupuijh0, bsupvijh0,                  &
                       bsubsijh, bsubuijh, bsubvijh, 1, ns)
 
 !
@@ -604,9 +570,9 @@
         bdotjijhA=0
         
         bdotjijhA(:,:,3:nsh-1) =                                        &  ! RS: If I include 2 and nsh, it gets huge
-          bsupsijh(:,:,3:nsh-1)*ksubsijh(:,:,3:nsh-1) +                 &  ! something funny happens at the boundaries.
-          bsupuijh(:,:,3:nsh-1)*ksubuijh(:,:,3:nsh-1) +                 &
-          bsupvijh(:,:,3:nsh-1)*ksubvijh(:,:,3:nsh-1)                       ! B*J = (B^s*J_s + B^u*J_u + B^v*J_v)
+          bsupsijh0(:,:,3:nsh-1)*ksubsijh(:,:,3:nsh-1) +                &  ! something funny happens at the boundaries.
+          bsupuijh0(:,:,3:nsh-1)*ksubuijh(:,:,3:nsh-1) +                &
+          bsupvijh0(:,:,3:nsh-1)*ksubvijh(:,:,3:nsh-1)                       ! B*J = (B^s*J_s + B^u*J_u + B^v*J_v)
 ! 
 !   Compute tnorm = |JXB|^2 for normalization; thus we print out J_parallel/|J_perp|.
 !
@@ -630,8 +596,8 @@
         tnorm = SQRT(ABS(tnorm))
         DEALLOCATE(work3, work4, work5, work6)
         
-        work1 = bsupsijh*bsubsijh + bsupuijh*bsubuijh +                 &  ! |B|**2
-                bsupvijh*bsubvijh
+        work1 = bsupsijh0*bsubsijh + bsupuijh0*bsubuijh +               &  ! |B|**2
+                bsupvijh0*bsubvijh
         work2 = ksupsijh*ksubsijh + ksupuijh*ksubuijh +                 &  ! |J|**2
                 ksupvijh*ksubvijh
        
@@ -644,8 +610,7 @@
         tnorm2 = SQRT(ABS(tnorm2))                                           ! |J|*|B|
         bdotj_rms = SUM(bdotjijhA*bdotjijhA)
 
-        DEALLOCATE (bsupsijh, bsupuijh, bsupvijh, bsubsijh,             &
-                    bsubuijh, bsubvijh, ksupsijh, ksupuijh,             &
+        DEALLOCATE (bsubsijh, bsubuijh, bsubvijh, ksupsijh, ksupuijh,   &
                     ksupvijh, ksubsijh, ksubuijh, ksubvijh,             &      
                     work1, work2)
 

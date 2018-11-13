@@ -17,7 +17,7 @@
       IMPLICIT NONE
 
 !*******************************************************************************
-!  DERIVED-TYPE DECLARATIONS
+!  DERIVED-TYPE DECLARATIONSf
 !  1) siesta_run base class
 !
 !*******************************************************************************
@@ -81,7 +81,7 @@
 
       SIESTA_COMM = run_comm
       HESSPASS = 0
-	  PARSOLVER=.FALSE.
+  	  PARSOLVER=.FALSE.
 
 #if defined(MPI_OPT)
       LSCALAPACK = .TRUE.
@@ -260,7 +260,7 @@
  102  FORMAT(a,i5)
  
       CALL write_output(wout_file, niter, close_wout)
-      CALL write_profiles(fsq_total1)  ! SPH: write jpmn, jbsupXmn, kbsubXmn, jvsupXmn profiles
+      CALL write_profiles(fsq_total1)  ! SPH: write pmn, bsupXmn, ksubXmn, jvsupXmn profiles
       IF (iam .EQ. 0) THEN
          IF (lverbose) PRINT *,' Writing output to "siesta_profiles.txt" is finished!'
          CLOSE (UNIT=unit_out)
@@ -343,9 +343,12 @@
 !>  @param[inout] this A @ref siesta_run_class instance.
 !-------------------------------------------------------------------------------
       SUBROUTINE siesta_run_set_vmec(this)
-      USE siesta_namelist, ONLY: nsin, nsin_ext, mpolin, ntorin, wout_file
+      USE siesta_namelist, ONLY: nsin, mpolin, ntorin, wout_file
       USE metrics, ONLY: init_metric_elements
       USE quantities, ONLY: init_quantities
+      USE island_params, ns=>ns_i
+      USE shared_data, ONLY: nsp
+      
       IMPLICIT NONE
 
 !  Declare Arguments
@@ -357,13 +360,15 @@
 
 !  Start of executable code
       CALL second0(ton)
-      CALL init_metric_elements(nsin, nsin_ext, mpolin, ntorin, wout_file)
+      ! SKS: This calls grid_extender
+      CALL init_metric_elements(nsin, mpolin, ntorin, wout_file)
       CALL second0(toff)
 #if defined(SKS)
       init_metric_elements_time = toff - ton
 #endif
       CALL second0(ton)
-      CALL init_quantities
+      !ns=nsp
+      CALL init_quantities !Initializes BCYCLIC
       CALL second0(toff)
 #if defined(SKS)
       init_quantities_time = toff - ton
@@ -386,17 +391,18 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE siesta_run_converge(this)
       USE perturbation, ONLY: read_restart_file
-      USE shared_data, ONLY: nprecon
+      USE shared_data, ONLY: nprecon, lcolscale, ndims
       USE evolution, ONLY: init_evolution, converge_diagonal, converge_blocks
       USE descriptor_mod, ONLY: iam, nprocs, DIAGONALDONE
       USE island_params, mpol=>mpol_i, ntor=>ntor_i, ns=>ns_i
-      USE siesta_namelist, ONLY: ftol, lrestart, wout_file
+      USE siesta_namelist, ONLY: ftol, lrestart, wout_file, l_vessel
 #if defined(SKS)
       USE nscalingtools, ONLY: initRemap
 #endif
       USE hessian, ONLY: InitHess, levmarq_param, levmarq_param0
       USE quantities, ONLY: init_fields
       USE metrics, ONLY: sqrtg
+      USE pchelms
 
       IMPLICIT NONE
 
@@ -406,24 +412,30 @@
 !  local variables.
       REAL (dp)                           :: ton
       REAL (dp)                           :: toff
+      LOGICAL                             :: l1
 
 !  Start of executable code
       IF (lrestart) CALL read_restart_file(nprecon)
       CALL second0(toff)
       time_init = toff - this%time_on
-
       CALL second0(ton)
-      CALL init_evolution
-#if defined(SKS)
+      CALL init_evolution !neqs is set here
       CALL initRemap(mpol, ntor, ns, nprocs, iam)
-#endif
+
       CALL InitHess
       CALL second0(toff)
 #if defined(SKS)
       init_evolution_time = init_evolution_time + (toff - ton)
 #endif
       CALL second0(ton)
-      IF (.not.lrestart) CALL Init_Fields
+      IF (.not.lrestart) THEN
+        IF (l_vessel) THEN
+          l1 = lcolscale; lcolscale=.FALSE.
+          CALL run_pchelms
+          lcolscale = l1
+        END IF
+        CALL Init_Fields
+      END IF
       DEALLOCATE (sqrtg)
       CALL second0(toff)
 #if defined(SKS)
@@ -438,6 +450,8 @@
       converge_diagonal_time = converge_diagonal_time + (toff - ton)
 #endif
       DIAGONALDONE=.TRUE.
+
+!      IF (iam.EQ.0) STOP "CONVERGE_DIAGONAL DONE"
 
 !  Converge using block preconditioner
       CALL second0(ton)

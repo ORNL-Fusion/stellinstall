@@ -5182,27 +5182,14 @@ SUBROUTINE GetColSum(cs)
 !-------------------------------------------------------------------------------
 REAL(dp), DIMENSION(M, N), INTENT(OUT) :: cs
 !-------------------------------------------------------------------------------
-REAL(dp):: minScale, eps
 INTEGER  :: js
 !-------------------------------------------------------------------------------
-IF (lequi1) THEN
-   minScale = 1.E-5_dp                                          
-ELSE
-   minScale = 1.E-8_dp                                                    !less sensitive than lequi1=T
-END IF
 CALL InitScaleFactors
 DO js = startglobrow, endglobrow
   CALL GetScaleFactors(js,cs(:,js))
+  cs(:,js) = one/SQRT(cs(:,js))
 END DO
 
-!FILTER COLS OF CS
-DO js = startglobrow, endglobrow
-   eps = minScale*MAXVAL(cs(:,js))
-   CALL ASSERT(eps.GT.zero,' cs == 0 in GetColSum')           
-   cs(:,js) = MAX(cs(:,js), eps)
-END DO
-
-cs = one/SQRT(cs)
 
 CALL FinalizeScaleFactors
 
@@ -5300,7 +5287,7 @@ DO ic=1, M
 END DO
 
 DEALLOCATE (coltmp)
-CALL ASSERT(ALL(scalevector.GE.zero),'SCALEVECTOR < 0 IN GETSCALEFACTORS')
+CALL ASSERT(ALL(scalevector.GT.zero),'SCALEVECTOR <= 0 IN GETSCALEFACTORS')
 
 END SUBROUTINE GetScaleFactors
 !-------------------------------------------------------------------------------
@@ -5331,12 +5318,14 @@ CALL ASSERT(ALL(colscale(:,startrow1:endrow1).EQ.1),                    &
 ALLOCATE (colpad(M,N), stat=istat)
 CALL ASSERT(istat.eq.0,' Allocation error in ApplyParallelScaling')
 
+CALL GetColSum(colpad)
+
 100 CONTINUE
 
-CALL GetColSum(colpad)
 CALL PadSides(colpad, M, 1, 1)
 CALL VectorCopyPar(colpad, colscale)
 CALL ParallelScaling(colpad)
+CALL GetColSum(colpad)
 
 icount = icount + 1
 !MAXIMUM COLUMN VARIATIONS (like an inverse "Condition number")

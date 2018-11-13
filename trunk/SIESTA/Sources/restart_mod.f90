@@ -63,6 +63,15 @@
 !>  Name for the restart file jpress.
       CHARACTER (len=*), PARAMETER :: vn_jpress = 'jpressh(m,n,r)'
 
+!>  Name for the restart file rmnc.
+      CHARACTER (len=*), PARAMETER :: vn_rmnc = 'rmnc(m,n,r)'
+!>  Name for the restart file rmns.
+      CHARACTER (len=*), PARAMETER :: vn_rmns = 'rmns(m,n,r)'
+!>  Name for the restart file zmnc.
+      CHARACTER (len=*), PARAMETER :: vn_zmnc = 'zmnc(m,n,r)'
+!>  Name for the restart file zmns.
+      CHARACTER (len=*), PARAMETER :: vn_zmns = 'zmns(m,n,r)'
+
 !>  Name for the restart file bsupsmns.
       CHARACTER (len=*), PARAMETER :: vn_bsupsmns = 'bsupsmnsh(m,n,r)'
 !>  Name for the restart file bsupsmnc.
@@ -151,7 +160,7 @@
       INTEGER                                     :: ns
       INTEGER                                     :: mpol
       INTEGER                                     :: ntor
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: tempmn
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE    :: tempmn_r
       INTEGER                                     :: nmin
 
 !  local parameters
@@ -209,44 +218,44 @@
       CALL cdf_read(ncid, vn_wout, wout_file)
 
 !  The namelist input file may turn the asymmetric terms on and off.
-      ALLOCATE(tempmn(0:mpol,-ntor:ntor, ns))
+      ALLOCATE(tempmn_r(0:mpol,-ntor:ntor, ns))
 
-      CALL cdf_read(ncid, vn_jbsupss, tempmn)
+      CALL cdf_read(ncid, vn_jbsupss, tempmn_r)
       jbsupsmnsh(:,:,1) = 0
-      CALL interpit(tempmn, jbsupsmnsh, ns, nsin, mpol, mpolin, ntor, ntorin)
+      CALL interpit(tempmn_r, jbsupsmnsh, ns, nsin, mpol, mpolin, ntor, ntorin)
       jbsupsmnsh(m1,-nmin:nmin,1) = jbsupsmnsh(m1,-nmin:nmin,2)
       
-      CALL cdf_read(ncid, vn_jbsupuc, tempmn)
-      CALL interpit(tempmn, jbsupumnch, ns, nsin, mpol, mpolin, ntor, ntorin)
+      CALL cdf_read(ncid, vn_jbsupuc, tempmn_r)
+      CALL interpit(tempmn_r, jbsupumnch, ns, nsin, mpol, mpolin, ntor, ntorin)
       jbsupumnch(m1,-nmin:nmin,1) = jbsupumnch(m1,-nmin:nmin,2)
 
       jbsupvmnch(:,:,1) = 0
-      CALL cdf_read(ncid, vn_jbsupvc, tempmn)
-      CALL interpit(tempmn, jbsupvmnch, ns, nsin, mpol, mpolin, ntor, ntorin)
+      CALL cdf_read(ncid, vn_jbsupvc, tempmn_r)
+      CALL interpit(tempmn_r, jbsupvmnch, ns, nsin, mpol, mpolin, ntor, ntorin)
       jbsupvmnch(m0,-nmin:nmin,1) = jbsupvmnch(m0,-nmin:nmin,2)
 
       jpmnch(:,:,1) = 0
-      CALL cdf_read(ncid, vn_jpresc,  tempmn)
-      CALL interpit(tempmn, jpmnch,     ns, nsin, mpol, mpolin, ntor, ntorin)
+      CALL cdf_read(ncid, vn_jpresc,  tempmn_r)
+      CALL interpit(tempmn_r, jpmnch,     ns, nsin, mpol, mpolin, ntor, ntorin)
       jpmnch(m0,-nmin:nmin,1) = jpmnch(m0,-nmin:nmin,2)
 
 
       IF (BTEST(flags, restart_lasym) .and. lasym) THEN
          jbsupsmnch(:,:,1) = 0
-         CALL cdf_read(ncid, vn_jbsupsc, tempmn)
-         CALL interpit(tempmn, jbsupsmnch, ns, nsin, mpol, mpolin, ntor, ntorin)
+         CALL cdf_read(ncid, vn_jbsupsc, tempmn_r)
+         CALL interpit(tempmn_r, jbsupsmnch, ns, nsin, mpol, mpolin, ntor, ntorin)
          jbsupsmnch(m1,-nmin:nmin,1) = jbsupsmnch(m1,-nmin:nmin,2)
 
-         CALL cdf_read(ncid, vn_jbsupus, tempmn)
-         CALL interpit(tempmn, jbsupumnsh, ns, nsin, mpol, mpolin, ntor, ntorin)
+         CALL cdf_read(ncid, vn_jbsupus, tempmn_r)
+         CALL interpit(tempmn_r, jbsupumnsh, ns, nsin, mpol, mpolin, ntor, ntorin)
          jbsupumnsh(m1,-nmin:nmin,1) = jbsupumnsh(m1,-nmin:nmin,2)
 
-         CALL cdf_read(ncid, vn_jbsupvs, tempmn)
-         CALL interpit(tempmn, jbsupvmnsh, ns, nsin, mpol, mpolin, ntor, ntorin)
+         CALL cdf_read(ncid, vn_jbsupvs, tempmn_r)
+         CALL interpit(tempmn_r, jbsupvmnsh, ns, nsin, mpol, mpolin, ntor, ntorin)
          jbsupvmnsh(m0,-nmin:nmin,1) = jbsupvmnsh(m0,-nmin:nmin,2)
 
-         CALL cdf_read(ncid, vn_jpress,  tempmn)
-         CALL interpit(tempmn, jpmnsh,     ns, nsin, mpol, mpolin, ntor, ntorin)
+         CALL cdf_read(ncid, vn_jpress,  tempmn_r)
+         CALL interpit(tempmn_r, jpmnsh,     ns, nsin, mpol, mpolin, ntor, ntorin)
          jpmnsh(m0,-nmin:nmin,1) = jpmnsh(m0,-nmin:nmin,2)
       ELSE IF (lasym) THEN
          jbsupsmnch = 0
@@ -257,7 +266,7 @@
 
       CALL cdf_close(ncid)
 
-      DEALLOCATE(tempmn)
+      DEALLOCATE(tempmn_r)
 #endif
       END FUNCTION restart_read
 
@@ -375,20 +384,21 @@
                             b_factor,   p_factor, jacobh
       USE fourier
       USE island_params, ONLY: ohs => ohs_i
+      USE shared_data, ONLY: r1_i, z1_i
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      INTEGER                                     :: restart_write
-      CHARACTER (len=*), INTENT(in)               :: restart_file_name
-      CHARACTER (len=*), INTENT(in)               :: wout_file
+      INTEGER                                  :: restart_write
+      CHARACTER (len=*), INTENT(in)            :: restart_file_name
+      CHARACTER (len=*), INTENT(in)            :: wout_file
 
 !  local variables
-      INTEGER                                     :: flags
-      INTEGER                                     :: ncid
-      INTEGER                                     :: nblock
-      INTEGER                                     :: s, m, n
-#if defined(MRC)      
+      INTEGER                                  :: flags
+      INTEGER                                  :: ncid
+      INTEGER                                  :: nblock
+      INTEGER                                  :: s, m, n
+
       REAL (dp)                                :: r0
       REAL (dp)                                :: tempscalar
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: bsupsijh
@@ -408,14 +418,14 @@
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: jksupvmnf
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: dbuds
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: dbvds
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: tempmn
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: tempmn_w
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: pijh
-#endif
+
 !  local parameters
-      INTEGER, PARAMETER                          :: m0=0
-      INTEGER, PARAMETER                          :: m1=1
-      INTEGER, PARAMETER                          :: m2=2
-      CHARACTER (LEN=256)                         :: filename
+      INTEGER, PARAMETER                       :: m0=0
+      INTEGER, PARAMETER                       :: m1=1
+      INTEGER, PARAMETER                       :: m2=2
+      CHARACTER (LEN=256)                      :: filename
 
 !  Start of executable code
       restart_write = 1
@@ -437,6 +447,8 @@
          flags = IBSET(flags, restart_lrecon)
       END IF
 
+      ALLOCATE(tempmn_w(0:mpol,-ntor:ntor,ns))
+
 #if defined(NETCDF)
       CALL cdf_define(ncid, vn_flags, flags)
       CALL cdf_define(ncid, vn_nsin, ns)
@@ -449,16 +461,21 @@
       CALL cdf_define(ncid, vn_jbsupvc, jbsupvmnch, dimname=restart_dims)
       CALL cdf_define(ncid, vn_jpresc,  jpmnch,     dimname=restart_dims)
 
+      CALL cdf_define(ncid, vn_rmnc, tempmn_w, dimname=restart_dims)
+      CALL cdf_define(ncid, vn_zmns, tempmn_w, dimname=restart_dims)
+
       IF (lasym) THEN
          CALL cdf_define(ncid, vn_jbsupsc, jbsupsmnch, dimname=restart_dims)
          CALL cdf_define(ncid, vn_jbsupus, jbsupumnsh, dimname=restart_dims)
          CALL cdf_define(ncid, vn_jbsupvs, jbsupvmnsh, dimname=restart_dims)
          CALL cdf_define(ncid, vn_jpress,  jpmnsh,     dimname=restart_dims)
+
+         CALL cdf_define(ncid, vn_rmns, tempmn_w, dimname=restart_dims)
+         CALL cdf_define(ncid, vn_zmnc, tempmn_w, dimname=restart_dims)
       END IF
 
-#if defined(MRC)
-RECON0: IF (lrecon) THEN
-!  Using variable with jacobian only for the dimension sizes and types. Be for
+      RECON0: IF (lrecon) THEN
+!  Using variable with jacobian only for the dimension sizes and types. Before
 !  writting, the jacobian normalization will be removed.
          CALL cdf_define(ncid, vn_bsupsmns,  jbsupsmnsh, dimname=restart_dims)
          CALL cdf_define(ncid, vn_bsupumnc,  jbsupumnch, dimname=restart_dims)
@@ -487,7 +504,6 @@ RECON0: IF (lrecon) THEN
             CALL cdf_define(ncid, vn_pmns,      jpmnsh,     dimname=restart_dims)
          END IF
       END IF RECON0
-#endif
 
       CALL cdf_write(ncid, vn_flags, flags)
       CALL cdf_write(ncid, vn_nsin, ns)
@@ -500,14 +516,35 @@ RECON0: IF (lrecon) THEN
       CALL cdf_write(ncid, vn_jbsupvc, jbsupvmnch)
       CALL cdf_write(ncid, vn_jpresc,  jpmnch)
 
+      CALL tomnsp(r1_i, tempmn_w, f_cos)
+      DO s = 1, ns
+         tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)
+      END DO
+      CALL cdf_write(ncid, vn_rmnc, tempmn_w)
+      CALL tomnsp(z1_i, tempmn_w, f_sin)
+      DO s = 1, ns
+         tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)
+      END DO
+      CALL cdf_write(ncid, vn_zmns, tempmn_w)
+
       IF (lasym) THEN
          CALL cdf_write(ncid, vn_jbsupsc, jbsupsmnch)
          CALL cdf_write(ncid, vn_jbsupus, jbsupumnsh)
          CALL cdf_write(ncid, vn_jbsupvs, jbsupvmnsh)
          CALL cdf_write(ncid, vn_jpress,  jpmnsh)
+
+         CALL tomnsp(r1_i, tempmn_w, f_sin)
+         DO s = 1, ns
+            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)
+         END DO
+         CALL cdf_write(ncid, vn_rmns, tempmn_w)
+         CALL tomnsp(z1_i, tempmn_w, f_cos)
+         DO s = 1, ns
+            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)
+         END DO
+         CALL cdf_write(ncid, vn_zmnc, tempmn_w)
       END IF
 
-#if defined(MRC)
       RECON1: IF (lrecon) THEN
 
          CALL cdf_write(ncid, vn_p_factor, p_factor)
@@ -551,29 +588,28 @@ RECON0: IF (lrecon) THEN
          tempscalar = MINVAL(pijh(:,:,2:))
          CALL cdf_write(ncid, vn_p_min, tempscalar)
 
-         ALLOCATE(tempmn(0:mpol,-ntor:ntor,ns))
-         tempmn = 0
+         tempmn_w = 0
 
-         CALL tomnsp(bsupsijh, tempmn, f_sin)
+         CALL tomnsp(bsupsijh, tempmn_w, f_sin)
          DO s = 1, ns
-            tempmn(:,:,s) = orthonorm*tempmn(:,:,s)
+            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)
          END DO
-         CALL cdf_write(ncid, vn_bsupsmns, tempmn)
-         CALL tomnsp(bsupuijh, tempmn, f_cos)
+         CALL cdf_write(ncid, vn_bsupsmns, tempmn_w)
+         CALL tomnsp(bsupuijh, tempmn_w, f_cos)
          DO s = 1, ns
-            tempmn(:,:,s) = orthonorm*tempmn(:,:,s)
+            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)
          END DO
-         CALL cdf_write(ncid, vn_bsupumnc, tempmn)
-         CALL tomnsp(bsupvijh, tempmn, f_cos)
+         CALL cdf_write(ncid, vn_bsupumnc, tempmn_w)
+         CALL tomnsp(bsupvijh, tempmn_w, f_cos)
          DO s = 1, ns
-            tempmn(:,:,s) = orthonorm*tempmn(:,:,s)
+            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)
          END DO
-         CALL cdf_write(ncid, vn_bsupvmnc, tempmn)
-         CALL tomnsp(pijh, tempmn, f_cos)
+         CALL cdf_write(ncid, vn_bsupvmnc, tempmn_w)
+         CALL tomnsp(pijh, tempmn_w, f_cos)
          DO s = 1, ns
-            tempmn(:,:,s) = orthonorm*tempmn(:,:,s)
+            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)
          END DO
-         CALL cdf_write(ncid, vn_pmnc, tempmn)
+         CALL cdf_write(ncid, vn_pmnc, tempmn_w)
 
          ALLOCATE(bsubsijh(ntheta,nzeta,ns))
          ALLOCATE(bsubuijh(ntheta,nzeta,ns))
@@ -589,19 +625,19 @@ RECON0: IF (lrecon) THEN
 
          CALL tomnsp(bsubsijh, bsubsmnh, f_sin)
          DO s = 1, ns
-            tempmn(:,:,s) = orthonorm*bsubsmnh(:,:,s)
+            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*bsubsmnh(:,:,s)
          END DO
-         CALL cdf_write(ncid, vn_bsubsmns, tempmn)
+         CALL cdf_write(ncid, vn_bsubsmns, tempmn_w)
          CALL tomnsp(bsubuijh, bsubumnh, f_cos)
          DO s = 1, ns
-            tempmn(:,:,s) = orthonorm*bsubumnh(:,:,s)
+            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*bsubumnh(:,:,s)
          END DO
-         CALL cdf_write(ncid, vn_bsubumnc, tempmn)
+         CALL cdf_write(ncid, vn_bsubumnc, tempmn_w)
          CALL tomnsp(bsubvijh, bsubvmnh, f_cos)
          DO s = 1, ns
-            tempmn(:,:,s) = orthonorm*bsubvmnh(:,:,s)
+            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*bsubvmnh(:,:,s)
          END DO
-         CALL cdf_write(ncid, vn_bsubvmnc, tempmn)
+         CALL cdf_write(ncid, vn_bsubvmnc, tempmn_w)
 
 !  Need full mesh values to compute currents on the full mesh.
          ALLOCATE(bsubsmnf(0:mpol,-ntor:ntor,ns))
@@ -638,42 +674,42 @@ RECON0: IF (lrecon) THEN
          CALL cdf_write(ncid, vn_jksupvmnc, jksupvmnf)
 
          IF (lasym) THEN
-            CALL tomnsp(bsupsijh, tempmn, f_cos)
+            CALL tomnsp(bsupsijh, tempmn_w, f_cos)
             DO s = 1, ns
-               tempmn(:,:,s) = orthonorm*tempmn(:,:,s)
+               tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)
             END DO
-            CALL cdf_write(ncid, vn_bsupsmnc, tempmn)
-            CALL tomnsp(bsupuijh, tempmn, f_sin)
+            CALL cdf_write(ncid, vn_bsupsmnc, tempmn_w)
+            CALL tomnsp(bsupuijh, tempmn_w, f_sin)
             DO s = 1, ns
-               tempmn(:,:,s) = orthonorm*tempmn(:,:,s)
+               tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)
             END DO
-            CALL cdf_write(ncid, vn_bsupumns, tempmn)
-            CALL tomnsp(bsupvijh, tempmn, f_sin)
+            CALL cdf_write(ncid, vn_bsupumns, tempmn_w)
+            CALL tomnsp(bsupvijh, tempmn_w, f_sin)
             DO s = 1, ns
-               tempmn(:,:,s) = orthonorm*tempmn(:,:,s)
+               tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)
             END DO
-            CALL cdf_write(ncid, vn_bsupvmns, tempmn)
-            CALL tomnsp(pijh, tempmn, f_sin)
+            CALL cdf_write(ncid, vn_bsupvmns, tempmn_w)
+            CALL tomnsp(pijh, tempmn_w, f_sin)
             DO s = 1, ns
-               tempmn(:,:,s) = orthonorm*tempmn(:,:,s)
+               tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)
             END DO
-            CALL cdf_write(ncid, vn_pmns, tempmn)
+            CALL cdf_write(ncid, vn_pmns, tempmn_w)
 
             CALL tomnsp(bsubsijh, bsubsmnh, f_cos)
             DO s = 1, ns
-               tempmn(:,:,s) = orthonorm*bsubsmnh(:,:,s)
+               tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*bsubsmnh(:,:,s)
             END DO
-            CALL cdf_write(ncid, vn_bsubsmnc, tempmn)
+            CALL cdf_write(ncid, vn_bsubsmnc, tempmn_w)
             CALL tomnsp(bsubuijh, bsubumnh, f_sin)
             DO s = 1, ns
-               tempmn(:,:,s) = orthonorm*bsubumnh(:,:,s)
+               tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*bsubumnh(:,:,s)
             END DO
-            CALL cdf_write(ncid, vn_bsubumns, tempmn)
+            CALL cdf_write(ncid, vn_bsubumns, tempmn_w)
             CALL tomnsp(bsubvijh, bsubvmnh, f_sin)
             DO s = 1, ns
-               tempmn(:,:,s) = orthonorm*bsubvmnh(:,:,s)
+               tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*bsubvmnh(:,:,s)
             END DO
-            CALL cdf_write(ncid, vn_bsubvmns, tempmn)
+            CALL cdf_write(ncid, vn_bsubvmns, tempmn_w)
 
             CALL to_full_mesh(bsubsmnh, bsubsmnf)
             CALL to_full_mesh(bsubumnh, bsubumnf)
@@ -717,9 +753,10 @@ RECON0: IF (lrecon) THEN
          DEALLOCATE(dbuds)
          DEALLOCATE(dbvds)
 
-         DEALLOCATE(tempmn)
       END IF RECON1
-#endif
+
+      DEALLOCATE(tempmn_w)
+
       CALL cdf_close(ncid)
 #endif
       END FUNCTION restart_write

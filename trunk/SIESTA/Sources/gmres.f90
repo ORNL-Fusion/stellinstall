@@ -374,6 +374,7 @@
       CALL second0(skston)
       ALLOCATE (p(ns*mblk_size), stat=istat)
       CALL ASSERT(istat.eq.0,'Allocation error in matvec_par')
+      p = 0
 
       p(myrowstart:myrowend) = ploc
       CALL PadSides(p, mblk_size, 1, 1)

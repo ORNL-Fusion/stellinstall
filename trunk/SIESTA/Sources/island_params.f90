@@ -8,6 +8,8 @@
 !-----------------------------------------------
 	  INTEGER :: ns_i, nu_i, nv_i, nuv_i                                  ! size of s, u, v dimensions of (island) metric tensors
       INTEGER :: mpol_i, ntor_i
+
+      INTEGER :: ns_v, mpol_v, ntor_v
 !      INTEGER :: mpol32_i, ntor32_i                                      ! extended grid dims
       INTEGER :: nfp_i, mnmax_i
       INTEGER :: nsh                                                      ! Number of points in half mesh

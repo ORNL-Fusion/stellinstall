@@ -1,5 +1,7 @@
       MODULE bhtobf
-      USE v3_utilities, ONLY: assert      
+      USE stel_kinds
+      USE v3_utilities, ONLY: assert
+      
       CONTAINS
       
       SUBROUTINE bhalftobfull (bsupsijh, bsupuijh, bsupvijh,            &
@@ -12,10 +14,10 @@
 !     NOTE:    On Entry, bsups,u_h at js=1 contain the "evolved" values of 
 !              bsups,u_f at s=0 (js=1), as computed in UPDATE_BFIELD
 !
-       USE stel_kinds
        USE quantities, ONLY: ns, jacobf, jacobh
        USE timer_mod
        USE utilities, ONLY: to_full_mesh
+       USE siesta_namelist, ONLY: l_vessel
        IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -30,7 +32,7 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
        REAL(dp) :: skston, skstoff
-       INTEGER  :: nsmin, nsmax
+       INTEGER  :: nsmin, nsmax, i, j, k
 !-----------------------------------------------
 #undef _OLD_AV
 !#define _OLD_AV
@@ -83,7 +85,7 @@
 #endif          
        END IF
 
-       IF (nsmax .EQ. ns) bsupsijf(:,:,ns) = 0
+       IF (nsmax.EQ.ns .AND. .NOT.l_vessel) bsupsijf(:,:,ns) = 0
        
        CALL second0(skstoff)
 #if defined(SKS)

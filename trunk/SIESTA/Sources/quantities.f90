@@ -20,6 +20,7 @@
       USE shared_data, ONLY: lasym, lverbose
       USE nscalingtools, ONLY: startglobrow, endglobrow, PARSOLVER, MPI_ERR
       USE utilities, ONLY: to_half_mesh, to_full_mesh
+      USE siesta_namelist, ONLY: l_vessel
       IMPLICIT NONE
 
 !
@@ -159,7 +160,7 @@
 !       Allocate and initialize dependent variables
         CALL alloc_quantities
 
-        jacobh(:,:,:) = RESHAPE(sqrtg, SHAPE(jacobh))                     ! Reshapes sqrtg in local form
+        jacobh(:,:,:) = RESHAPE(sqrtg, SHAPE(jacobh))  ! Reshapes sqrtg in local form
 
 !AVOID DIVIDE BY ZERO AND STORE AVERAGED VALUE (OVER THETA) 
 !AT FIRST 1/2 GRID PT AT ORIGIN IN JACOBH(1)
@@ -168,16 +169,14 @@
 
 !TO PRESERVE UNPERTURBED (CONSTANT IN s) PART OF PRESSURE, NYQUIST-FILTER JACOBIAN
 !ON: SPH 04-28-16
-!        IF (.FALSE.) THEN                                                !SET TO FALSE TO TURN THIS OFF
-        jacobf = jacobh
-        CALL tomnsp(jacobh, jbsupsmnsh, f_cos)                            !use jbsupsmnsh for dummy storage
-        IF (lasym) CALL tomnsp(jacobh, jbsupsmnch, f_sin)
-        CALL toijsp(jbsupsmnsh, jacobh, f_none, f_cos)
-        jbsupsmnsh = 0
+!        IF (.FALSE.) THEN
+        CALL tomnsp(jacobh, jacobf, f_cos)                            !use jacobf for dummy storage
+        CALL toijsp(jacobf, jacobh, f_none, f_cos)
         IF (lasym) THEN
-        CALL toijsp(jbsupsmnch, jacobh, f_sum, f_sin)
-        jbsupsmnch = 0
+           CALL tomnsp(jacobh, jacobf, f_sin)
+           CALL toijsp(jacobf, jacobh, f_sum, f_sin)
         END IF
+!       END IF        
         
         CALL ASSERT(ALL(jacobh*signjac.GT.0),'FILTERED JACOBIAN CHANGED SIGN!')
         sum1 = SUM((jacobh(:,:,2:)-jacobf(:,:,2:))**2/                  &
@@ -206,8 +205,6 @@
             IF (IAM .EQ. 0 .and. lverbose) PRINT *,'VMEC VOLUME: ',     &
                volume_i,' SIESTA VOLUME: ', sum1
         END IF
-        
-      
         END SUBROUTINE init_quantities
 
 !*******************************************************************************
@@ -240,14 +237,16 @@
         chiph(2:ns) = (chipf_i(2:ns) + chipf_i(1:nsh))/2
         phiph(1) = 0;  chiph(1) = 0
 
-        CALL ReCompute_Lambda(lmns_i, lmnc_i, jacobh, orthonorm,        &
-                              phiph, chiph, nsmin, nsmax)
+        IF (.NOT.l_vessel) THEN
+          CALL ReCompute_Lambda(lmns_i, lmnc_i, jacobh, orthonorm,      &
+                                phiph, chiph, nsmin, nsmax)
+        END IF
          
-		CALL Init_Bfield(jbsupsmnsh, jbsupumnch, jbsupvmnch, lmns_i,    &
-		                 phiph, chiph, nsmin, nsmax, isym)
+  		CALL Init_Bfield(jbsupsmnsh, jbsupumnch, jbsupvmnch,            &
+                         lmns_i, phiph, chiph, nsmin, nsmax, isym)
 		IF (lasym)                                                      &
-		CALL Init_Bfield(jbsupsmnch, jbsupumnsh, jbsupvmnsh, lmnc_i,    &
-		                 phiph, chiph, nsmin, nsmax, iasym)
+		    CALL Init_Bfield(jbsupsmnch, jbsupumnsh, jbsupvmnsh,        &
+                             lmnc_i, phiph, chiph, nsmin, nsmax, iasym)
 
         DEALLOCATE (phiph, chiph, stat=istat)
         CALL ASSERT(istat.EQ.0,'Deallocate error #1 in init_fields')
@@ -294,20 +293,21 @@
 
 
         SUBROUTINE Init_Bfield(jbsupsmnh, jbsupumnh, jbsupvmnh,         &
-		                       lmn, phiph, chiph, nsmin, nsmax, ipar)
+                               lmn, phiph, chiph, nsmin, nsmax, ipar)
         USE fourier, ONLY: orthonorm
+        USE siesta_namelist, ONLY: l_vessel
 #if defined(MPI_OPT)        
         USE mpi_inc
 #endif        
 !-----------------------------------------------
 	    INTEGER, INTENT(IN)  :: ipar, nsmin, nsmax
 		REAL(dp), INTENT(IN) :: phiph(ns), chiph(ns)
-		REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                      &
-		                        jbsupsmnh, jbsupumnh, jbsupvmnh, lmn
+		REAL(dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(IN) :: lmn
+		REAL(dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(INOUT) ::       &
+		                        jbsupsmnh, jbsupumnh, jbsupvmnh
 !-----------------------------------------------
         INTEGER, PARAMETER :: m0=0, m1=1
         INTEGER  :: m, n, sparity, mp, np
-        REAL(dp) :: r12, temp(-ntor:ntor)
 !-----------------------------------------------
 
 		IF (ipar .EQ. isym) THEN
@@ -315,10 +315,11 @@
 		ELSE
 		   sparity = -1
 		END IF
-		r12 = sparity*hs_i/2
 		
+        IF (.NOT.l_vessel) THEN
+      
         DO m = 0,mpol
-		   mp = m*sparity
+	  	   mp = m*sparity
            DO n = -ntor, ntor
 		      np = n*nfp*sparity
               jbsupumnh(m,n,nsmin:nsmax) = phiph(nsmin:nsmax)*(-np*lmn(m,n,nsmin:nsmax))
@@ -329,28 +330,22 @@
         IF (ipar .EQ. isym) THEN
            jbsupumnh(m0,0,nsmin:nsmax) = chiph(nsmin:nsmax) / orthonorm(0,0)
            jbsupvmnh(m0,0,nsmin:nsmax) = phiph(nsmin:nsmax) / orthonorm(0,0)
-		END IF
+        END IF
+        
+        END IF
+        
+        jbsupsmnh(:,:,nsmin:nsmax) = b_factor*jbsupsmnh(:,:,nsmin:nsmax)
+        jbsupumnh(:,:,nsmin:nsmax) = b_factor*jbsupumnh(:,:,nsmin:nsmax)
+        jbsupvmnh(:,:,nsmin:nsmax) = b_factor*jbsupvmnh(:,:,nsmin:nsmax)
 
-        jbsupsmnh(:,:,nsmin:nsmax) = 0
-        jbsupumnh(:,:,nsmin:nsmax) = b_factor*jbsupumnh(:,:,nsmin:nsmax) 
-        jbsupvmnh(:,:,nsmin:nsmax) = b_factor*jbsupvmnh(:,:,nsmin:nsmax) 
 
 !STORE m=0 component of jbsupvmnh (and m=0,1 of jbsupumnh)  at origin of half-grid js=1
         IF (nsmin .EQ. 1) THEN
+           jbsupsmnh(:,:,1) = 0;  jbsupsmnh(m1,:,1) = jbsupsmnh(m1,:,2)
            jbsupumnh(:,:,1) = 0;  jbsupumnh(m0:m1,:,1) = jbsupumnh(m0:m1,:,2)
            jbsupvmnh(m0,:,1) = jbsupvmnh(m0,:,2) 
            jbsupvmnh(m1:,:,1) = 0
         END IF
-
-        RETURN
-        
-        temp = jbsupumnh(m1,:,2)*r12
-#if defined(MPI_OPT)
-        CALL MPI_BCAST(temp,SIZE(temp),MPI_REAL8, 0, SIESTA_COMM, MPI_ERR)
-#endif     
-        DO m=nsmin, nsmax
-           jbsupsmnh(m1,:,m) = temp
-        END DO
         
 		END SUBROUTINE Init_Bfield
 

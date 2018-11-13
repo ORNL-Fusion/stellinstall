@@ -20,10 +20,13 @@
 !-----------------------------------------------
       REAL(dp), DIMENSION(:,:), ALLOCATABLE ::                          &
                    rmnc_spline, zmns_spline, lmns_spline,               &
-                   rmns_spline, zmnc_spline, lmnc_spline
+                   rmns_spline, zmnc_spline, lmnc_spline,               &
+                   currumnc_spline, currvmnc_spline,                    &
+                   currumns_spline, currvmns_spline
 
       REAL(dp), DIMENSION(:,:,:), ALLOCATABLE ::                        &
                    rmnc_i, zmns_i, lmns_i,                              &
-                   rmns_i, zmnc_i, lmnc_i
+                   rmns_i, zmnc_i, lmnc_i,                              &
+                   jcurrumnc, jcurrvmnc, jcurrumns, jcurrvmns
 
       END MODULE vmec_info

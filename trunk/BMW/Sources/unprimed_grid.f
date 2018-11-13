@@ -388,6 +388,7 @@
 !$    USE omp_lib
       USE bmw_state_flags, ONLY: clear_screen, progress
       USE, INTRINSIC :: iso_fortran_env, Only : output_unit
+!      USE stel_constants, ONLY: twopi  ! TEMP
 
       IMPLICIT NONE
 
@@ -542,6 +543,9 @@
          unprimed_grid_construct_a%a_z(ai,aj,ak) =                             &
      &      unprimed_grid_construct_a%a_z(ai,aj,ak) +                          &
      &      SUM(pgrid%j_z/rp)*pgrid%dvol
+
+!         WRITE(*,*) SUM(pgrid%vol)*pgrid%dvol*2.0*twopi    !TEMP
+!         STOP 2                                            !TEMP
       END DO
 !$OMP END DO
 

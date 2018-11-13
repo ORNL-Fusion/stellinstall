@@ -102,8 +102,6 @@ IF (envval.EQ.'ScaLAPACK' .OR. envval.EQ.'FALSE') THEN
   PARGMRES=.FALSE.
   OUTPUT_TIMINGS=.FALSE.
 END IF
-!--------------------------------------------------------------------------
-
 END SUBROUTINE MyEnvVariables
 !--------------------------------------------------------------------------
 

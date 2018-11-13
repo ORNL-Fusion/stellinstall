@@ -3,8 +3,8 @@
       USE stel_kinds
       USE stel_constants
       USE descriptor_mod, ONLY: SIESTA_COMM
-      USE shared_data, ONLY: l_update_state, l_natural, lasym,          &
-                             jsju_ratio_s, jsju_ratio_a, ste 
+      USE shared_data, ONLY: l_update_state, lasym, ste,                &
+                             jsju_ratio_s, jsju_ratio_a 
       USE fourier
       USE nscalingtools, ONLY: nranks, startglobrow, endglobrow, MPI_ERR
       USE utilities, ONLY: GradientFull, to_full_mesh
@@ -72,6 +72,7 @@
       USE island_params, ONLY: nu_i, rmajor_i
       USE Hessian, ONLY: mupar_norm
       USE descriptor_mod, ONLY: iam
+      USE quantities, ONLY: bsq
       USE timer_mod
       USE mpi_inc
       USE descriptor_mod, ONLY: SIESTA_COMM
@@ -87,7 +88,6 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER :: istat
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: bsq_loc
       REAL(dp) :: beta, ton, toff, stes(6), rtes(6), tmp
 !-----------------------------------------------
       CALL second0(ton)
@@ -120,14 +120,13 @@
       END IF
 
       IF (lmagen) THEN
-         ALLOCATE (bsq_loc(ntheta,nzeta,nsmin:nsmax), stat=istat)
-         bsq_loc = bsupsijh*bsubsijh  + bsupuijh*bsubuijh               &
-                 + bsupvijh*bsubvijh
-         IF (n1 .EQ. 1) bsq_loc(:,:,1) = 0
-         CALL ASSERT(n1.EQ.1 .OR. ALL(bsq_loc(:,:,n1:n2) .GT. zero),    &
+         bsq(:,:,nsmin:nsmax) = bsupsijh*bsubsijh + bsupuijh*bsubuijh   &
+                              + bsupvijh*bsubvijh
+         IF (n1 .EQ. 1) bsq(:,:,1) = 0
+         CALL ASSERT(n1.EQ.1 .OR. ALL(bsq(:,:,n1:n2) .GT. zero),        &
                      'BSQ <= 0 in cv_currents_par!')
 
-         wb = SUM(bsq_loc(:,:,n1:n2)*jacobh(:,:,n1:n2)*wint(:,:,n1:n2))
+         wb = SUM(bsq(:,:,n1:n2)*jacobh(:,:,n1:n2)*wint(:,:,n1:n2))
          wb0 = signjac*(twopi*pi*hs_i)*wb
          
          IF (PARSOLVER) THEN
@@ -138,7 +137,6 @@
          ELSE
             wb = wb0
          END IF
-         DEALLOCATE (bsq_loc)
       END IF
 
 !
@@ -234,11 +232,12 @@
 !>      full radial grid
       SUBROUTINE CURLB (ksupsmnf, ksupumnf, ksupvmnf, jsju_ratio,       &
                         ipar, lcurr)
+      USE utilities, ONLY: curl_htof
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER, INTENT(IN)  :: ipar
-      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE   ::                      &
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)  ::                       &
            ksupsmnf, ksupumnf, ksupvmnf
       REAL(dp)             :: jsju_ratio
       LOGICAL, INTENT(IN)  :: lcurr
@@ -270,73 +269,12 @@
       CALL tomnsp_par(bsubsijh, bsubsmnh, fours)                          ! Compute BSUBXMNH    
       CALL tomnsp_par(bsubuijh, bsubumnh, fouru)
       CALL tomnsp_par(bsubvijh, bsubvmnh, fourv)
-
-      ALLOCATE(bsubsmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                 & ! Compute BSUBXMNF
-               bsubumnf(0:mpol,-ntor:ntor,nsmin:nsmax),                 &
-               bsubvmnf(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)   
-      CALL ASSERT(istat.EQ.0,'Allocation2 failed in CURLB')
- 
-      CALL to_full_mesh(bsubsmnh, bsubsmnf)                       
-      CALL to_full_mesh(bsubumnh, bsubumnf)
-      CALL to_full_mesh(bsubvmnh, bsubvmnf)
-
-!
-!     Compute K^X == sqrt(g)J^X contravariant current components in Fourier space
-!             
-!                   
-      ALLOCATE(db_uds(0:mpol,-ntor:ntor,nsmin:nsmax),                   &
-               db_vds(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
-      CALL ASSERT(istat.EQ.0,'Allocation3 failed in CURLB')
-
-!     Radial gradients of bsubmnu,v on full grid (excluding origin and edge: treat separately)
-      CALL GradientFull(db_uds, bsubumnh)
-      CALL GradientFull(db_vds, bsubvmnh)
-
-!     Approximate end values...(factor of 2 at origin due to 1/2*hs interval)
-!     Forces will be multiplied by 1/2 in get_force_harmonics
-!     NOTE: the bc B^s = 0 at js=ns means there are no contributions from 
-!           these derivative terms there
-      IF (nsmin .EQ. 1) THEN
-         bsubsmnf(m2:,:,1) = 0
-         bsubumnf(:,:,1) = 0;  bsubumnf(m1,:,1) = bsubumnh(m1,:,2)
-!     to satisfy k^s = r12*k^u at s=r12, for m=1, must have b_u = r12*b_s for m=1
-!     this is not completely consistent with the delta-W jogs in CheckForces!
-         IF (.NOT.l_natural) THEN
-            temp = (r12*bsubsmnf(m1,:,1) - bsubumnf(m1,:,1))/2
-            bsubsmnf(m1,:,1) = bsubsmnf(m1,:,1) - temp/r12
-            bsubumnf(m1,:,1) = bsubumnf(m1,:,1) + temp
-         END IF
-
-         db_uds(:,:,1) = 0;  db_uds(m0:m1,:,1) = 2*ohs*bsubumnh(m0:m1,:,2)
-         db_vds(:,:,1) = 0;  db_vds(m1,:,1) = 2*ohs*bsubvmnh(m1,:,2)
-         bsubvmnf(m1+1:,:,1) = 0  
-         CALL ASSERT(ALL(bsubvmnf(m1,:,1).EQ.bsubvmnh(m1,:,2)),         &
-                     'b_vmnf(1) ! b_vmnh(2) in CURLB')
-      END IF
-
-!     NOTE: ksupXmnf(ns) is approximately ksupXmnh(ns) a half-grid point in from edge
-
-      nmin = nsmin
-      IF (lcurr) THEN
-         nmax=MIN(ns,endglobrow+1)
-      ELSE
-         nmax=MIN(ns,endglobrow)
-      END IF
-      DO m = 0, mpol
-         mp = sparity*m
-         DO n = -ntor, ntor
-           np = sparity*n*nfp
-           ksupsmnf(m,n,nmin:nmax) = -mp*bsubvmnf(m,n,nmin:nmax)        &
-                                   +  np*bsubumnf(m,n,nmin:nmax)
-           ksupumnf(m,n,nmin:nmax) =  np*bsubsmnf(m,n,nmin:nmax)        &
-                                   -  db_vds(m,n,nmin:nmax)                     
-           ksupvmnf(m,n,nmin:nmax) = -mp*bsubsmnf(m,n,nmin:nmax)        &
-                                   +  db_uds(m,n,nmin:nmax)
-         ENDDO
-      ENDDO
+      
+      CALL CURL_HtoF(Bsubsmnh, Bsubumnh, Bsubvmnh,                      &
+                     ksupsmnf, ksupumnf, ksupvmnf, ipar, nsmin, nsmax)
 
 !Diagnostics
-      DIAGNO: IF (l_update_state) THEN
+     DIAGNO: IF (l_update_state) THEN
          IF (nsmax .EQ. ns) edge_cur = edge_cur                         & 
                                      + SUM(ksupsmnf(:,:,ns)**2)
 
@@ -366,8 +304,7 @@
 
       END IF DIAGNO
 
-      DEALLOCATE (bsubsmnh, bsubumnh, bsubvmnh,                         &
-                  bsubsmnf, bsubumnf, bsubvmnf, stat=istat)   
+      DEALLOCATE (bsubsmnh, bsubumnh, bsubvmnh, stat=istat)   
       CALL ASSERT(istat.EQ.0,'Deallocation failed in CURLB')
 
       IF (nsmin .EQ. 1) THEN
@@ -386,7 +323,7 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER, INTENT(IN)  :: ipar
-      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE ::                        &
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                        &
            ksupsmnf, ksupumnf, ksupvmnf,                                &
            ksupsijf, ksupuijf, ksupvijf
 !-----------------------------------------------

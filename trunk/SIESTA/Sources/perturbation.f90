@@ -62,6 +62,7 @@
       HelPert       = 0;  HelPertA = 0
       lresistive    = .TRUE.
       lcolscale     = .TRUE.
+      l_vessel      = .FALSE.
       mupar_test    = 0
       nprecon       = 0                 !set > 0 to skip diagonal preconditioner
 !

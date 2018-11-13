@@ -7,7 +7,7 @@ add_subdirectory (Sources)
 # Define an executable and link all libraries.
 add_executable (xv3fit ${v3fit_sources})
 add_dependencies (xv3fit vmec siesta)
-target_link_libraries (xv3fit vmec siesta stell)
+target_link_libraries (xv3fit vmec siesta bmw stell)
 set_target_properties (xv3fit PROPERTIES Fortran_MODULE_DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}/xv3fit)
 
 if (MPI_Fortran_FOUND)

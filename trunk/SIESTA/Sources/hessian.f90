@@ -20,7 +20,7 @@
       USE blocktridiagonalsolver_s, ONLY: ApplyParallelScaling,         &
         ForwardSolve, SetMatrixRHS, BackwardSolve, GetSolutionVector,   &
         CheckSymmetry, Dmin_TRI, MAXEIGEN_TRI, FindMinMax_Tri,          &
-        CheckConditionNumber, PadSides
+        CheckConditionNumber
       USE mpi_inc
 #else
       USE nscalingtools, ONLY: PARSOLVER, PARFUNCTISL, SKSDBG, TOFU,    &
@@ -376,9 +376,11 @@
 
             MESH_3PT_LG: DO mesh = 1, 3
 
+              IF (.NOT.(m.EQ.0 .AND. n.LT.0)) THEN
               DO js = mystart(mesh), myend(mesh), 3
                  xc(icol,js) = eps
               END DO
+			  END IF
 
               INHESSIAN=.TRUE.
               CALL second0(skston)
@@ -574,9 +576,11 @@
 
                   MESH_3PT: DO mesh = 1, 3
 
+                  IF (.NOT.(m.EQ.0 .AND. n.LT.0)) THEN
                   DO js = jstart(mesh), ns, 3
                      xc(icol,js) = eps
                   END DO
+				  END IF
 
                   INHESSIAN=.TRUE.
                   CALL second0(skston)
@@ -870,9 +874,11 @@
 #endif
                   MESH_3PT: DO mesh = 1, 3
 
+                  IF (.NOT.(m.EQ.0 .AND. n.LT.0)) THEN
                   DO js = jstart(mesh), ns, 3
                      xc(icol,js) = eps
                   END DO
+				  END IF
 
                   INHESSIAN=.TRUE.
                   CALL second0(skston)

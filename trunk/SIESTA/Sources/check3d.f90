@@ -383,7 +383,9 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      REAL(dp) :: xc(ndims*(1+mpol)*(2*ntor+1),ns), gc(ndims*(1+mpol)*(2*ntor+1),ns), eps
+      REAL(dp), DIMENSION(ndims*(1+mpol)*(2*ntor+1),ns) ::              &
+	            xc, gc
+	  REAL(dp), INTENT(IN) :: eps
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
 !-----------------------------------------------
