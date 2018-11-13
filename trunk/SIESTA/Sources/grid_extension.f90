@@ -661,14 +661,14 @@ CONTAINS
   SUBROUTINE read_vessel_file(wout_file, istat)
     USE island_params, ns=>ns_i, mpol=>mpol_i, ntor=>ntor_i, &
       ntheta=>nu_i, nzeta=>nv_i, mnmax=>mnmax_i
+    USE siesta_namelist, ONLY: vessel_file
     IMPLICIT NONE
 
     ! Dummy variables
     CHARACTER(*), INTENT(IN) :: wout_file
     INTEGER, INTENT(OUT) :: istat
 
-    ! Local variables 
-    CHARACTER(LEN=200) :: vessel_file
+    ! Local variables
     CHARACTER(LEN=400) :: cprefix
     INTEGER :: j, l1, m, n, mn, mnmax_v
     LOGICAL :: lex
@@ -680,23 +680,11 @@ CONTAINS
     WRITE(cprefix,*) wout_file
     cprefix=TRIM(ADJUSTL(cprefix))
 
-    DO istat = 0, 1
-
-      IF (istat .EQ. 0) THEN
-        vessel_file= "vessel_mesh_" // cprefix(6:l1-3) //".dat"
-      ELSE
-        vessel_file= "vessel_raw_" // cprefix(6:l1-3) //".dat"
-      END IF
-
-      INQUIRE(file=vessel_file, exist=lex)
-      IF (lex) THEN
-        EXIT
-      ELSE
+    INQUIRE(file=vessel_file, exist=lex)
+    IF (.not.lex) THEN
 !        PRINT *, 'Message from line ', __LINE__,' of ', __FILE__
-        STOP "Vessel file not found."
-      END IF
-
-    END DO
+      STOP "Vessel file not found."
+    END IF
 
     IF (lex) THEN
       istat = 0

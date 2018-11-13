@@ -76,6 +76,8 @@
 !>  @table_section{siesta_file_name_sec, File Names}
 !>      @item{wout_file,   Filename of the VMEC woutfile.}
 !>      @item{restart_ext, Name of the restart file extension.}
+!>      @item{mgrid_file,  Filename of the MGRID file.}
+!>      @item{vessel_file, Filename of the extended surfaces.}
 !>  @end_table
 !>
 !>  @table_section{siesta_test_sec, Test Controls}
@@ -83,7 +85,6 @@
 !>      @item{mupar_test,    }
 !>  @end_table
 !>
-!>  @item{
 !>  @section siesta_namelist_prog_ref_sec Programmers Reference
 !>  Reference material for the coding to implement this namelist is found in the
 !>  @ref siesta_namelist module.
@@ -189,6 +190,10 @@
       CHARACTER(LEN=siesta_namelist_name_length) :: wout_file = ''
 !>  Name of the restart file extension.
       CHARACTER(LEN=siesta_namelist_name_length) :: restart_ext = ''
+!>  Filename of the VMEC woutfile.
+      CHARACTER(LEN=siesta_namelist_name_length) :: mgrid_file = ''
+!>  Name of the restart file extension.
+      CHARACTER(LEN=siesta_namelist_name_length) :: vessel_file = ''
 
 ! Deprecated Parameters
 !>  @deprecated
@@ -232,7 +237,7 @@
 !  Output grid sizes
         nphis, nrs, nzs, nvs, nus, nss,                                 &
 !  File names
-        wout_file, restart_ext,                                         &
+        wout_file, restart_ext, mgrid_file, vessel_file,                &
 !  Test controls
         hesspass_test, mupar_test,                                      &
 !  Deprecated Parameters

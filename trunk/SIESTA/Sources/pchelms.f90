@@ -338,6 +338,7 @@
       SUBROUTINE INIT_A (A_s, A_u, A_v, lmn, ipar)
       USE metrics, ONLY: phipf_i, chipf_i
       USE bmw_run, ONLY: bmw_exec
+      USE siesta_namelist, ONLY: wout_file, mgrid_file
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -392,8 +393,8 @@
 #endif
 
         dphi=(2*pi)/(nfp*nzeta)
-        CALL bmw_exec ("mgrid_w7x.nc","wout_w7x_mark.nc",r1_i,z1_i,dphi,&
-                        ns,A_r,A_p,A_z)
+        CALL bmw_exec(mgrid_file, wout_file, r1_i, z1_i, dphi, ns,             &
+                      A_r, A_p, A_z)
 
 !        ns=nsp !XXX: SKS - REMEMEBR TO DELETE THIS LINE
 
