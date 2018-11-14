@@ -62,6 +62,7 @@ CONTAINS
     USE v3_utilities, ONLY: assert
     USE vmec_info, ONLY: rmnc_i, rmns_i, zmns_i, zmnc_i
     USE descriptor_mod, ONLY: SIESTA_COMM
+    USE siesta_namelist, ONLY: nsin_ext
 
     IMPLICIT NONE
 
@@ -204,16 +205,9 @@ CONTAINS
     zv_full(:,:,1:ns) = zv_i; zv_full(:,:,ns+1:nse) = zv_ext
 
 !    CALL PLOTRZ (device, chfit)
-
-!TEST
-    PRINT *, nse - ns
-    nse = ns + 75
-!    IF (iam .EQ. 0) THEN
-!       PRINT *
-!       PRINT *,'TEST GRID-EXTENSION = 20 POINTS.'
-!       PRINT *
-!    END IF
-!END TEST
+    nse = MIN(ns + nsin_ext, nse)
+    WRITE (*,1000) nse
+1000 FORMAT('\Using ',i4,' Surfaces\')
 
     !REASSIGN THE NEW VALUE OF NS
     nsp = ns
