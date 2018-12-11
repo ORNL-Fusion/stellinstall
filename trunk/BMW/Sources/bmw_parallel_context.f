@@ -84,10 +84,10 @@
 
 !  local variables
 #if defined (MPI_OPT)
-      INTEGER                                   :: isinit
-      INTEGER                                   :: status
+      LOGICAL                                    :: isinit
+      INTEGER                                    :: status
 #endif
-      REAL (rprec)                              :: start_time
+      REAL (rprec)                               :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -96,8 +96,7 @@
 
 #if defined (MPI_OPT)
       CALL MPI_INITIALIZED(isinit, status)
-
-      IF (isinit .ne. 1) THEN
+      IF (.not.isinit) THEN
          CALL MPI_INIT(status)
       END IF
 
