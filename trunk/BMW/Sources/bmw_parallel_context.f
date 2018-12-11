@@ -84,7 +84,7 @@
 
 !  local variables
 #if defined (MPI_OPT)
-      INTEGER                                   :: isinit
+      LOGICAL                                   :: isinit
       INTEGER                                   :: status
 #endif
       REAL (rprec)                              :: start_time
@@ -97,7 +97,7 @@
 #if defined (MPI_OPT)
       CALL MPI_INITIALIZED(isinit, status)
 
-      IF (isinit .ne. 1) THEN
+      IF (.not.isinit) THEN
          CALL MPI_INIT(status)
       END IF
 
