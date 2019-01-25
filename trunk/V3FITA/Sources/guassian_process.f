@@ -379,7 +379,8 @@
 !
 !    this%flags .and. a_model%state_flags
 !
-!  will value to true if the coresponding flag is set in the model state flags.
+!  will evaluate to true if the coresponding flag is set in the model state
+!  flags.
       IF (BTEST(a_model%state_flags, model_state_vmec_flag)   .or.             &
      &    BTEST(a_model%state_flags, model_state_siesta_flag) .or.             &
      &    BTEST(a_model%state_flags, model_state_shift_flag)  .or.             &

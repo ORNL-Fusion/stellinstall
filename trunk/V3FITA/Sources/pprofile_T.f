@@ -868,9 +868,13 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Evaluate the one dimensional squared exponential kernel
+!>  @brief Evaluate the one dimensional squared exponential kernel.
+!>
+!>  The squared exponential kernel is defined as
 !>
 !>    b(0)^2*exp(-(x1 - x2)^2/2*b(1)^2)                                      (1)
+!>
+!>  where b(0) and b(1) are the hyper parameters.
 !>
 !>  @param[in] this A @ref pprofile_class instance.
 !>  @param[in] p1   First position.
