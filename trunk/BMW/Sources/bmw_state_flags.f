@@ -28,10 +28,12 @@
 !>  Bit position for force override of errors flag.
       INTEGER, PARAMETER :: bmw_state_flags_force = 0
 !>  Bit position for the use curl ju response flag.
-      INTEGER, PARAMETER :: bmw_state_flags_ju = 0
+      INTEGER, PARAMETER :: bmw_state_flags_ju = 1
 !>  Bit position for the use curl jv response flag.
-      INTEGER, PARAMETER :: bmw_state_flags_jv = 0
+      INTEGER, PARAMETER :: bmw_state_flags_jv = 2
 !>  Bit position for the use siesta instead of vmec.
-      INTEGER, PARAMETER :: bmw_state_flags_siesta = 0
+      INTEGER, PARAMETER :: bmw_state_flags_siesta = 3
+!>  Bit position for mgrid specified number of phi planes.
+      INTEGER, PARAMETER :: bmw_state_flags_mgrid = 4
 
       END MODULE
