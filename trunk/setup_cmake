@@ -312,6 +312,35 @@ then
 	      -DTRAVIS_LIB_PATH=/Users/erichowell/lib/TRAVIS_161013/TRAVIS-src/lib \
 	      -DMCONF_LIB_PATH=/Users/erichowell/lib/TRAVIS_161013/TRAVIS-src/mag_conf/lib
 
+elif [[ $MACHINE_ID == cobra* ]] 
+then
+	# Config for IPP Cobra cluster
+	# Load the following modules prior to running setup_cmake:
+    module load cmake
+    module load hdf5-mpi
+    module load netcdf-mpi
+    module load doxygen
+    module list
+	# Currently Loaded Modulefiles:
+	#   1) intel/18.0         3) mkl/2018.2         5) hdf5-mpi/1.8.20    7) doxygen/1.8
+	#   2) impi/2018.2        4) cmake/3.10         6) netcdf-mpi/4.4.1
+	
+	# testing: old: -DCMAKE_CXX_COMPILER=mpicxx
+        cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE \
+              -DCMAKE_Fortran_COMPILER=mpiifort     \
+              -DCMAKE_C_COMPILER=mpiicc             \
+              -DCMAKE_CXX_COMPILER=mpiicpc           \
+              -DLAPACK_LIBRARIES="${MKLROOT}/lib/intel64/libmkl_blas95_lp64.a;${MKLROOT}/lib/intel64/libmkl_lapack95_lp64.a;${MKLROOT}/lib/intel64/libmkl_scalapack_lp64.a;-Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a;${MKLROOT}/lib/intel64/libmkl_intel_thread.a;${MKLROOT}/lib/intel64/libmkl_core.a;${MKLROOT}/lib/intel64/libmkl_blacs_intelmpi_lp64.a;-Wl,--end-group" \
+              -DBLAS_LIBRARIES="${MKLROOT}/lib/intel64/libmkl_blas95_lp64.a;-Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a;${MKLROOT}/lib/intel64/libmkl_intel_thread.a;${MKLROOT}/lib/intel64/libmkl_core.a;-Wl,--end-group"  \
+              -DNETCDF_INC_PATH="${NETCDF_HOME}/include/" \
+              -DNETCDF_LIB_PATH="${NETCDF_HOME}/lib"      \
+              -DSCALAPACK_LIB="${MKLROOT}/lib/intel64/libmkl_scalapack_lp64.a;${MKLROOT}/lib/intel64/libmkl_intel_lp64.a;${MKLROOT}/lib/intel64/libmkl_intel_thread.a;${MKLROOT}/lib/intel64/libmkl_core.a;${MKLROOT}/lib/intel64/libmkl_blacs_intelmpi_lp64.a" \
+              -DEXTRA_FLAGS="-liomp5 -lpthread -qopenmp -I${MKLROOT}/include/intel64/lp64 -I${MKLROOT}/include -DNEW_CODE -assume byterecl -convert big_endian -g -traceback -O3" \
+              -DUSE_PARVMEC=ON       \
+              -DUSE_FAST_COPY=ON      \
+	      .
+              #-DEXTRA_FLAGS="-liomp5 -lpthread -qopenmp -I${MKLROOT}/include/intel64/lp64 -I${MKLROOT}/include -DNEW_CODE -assume byterecl -convert big_endian -g -traceback -O3" \
+
 elif [[ $MACHINE_ID == draco* ]]
 then
 	# Config for IPP Draco cluster
