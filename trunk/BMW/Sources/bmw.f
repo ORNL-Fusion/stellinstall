@@ -48,11 +48,15 @@
       TYPE (bmw_commandline_parser_class), POINTER ::                          &
      &   cl_parser => null()
       INTEGER                                      :: flags
+      INTEGER                                      :: num_p
       INTEGER                                      :: io_unit
       INTEGER                                      :: status
       REAL (rprec)                                 :: start_time
 
 !  Start of executable code
+#if defined (MPI_OPT)
+      CALL MPI_INIT(status)
+#endif
       CALL profiler_construct
 
       start_time = profiler_get_start_time()
@@ -103,6 +107,9 @@
          flags = IBCLR(flags, bmw_state_flags_jv)
       END IF
 
+      flags = IBSET(flags, bmw_state_flags_mgrid)
+      num_p = 0
+
       io_unit = output_unit
       IF (bmw_commandline_parser_is_flag_set(cl_parser, '-logf')) THEN
          CALL safe_open(io_unit, status,                                       &
@@ -121,7 +128,7 @@
      &   bmw_commandline_parser_get_string(cl_parser, '-mgridf'),              &
      &   bmw_commandline_parser_get_string(cl_parser, '-woutf'),               &
      &   bmw_commandline_parser_get_string(cl_parser, '-siestaf'),             &
-     &   flags, parallel, io_unit)
+     &   flags, num_p, parallel, io_unit)
       CALL bmw_context_set_up_grid(context,                                    &
      &   bmw_commandline_parser_get_integer(cl_parser, '-p_start', -1),        &
      &   bmw_commandline_parser_get_integer(cl_parser, '-p_end', -1),          &
