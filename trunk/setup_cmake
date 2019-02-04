@@ -312,70 +312,39 @@ then
 	      -DTRAVIS_LIB_PATH=/Users/erichowell/lib/TRAVIS_161013/TRAVIS-src/lib \
 	      -DMCONF_LIB_PATH=/Users/erichowell/lib/TRAVIS_161013/TRAVIS-src/mag_conf/lib
 
-elif [ $MACHINE_ID == "draco01" ] || \
-     [ $MACHINE_ID == "draco02" ] || \
-     [ $MACHINE_ID == "draco03" ] || \
-     [ $MACHINE_ID == "draco04" ]
+elif [[ $MACHINE_ID == draco* ]]
 then
 	# Config for IPP Draco cluster
 	# Load the following modules prior to running setup_cmake:
-	module purge
-	module load cmake
-	module load gcc
-	module load impi
-	module load mkl
-	module load hdf5-mpi/gcc
-	module load netcdf-mpi/gcc
-	module list
-	#Pre- June 27, 2017
-	#Currently Loaded Modulefiles:
- 	# 1) cmake/3.5    3) impi/5.1.3   5) hdf5-mpi/gcc/1.8.16
-	# 2) gcc/5.4      4) mkl/11.3     6) netcdf-mpi/gcc/4.4.0
-	#Post- June 27, 2017
-	#Currently Loaded Modulefiles:
-	# 1) cmake/3.7    3) impi/2017.3  5) hdf5-mpi/gcc/1.8.18
-	# 2) gcc/6.3      4) mkl/2017     6) netcdf-mpi/gcc/4.4.1.1
+        module load cmake
+        module load hdf5-mpi
+        module load netcdf-mpi
+        module load doxygen
+        module list
+	# module purge
+	# module load cmake
+	# module load gcc
+	# module load impi
+	# module load mkl
+	# module load hdf5-mpi/gcc
+	# module load netcdf-mpi/gcc
+	# module list
+        # !  Failed to find the required netcdf libraries.  These must be found by
+        # !  setting the NETCDF_INC_PATH and NETCDF_LIB_PATH variables.
 
-	cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE       \
-	      -DCMAKE_Fortran_COMPILER=gfortran           \
-	      -DLAPACK_LIBRARIES="${MKLROOT}/lib/intel64/libmkl_blas95_lp64.a;${MKLROOT}/lib/intel64/libmkl_lapack95_lp64.a;${MKLROOT}/lib/intel64/libmkl_scalapack_lp64.a;-Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_gf_lp64.a;${MKLROOT}/lib/intel64/libmkl_gnu_thread.a;${MKLROOT}/lib/intel64/libmkl_core.a;${MKLROOT}/lib/intel64/libmkl_blacs_intelmpi_lp64.a;-Wl,--end-group" \
-	      -DBLAS_LIBRARIES="${MKLROOT}/lib/intel64/libmkl_blas95_lp64.a;-Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_gf_lp64.a;${MKLROOT}/lib/intel64/libmkl_gnu_thread.a;${MKLROOT}/lib/intel64/libmkl_core.a;${MKLROOT}/lib/intel64/libmkl_blacs_intelmpi_lp64.a;-Wl,--end-group"  \
-	      -DNETCDF_INC_PATH="${NETCDF_HOME}/include/" \
-	      -DNETCDF_LIB_PATH="${NETCDF_HOME}/lib"      \
-	      -DSCALAPACK_LIB="${MKLROOT}/lib/intel64/libmkl_scalapack_lp64.a;${MKLROOT}/lib/intel64/libmkl_gf_lp64.a;${MKLROOT}/lib/intel64/libmkl_gnu_thread.a;${MKLROOT}/lib/intel64/libmkl_core.a;${MKLROOT}/lib/intel64/libmkl_blacs_intelmpi_lp64.a" \
-	      -DEXTRA_FLAGS="-lgomp -lpthread -lm -ldl -I${MKLROOT}/include/intel64/lp64 -m64 -I${MKLROOT}/include -DNEW_CODE -O3" \
-	      -DUSE_PARVMEC=ON                            \
-	      -DUSE_FAST_COPY=ON
-
-elif [ $MACHINE_ID == "hydra01" ] || \
-     [ $MACHINE_ID == "hydra02" ] || \
-     [ $MACHINE_ID == "hydra03" ] || \
-     [ $MACHINE_ID == "hydra04" ]
-then
-	# Config for IPP hydra cluster
-	# Load the following modules prior to running setup_cmake:
-	module purge
-	module load cmake
-	module load gcc
-	module load mpi.intel
-	module load mkl
-	module load hdf5-mpi/gcc
-	module load netcdf-mpi/gcc
-	module list
-	#Currently Loaded Modulefiles:
-	# on Hydra
-	# 1) cmake/3.5    3) mpi.intel/5.1.3        5) hdf5-mpi/gcc/1.8.16
-	# 2) gcc/5.4      4) mkl/11.3               6) netcdf-mpi/gcc/4.4.1
-
-	cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE       \
-	      -DCMAKE_Fortran_COMPILER=gfortran           \
-	      -DUSE_PARVMEC=ON                            \
-	      -DLAPACK_LIBRARIES="${MKLROOT}/lib/intel64/libmkl_blas95_lp64.a;${MKLROOT}/lib/intel64/libmkl_lapack95_lp64.a;${MKLROOT}/lib/intel64/libmkl_scalapack_lp64.a;-Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_gf_lp64.a;${MKLROOT}/lib/intel64/libmkl_gnu_thread.a;${MKLROOT}/lib/intel64/libmkl_core.a;${MKLROOT}/lib/intel64/libmkl_blacs_intelmpi_lp64.a;-Wl,--end-group" \
-	      -DBLAS_LIBRARIES="${MKLROOT}/lib/intel64/libmkl_blas95_lp64.a;-Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_gf_lp64.a;${MKLROOT}/lib/intel64/libmkl_gnu_thread.a;${MKLROOT}/lib/intel64/libmkl_core.a;${MKLROOT}/lib/intel64/libmkl_blacs_intelmpi_lp64.a;-Wl,--end-group"  \
-	      -DNETCDF_INC_PATH="${NETCDF_HOME}/include/" \
-	      -DNETCDF_LIB_PATH="${NETCDF_HOME}/lib"      \
-	      -DSCALAPACK_LIB="${MKLROOT}/lib/intel64/libmkl_scalapack_lp64.a;${MKLROOT}/lib/intel64/libmkl_gf_lp64.a;${MKLROOT}/lib/intel64/libmkl_gnu_thread.a;${MKLROOT}/lib/intel64/libmkl_core.a;${MKLROOT}/lib/intel64/libmkl_blacs_intelmpi_lp64.a" \
-	      -DEXTRA_FLAGS="-lgomp -lpthread -lm -ldl -I${MKLROOT}/include/intel64/lp64 -m64 -I${MKLROOT}/include -DNEW_CODE -O3"
+        cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE \
+              -DCMAKE_Fortran_COMPILER=mpiifort     \
+              -DCMAKE_C_COMPILER=mpiicc             \
+              -DCMAKE_CXX_COMPILER=mpiicpc           \
+              -DLAPACK_LIBRARIES="${MKLROOT}/lib/intel64/libmkl_blas95_lp64.a;${MKLROOT}/lib/intel64/libmkl_lapack95_lp64.a;${MKLROOT}/lib/intel64/libmkl_scalapack_lp64.a;-Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a;${MKLROOT}/lib/intel64/libmkl_intel_thread.a;${MKLROOT}/lib/intel64/libmkl_core.a;${MKLROOT}/lib/intel64/libmkl_blacs_intelmpi_lp64.a;-Wl,--end-group" \
+              -DBLAS_LIBRARIES="${MKLROOT}/lib/intel64/libmkl_blas95_lp64.a;-Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a;${MKLROOT}/lib/intel64/libmkl_intel_thread.a;${MKLROOT}/lib/intel64/libmkl_core.a;-Wl,--end-group"  \
+              -DNETCDF_INC_PATH="${NETCDF_HOME}/include/" \
+              -DNETCDF_LIB_PATH="${NETCDF_HOME}/lib"      \
+              -DSCALAPACK_LIB="${MKLROOT}/lib/intel64/libmkl_scalapack_lp64.a;${MKLROOT}/lib/intel64/libmkl_intel_lp64.a;${MKLROOT}/lib/intel64/libmkl_intel_thread.a;${MKLROOT}/lib/intel64/libmkl_core.a;${MKLROOT}/lib/intel64/libmkl_blacs_intelmpi_lp64.a" \
+              -DEXTRA_FLAGS="-liomp5 -lpthread -qopenmp -I${MKLROOT}/include/intel64/lp64 -I${MKLROOT}/include -DNEW_CODE -assume byterecl -convert big_endian -g -traceback -O3" \
+              -DUSE_PARVMEC=ON       \
+              -DUSE_FAST_COPY=ON   \
+              .
 
 elif [ $MACHINE_ID == "irisa.cluster" ] || \
      [ $MACHINE_ID == "irisb.cluster" ] || \

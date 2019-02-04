@@ -594,7 +594,7 @@
      &                                        + max_gaussprocess
 
 !>  Maximum number of reconstruction parameters.
-      INTEGER, PARAMETER :: v3fit_max_parameters = 100
+      INTEGER, PARAMETER :: v3fit_max_parameters = 1000
 
 !>  Maximum size of the easy specification arrays.
 !>  @see sdo_s_spec_imin

@@ -2550,7 +2550,9 @@
 !     OBSERVATION POINT IS ON A COIL SEGMENT
 !  bsc_mach_eps is machine epsilon parameter
 
-            x1(i) = LOG((1 + x1(i))/MAX(1 - x1(i) ,bsc_mach_eps))
+! Modification suggested by J. Schilling, IPP
+! Original: x1(i) = LOG((1 + x1(i))/MAX(1 - x1(i) ,bsc_mach_eps))
+            x1(i) = LOG(1 + x1(i)) - LOG(1 - x1(i))
 
          END IF
       END DO
