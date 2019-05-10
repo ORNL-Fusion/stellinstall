@@ -43,8 +43,12 @@
 
       CONTAINS 
 
-      SUBROUTINE bmw_exec (mgrid_file_name, wout_file_name,                    &
-     & r_grid, z_grid, dphi, surf_num, A_r, A_p, A_z) 
+      SUBROUTINE bmw_exec(mgrid_file_name, wout_file_name,                     &
+     &                    r_grid, z_grid, dphi, surf_num,                      &
+     &                    A_r, A_p, A_z)
+      USE read_wout_mod, ONLY: nfp_vmec=>nfp
+      USE island_params, ONLY: nfp_i
+
 !  dummy variables
       CHARACTER (len=*), INTENT(in)                :: mgrid_file_name
       CHARACTER (len=*), INTENT(in)                :: wout_file_name
@@ -64,6 +68,7 @@
       INTEGER                                      :: flags
       INTEGER                                      :: num_p
       INTEGER                                      :: status
+      INTEGER                                      :: i
 
 !  Start of executable code
       CALL profiler_construct
@@ -74,7 +79,11 @@
       CALL bmw_parallel_context_set_threads(parallel, -1)
       CALL bmw_parallel_context_report(parallel, output_unit)
 
-      num_p = SIZE(A_r, 2)*2
+!  BMW uses num_p to set the number of grid points in for the primed grid. In
+!  doing so, it mutliplies by the number of field periods in the mgrid file. If
+!  using a user defined number of field periods that is less than the amount in
+!  in mgrid, we need to scale num_p.
+      num_p = SIZE(A_r, 2)*2/(nfp_vmec/nfp_i)
       context => bmw_context_construct(mgrid_file_name,                        &
      &                                 wout_file_name, '', flags,              &
      &                                 num_p, parallel, output_unit)

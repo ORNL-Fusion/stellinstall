@@ -212,7 +212,7 @@
       INTEGER  :: iter, j
       LOGICAL  :: lwrite
 !-----------------------------------------------
-      facmin = 2
+      facmin = 3
       l_init_state = .FALSE.
       l_getfsq = .TRUE.
       

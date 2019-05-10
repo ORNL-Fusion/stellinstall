@@ -343,7 +343,7 @@
 !>  @param[inout] this A @ref siesta_run_class instance.
 !-------------------------------------------------------------------------------
       SUBROUTINE siesta_run_set_vmec(this)
-      USE siesta_namelist, ONLY: nsin, mpolin, ntorin, wout_file
+      USE siesta_namelist, ONLY: nsin, mpolin, ntorin, nfpin, wout_file
       USE metrics, ONLY: init_metric_elements
       USE quantities, ONLY: init_quantities
       USE island_params, ns=>ns_i
@@ -361,7 +361,7 @@
 !  Start of executable code
       CALL second0(ton)
       ! SKS: This calls grid_extender
-      CALL init_metric_elements(nsin, mpolin, ntorin, wout_file)
+      CALL init_metric_elements(nsin, mpolin, ntorin, nfpin, wout_file)
       CALL second0(toff)
 #if defined(SKS)
       init_metric_elements_time = toff - ton

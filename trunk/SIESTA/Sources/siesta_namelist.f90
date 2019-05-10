@@ -64,6 +64,9 @@
 !>     @item{nsin_ext, Size of extended radial grid.}
 !>     @item{mpolin,   Number of poloidal modes.}
 !>     @item{ntorin,   Number of toroidal modes.}
+!>     @item{nfpin,    Number of field periods to use. Setting this to a
+!                      anything less than one will use the value form the wout
+!                      file.}
 !>     @table_subsection{siesta_grid_size_out_sec, Output Grid Sizes}
 !>        @item{nphis, Number of cylindrical phi planes.}
 !>        @item{nrs,   Number of radial grid points.}
@@ -113,15 +116,16 @@
       USE stel_kinds
 
       IMPLICIT NONE
+
 !*******************************************************************************
-!  v3fit input module parameters
+!  siesta_namelist input module parameters
 !*******************************************************************************
 !>  Input string length.
       INTEGER, PARAMETER ::  siesta_namelist_name_length = 256
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
-!  1) v3fit_namelist_class
+!  1) siesta_namelist_class
 !
 !*******************************************************************************
 !  Control Flags
@@ -171,6 +175,10 @@
       INTEGER :: mpolin = 12
 !>  Number of toroidal modes.
       INTEGER :: ntorin = 3
+!>  Number of field periods to use. -1 means set this to the value in the wout
+!>  file
+      INTEGER :: nfpin = 0
+
 !  Output Grid Sizes
 !>  Number of cylindrical phi planes.
       INTEGER :: nphis = 2
@@ -233,7 +241,7 @@
 !  Island parameters Island Parameters
         mres, HelPert, HelPertA,                                        &
 !  Input grid sizes
-        nsin, nsin_ext, mpolin, ntorin,                                 &
+        nsin, nsin_ext, mpolin, ntorin, nfpin,                          &
 !  Output grid sizes
         nphis, nrs, nzs, nvs, nus, nss,                                 &
 !  File names

@@ -41,6 +41,8 @@
       CHARACTER (len=*), PARAMETER :: vn_mpolin = 'mpol'
 !>  Name for the restart file number of toroidal modes.
       CHARACTER (len=*), PARAMETER :: vn_ntorin = 'ntor'
+!>  Name for the restart file number of field periods.
+      CHARACTER (len=*), PARAMETER :: vn_nfpin = 'nfp'
 !>  Name for the restart file number of wout file modes.
       CHARACTER (len=*), PARAMETER :: vn_wout = 'wout_file'
 !>  Name for the restart file number of state flags modes.
@@ -139,7 +141,8 @@
 !>  @param[inout] wout_file         Name of the wout file.
 !>  @returns Error status of the read.
 !-------------------------------------------------------------------------------
-      FUNCTION restart_read(restart_file_name, wout_file, mpolin, ntorin, nsin)
+      FUNCTION restart_read(restart_file_name, wout_file, mpolin, ntorin,      &
+     &                      nfpin, nsin)
       USE quantities, ONLY: jbsupsmnsh, jbsupsmnch,                     &
                             jbsupumnsh, jbsupumnch,                     &
                             jbsupvmnsh, jbsupvmnch,                     &
@@ -150,16 +153,19 @@
 !  Declare Arguments
       INTEGER                                     :: restart_read
       CHARACTER (len=*), INTENT(in)               :: restart_file_name
+      CHARACTER (len=*), INTENT(inout)            :: wout_file
       INTEGER, INTENT(in)                         :: mpolin
       INTEGER, INTENT(in)                         :: ntorin
+      INTEGER, INTENT(in)                         :: nfpin
       INTEGER, INTENT(in)                         :: nsin
-      CHARACTER (len=*), INTENT(inout)            :: wout_file
+
 !  local variables
       INTEGER                                     :: flags
       INTEGER                                     :: ncid
       INTEGER                                     :: ns
       INTEGER                                     :: mpol
       INTEGER                                     :: ntor
+      INTEGER                                     :: nfp
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE    :: tempmn_r
       INTEGER                                     :: nmin
 
@@ -212,6 +218,10 @@
       CALL cdf_read(ncid, vn_nsin, ns)
       CALL cdf_read(ncid, vn_mpolin, mpol)
       CALL cdf_read(ncid, vn_ntorin, ntor)
+      CALL cdf_read(ncid, vn_nfpin, nfp)
+
+      CALL assert(nfp .eq. nfpin, 'Restarting cannot change the number of' //  &
+                                  ' of field periods')
 
       nmin = MIN(ntor, ntorin)
 
@@ -383,7 +393,7 @@
                             jpmnsh,     jpmnch,                                &
                             b_factor,   p_factor, jacobh
       USE fourier
-      USE island_params, ONLY: ohs => ohs_i
+      USE island_params, ONLY: nfp => nfp_i
       USE shared_data, ONLY: r1_i, z1_i
 
       IMPLICIT NONE
@@ -454,6 +464,7 @@
       CALL cdf_define(ncid, vn_nsin, ns)
       CALL cdf_define(ncid, vn_mpolin, mpol)
       CALL cdf_define(ncid, vn_ntorin, ntor)
+      CALL cdf_define(ncid, vn_nfpin, nfp)
       CALL cdf_define(ncid, vn_wout, wout_file)
 
       CALL cdf_define(ncid, vn_jbsupss, jbsupsmnsh, dimname=restart_dims)
@@ -509,6 +520,7 @@
       CALL cdf_write(ncid, vn_nsin, ns)
       CALL cdf_write(ncid, vn_mpolin, mpol)
       CALL cdf_write(ncid, vn_ntorin, ntor)
+      CALL cdf_write(ncid, vn_nfpin, nfp)
       CALL cdf_write(ncid, vn_wout, wout_file)
 
       CALL cdf_write(ncid, vn_jbsupss, jbsupsmnsh)
@@ -814,9 +826,9 @@
       END FUNCTION restart_write_txt
 
 !-------------------------------------------------------------------------------
-!>  @brief Reads the restart file.
+!>  @brief Interperate quantites from the restart file.
 !>
-!>  Reads the restart information and initalizes SIESTA quantities.
+!>  Restart files can change the number of surfaces and modes.
 !>
 !>  @param[in]  aold     Value from the restart file.
 !>  @param[out] anew     New interpolated value.
@@ -834,14 +846,15 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      INTEGER, INTENT(in)      :: ns_old
-      INTEGER, INTENT(in)      :: ns_new
-      INTEGER, INTENT(in)      :: mpol_old
-      INTEGER, INTENT(in)      :: mpol_new
-      INTEGER, INTENT(in)      :: ntor_old
-      INTEGER, INTENT(in)      :: ntor_new
       REAL(dp), INTENT(in)  :: aold(0:mpol_old,-ntor_old:ntor_old,ns_old)
       REAL(dp), INTENT(out) :: anew(0:mpol_new,-ntor_new:ntor_new,ns_new)
+      INTEGER, INTENT(in)   :: ns_old
+      INTEGER, INTENT(in)   :: ns_new
+      INTEGER, INTENT(in)   :: mpol_old
+      INTEGER, INTENT(in)   :: mpol_new
+      INTEGER, INTENT(in)   :: ntor_old
+      INTEGER, INTENT(in)   :: ntor_new
+
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------

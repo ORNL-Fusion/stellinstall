@@ -361,7 +361,7 @@
         USE metrics, ONLY: guu, guv, gvv
 
         INTEGER, INTENT(IN)   :: nsmin, nsmax
-        REAL(dp), INTENT(OUT) :: lmns(mnmax,ns), lmnc(mnmax,ns)                        
+        REAL(dp), INTENT(OUT) :: lmns(mnmax,ns), lmnc(mnmax,ns)
         REAL(dp), INTENT(IN)  :: phiph(ns), chiph(ns), orthonorm(mnmax),&
                                  jacobh(nuv, ns)
         INTEGER               :: js, m, n, mp, np, mn, mnp, lk, lu, lv, &
@@ -539,13 +539,11 @@
           djbsupsmnsh, djbsupumnch, djbsupvmnch,                        &
           ksupsmnsf, ksupumncf, ksupvmncf, pwr_spec_s, pwr_spec_a,      &
           stat=istat)
-        IF(ALLOCATED(lmns_i)) DEALLOCATE(lmns_i)
 
         IF (lasym) THEN
         DEALLOCATE(jpmnsh, jbsupsmnch, jbsupumnsh, jbsupvmnsh, djpmnsh, &
           djbsupsmnch, djbsupumnsh, djbsupvmnsh,                        &
           ksupsmncf, ksupumnsf, ksupvmnsf, stat=istat)
-        IF(ALLOCATED(lmnc_i)) DEALLOCATE(lmnc_i)
         END IF
 
         DEALLOCATE(jacobh, jacobf, jvsupsijf, jvsupuijf, jvsupvijf,     &

@@ -57,10 +57,11 @@ MODULE grid_extension
 CONTAINS
 
   SUBROUTINE grid_extender(wout_file, itype, istat)
-    USE fourier, ONLY: toijsp, f_cos, f_sin,             &
+    USE fourier, ONLY: toijsp, f_cos, f_sin,                            &
       f_none, f_sum, f_du, f_dv, tomnsp_par
     USE v3_utilities, ONLY: assert
-    USE vmec_info, ONLY: rmnc_i, rmns_i, zmns_i, zmnc_i
+    USE vmec_info, ONLY: rmnc_i, rmns_i, zmns_i, zmnc_i,                &
+                         jcurrumnc, jcurrvmnc, jcurrumns, jcurrvmns
     USE descriptor_mod, ONLY: SIESTA_COMM
     USE siesta_namelist, ONLY: nsin_ext
 
@@ -147,9 +148,9 @@ CONTAINS
 !      s_edge, vp1/(2*vol0), delv/vol1
 
     ALLOCATE(r_ext (ntheta,nzeta,2:nsv), z_ext (ntheta,nzeta,2:nsv),    &
-      ru_ext(ntheta,nzeta,2:nsv), zu_ext(ntheta,nzeta,2:nsv),    &
-      rv_ext(ntheta,nzeta,2:nsv), zv_ext(ntheta,nzeta,2:nsv),    &
-      stat=istat)
+             ru_ext(ntheta,nzeta,2:nsv), zu_ext(ntheta,nzeta,2:nsv),    &
+             rv_ext(ntheta,nzeta,2:nsv), zv_ext(ntheta,nzeta,2:nsv),    &
+             stat=istat)
 
     DO j = 2, nsv
 
@@ -250,7 +251,42 @@ CONTAINS
           rmnc_i(:,:,js) = rmnc_i(:,:,js)/orthonorm(0:mpol,-ntor:ntor)
           zmns_i(:,:,js) = zmns_i(:,:,js)/orthonorm(0:mpol,-ntor:ntor)
        END DO
-      
+
+! PUT PROFILES ONTO EXTENDED MESH
+       tmp=0
+       tmp(:,:,1:nsp)=jcurrumnc
+       DEALLOCATE(jcurrumnc)
+       ALLOCATE(jcurrumnc(0:mpol,-ntor:ntor,ns))
+       jcurrumnc=tmp
+
+       tmp=0
+       tmp(:,:,1:nsp)=jcurrvmnc
+       DEALLOCATE(jcurrvmnc)
+       ALLOCATE(jcurrvmnc(0:mpol,-ntor:ntor,ns))
+       jcurrvmnc=tmp
+
+! DO THE SAME FOR THE phipf_i, chipf_i AND presf_i
+! phipf, chipf will be computed in PCHELMS in the vacuum region
+       ALLOCATE(tmp1(ns))
+       tmp1=0
+       tmp1(1:nsp)=phipf_i
+       DEALLOCATE(phipf_i)
+       ALLOCATE(phipf_i(ns))
+       phipf_i=tmp1
+
+       tmp1=0
+       tmp1(1:nsp)=chipf_i
+       DEALLOCATE(chipf_i)
+       ALLOCATE(chipf_i(ns))
+       chipf_i=tmp1
+
+       tmp1(1:nsp)=presf_i
+       tmp1(nsp+1:) = presf_i(nsp)
+       DEALLOCATE(presf_i)
+       ALLOCATE(presf_i(ns))
+       presf_i=tmp1
+       DEALLOCATE(tmp1)
+
        IF (lasym) THEN
           tmp(:,:,1:nsp) = rmns_i; tmp2(:,:,1:nsp) = zmnc_i
           DEALLOCATE(rmns_i, zmnc_i)
@@ -263,47 +299,23 @@ CONTAINS
              rmns_i(:,:,js) = rmns_i(:,:,js)/orthonorm(0:mpol,-ntor:ntor)
              zmnc_i(:,:,js) = zmnc_i(:,:,js)/orthonorm(0:mpol,-ntor:ntor)
           END DO
-        END IF
-        DEALLOCATE(tmp, tmp2)
-     END IF
-    
 
-    ! PUT PROFILES ONTO EXTENDED MESH
-    ALLOCATE(tmp(0:mpol,-ntor:ntor,ns))
-    tmp=0
-    tmp(:,:,1:nsp)=jcurrumnc
-    DEALLOCATE(jcurrumnc)
-    ALLOCATE(jcurrumnc(0:mpol,-ntor:ntor,ns))
-    jcurrumnc=tmp
+          tmp=0
+          tmp(:,:,1:nsp)=jcurrumns
+          DEALLOCATE(jcurrumns)
+          ALLOCATE(jcurrumns(0:mpol,-ntor:ntor,ns))
+          jcurrumns=tmp
 
-    tmp=0
-    tmp(:,:,1:nsp)=jcurrvmnc
-    DEALLOCATE(jcurrvmnc)
-    ALLOCATE(jcurrvmnc(0:mpol,-ntor:ntor,ns))
-    jcurrvmnc=tmp
-    DEALLOCATE(tmp)
+          tmp=0
+          tmp(:,:,1:nsp)=jcurrvmns
+          DEALLOCATE(jcurrvmns)
+          ALLOCATE(jcurrvmns(0:mpol,-ntor:ntor,ns))
+          jcurrvmns=tmp
+       END IF
 
-    ! DO THE SAME FOR THE phipf_i, chipf_i AND presf_i
-    ! phipf, chipf will be computed in PCHELMS in the vacuum region
-    ALLOCATE(tmp1(ns))
-    tmp1=0
-    tmp1(1:nsp)=phipf_i
-    DEALLOCATE(phipf_i)
-    ALLOCATE(phipf_i(ns))
-    phipf_i=tmp1
+       DEALLOCATE(tmp, tmp2)
 
-    tmp1=0
-    tmp1(1:nsp)=chipf_i
-    DEALLOCATE(chipf_i)
-    ALLOCATE(chipf_i(ns))
-    chipf_i=tmp1
-    
-    tmp1(1:nsp)=presf_i
-    tmp1(nsp+1:) = presf_i(nsp)
-    DEALLOCATE(presf_i)
-    ALLOCATE(presf_i(ns))
-    presf_i=tmp1
-    DEALLOCATE(tmp1)
+    END IF
 
 #if defined(NOSKS)
     DO u=1, ntheta

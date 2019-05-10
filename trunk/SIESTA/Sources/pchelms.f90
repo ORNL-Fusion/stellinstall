@@ -93,7 +93,7 @@
          CALL DUMP_B(js, 666)
       END DO
 
-      CALL divb(nsmin,nsmax)
+      CALL divb(nsmin, nsmax)
 
       IF (iam .EQ. 0) PRINT '(/,a,1p,e12.3)',' |DivB| (normed) = ', divb_rms
     
@@ -118,7 +118,7 @@
 !>    \brief Compute real-space components of contravariant jac*B^i on 
 !>     half radial grid from curl(A)
       SUBROUTINE CURLA_PCHELMS(Asubsmnf,  Asubumnf,  Asubvmnf,          &
-                              jbsupsmnh, jbsupumnh, jbsupvmnh, ipar)
+                               jbsupsmnh, jbsupumnh, jbsupvmnh, ipar)
       USE utilities, ONLY: CURL_FtoH
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -162,7 +162,7 @@
 
 
       CALL CURL_FtoH(Asubsmnf,  Asubumnf,  Asubvmnf,                    &
-                    jbsupsmnh, jbsupumnh, jbsupvmnh, ipar, nmin, nmax)
+                     jbsupsmnh, jbsupumnh, jbsupvmnh, ipar, nmin, nmax)
       nmin = startglobrow
 
 !Never use this except to make B_X finite at s=1
@@ -414,13 +414,13 @@
 !     INSIDE js = ns_match < nsp (VMEC surface)
       nmatch = MIN(ns_match, nsp)
       IF (nmatch .GT. 0) THEN
-      A_s(:,:,1:nmatch) = 0; A_u(:,:,1:nmatch) = 0; A_v(:,:,1:nmatch) = 0
-      DO js = 1, nmatch
-         A_s(:,:,js) = phipf_i(js)*(lmn(:,:,js)+lmn(:,:,js+1))/2
-         IF (ipar .EQ. iasym) CYCLE
-         A_u(m0, n0, js) =-torflux(js)/orthonorm(m0,n0)
-         A_v(m0, n0, js) = polflux(js)/orthonorm(m0,n0)
-      END DO
+         A_s(:,:,1:nmatch) = 0; A_u(:,:,1:nmatch) = 0; A_v(:,:,1:nmatch) = 0
+         DO js = 1, nmatch
+            A_s(:,:,js) = phipf_i(js)*(lmn(:,:,js)+lmn(:,:,js+1))/2
+            IF (ipar .EQ. iasym) CYCLE
+            A_u(m0, n0, js) =-torflux(js)/orthonorm(m0,n0)
+            A_v(m0, n0, js) = polflux(js)/orthonorm(m0,n0)
+         END DO
       
 !      A_v(m0,n0,ns) = A_v(m0,n0,nmatch) * (ns / nmatch)**2          !scales like polflux
       END IF
@@ -433,20 +433,20 @@
       t1 = 1 
       DO js = 1, ns
 #endif           
-        p1 = REAL(js-1,dp)/(ns-1); p1 = p1*p1; q1 = 1                   !p1 ~ flux
-        DO m= 0, mpol
-        q1 = q1*p1           !p1**m
-        DO n = -ntor, ntor
-           A_s(m,n,js) = A_s(m,n,ns)*q1
-           A_u(m,n,js) = A_u(m,n,ns)*q1 
-           A_v(m,n,js) = A_v(m,n,ns)*q1 
-           IF (nmatch .GT. 0) THEN
-              A_s(m,n,js) = t1*A_s(m,n,js) + (1-t1)*A_s(m,n,nmatch)
-              A_u(m,n,js) = t1*A_u(m,n,js) + (1-t1)*A_u(m,n,nmatch)
-              A_v(m,n,js) = t1*A_v(m,n,js) + (1-t1)*A_v(m,n,nmatch)
-           END IF
-        END DO
-        END DO
+         p1 = REAL(js-1,dp)/(ns-1); p1 = p1*p1; q1 = 1                   !p1 ~ flux
+         DO m= 0, mpol
+            q1 = q1*p1           !p1**m
+            DO n = -ntor, ntor
+               A_s(m,n,js) = A_s(m,n,ns)*q1
+               A_u(m,n,js) = A_u(m,n,ns)*q1
+               A_v(m,n,js) = A_v(m,n,ns)*q1
+               IF (nmatch .GT. 0) THEN
+                  A_s(m,n,js) = t1*A_s(m,n,js) + (1 - t1)*A_s(m,n,nmatch)
+                  A_u(m,n,js) = t1*A_u(m,n,js) + (1 - t1)*A_u(m,n,nmatch)
+                  A_v(m,n,js) = t1*A_v(m,n,js) + (1 - t1)*A_v(m,n,nmatch)
+               END IF
+            END DO
+         END DO
       END DO
        
       END SUBROUTINE INIT_A
@@ -583,16 +583,16 @@
       DO m= 0, mpol
          mp = m+moff
          WRITE(iunit, 100) m, n, Asubsmnsf(mp,np,js)*orthonorm(m,n),   &
-                       Asubumncf(mp,np,js)*orthonorm(m,n),         & 
-               Asubvmncf(mp,np,js)*orthonorm(m,n),         &
-               jcurrumnc(m,n,js)*orthonorm(m,n),           &
-               jcurrvmnc(m,n,js)*orthonorm(m,n)
+                                 Asubumncf(mp,np,js)*orthonorm(m,n),   &
+                                 Asubvmncf(mp,np,js)*orthonorm(m,n),   &
+                                 jcurrumnc(m,n,js)*orthonorm(m,n),     &
+                                 jcurrvmnc(m,n,js)*orthonorm(m,n)
          IF (.NOT.lasym) CYCLE
          WRITE(iunit+100, 100) m, n, Asubsmncf(mp,np,js)*orthonorm(m,n), &
-                       Asubumnsf(mp,np,js)*orthonorm(m,n),              &
-               Asubvmnsf(mp,np,js)*orthonorm(m,n),                      &
-               jcurrumns(m,n,js)*orthonorm(m,n),                        &
-               jcurrvmns(m,n,js)*orthonorm(m,n)
+                                     Asubumnsf(mp,np,js)*orthonorm(m,n), &
+                                     Asubvmnsf(mp,np,js)*orthonorm(m,n), &
+                                     jcurrumns(m,n,js)*orthonorm(m,n),   &
+                                     jcurrvmns(m,n,js)*orthonorm(m,n)
       END DO
       END DO
 
@@ -706,39 +706,43 @@
       IF (js .NE. ns) RETURN
       
 !ESTIMATE IOTA PROFILE ON EXTENDED MESH (NOTE bsupX is jac * bsupX here and minus sign for sign of jacobian)
-      DO is = nsp+1, ns
-         chipf_i(is) = -chipf_i(is-1)-2*jbsupumnch(0,0,is)
-         phipf_i(is) = -phipf_i(is-1)-2*jbsupvmnch(0,0,is)
+!  FIXME: Sign of the jacobian is hard coded here. This should be read from the wout file.
+      chipf_i(1) = 0.0
+      phipf_i(1) = 0.0
+      DO is = 2, ns - 1
+         chipf_i(is) = (-jbsupumnch(0,0,is + 1) - jbsupumnch(0,0,is))*0.5
+         phipf_i(is) = (-jbsupvmnch(0,0,is + 1) - jbsupvmnch(0,0,is))*0.5
       END DO
+      chipf_i(ns) = -2.5*jbsupumnch(0,0,ns) + 1.5*jbsupumnch(0,0,ns - 1)
+      phipf_i(ns) = -2.5*jbsupvmnch(0,0,ns) + 1.5*jbsupvmnch(0,0,ns - 1)
       
 !TEST : CHECK EDGE VALUE
       IF (iam .EQ. 0) THEN
 
-      rjac = 0; rbsupv = 0
-      DO n=-ntor, ntor
-      DO m= 0, mpol
-         rjac = rjac + jacobmnch(m,n,ns)*orthonorm(m,n)
-         rbsupv = rbsupv + jbsupvmnch(m,n,ns)*orthonorm(m,n)
-      END DO
-      END DO
+         rjac = 0; rbsupv = 0
+         DO n=-ntor, ntor
+            DO m= 0, mpol
+               rjac = rjac + jacobmnch(m,n,ns)*orthonorm(m,n)
+               rbsupv = rbsupv + jbsupvmnch(m,n,ns)*orthonorm(m,n)
+            END DO
+         END DO
 
-      rbsupv = rbsupv*r1_i(1,1,ns)/rjac
+         rbsupv = rbsupv*r1_i(1,1,ns)/rjac
 
-      PRINT 150,' jac(u=0,v=0,ns): ', rjac,' jacobh: ', jacobh(1,1,ns)
- 150  FORMAT(2(a,1p,e12.3))
-      PRINT 155,' R*B^v(u=0,v=0,ns) : ', rbsupv
- 155  FORMAT(a,1p,e12.3)
-
+         PRINT 150,' jac(u=0,v=0,ns): ', rjac,' jacobh: ', jacobh(1,1,ns)
+ 150     FORMAT(2(a,1p,e12.3))
+         PRINT 155,' R*B^v(u=0,v=0,ns) : ', rbsupv
+ 155     FORMAT(a,1p,e12.3)
 !ESTIMATE IOTA PROFILE (NOTE bsupX is jac * bsupX here and minus sign for sign of jacobian)
-      PRINT *
-      PRINT *,'  RAD     CHIP(WOUT)     CHIP(PCH)    PHIP(WOUT)     PHIP(PCH)'
-      DO is = 2, ns, 10
-          rho = (is-1.5_dp)*hs
-          PRINT 200,rho, 0.5_dp*(chipf_i(is)+chipf_i(is-1)),            &
-            -jbsupumnch(0,0,is),                                        &
-            0.5_dp*(phipf_i(is)+phipf_i(is-1)), -jbsupvmnch(0,0,is)
-      END DO
- 200  FORMAT(f7.3,1p,4e14.3)
+         PRINT *
+         PRINT *,'  RAD     CHIP(WOUT)     CHIP(PCH)    PHIP(WOUT)     PHIP(PCH)'
+         DO is = 2, ns, 10 !Skip Every 10
+             rho = (is-1.5_dp)*hs
+             PRINT 200, rho,                                                          &
+                        0.5_dp*(chipf_i(is) + chipf_i(is - 1)), -jbsupumnch(0,0,is),  &
+                        0.5_dp*(phipf_i(is) + phipf_i(is - 1)), -jbsupvmnch(0,0,is)
+         END DO
+ 200     FORMAT(f7.3,1p,4e14.3)
  
       END IF   !iam = 0
 !END TEST
@@ -826,7 +830,6 @@
       SUBROUTINE BACKSLV
       USE metrics, ONLY: r1_i
       USE hessian, ONLY: gather_array
-      USE vmec_info, ONLY: lmns=>lmns_i, lmnc=>lmnc_i
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
