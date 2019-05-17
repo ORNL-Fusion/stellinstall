@@ -457,7 +457,7 @@
 
 !
 !     Convert output to REAL (VMEC) units, divide B-fields by b_factor
-!     p by p_factor, WMHD by w_factor
+!     p by p_factor, WMHD by p_factor
 
 #if defined(MPI_OPT)   
       snum_funct(1)=in_hess_nfunct; snum_funct(2)=out_hess_nfunct

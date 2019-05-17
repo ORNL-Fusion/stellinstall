@@ -32,12 +32,12 @@
       INTEGER, PARAMETER :: f_half = 1
 
 !     Derivative and sum flags.
-      INTEGER, PARAMETER :: f_none = 0   ! 000
-      INTEGER, PARAMETER :: f_ds   = 1   ! 001
-      INTEGER, PARAMETER :: f_du   = 2   ! 010
-      INTEGER, PARAMETER :: f_dv   = 4   ! 100
-      INTEGER, PARAMETER :: f_dudv = 6   ! 110
-      INTEGER, PARAMETER :: f_sum  = 8   !1000
+      INTEGER, PARAMETER :: f_none = 0               !0000
+      INTEGER, PARAMETER :: f_ds   = 1               !0001
+      INTEGER, PARAMETER :: f_du   = 2               !0010
+      INTEGER, PARAMETER :: f_dv   = 4               !0100
+      INTEGER, PARAMETER :: f_dudv = IOR(f_du, f_dv) !0110
+      INTEGER, PARAMETER :: f_sum  = 8               !1000
 
 !     Bit positions for Derivative flags.
       INTEGER, PARAMETER :: b_ds   = 0

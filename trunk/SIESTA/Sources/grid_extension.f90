@@ -208,7 +208,7 @@ CONTAINS
 !    CALL PLOTRZ (device, chfit)
     nse = MIN(ns + nsin_ext, nse)
     WRITE (*,1000) nse
-1000 FORMAT('\Using ',i4,' Surfaces\')
+1000 FORMAT('Using ',i4,' Surfaces')
 
     !REASSIGN THE NEW VALUE OF NS
     nsp = ns

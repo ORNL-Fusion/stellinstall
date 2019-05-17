@@ -45,7 +45,7 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
        INTEGER, PRIVATE :: isym=0, iasym=1
-       REAL(dp) :: b_factor, w_factor, p_factor                            ! Scale internal energy <wb+wp/(gam-1)> to 1
+       REAL(dp) :: b_factor, p_factor                                      ! Scale internal energy <wb+wp/(gam-1)> to 1
        REAL(dp) :: signjac
        REAL(dp) :: wp, wb, wp0, wb0                                        ! summed (over procs) energies/local energies
 !---- Fourier Space Arrays - lasym=F parity
@@ -126,10 +126,9 @@
         INTEGER :: istat, l
         REAL(dp) :: sum1
 !-----------------------------------------------
-        w_factor = 1._dp/ABS(wb_i)
-        p_factor = w_factor
-        b_factor = SQRT(w_factor)
-        gnorm_i  = gnorm_i/w_factor
+        p_factor = 1._dp/ABS(wb_i)
+        b_factor = SQRT(p_factor)
+        gnorm_i  = gnorm_i/p_factor
         
 !Store dimensions
         IF (lasym) THEN

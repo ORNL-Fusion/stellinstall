@@ -188,31 +188,7 @@
       gnorm_i = wb_i + wp_i/(gamma-1)
       gnorm_i = 1._dp/gnorm_i
 
-      ns_i = ns_in
-      nsh  = ns_i-1
-      mpol_i = mpol_in
-      ntor_i = ntor_in
-
-!  Set number of points == number of modes for now! (May want mid-points for
-!  flux conservation)
-      nu_i = mpol_i+2  
-      nv_i = 2*ntor_i+2
-
-!USE 3/2 (ORSZAG) RULE FOR ANTI-ALIASING OF EVOLUTION EQNS
-!Suppresses RADIAL grid separation in pressure
-      nu_i = 3*nu_i/2
-!SPH051617      nu_i = nu_i+MOD(nu_i,2)
-      IF (lasym) nu_i = 2*nu_i
-
-!SPH051617
-      IF (.NOT.lasym .AND. MOD(nu_i,2).NE.1) nu_i = nu_i+1
-
-      nv_i = 3*nv_i/2
-      nv_i = nv_i+MOD(nv_i,2)
-
-      IF (ntor_i .EQ. 0) nv_i = 1
-      nuv_i = nu_i*nv_i
-      mnmax_i = (mpol_i + 1)*(2*ntor_i + 1) ! Added RS. Contains total number of modes.
+      CALL set_grid_sizes(ns_in, mpol_in, ntor_in)
 
 !  READ VACUUM VESSEL DATA (before calling init_fourier) (points on the vessel
 !  surface are already re-distributed by VMESH code).
@@ -302,6 +278,56 @@
                ' IOTA(1) ',1pE12.4, ' GAMMA: ',1pE12.4,/, 21('-'),/)
 
       END SUBROUTINE init_metric_elements
+
+!-------------------------------------------------------------------------------
+!>  @brief Set grid sizes.
+!>
+!>  The real space grid is determined from the number of toroidal and poloidal
+!>  modes.
+!-------------------------------------------------------------------------------
+      SUBROUTINE set_grid_sizes(ns_in, mpol_in, ntor_in)
+      USE island_params, ns=>ns_i
+      USE fourier, ONLY: init_fourier
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER, INTENT(IN) :: ns_in
+      INTEGER, INTENT(IN) :: mpol_in
+      INTEGER, INTENT(IN) :: ntor_in
+
+!  Start of executable code
+      ns = ns_in
+      nsh = ns_i - 1
+
+      mpol_i = mpol_in
+      ntor_i = ntor_in
+
+!  Set number of points == number of modes for now! (May want mid-points for
+!  flux conservation)
+      nu_i = mpol_i+2
+      nv_i = 2*ntor_i+2
+
+!USE 3/2 (ORSZAG) RULE FOR ANTI-ALIASING OF EVOLUTION EQNS
+!Suppresses RADIAL grid separation in pressure
+      nu_i = 3*nu_i/2
+!SPH051617      nu_i = nu_i+MOD(nu_i,2)
+      IF (lasym) nu_i = 2*nu_i
+
+!SPH051617
+      IF (.NOT.lasym .AND. MOD(nu_i,2).NE.1) nu_i = nu_i+1
+
+      nv_i = 3*nv_i/2
+      nv_i = nv_i+MOD(nv_i,2)
+
+      IF (ntor_i .EQ. 0) nv_i = 1
+      nuv_i = nu_i*nv_i
+      mnmax_i = (mpol_i + 1)*(2*ntor_i + 1) ! Added RS. Contains total number of modes.
+
+!  Now that the grid sizes are determined we can initalize the fourier routines.
+      CALL init_fourier
+
+      END SUBROUTINE
 
 !-------------------------------------------------------------------------------
 !>  @brief Surface average a quantity.
@@ -716,29 +742,21 @@
 !>
 !>  @param[out] istat Error status.
 !-------------------------------------------------------------------------------
-      SUBROUTINE LoadRZL_VMEC (istat)
-      USE fourier, ONLY: toijsp, init_fourier, f_cos, f_sin,             &
-                         f_none, f_sum, f_du, f_dv
+      SUBROUTINE LoadRZL_VMEC(istat)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       INTEGER, INTENT(out) :: istat
 
-!  Local variables
-      INTEGER              :: m
-      INTEGER              :: n
-
 !  Start executable code.
 
 !  LOAD FOURIER FACTORS USING VMEC mpol,ntor AND ISLAND nu,nv
 !  IDEA: USE VMEC mpol, ntor VALUES AND CALL fixarray, FLIP VMEC n -> -n in
 !  REPACK
-      
-      CALL init_fourier !  MRC: FIXME: move this some where else. This will be bypassed in the new restart.
 
 !  COMPUTE R, Z (Metric elements, jacobian), LAMBDA (For initializing B)
-!
+
 !  FIRST, REPACK SPLINED ARRAYS FROM VMEC-ORDERING TO SIESTA-ORDERING AND SWAP
 !  THE N->-N MODES TO BE CONSISTENT WITH mu+nv SIESTA ARGUMENT
       CALL vmec_info_construct_island(mpol_i, ntor_i, ns_i, lasym)
@@ -751,6 +769,25 @@
                   currumns_spline, currvmns_spline, isym)
       CALL vmec_info_destruct_spline
 
+      CALL LoadGrid(istat)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Load the R, Z and lambda arrays from VMEC.
+!>
+!>  R, Z and Lambda are recast onto the SIESTA grid.
+!>
+!>  @param[out] istat Error status.
+!-------------------------------------------------------------------------------
+      SUBROUTINE LoadGrid (istat)
+      USE fourier, ONLY: toijsp, f_cos, f_sin, f_none, f_sum, f_du, f_dv
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER, INTENT(out) :: istat
+
 !  COMPUTE AND STORE R, Z AND THEIR ANGULAR DERIVATIVES, AND LAMBDA (NEED FOR
 !  VECTOR POT)
       ALLOCATE (r1_i(nu_i, nv_i, ns_i), z1_i(nu_i, nv_i, ns_i),         &
@@ -758,41 +795,67 @@
                 rv_i(nu_i, nv_i, ns_i), zv_i(nu_i, nv_i, ns_i),         &
                 stat = istat)
 
-!      IF (istat .NE. 0) WRITE (*,*) 'Allocation failed in LoadRZL_VMEC'
-
-      CALL toijsp (rmnc_i, r1_i, f_none, f_cos)
-      CALL toijsp (rmnc_i, ru_i, f_du,   f_cos)
-      CALL toijsp (rmnc_i, rv_i, f_dv,   f_cos)
-
-      CALL toijsp (zmns_i, z1_i, f_none, f_sin)
-      CALL toijsp (zmns_i, zu_i, f_du,   f_sin)
-      CALL toijsp (zmns_i, zv_i, f_dv,   f_sin)
-
+      CALL rz_to_ijsp(rmnc_i, zmns_i, .false.)
       IF (lasym) THEN
-         m = IOR(f_sum, f_du)
-         n = IOR(f_sum, f_dv)
-         CALL toijsp (rmns_i, r1_i, f_sum, f_sin)
-         CALL toijsp (rmns_i, ru_i, m,     f_sin)
-         CALL toijsp (rmns_i, rv_i, n,     f_sin)
-
-         CALL toijsp (zmnc_i, z1_i, f_sum, f_cos)
-         CALL toijsp (zmnc_i, zu_i, m,     f_cos)
-         CALL toijsp (zmnc_i, zv_i, n,     f_cos)
+         CALL rz_to_ijsp(rmns_i, zmnc_i, .true.)
       END IF
 
       rmax = MAXVAL(r1_i);      rmin = MINVAL(r1_i)
       zmax = MAXVAL(z1_i);      zmin = MINVAL(z1_i)
       IF (.NOT.lasym) zmin = MIN(zmin, -zmax)                           !ONLY TOP HALF
 
-#if defined(NOSKS)
-!  COMPUTE HALF-MESH LOWER/UPPER METRIC ELEMENTS AND JACOBIAN
-      CALL half_mesh_metrics (r1_i, ru_i, rv_i, z1_i, zu_i, zv_i)
+      END SUBROUTINE
 
-!  COMPUTE FULL-MESH METRIC ELEMENTS
-      CALL full_mesh_metrics
-#endif
+!-------------------------------------------------------------------------------
+!>  @brief Transform from fourier R Z to real space qauntities.
+!>
+!>  Computes R, Z, dr/du, dr/dv, dz/du and dz/dv from the fourier
+!>  representation.
+!>
+!>  @param[in] rmn   Radial fourier amplitudes.
+!>  @param[in] zmn   Vertical fourier amplitudes.
+!>  @param[in] lasym A symmetric flag.
+!-------------------------------------------------------------------------------
+      SUBROUTINE rz_to_ijsp(rmn, zmn, lasym)
+      USE fourier, ONLY: toijsp, init_fourier, f_cos, f_sin,                   &
+                         f_none, f_sum, f_du, f_dv
 
-      END SUBROUTINE LoadRZL_VMEC
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL(dp), DIMENSION(:,:,:), INTENT(in) :: rmn
+      REAL(dp), DIMENSION(:,:,:), INTENT(in) :: zmn
+      LOGICAL, INTENT(in)                    :: lasym
+
+!  Local variables
+      INTEGER                                :: sum
+      INTEGER                                :: m
+      INTEGER                                :: n
+      INTEGER                                :: rmode
+      INTEGER                                :: zmode
+
+!  Start executable code.
+      IF (lasym) THEN
+         sum = f_sum
+         rmode = f_sin
+         zmode = f_cos
+      ELSE
+         sum = f_none
+         rmode = f_cos
+         zmode = f_sin
+      END IF
+      m = IOR(sum, f_du)
+      n = IOR(sum, f_dv)
+
+      CALL toijsp (rmn, r1_i, sum, rmode)
+      CALL toijsp (rmn, ru_i, m,   rmode)
+      CALL toijsp (rmn, rv_i, n,   rmode)
+
+      CALL toijsp (zmn, z1_i, sum, zmode)
+      CALL toijsp (zmn, zu_i, m,   zmode)
+      CALL toijsp (zmn, zv_i, n,   zmode)
+
+      END SUBROUTINE
 
 !-------------------------------------------------------------------------------
 !>  @brief Resets VMEC Fourier quanties to use SIESTA convension.

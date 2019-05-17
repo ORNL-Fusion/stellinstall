@@ -31,9 +31,12 @@
 !>  Bit position for the lrecon flag.
       INTEGER, PARAMETER           :: restart_lrecon = 30
 
-!>  Dimension names.
-      CHARACTER (LEN=*), DIMENSION(3), PARAMETER ::                     &
-     &   restart_dims = (/'m-mode','n-mode','radius'/)
+!>  Radial Dimension names.
+      CHARACTER (LEN=*), DIMENSION(1), PARAMETER ::                            &
+     &   radial_dim = (/ 'radius' /)
+!>  Fourier Dimension names.
+      CHARACTER (LEN=*), DIMENSION(3), PARAMETER ::                            &
+     &   restart_dims = (/ 'm-mode', 'n-mode', radial_dim(1) /)
 
 !>  Name for the restart file number of radial points.
       CHARACTER (len=*), PARAMETER :: vn_nsin = 'nrad'
@@ -73,6 +76,11 @@
       CHARACTER (len=*), PARAMETER :: vn_zmnc = 'zmnc(m,n,r)'
 !>  Name for the restart file zmns.
       CHARACTER (len=*), PARAMETER :: vn_zmns = 'zmns(m,n,r)'
+
+!>  Name for the restart file chipf.
+      CHARACTER (len=*), PARAMETER :: vn_chipf = 'chipf(r)'
+!>  Name for the restart file phipf.
+      CHARACTER (len=*), PARAMETER :: vn_phipf = 'phipf(r)'
 
 !>  Name for the restart file bsupsmns.
       CHARACTER (len=*), PARAMETER :: vn_bsupsmns = 'bsupsmnsh(m,n,r)'
@@ -143,74 +151,54 @@
 !-------------------------------------------------------------------------------
       FUNCTION restart_read(restart_file_name, wout_file, mpolin, ntorin,      &
      &                      nfpin, nsin)
-      USE quantities, ONLY: jbsupsmnsh, jbsupsmnch,                     &
-                            jbsupumnsh, jbsupumnch,                     &
-                            jbsupvmnsh, jbsupvmnch,                     &
+      USE quantities, ONLY: jbsupsmnsh, jbsupsmnch,                            &
+                            jbsupumnsh, jbsupumnch,                            &
+                            jbsupvmnsh, jbsupvmnch,                            &
                             jpmnsh,     jpmnch
+      USE island_params, ONLY: chipf => chipf_i, phipf => phipf_i
+      USE vmec_info, ONLY: rmnc => rmnc_i, zmns => zmns_i,                     &
+     &                     rmns => rmns_i, zmnc => zmnc_i,                     &
+     &                     vmec_info_construct_island
+      USE metrics, ONLY: LoadGrid
+      USE fourier, ONLY: orthonorm
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      INTEGER                                     :: restart_read
-      CHARACTER (len=*), INTENT(in)               :: restart_file_name
-      CHARACTER (len=*), INTENT(inout)            :: wout_file
-      INTEGER, INTENT(in)                         :: mpolin
-      INTEGER, INTENT(in)                         :: ntorin
-      INTEGER, INTENT(in)                         :: nfpin
-      INTEGER, INTENT(in)                         :: nsin
+      INTEGER                                  :: restart_read
+      CHARACTER (len=*), INTENT(in)            :: restart_file_name
+      CHARACTER (len=*), INTENT(inout)         :: wout_file
+      INTEGER, INTENT(in)                      :: mpolin
+      INTEGER, INTENT(in)                      :: ntorin
+      INTEGER, INTENT(in)                      :: nfpin
+      INTEGER, INTENT(in)                      :: nsin
 
 !  local variables
-      INTEGER                                     :: flags
-      INTEGER                                     :: ncid
-      INTEGER                                     :: ns
-      INTEGER                                     :: mpol
-      INTEGER                                     :: ntor
-      INTEGER                                     :: nfp
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE    :: tempmn_r
-      INTEGER                                     :: nmin
+      INTEGER                                  :: flags
+      INTEGER                                  :: ncid
+      INTEGER                                  :: ns
+      INTEGER                                  :: mpol
+      INTEGER                                  :: ntor
+      INTEGER                                  :: nfp
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: tempmn_r
+      REAL (dp), DIMENSION(:), ALLOCATABLE     :: temp_r
+      INTEGER                                  :: nmin
+      INTEGER                                  :: status
+      CHARACTER (LEN=256)                      :: filename
+      INTEGER                                  :: s
 
 !  local parameters
-      INTEGER, PARAMETER                          :: m0=0
-      INTEGER, PARAMETER                          :: m1=1
-      CHARACTER (LEN=256)                         :: filename
-      LOGICAL                                     :: lex
+      INTEGER, PARAMETER                       :: m0=0
+      INTEGER, PARAMETER                       :: m1=1
 
 !  Start of executable code
-
       restart_read = 1
 
-#if defined(NETCDF)
       filename = TRIM(restart_file_name) // ".nc"
-      INQUIRE(file=TRIM(filename), exist=lex)
-      IF (lex) THEN
-         CALL cdf_open(ncid, TRIM(filename), 'r', restart_read)
-      END IF          
-#endif            
-      IF (restart_read .NE. 0) THEN
-          filename = TRIM(restart_file_name) // ".txt"
-          restart_read = restart_read_txt(filename, mpolin, ntorin, nsin)
-      END IF
+      CALL cdf_open(ncid, TRIM(filename), 'r', restart_read)
+      CALL assert(restart_read .EQ. 0, 'Failed to read restart file: ' //      &
+     &                                 TRIM(filename))
 
-      IF (restart_read .NE. 0) THEN
-         IF (iam .EQ. 0) THEN
-            filename = 'UNABLE TO READ SIESTA RESTART FILE: ' //        &
-                        TRIM(restart_file_name)
-            PRINT 50, TRIM(filename)
-         END IF
-         RETURN
-      ELSE
-         IF (iam .EQ. 0) THEN
-            WRITE (unit_out, 400) mpol, ntor, ns
-            filename = 'RESTART FILE WAS SUCCESSFULLY READ: ' //        &
-                        TRIM(restart_file_name)
-            PRINT 50, TRIM(filename)
-            CALL FLUSH(unit_out)
-         END IF
-      END IF
- 50   FORMAT(' ************',/,1x,a,/,' ************')
-400   FORMAT(/,' RESTARTED FROM RUN PARAMETERS M: ',i3,' N: ',i3,' NS: ', i3,/)
-
-#if defined(NETCDF)
       CALL cdf_read(ncid, vn_flags, flags)
 
 !  The namelist inut file can change the size of the radial grid and the 
@@ -220,162 +208,111 @@
       CALL cdf_read(ncid, vn_ntorin, ntor)
       CALL cdf_read(ncid, vn_nfpin, nfp)
 
-      CALL assert(nfp .eq. nfpin, 'Restarting cannot change the number of' //  &
-                                  ' of field periods')
-
       nmin = MIN(ntor, ntorin)
 
       CALL cdf_read(ncid, vn_wout, wout_file)
 
 !  The namelist input file may turn the asymmetric terms on and off.
       ALLOCATE(tempmn_r(0:mpol,-ntor:ntor, ns))
+      ALLOCATE(temp_r(ns))
+      CALL vmec_info_construct_island(mpolin, ntorin, nsin, lasym)
+
+      CALL cdf_read(ncid, vn_chipf, temp_r)
+      CALL interpit_1d(temp_r, chipf, ns, nsin, .false., 1)
+
+      CALL cdf_read(ncid, vn_phipf, temp_r)
+      CALL interpit_1d(temp_r, phipf, ns, nsin, .false., 1)
 
       CALL cdf_read(ncid, vn_jbsupss, tempmn_r)
       jbsupsmnsh(:,:,1) = 0
-      CALL interpit(tempmn_r, jbsupsmnsh, ns, nsin, mpol, mpolin, ntor, ntorin)
+      CALL interpit(tempmn_r, jbsupsmnsh, ns, nsin, mpol, mpolin,              &
+     &              ntor, ntorin, nfp, nfpin, .true.)
       jbsupsmnsh(m1,-nmin:nmin,1) = jbsupsmnsh(m1,-nmin:nmin,2)
       
       CALL cdf_read(ncid, vn_jbsupuc, tempmn_r)
-      CALL interpit(tempmn_r, jbsupumnch, ns, nsin, mpol, mpolin, ntor, ntorin)
+      CALL interpit(tempmn_r, jbsupumnch, ns, nsin, mpol, mpolin,              &
+     &              ntor, ntorin, nfp, nfpin, .true.)
       jbsupumnch(m1,-nmin:nmin,1) = jbsupumnch(m1,-nmin:nmin,2)
 
       jbsupvmnch(:,:,1) = 0
       CALL cdf_read(ncid, vn_jbsupvc, tempmn_r)
-      CALL interpit(tempmn_r, jbsupvmnch, ns, nsin, mpol, mpolin, ntor, ntorin)
+      CALL interpit(tempmn_r, jbsupvmnch, ns, nsin, mpol, mpolin,              &
+     &              ntor, ntorin, nfp, nfpin, .true.)
       jbsupvmnch(m0,-nmin:nmin,1) = jbsupvmnch(m0,-nmin:nmin,2)
 
       jpmnch(:,:,1) = 0
       CALL cdf_read(ncid, vn_jpresc,  tempmn_r)
-      CALL interpit(tempmn_r, jpmnch,     ns, nsin, mpol, mpolin, ntor, ntorin)
+      CALL interpit(tempmn_r, jpmnch,     ns, nsin, mpol, mpolin,              &
+     &              ntor, ntorin, nfp, nfpin, .true.)
       jpmnch(m0,-nmin:nmin,1) = jpmnch(m0,-nmin:nmin,2)
 
+      CALL cdf_read(ncid, vn_rmnc, tempmn_r)
+      CALL interpit(tempmn_r, rmnc, ns, nsin, mpol, mpolin,               &
+                    ntor, ntorin, nfp, nfpin, .false.)
+
+      CALL cdf_read(ncid, vn_zmns, tempmn_r)
+      CALL interpit(tempmn_r, zmns, ns, nsin, mpol, mpolin,               &
+                    ntor, ntorin, nfp, nfpin, .false.)
 
       IF (BTEST(flags, restart_lasym) .and. lasym) THEN
          jbsupsmnch(:,:,1) = 0
          CALL cdf_read(ncid, vn_jbsupsc, tempmn_r)
-         CALL interpit(tempmn_r, jbsupsmnch, ns, nsin, mpol, mpolin, ntor, ntorin)
+         CALL interpit(tempmn_r, jbsupsmnch, ns, nsin, mpol, mpolin,           &
+     &                 ntor, ntorin, nfp, nfpin, .true.)
          jbsupsmnch(m1,-nmin:nmin,1) = jbsupsmnch(m1,-nmin:nmin,2)
 
          CALL cdf_read(ncid, vn_jbsupus, tempmn_r)
-         CALL interpit(tempmn_r, jbsupumnsh, ns, nsin, mpol, mpolin, ntor, ntorin)
+         CALL interpit(tempmn_r, jbsupumnsh, ns, nsin, mpol, mpolin,           &
+     &                 ntor, ntorin, nfp, nfpin, .true.)
          jbsupumnsh(m1,-nmin:nmin,1) = jbsupumnsh(m1,-nmin:nmin,2)
 
          CALL cdf_read(ncid, vn_jbsupvs, tempmn_r)
-         CALL interpit(tempmn_r, jbsupvmnsh, ns, nsin, mpol, mpolin, ntor, ntorin)
+         CALL interpit(tempmn_r, jbsupvmnsh, ns, nsin, mpol, mpolin,           &
+     &                 ntor, ntorin, nfp, nfpin, .true.)
          jbsupvmnsh(m0,-nmin:nmin,1) = jbsupvmnsh(m0,-nmin:nmin,2)
 
          CALL cdf_read(ncid, vn_jpress,  tempmn_r)
-         CALL interpit(tempmn_r, jpmnsh,     ns, nsin, mpol, mpolin, ntor, ntorin)
+         CALL interpit(tempmn_r, jpmnsh,     ns, nsin, mpol, mpolin,           &
+     &                 ntor, ntorin, nfp, nfpin, .true.)
          jpmnsh(m0,-nmin:nmin,1) = jpmnsh(m0,-nmin:nmin,2)
+
+         CALL cdf_read(ncid, vn_rmns, tempmn_r)
+         CALL interpit(tempmn_r, rmns, ns, nsin, mpol, mpolin,            &
+                       ntor, ntorin, nfp, nfpin, .false.)
+
+         CALL cdf_read(ncid, vn_zmns, tempmn_r)
+         CALL interpit(tempmn_r, zmnc, ns, nsin, mpol, mpolin,            &
+                       ntor, ntorin, nfp, nfpin, .false.)
+
       ELSE IF (lasym) THEN
          jbsupsmnch = 0
          jbsupumnsh = 0
          jbsupvmnsh = 0
          jpmnsh = 0
+         rmns = 0
+         rmnc = 0
       END IF
 
       CALL cdf_close(ncid)
 
+      DO s = 1, nsin
+         rmnc(:,:,s) = rmnc(:,:,s)/orthonorm
+         zmns(:,:,s) = zmns(:,:,s)/orthonorm
+         IF (lasym) THEN
+            rmns(:,:,s) = rmns(:,:,s)/orthonorm
+            zmnc(:,:,s) = zmnc(:,:,s)/orthonorm
+         END IF
+      END DO
+
+      CALL LoadGrid(status)
+
       DEALLOCATE(tempmn_r)
-#endif
+      DEALLOCATE(temp_r)
+
+      WRITE (unit_out, 1000) mpol, ntor, ns
+1000  FORMAT(/,' RESTARTED FROM RUN PARAMETERS M: ',i3,' N: ',i3,' NS: ', i3,/)
+
       END FUNCTION restart_read
-
-
-      FUNCTION restart_read_txt(filename, mpolin, ntorin, nsin)
-      USE quantities, ONLY: jbsupsmnsh, jbsupsmnch,                     &
-                            jbsupumnsh, jbsupumnch,                     &
-                            jbsupvmnsh, jbsupvmnch,                     &
-                            jpmnsh,     jpmnch
-      INTEGER, PARAMETER :: m0=0, m1=1
-      INTEGER  :: restart_read_txt, mpolin, ntorin, nsin
-      INTEGER  :: nmin, mpol, ntor, ns, istat, m, n, js
-      CHARACTER (LEN=*), INTENT(IN)  :: filename
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE    ::                    &
-                 bsupss, bsupuc, bsupvc, presc,                         &
-                 bsupsc, bsupus, bsupvs, press
-    
-      OPEN (unit=15, file=TRIM(filename), status='old',                 &
-            form='formatted', iostat=istat)
-      IF (istat .NE. 0) THEN 
-         restart_read_txt = 1
-         RETURN
-      END IF
-
-      restart_read_txt = 0
-!
-!     USE THIS DIMENSION INFO TO COMPARE WITH MESH IN JOB-CONTROL FILE
-!     EVENTUALLY USE FOR MULTIGRIDDING
-!
-      READ (15,'(L1)') lasym
-      READ (15,100) ns, mpol, ntor
-      nmin = MIN(ntor, ntorin)
-
-      ALLOCATE (bsupss(0:mpol,-ntor:ntor,ns),                           &
-                bsupuc(0:mpol,-ntor:ntor,ns),                           &
-                bsupvc(0:mpol,-ntor:ntor,ns),                           & 
-                presc(0:mpol,-ntor:ntor,ns), stat=istat)
-      CALL ASSERT(istat.eq.0,'Allocation error in restart_read_txt')
-
-      DO js=1,ns
-      DO m=0,mpol
-      DO n=-ntor,ntor
-      READ (15,300) bsupss(m,n,js), bsupuc(m,n,js),                     &
-                    bsupvc(m,n,js), presc(m,n,js)
-      ENDDO
-      ENDDO
-      ENDDO
-
-      IF (lasym) THEN
-      ALLOCATE (bsupsc(0:mpol,-ntor:ntor,ns),                           &
-                bsupus(0:mpol,-ntor:ntor,ns),                           &
-                bsupvs(0:mpol,-ntor:ntor,ns),                           & 
-                press(0:mpol,-ntor:ntor,ns), stat=istat)
-      DO js=1,ns
-      DO m=0,mpol
-      DO n=-ntor,ntor
-      READ (15,300) bsupsc(m,n,js), bsupus(m,n,js),                     &
-                    bsupvs(m,n,js), press(m,n,js)
-      ENDDO
-      ENDDO
-      ENDDO
-      END IF
-
-      CLOSE (unit=15)
-
-      jbsupsmnsh(:,:,1) = 0
-      jbsupvmnch(:,:,1) = 0
-      jpmnch(:,:,1) = 0
-
-      CALL interpit(bsupss, jbsupsmnsh, ns, nsin, mpol, mpolin, ntor, ntorin)
-      jbsupsmnsh(m1,-nmin:nmin,1) = jbsupsmnsh(m1,-nmin:nmin,2)
-      CALL interpit(bsupuc, jbsupumnch, ns, nsin, mpol, mpolin, ntor, ntorin)
-      jbsupumnch(m1,-nmin:nmin,1) = jbsupumnch(m1,-nmin:nmin,2)
-      CALL interpit(bsupvc, jbsupvmnch, ns, nsin, mpol, mpolin, ntor, ntorin)
-      jbsupvmnch(m0,-nmin:nmin,1) = jbsupvmnch(m0,-nmin:nmin,2)
-      CALL interpit(presc, jpmnch,     ns, nsin, mpol, mpolin, ntor, ntorin)
-      jpmnch(m0,-nmin:nmin,1) = jpmnch(m0,-nmin:nmin,2)
-      DEALLOCATE (bsupss, bsupuc, bsupvc, presc, stat=istat)
-
-      IF (lasym) THEN
-      jbsupsmnch(:,:,1) = 0
-      jbsupvmnsh(:,:,1) = 0
-      jpmnsh(:,:,1) = 0
-
-      CALL interpit(bsupsc, jbsupsmnch, ns, nsin, mpol, mpolin, ntor, ntorin)
-      jbsupsmnch(m1,-nmin:nmin,1) = jbsupsmnch(m1,-nmin:nmin,2)
-      CALL interpit(bsupus, jbsupumnsh, ns, nsin, mpol, mpolin, ntor, ntorin)
-      jbsupumnsh(m1,-nmin:nmin,1) = jbsupumnsh(m1,-nmin:nmin,2)
-      CALL interpit(bsupvs, jbsupvmnsh, ns, nsin, mpol, mpolin, ntor, ntorin)
-      jbsupvmnsh(m0,-nmin:nmin,1) = jbsupvmnsh(m0,-nmin:nmin,2)
-      CALL interpit(press, jpmnsh,     ns, nsin, mpol, mpolin, ntor, ntorin)
-      jpmnsh(m0,-nmin:nmin,1) = jpmnsh(m0,-nmin:nmin,2)
-      DEALLOCATE (bsupsc, bsupus, bsupvs, press, stat=istat)
-      END IF
-
- 100  FORMAT(3i8)
- 300  FORMAT(1p4e24.16)
-      
-      END FUNCTION restart_read_txt
 
 !-------------------------------------------------------------------------------
 !>  @brief Write the restart file.
@@ -393,7 +330,7 @@
                             jpmnsh,     jpmnch,                                &
                             b_factor,   p_factor, jacobh
       USE fourier
-      USE island_params, ONLY: nfp => nfp_i
+      USE island_params, ONLY: nfp => nfp_i, chipf => chipf_i, phipf => phipf_i
       USE shared_data, ONLY: r1_i, z1_i
 
       IMPLICIT NONE
@@ -439,15 +376,8 @@
 
 !  Start of executable code
       restart_write = 1
-#if defined(NETCDF)
       filename = TRIM(restart_file_name) // ".nc"
       CALL cdf_open(ncid, TRIM(filename), 'w', restart_write)
-#endif            
-      IF (restart_write .NE. 0) THEN
-         filename = TRIM(restart_file_name) // ".txt"
-         restart_write = restart_write_txt(filename)
-         RETURN
-      END IF
 
       flags = restart_version
       IF (lasym) THEN
@@ -459,7 +389,6 @@
 
       ALLOCATE(tempmn_w(0:mpol,-ntor:ntor,ns))
 
-#if defined(NETCDF)
       CALL cdf_define(ncid, vn_flags, flags)
       CALL cdf_define(ncid, vn_nsin, ns)
       CALL cdf_define(ncid, vn_mpolin, mpol)
@@ -474,6 +403,9 @@
 
       CALL cdf_define(ncid, vn_rmnc, tempmn_w, dimname=restart_dims)
       CALL cdf_define(ncid, vn_zmns, tempmn_w, dimname=restart_dims)
+
+      CALL cdf_define(ncid, vn_chipf, chipf, dimname=radial_dim)
+      CALL cdf_define(ncid, vn_phipf, phipf, dimname=radial_dim)
 
       IF (lasym) THEN
          CALL cdf_define(ncid, vn_jbsupsc, jbsupsmnch, dimname=restart_dims)
@@ -527,6 +459,9 @@
       CALL cdf_write(ncid, vn_jbsupuc, jbsupumnch)
       CALL cdf_write(ncid, vn_jbsupvc, jbsupvmnch)
       CALL cdf_write(ncid, vn_jpresc,  jpmnch)
+
+      CALL cdf_write(ncid, vn_chipf, chipf)
+      CALL cdf_write(ncid, vn_phipf, phipf)
 
       CALL tomnsp(r1_i, tempmn_w, f_cos)
       DO s = 1, ns
@@ -770,63 +705,11 @@
       DEALLOCATE(tempmn_w)
 
       CALL cdf_close(ncid)
-#endif
+
       END FUNCTION restart_write
 
-      FUNCTION restart_write_txt(filename)
-      USE quantities, ONLY: jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch,  &
-                            jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh,  &
-                            ns, mpol, ntor
-      CHARACTER (LEN=*)     :: filename
-      INTEGER               :: restart_write_txt, istat, js, m, n
-      
-      OPEN (unit=15, file=TRIM(filename), status='replace',              &
-            form='formatted', iostat=istat)
-      IF (istat .NE. 0) THEN
-         restart_write_txt = 1
-         RETURN
-      END IF
-      
-      restart_write_txt = 0
-
-!
-!     USE THIS DIMENSION INFO TO COMPARE WITH MESH IN JOB-CONTROL FILE
-!     EVENTUALLY USE FOR MULTIGRIDDING
-!
-      WRITE (15,'(L1)') lasym
-      WRITE (15,100) ns, mpol, ntor
-
-      DO js=1,ns
-         DO m =0,mpol
-            DO n = -ntor,ntor
-            WRITE (15,300) jbsupsmnsh(m,n,js), jbsupumnch(m,n,js),       &
-                           jbsupvmnch(m,n,js), jpmnch(m,n,js)
-            ENDDO
-         ENDDO
-      ENDDO
-
-      IF (lasym) THEN
-
-      DO js=1,ns
-         DO m =0,mpol
-            DO n = -ntor,ntor
-            WRITE (15,300) jbsupsmnch(m,n,js), jbsupumnsh(m,n,js),       &
-                           jbsupvmnsh(m,n,js), jpmnsh(m,n,js)
-            ENDDO
-         ENDDO
-      ENDDO
-
-      ENDIF
-
-      CLOSE (UNIT=15)
-
- 100  FORMAT(3i8)
- 300  FORMAT(1p4e24.16)
-      
-      END FUNCTION restart_write_txt
-
 !-------------------------------------------------------------------------------
-!>  @brief Interperate quantites from the restart file.
+!>  @brief Interpolate fourier quantites from the restart file.
 !>
 !>  Restart files can change the number of surfaces and modes.
 !>
@@ -838,9 +721,14 @@
 !>  @param[in]  mpol_new New number of poloidal modes.
 !>  @param[in]  ntor_old Number of totoidal modes in the restart file.
 !>  @param[in]  ntor_new New number of totoidal modes.
+!>  @param[in]  nfp_old  Number of field periods in the restart file.
+!>  @param[in]  nfp_new  New number of field periods.
 !-------------------------------------------------------------------------------
-      SUBROUTINE interpit(aold, anew, ns_old, ns_new,                          &
-     &                    mpol_old, mpol_new, ntor_old, ntor_new)
+      SUBROUTINE interpit(aold,     anew,                                      &
+     &                    ns_old,   ns_new,                                    &
+     &                    mpol_old, mpol_new,                                  &
+     &                    ntor_old, ntor_new,                                  &
+     &                    nfp_old,  nfp_new, lhalf)
       USE stel_constants, ONLY: one, zero
       IMPLICIT NONE
 !-----------------------------------------------
@@ -854,66 +742,129 @@
       INTEGER, INTENT(in)   :: mpol_new
       INTEGER, INTENT(in)   :: ntor_old
       INTEGER, INTENT(in)   :: ntor_new
+      INTEGER, INTENT(in)   :: nfp_old
+      INTEGER, INTENT(in)   :: nfp_new
+      LOGICAL, INTENT(in)   :: lhalf
 
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      REAL(dp), PARAMETER   :: p5 = 0.5_dp
-      REAL(dp), ALLOCATABLE :: temp1(:,:,:)
-      INTEGER                  :: mpol_min, ntor_min
-      INTEGER                  :: js_old, js_new, istat
-      REAL(dp)              :: hs_old, hs_new, snew, sold, x1
+      INTEGER               :: real_ntor_min
+      INTEGER               :: i_n
+      INTEGER               :: i_m
+      REAL(dp)              :: ds
+      INTEGER               :: parity
+      INTEGER               :: mpol_min
+      INTEGER               :: ntor_min
 !-----------------------------------------------
+      mpol_min = MIN(mpol_new, mpol_old)
+      real_ntor_min = MIN(ntor_new*nfp_new, ntor_old*nfp_old)
 
-      mpol_min = MIN(mpol_old, mpol_new)
-      ntor_min = MIN(ntor_old, ntor_new)
+!  Only some of the toroidal modes will match if nfp_new and nfp_old are different.
+      DO i_n = -real_ntor_min, real_ntor_min
+         IF (i_n/nfp_new .EQ. 0 .AND. i_n/nfp_old .EQ. 0) THEN
+            DO i_m = 0, mpol_min
+               IF (MOD(i_m, 2) .EQ. 0) THEN
+                  parity = -1
+               ELSE
+                  parity = 1
+               END IF
 
+               CALL interpit_1d(aold(i_m, i_n, :), anew(i_m, i_n, :),          &
+                                ns_old, ns_new, lhalf, parity)
+            END DO
+         ELSE
+            anew(:, i_n, :) = 0
+         END IF
+      END DO
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Interpolate radial quantites from the restart file.
+!>
+!>  Restart files can change the number of surfaces.
+!>
+!>  @param[in]  aold     Value from the restart file.
+!>  @param[out] anew     New interpolated value.
+!>  @param[in]  ns_old   Radial grid size in the restart file.
+!>  @param[in]  ns_new   New radial grid size.
+!-------------------------------------------------------------------------------
+      SUBROUTINE interpit_1d(aold, anew, ns_old, ns_new, lhalf, parity)
+      USE stel_constants, ONLY: one, zero
+      IMPLICIT NONE
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      REAL(dp), INTENT(in)  :: aold(ns_old)
+      REAL(dp), INTENT(out) :: anew(ns_new)
+      INTEGER, INTENT(in)   :: ns_old
+      INTEGER, INTENT(in)   :: ns_new
+      LOGICAL, INTENT(in)   :: lhalf
+      INTEGER, INTENT(in)   :: parity
+
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
+      REAL(dp), ALLOCATABLE, DIMENSION(:) :: temp_y
+      REAL(dp), ALLOCATABLE, DIMENSION(:) :: temp_x
+      REAL(dp), ALLOCATABLE, DIMENSION(:) :: temp_new
+      REAL(dp), ALLOCATABLE, DIMENSION(:) :: temp
+      REAL(dp)                            :: ds
+      INTEGER                             :: i_s
+
+      REAL(dp), PARAMETER                 :: lower_b = -1.e30_dp
+      REAL(dp), PARAMETER                 :: upper_b = -1.e30_dp
+!-----------------------------------------------
       anew = 0
-
       IF (ns_old .EQ. ns_new) THEN
-         anew(0:mpol_min,-ntor_min:ntor_min,:) = aold(0:mpol_min,-ntor_min:ntor_min,:)
+         anew = aold
          RETURN
       END IF
 
-      ALLOCATE (temp1(0:mpol_min,-ntor_min:ntor_min,ns_old), stat=istat)
-      CALL ASSERT(istat.eq.0,'Allocation error #1 in INTERPIT')
-!
-!     FIRST INTERP TO FULL MESH FROM HALF-MESH
-!     ASSUMES js=1 FULL-MESH VALUE VALUE IS STORED IN aold(1)
-!
-      temp1(:,:,1) = 0
-      temp1(:,:,2:ns_old-1) = p5*(aold(:,:,2:ns_old-1) + aold(:,:,3:ns_old))
-      temp1(:,:,ns_old) = 2*aold(:,:,ns_old) - temp1(:,:,ns_old-1)
-      temp1(0:1,:,1)  = 2*aold(0:1,:,2) - temp1(0:1,:,2)
-      hs_old = one/(ns_old-1)
-      hs_new = one/(ns_new-1)
+!  Need to radially interpolate. Extend the arrays from -ns to ns to get the
+!  correct behavior at s=0.
+      ds = 1.0/(ns_old - 1)
+      IF (lhalf) THEN
+         ALLOCATE(temp_y(2*(ns_old - 1)))
+         ALLOCATE(temp_x(2*(ns_old - 1)))
+         ALLOCATE(temp(2*(ns_old - 1)))
 
-      DO js_new=1, ns_new
-         snew = (js_new-1)*hs_new
-         js_old = 1 + INT(snew/hs_old)
-         x1 = snew - (js_old-1)*hs_old
-         x1 = x1/hs_old
-         IF (x1 .GT. one) x1 = 1
-         IF (x1 .LT. zero) x1 = 0
-         CALL ASSERT(js_old.le.ns_old,'js_old >= ns_old in INTERPIT')
-         IF (js_old .eq. ns_old) THEN
-            anew(:,:,js_new) = temp1(:,:,js_old)
-         ELSE
-            anew(:,:,js_new) = (one-x1)*temp1(:,:,js_old)               &
-                             + x1*temp1(:,:,js_old+1)
-         END IF
-      END DO
-!
-!     AVERAGE BACK TO HALF-MESH
-!
-      DEALLOCATE (temp1)
-      ALLOCATE (temp1(0:mpol_min,-ntor_min:ntor_min,ns_new), stat=istat)
-      CALL ASSERT(istat.eq.0,'Allocation error #2 in INTERPIT')
-      temp1 = anew
-      anew(:,:,1) = 0
-      anew(:,:,2:ns_new) = p5*(temp1(:,:,2:ns_new) + temp1(:,:,1:ns_new-1))
-      DEALLOCATE(temp1)
+         DO i_s = 2, ns_old
+            temp_x(ns_old - i_s + 1) = -ds*(i_s - 1.5)
+            temp_y(ns_old + i_s - 2) = ds*(i_s - 1.5)
+            temp_y(ns_old - i_s + 1) = parity*aold(i_s)
+            temp_y(ns_old + i_s - 2) = aold(i_s)
+         END DO
+      ELSE
+         ALLOCATE(temp_y(2*ns_old - 1))
+         ALLOCATE(temp_x(2*ns_old - 1))
+         ALLOCATE(temp(2*ns_old - 1))
 
-      END SUBROUTINE interpit
+         DO i_s = 1, ns_old
+            temp_x(ns_old - i_s + 1) = -ds*(i_s - 1)
+            temp_x(ns_old + i_s - 1) = ds*(i_s - 1)
+            temp_y(ns_old - i_s + 1) = parity*aold(i_s)
+            temp_y(ns_old + i_s - 1) = aold(i_s)
+         END DO
+      END IF
+
+      CALL spline(temp_x, temp_y, SIZE(temp_x), lower_b, upper_b, temp)
+
+      ALLOCATE(temp_new(ns_new))
+      ds = 1.0/(ns_new - 1)
+      IF (lhalf) THEN
+         DO i_s = 2, ns_new
+            temp_new(i_s) = ds*(i_s - 1.5)
+         END DO
+      ELSE
+         DO i_s = 1, ns_new
+            temp_new(i_s) = ds*(i_s - 1)
+         END DO
+      END IF
+
+      CALL splINT(temp_x, temp_y, temp, SIZE(temp_x), temp_new, anew)
+
+      END SUBROUTINE
 
       END MODULE
