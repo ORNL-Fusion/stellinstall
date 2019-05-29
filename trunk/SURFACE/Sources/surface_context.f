@@ -45,9 +45,6 @@
          REAL (rprec), DIMENSION(:), POINTER :: k_y
 !>  Virtual Surface current in the z direction.
          REAL (rprec), DIMENSION(:), POINTER :: k_z
-
-!>  Prime grid for volume integration.
-         TYPE (primed_grid_class), POINTER   :: p_grid => null()
       END TYPE
 
       CONTAINS
@@ -72,7 +69,6 @@
       USE bmw_parallel_context
       USE read_wout_mod, ONLY: read_wout_file, extcur
       USE safe_open_mod
-      USE bmw_state_flags, ONLY: bmw_state_flags_off
 
       IMPLICIT NONE
 
@@ -137,10 +133,6 @@
       END DO
 
       CLOSE(iou)
-
-      surface_context_construct%p_grid =>                                      &
-     &   primed_grid_construct(100, bmw_state_flags_off, '', parallel,        &
-     &                         io_unit)
 
       CALL profiler_set_stop_time('surface_context_construct',                 &
      &                            start_time)
@@ -213,435 +205,11 @@
          this%k_z => null()
       END IF
 
-      IF (ASSOCIATED(this%p_grid)) THEN
-         CALL primed_grid_destruct(this%p_grid)
-         this%p_grid => null()
-      END IF
-
       END SUBROUTINE
 
 !*******************************************************************************
 !  SETTER SUBROUTINES
 !*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Set the virtual current on the surface.
-!>
-!>  This uses the virtual casing to set a vitual current on an arbitrary
-!>  surface. The vitual current is taking from the jump condition assuming the
-!>  surface is a perfect conductor. At each point in the surface, the virtual
-!>  edge currents at the plasma last closed flux surface are area integrated.
-!>
-!>    b = mu0/4pi Int Int (evp*bup - eup*bvp)X(x - xp)/(x - xp)*signJ*du*dv  (1)
-!>
-!>  Where the primed (p) variables are the values on the last closed flux
-!>  surface grid.
-!>
-!>  @param[inout] this     A @ref surface_context_class instance.
-!>  @param[in]    io_unit  Unit number to write messages to.
-!>  @param[in]    parallel @ref bmw_parallel_context_class object instance.
-!>  @returns A pointer to a constructed @ref bmw_context_class object.
-!-------------------------------------------------------------------------------
-      SUBROUTINE surface_context_set_current(this, io_unit, parallel)
-      USE bmw_parallel_context
-      USE stel_constants, ONLY: twopi, mu0
-      USE read_wout_mod, ONLY: ns, rmnc, rmns, zmnc, zmns, xm, xn,             &
-     &                         bsubumnc, bsubvmnc, bsubumns, bsubvmns,         &
-     &                         xm_nyq, xn_nyq, mnmax, mnmax_nyq, lasym,        &
-     &                         isigng
-      USE bmw_state_flags, ONLY: clear_screen, progress
-      USE, INTRINSIC :: iso_fortran_env, Only : output_unit
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (surface_context_class), INTENT(inout)   :: this
-      INTEGER, INTENT(in)                           :: io_unit
-      TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
-
-!  local variables
-      REAL (rprec)                                  :: start_time
-      REAL (rprec)                                  :: bu
-      REAL (rprec)                                  :: bv
-      REAL (rprec)                                  :: ru
-      REAL (rprec)                                  :: rv
-      REAL (rprec)                                  :: zu
-      REAL (rprec)                                  :: zv
-      REAL (rprec)                                  :: r
-      REAL (rprec)                                  :: z
-      INTEGER                                       :: i, j
-      INTEGER                                       :: ui
-      INTEGER                                       :: vi
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: cosv
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: sinv
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: bsubuc
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: bsubvc
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: bsubus
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: bsubvs
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: cosmu
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: sinmu
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: cosmu_nyq
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: sinmu_nyq
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: cosnv
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: sinnv
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: cosnv_nyq
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: sinnv_nyq
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: cosmn
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: sinmn
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: cosmn_nyq
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: sinmn_nyq
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: xp
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: yp
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: zp
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: kxp
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: kyp
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: kzp
-      REAL (rprec)                                  :: krp
-      REAL (rprec)                                  :: kpp
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: lx
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: ly
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: lz
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: l
-      REAL (rprec)                                  :: bx
-      REAL (rprec)                                  :: by
-      REAL (rprec)                                  :: bz
-      REAL (rprec)                                  :: cosphi
-      REAL (rprec)                                  :: sinphi
-      REAL (rprec)                                  :: total
-      REAL (rprec)                                  :: done
-      REAL (rprec)                                  :: current
-
-!  local parameters
-      INTEGER, PARAMETER                            :: num_u = 2001
-      INTEGER, PARAMETER                            :: num_v = 2001
-      REAL (rprec), PARAMETER                       :: du = twopi/num_u
-      REAL (rprec), PARAMETER                       :: dv = twopi/num_v
-      REAL (rprec), PARAMETER :: int_factor = -du*dv/(2.0*twopi)
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      ALLOCATE(cosv(num_v))
-      ALLOCATE(sinv(num_v))
-      ALLOCATE(cosmu(mnmax,num_u))
-      ALLOCATE(sinmu(mnmax,num_u))
-      ALLOCATE(cosnv(mnmax,num_v))
-      ALLOCATE(sinnv(mnmax,num_v))
-      ALLOCATE(cosmu_nyq(mnmax_nyq,num_u))
-      ALLOCATE(sinmu_nyq(mnmax_nyq,num_u))
-      ALLOCATE(cosnv_nyq(mnmax_nyq,num_v))
-      ALLOCATE(sinnv_nyq(mnmax_nyq,num_v))
-
-      ALLOCATE(bsubuc(mnmax_nyq))
-      ALLOCATE(bsubvc(mnmax_nyq))
-      IF (lasym) THEN
-         ALLOCATE(bsubus(mnmax_nyq))
-         ALLOCATE(bsubvs(mnmax_nyq))
-      END IF
-
-      ALLOCATE(xp(num_u*num_v))
-      ALLOCATE(yp(num_u*num_v))
-      ALLOCATE(zp(num_u*num_v))
-      ALLOCATE(kxp(num_u*num_v))
-      ALLOCATE(kyp(num_u*num_v))
-      ALLOCATE(kzp(num_u*num_v))
-
-!$OMP PARALLEL
-!$OMP& DEFAULT(SHARED)
-!$OMP& PRIVATE(i, r, cosmn, sinmn, cosmn_nyq, sinmn_nyq, ui, vi,               &
-!$OMP&         ru, rv, zu, zv, bu, bv, krp, kpp, lx, ly, lz, l,                &
-!$OMP&         cosphi, sinphi, bx, by, bz)
-
-!  Multi process will do an all reduce so these arrays need to be initialized.
-      bsubuc = 1.5*bsubumnc(:,ns) - 0.5*bsubumnc(:,ns - 1)
-      bsubvc = 1.5*bsubvmnc(:,ns) - 0.5*bsubvmnc(:,ns - 1)
-      IF (parallel%stride .gt. 1 .and. lasym) THEN
-         bsubus = 1.5*bsubumns(:,ns) - 0.5*bsubumns(:,ns - 1)
-         bsubvs = 1.5*bsubvmns(:,ns) - 0.5*bsubvmns(:,ns - 1)
-      END IF
-
-      IF (parallel%stride .gt. 1) THEN
-!$OMP WORKSHARE
-         cosv = 0.0
-         sinv = 0.0
-         cosmu = 0.0
-         sinmu = 0.0
-         cosnv = 0.0
-         sinnv = 0.0
-         cosmu_nyq = 0.0
-         sinmu_nyq = 0.0
-         cosnv_nyq = 0.0
-         sinnv_nyq = 0.0
-         this%k_x = 0.0
-         this%k_y = 0.0
-         this%k_z = 0.0
-!$OMP END WORKSHARE
-      END IF
-
-!$OMP DO
-!$OMP& SCHEDULE(STATIC)
-      DO i = bmw_parallel_context_start(parallel, num_u),                      &
-     &       bmw_parallel_context_end(parallel, num_u)
-         r = (i - 0.5)*du
-         cosmu(:,i) = COS(xm*r)
-         sinmu(:,i) = SIN(xm*r)
-         cosmu_nyq(:,i) = COS(xm_nyq*r)
-         sinmu_nyq(:,i) = SIN(xm_nyq*r)
-      END DO
-!$OMP END DO
-
-!$OMP DO
-!$OMP& SCHEDULE(STATIC)
-      DO i = bmw_parallel_context_start(parallel, num_v),                      &
-     &       bmw_parallel_context_end(parallel, num_v)
-         r = (i - 0.5)*dv
-         cosv(i) = COS(r)
-         sinv(i) = SIN(r)
-         cosnv(:,i) = COS(xn*r)
-         sinnv(:,i) = SIN(xn*r)
-         cosnv_nyq(:,i) = COS(xn_nyq*r)
-         sinnv_nyq(:,i) = SIN(xn_nyq*r)
-      END DO
-!$OMP END DO
-
-      IF (parallel%stride .gt. 1) THEN
-!$OMP SINGLE
-         CALL bmw_parallel_context_reduce(parallel, cosv)
-         CALL bmw_parallel_context_reduce(parallel, sinv)
-         CALL bmw_parallel_context_reduce(parallel, cosmu)
-         CALL bmw_parallel_context_reduce(parallel, sinmu)
-         CALL bmw_parallel_context_reduce(parallel, cosmu_nyq)
-         CALL bmw_parallel_context_reduce(parallel, sinmu_nyq)
-         CALL bmw_parallel_context_reduce(parallel, cosnv)
-         CALL bmw_parallel_context_reduce(parallel, sinnv)
-         CALL bmw_parallel_context_reduce(parallel, cosnv_nyq)
-         CALL bmw_parallel_context_reduce(parallel, sinnv_nyq)
-!$OMP END SINGLE
-      END IF
-
-      ALLOCATE(cosmn(mnmax))
-      ALLOCATE(sinmn(mnmax))
-      ALLOCATE(cosmn_nyq(mnmax_nyq))
-      IF (lasym) THEN
-         ALLOCATE(sinmn_nyq(mnmax_nyq))
-      END IF
-
-      total = bmw_parallel_context_end(parallel, num_u*num_v)
-      total = CEILING(total/parallel%num_threads)
-      current = 0.0
-
-!$OMP DO
-!$OMP& SCHEDULE(STATIC)
-      DO i = bmw_parallel_context_start(parallel, num_u*num_v),                &
-     &       bmw_parallel_context_end(parallel, num_u*num_v)
-         ui = bmw_parallel_context_i(i, num_u)
-         vi = bmw_parallel_context_j(i, num_u, num_v)
-
-         cosmn = cosmu(:,ui)*cosnv(:,vi) + sinmu(:,ui)*sinnv(:,vi)
-         sinmn = sinmu(:,ui)*cosnv(:,vi) - cosmu(:,ui)*sinnv(:,vi)
-         cosmn_nyq = cosmu_nyq(:,ui)*cosnv_nyq(:,vi)                           &
-     &             + sinmu_nyq(:,ui)*sinnv_nyq(:,vi)
-
-         r     = SUM(rmnc(:,ns)*cosmn(:))
-         zp(i) = SUM(zmns(:,ns)*sinmn(:))
-
-         ru = -SUM(xm*rmnc(:,ns)*sinmn(:))
-         rv =  SUM(xn*rmnc(:,ns)*sinmn(:))
-         zu =  SUM(xm*zmns(:,ns)*cosmn(:))
-         zv = -SUM(xn*zmns(:,ns)*cosmn(:))
-
-         bu = SUM(bsubuc*cosmn_nyq(:))
-         bv = SUM(bsubvc*cosmn_nyq(:))
-
-         IF (lasym) THEN
-            sinmn_nyq = sinmu_nyq(:,ui)*cosnv_nyq(:,vi)                        &
-     &                - cosmu_nyq(:,ui)*sinnv_nyq(:,vi)
-
-            r     = r     + SUM(rmns(:,ns)*sinmn(:))
-            zp(i) = zp(i) + SUM(zmnc(:,ns)*cosmn(:))
-
-            ru = ru + SUM(xm*rmns(:,ns)*cosmn(:))
-            rv = rv - SUM(xn*rmns(:,ns)*cosmn(:))
-            zu = zu - SUM(xm*zmnc(:,ns)*sinmn(:))
-            zv = zv + SUM(xn*zmnc(:,ns)*sinmn(:))
-
-            bu = bu + SUM(bsubus*sinmn_nyq(:))
-            bv = bv + SUM(bsubvs*sinmn_nyq(:))
-         END IF
-
-!  Convert the primed coordinates to cartesian. Z prime was calculated directly.
-         xp(i) = r*cosv(vi)
-         yp(i) = r*sinv(vi)
-
-!  Convert the vectors bsubu*esubv and bsubv*esubu to cartesian coordinates.
-         krp = rv*bu - ru*bv
-         kpp = r*bu
-
-         kxp(i) = cosv(vi)*krp - sinv(vi)*kpp
-         kyp(i) = sinv(vi)*krp + cosv(vi)*kpp
-         kzp(i) = zv*bu - zu*bv
-
-!  Progress Reporting
-         IF (parallel%offset .eq. 0) THEN
-!$          IF (OMP_GET_THREAD_NUM() .eq. 0) THEN
-               current = current + 1.0
-               done = 100.0*current/total
-
-               WRITE (io_unit,1000,ADVANCE='NO')                               &
-     &            clear_screen, progress(MOD(INT(current),4)), done
-
-               IF (io_unit .ne. output_unit) THEN
-                  BACKSPACE (io_unit)
-               END IF
-!$          END IF
-         END IF
-      END DO
-!$OMP END DO
-
-      DEALLOCATE(cosmn)
-      DEALLOCATE(sinmn)
-      DEALLOCATE(cosmn_nyq)
-      IF (lasym) THEN
-         DEALLOCATE(sinmn_nyq)
-      END IF
-
-!$OMP SINGLE
-      DEALLOCATE(cosv)
-      DEALLOCATE(sinv)
-      DEALLOCATE(cosmu)
-      DEALLOCATE(sinmu)
-      DEALLOCATE(cosnv)
-      DEALLOCATE(sinnv)
-      DEALLOCATE(cosmu_nyq)
-      DEALLOCATE(sinmu_nyq)
-      DEALLOCATE(cosnv_nyq)
-      DEALLOCATE(sinnv_nyq)
-
-!  Multi process did not fill out the entire array. Get the missing pieces from
-!  the other processes.
-      IF (parallel%stride .gt. 1) THEN
-         CALL bmw_parallel_context_reduce(parallel, xp)
-         CALL bmw_parallel_context_reduce(parallel, yp)
-         CALL bmw_parallel_context_reduce(parallel, zp)
-         CALL bmw_parallel_context_reduce(parallel, kxp)
-         CALL bmw_parallel_context_reduce(parallel, kyp)
-         CALL bmw_parallel_context_reduce(parallel, kzp)
-      END IF
-
-      IF (parallel%offset .eq. 0) THEN
-         WRITE (io_unit,1001) clear_screen
-      END IF
-!$OMP END SINGLE
-
-      ALLOCATE(lx(SIZE(this%x)))
-      ALLOCATE(ly(SIZE(this%x)))
-      ALLOCATE(lz(SIZE(this%x)))
-      ALLOCATE(l(SIZE(this%x)))
-
-      total = bmw_parallel_context_end(parallel, SIZE(this%x))
-      total = CEILING(total/parallel%num_threads)
-      current = 0.0
-
-!  Integrate the surface current to compute the magnetic field at the surface.
-!$OMP DO
-      DO i = bmw_parallel_context_start(parallel, SIZE(this%x)),               &
-     &       bmw_parallel_context_end(parallel, SIZE(this%x))
-         cosphi = COS(this%y(i))
-         sinphi = SIN(this%y(i))
-
-!  FIXME: This conversion will be unnessecary when the coupling surface is
-!         provided in cartesian. For now convert the coordinates. Convert y
-!         first since the radius is needed again.
-         this%y(i) = this%x(i)*sinphi
-         this%x(i) = this%x(i)*cosphi
-
-!  Use these as temp variables to convert the normal direction to cartesian.
-         lx(1) = cosphi*this%x_normal(i) - sinphi*this%y_normal(i)
-         ly(1) = sinphi*this%x_normal(i) + cosphi*this%y_normal(i)
-         this%x_normal(i) = lx(1)
-         this%y_normal(i) = ly(1)
-
-         lx = this%x(i) - xp
-         ly = this%y(i) - yp
-         lz = this%z(i) - zp
-
-         l = SQRT(lx*lx + ly*ly + lz*lz)**3.0
-
-         bx = SUM((kyp*lz - kzp*ly)/l)*int_factor*isigng
-         by = SUM((kzp*lx - kxp*lz)/l)*int_factor*isigng
-         bz = SUM((kxp*ly - kyp*lx)/l)*int_factor*isigng
-
-         WRITE (666,*) this%x(i), this%y(i), this%z(i), bx, by, bz
-
-         this%k_x(i) = -(this%y_normal(i)*bz - this%z_normal(i)*by)/mu0
-         this%k_y(i) = -(this%z_normal(i)*bx - this%x_normal(i)*bz)/mu0
-         this%k_z(i) = -(this%x_normal(i)*by - this%y_normal(i)*bx)/mu0
-
-!  Progress Reporting
-         IF (parallel%offset .eq. 0) THEN
-!$          IF (OMP_GET_THREAD_NUM() .eq. 0) THEN
-               current = current + 1.0
-               done = 100.0*current/total
-
-               WRITE (io_unit,1000,ADVANCE='NO')                               &
-     &            clear_screen, progress(MOD(INT(current),4)), done
-
-               IF (io_unit .ne. output_unit) THEN
-                  BACKSPACE (io_unit)
-               END IF
-!$          END IF
-         END IF
-      END DO
-!$OMP END DO
-
-      this%x(:bmw_parallel_context_start(parallel,                             &
-     &                                   SIZE(this%x)) - 1) = 0.0
-      this%x(bmw_parallel_context_end(parallel,                                &
-     &                                SIZE(this%x)) + 1:) = 0.0
-      this%y(:bmw_parallel_context_start(parallel,                             &
-     &                                   SIZE(this%x)) - 1) = 0.0
-      this%y(bmw_parallel_context_end(parallel,                                &
-     &                                SIZE(this%x)) + 1:) = 0.0
-      this%z(:bmw_parallel_context_start(parallel,                             &
-     &                                   SIZE(this%x)) - 1) = 0.0
-      this%z(bmw_parallel_context_end(parallel,                                &
-     &                                SIZE(this%x)) + 1:) = 0.0
-
-      DEALLOCATE(lx)
-      DEALLOCATE(ly)
-      DEALLOCATE(lz)
-      DEALLOCATE(l)
-
-!$OMP END PARALLEL
-
-      IF (parallel%stride .gt. 1) THEN
-         CALL bmw_parallel_context_reduce(parallel, this%x)
-         CALL bmw_parallel_context_reduce(parallel, this%y)
-         CALL bmw_parallel_context_reduce(parallel, this%z)
-         CALL bmw_parallel_context_reduce(parallel, this%k_x)
-         CALL bmw_parallel_context_reduce(parallel, this%k_y)
-         CALL bmw_parallel_context_reduce(parallel, this%k_z)
-      END IF
-
-      DEALLOCATE(xp)
-      DEALLOCATE(yp)
-      DEALLOCATE(zp)
-      DEALLOCATE(kxp)
-      DEALLOCATE(kyp)
-      DEALLOCATE(kzp)
-
-      IF (parallel%offset .eq. 0) THEN
-         WRITE (io_unit,1002) clear_screen
-      END IF
-
-      CALL profiler_set_stop_time('surface_context_set_current',               &
-     &                            start_time)
-
-1000  FORMAT(a,a,f6.2,' % Finished')
-1001  FORMAT(a,'Equilibrium Grid Finished')
-1002  FORMAT(a,'Coupling Grid Finished')
-
-      END SUBROUTINE
-
 !-------------------------------------------------------------------------------
 !>  @brief Set the virtual current on the surface.
 !>
@@ -661,14 +229,15 @@
 !>  @param[in]    parallel @ref bmw_parallel_context_class object instance.
 !>  @returns A pointer to a constructed @ref bmw_context_class object.
 !-------------------------------------------------------------------------------
-      SUBROUTINE surface_context_set_current_bs(this, io_unit, parallel)
+      SUBROUTINE surface_context_set_current(this, io_unit, parallel)
       USE bmw_parallel_context
       USE stel_constants, ONLY: twopi, mu0
       USE read_wout_mod, ONLY: ns, rmnc, rmns, zmnc, zmns, xm, xn,             &
      &                         bsubumnc, bsubvmnc, bsubumns, bsubvmns,         &
      &                         xm_nyq, xn_nyq, mnmax, mnmax_nyq, lasym,        &
      &                         isigng
-      USE bmw_state_flags, ONLY: clear_screen, progress
+      USE bmw_state_flags, ONLY: clear_screen, progress,                       &
+     &                           bmw_state_flags_off
       USE, INTRINSIC :: iso_fortran_env, Only : output_unit
 
 !  Declare Arguments
@@ -691,9 +260,13 @@
       REAL (rprec)                                  :: by
       REAL (rprec)                                  :: bz
       INTEGER                                       :: i
+      TYPE (primed_grid_class), POINTER             :: p_grid
 
 !  Start of executable code
       start_time = profiler_get_start_time()
+
+      p_grid => primed_grid_construct(101, bmw_state_flags_off,                &
+     &                                '', parallel, io_unit)
 
       total = bmw_parallel_context_end(parallel, SIZE(this%x))
       total = CEILING(total/parallel%num_threads)
@@ -703,18 +276,18 @@
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(i, lx, ly, lz, l, cosphi, sinphi, bx, by, bz)
 
-      ALLOCATE(lx(SIZE(this%p_grid%x, 1),                                      &
-     &            SIZE(this%p_grid%x, 2),                                      &
-     &            SIZE(this%p_grid%x, 3)))
-      ALLOCATE(ly(SIZE(this%p_grid%x, 1),                                      &
-     &            SIZE(this%p_grid%x, 2),                                      &
-     &            SIZE(this%p_grid%x, 3)))
-      ALLOCATE(lz(SIZE(this%p_grid%x, 1),                                      &
-     &            SIZE(this%p_grid%x, 2),                                      &
-     &            SIZE(this%p_grid%x, 3)))
-      ALLOCATE(l(SIZE(this%p_grid%x, 1),                                       &
-     &           SIZE(this%p_grid%x, 2),                                       &
-     &           SIZE(this%p_grid%x, 3)))
+      ALLOCATE(lx(SIZE(p_grid%x, 1),                                           &
+     &            SIZE(p_grid%x, 2),                                           &
+     &            SIZE(p_grid%x, 3)))
+      ALLOCATE(ly(SIZE(p_grid%x, 1),                                           &
+     &            SIZE(p_grid%x, 2),                                           &
+     &            SIZE(p_grid%x, 3)))
+      ALLOCATE(lz(SIZE(p_grid%x, 1),                                           &
+     &            SIZE(p_grid%x, 2),                                           &
+     &            SIZE(p_grid%x, 3)))
+      ALLOCATE(l(SIZE(p_grid%x, 1),                                            &
+     &           SIZE(p_grid%x, 2),                                            &
+     &           SIZE(p_grid%x, 3)))
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
@@ -735,18 +308,15 @@
          this%x_normal(i) = lx(1,1,1)
          this%y_normal(i) = ly(1,1,1)
 
-         lx = this%x(i) - this%p_grid%x
-         ly = this%y(i) - this%p_grid%y
-         lz = this%z(i) - this%p_grid%z
+         lx = this%x(i) - p_grid%x
+         ly = this%y(i) - p_grid%y
+         lz = this%z(i) - p_grid%z
 
          l = SQRT(lx*lx + ly*ly + lz*lz)**3.0
 
-         bx = SUM((this%p_grid%j_y*lz -                                        &
-     &             this%p_grid%j_z*ly)/l)*this%p_grid%dvol
-         by = SUM((this%p_grid%j_z*lx -                                        &
-     &             this%p_grid%j_x*lz)/l)*this%p_grid%dvol
-         bz = SUM((this%p_grid%j_x*ly -                                        &
-     &             this%p_grid%j_y*lx)/l)*this%p_grid%dvol
+         bx = SUM((p_grid%j_y*lz - p_grid%j_z*ly)/l)*p_grid%dvol
+         by = SUM((p_grid%j_z*lx - p_grid%j_x*lz)/l)*p_grid%dvol
+         bz = SUM((p_grid%j_x*ly - p_grid%j_y*lx)/l)*p_grid%dvol
 
          this%k_x(i) = -(this%y_normal(i)*bz - this%z_normal(i)*by)/mu0
          this%k_y(i) = -(this%z_normal(i)*bx - this%x_normal(i)*bz)/mu0
@@ -797,6 +367,9 @@
          CALL bmw_parallel_context_reduce(parallel, this%k_y)
          CALL bmw_parallel_context_reduce(parallel, this%k_z)
       END IF
+
+      CALL primed_grid_destruct(p_grid)
+      p_grid => null()
 
       IF (parallel%offset .eq. 0) THEN
          WRITE (io_unit,1001) clear_screen
