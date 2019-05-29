@@ -165,7 +165,7 @@
       INTEGER                                       :: num_v_use
 
 !  local parameters
-      INTEGER, PARAMETER                            :: num_u = 101
+      INTEGER, PARAMETER                            :: num_u = 100
       REAL (rprec), PARAMETER                       :: du = twopi/num_u
 
 !  Start of executable code
