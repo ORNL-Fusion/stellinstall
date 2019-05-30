@@ -138,20 +138,18 @@
       status = NF_INQ_VARID(ncid, 'y_norm', ynid)
       status = NF_INQ_VARID(ncid, 'z_norm', znid)
 
-      status = NF_GET_VARA_DOUBLE(ncid, xid, (/ 1 /), (/ size /),              &
+      status = NF_GET_VARA_DOUBLE(ncid, xid, 1, size,                          &
      &                            surface_context_construct%x)
-      status = NF_GET_VARA_DOUBLE(ncid, yid, (/ 1 /), (/ size /),              &
+      status = NF_GET_VARA_DOUBLE(ncid, yid, 1, size,                          &
      &                            surface_context_construct%y)
-      status = NF_GET_VARA_DOUBLE(ncid, zid, (/ 1 /), (/ size /),              &
+      status = NF_GET_VARA_DOUBLE(ncid, zid, 1, size,                          &
      &                            surface_context_construct%z)
-      status = NF_GET_VARA_DOUBLE(ncid, xnid, (/ 1 /), (/ size /),             &
+      status = NF_GET_VARA_DOUBLE(ncid, xnid, 1, size,                         &
      &                            surface_context_construct%x_normal)
-      status = NF_GET_VARA_DOUBLE(ncid, ynid, (/ 1 /), (/ size /),             &
+      status = NF_GET_VARA_DOUBLE(ncid, ynid, 1, size,                         &
      &                            surface_context_construct%y_normal)
-      status = NF_GET_VARA_DOUBLE(ncid, znid, (/ 1 /), (/ size /),             &
+      status = NF_GET_VARA_DOUBLE(ncid, znid, 1, size,                         &
      &                            surface_context_construct%z_normal)
-
-      WRITE (666,*) surface_context_construct%z
 
       CALL profiler_set_stop_time('surface_context_construct',                 &
      &                            start_time)
@@ -346,19 +344,6 @@
       END DO
 !$OMP END DO
 
-      this%x(:bmw_parallel_context_start(parallel,                             &
-     &                                   SIZE(this%x)) - 1) = 0.0
-      this%x(bmw_parallel_context_end(parallel,                                &
-     &                                SIZE(this%x)) + 1:) = 0.0
-      this%y(:bmw_parallel_context_start(parallel,                             &
-     &                                   SIZE(this%x)) - 1) = 0.0
-      this%y(bmw_parallel_context_end(parallel,                                &
-     &                                SIZE(this%x)) + 1:) = 0.0
-      this%z(:bmw_parallel_context_start(parallel,                             &
-     &                                   SIZE(this%x)) - 1) = 0.0
-      this%z(bmw_parallel_context_end(parallel,                                &
-     &                                SIZE(this%x)) + 1:) = 0.0
-
       DEALLOCATE(lx)
       DEALLOCATE(ly)
       DEALLOCATE(lz)
@@ -367,9 +352,6 @@
 !$OMP END PARALLEL
 
       IF (parallel%stride .gt. 1) THEN
-         CALL bmw_parallel_context_reduce(parallel, this%x)
-         CALL bmw_parallel_context_reduce(parallel, this%y)
-         CALL bmw_parallel_context_reduce(parallel, this%z)
          CALL bmw_parallel_context_reduce(parallel, this%k_x)
          CALL bmw_parallel_context_reduce(parallel, this%k_y)
          CALL bmw_parallel_context_reduce(parallel, this%k_z)
@@ -382,7 +364,7 @@
          WRITE (io_unit,1001) clear_screen
       END IF
 
-      CALL profiler_set_stop_time('surface_context_set_current_bs',            &
+      CALL profiler_set_stop_time('surface_context_set_current',               &
      &                            start_time)
 
 1000  FORMAT(a,a,f6.2,' % Finished')
