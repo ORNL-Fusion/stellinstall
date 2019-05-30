@@ -64,11 +64,6 @@
          WRITE (*,1001) '-surff'
          CALL surface_commandline_parser_print_help
       END IF
-      IF (.not.surface_commandline_parser_is_flag_set(cl_parser,               &
-     &    '-outf')) THEN
-         WRITE (*,1001) '-outf'
-         CALL surface_commandline_parser_print_help
-      END IF
 
       CALL bmw_parallel_context_set_threads(parallel,                          &
      &        surface_commandline_parser_get_integer(cl_parser, '-para',       &
@@ -97,7 +92,7 @@
       CALL surface_context_set_current(context, io_unit, parallel)
       CALL surface_context_write(context,                                      &
      &        surface_commandline_parser_get_string(cl_parser,                 &
-     &                                              '-outf'),                  &
+     &                                              '-surff'),                 &
      &        io_unit, parallel)
 
       CALL surface_context_destruct(context)

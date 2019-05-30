@@ -68,7 +68,7 @@
      &                                   io_unit)
       USE bmw_parallel_context
       USE read_wout_mod, ONLY: read_wout_file, extcur
-      USE safe_open_mod
+      USE ezcdf
 
       IMPLICIT NONE
 
@@ -85,6 +85,14 @@
       INTEGER                               :: iou
       INTEGER                               :: size
       INTEGER                               :: i
+      INTEGER                               :: ncid
+      INTEGER                               :: size_dim
+      INTEGER                               :: xid
+      INTEGER                               :: yid
+      INTEGER                               :: zid
+      INTEGER                               :: xnid
+      INTEGER                               :: ynid
+      INTEGER                               :: znid
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -106,10 +114,10 @@
       END IF
 
 !  Parse the surface file.
-      iou = 0
-      CALL safe_open(iou, status, TRIM(surface_file_name), 'old',              &
-     &               'formatted')
-      READ (iou, *) size
+      status = NF_OPEN(TRIM(surface_file_name), NF_NOWRITE, ncid)
+
+      status = NF_INQ_DIMID(ncid, 'size', size_dim)
+      status = NF_INQ_DIMLEN(ncid, size_dim, size)
 
       ALLOCATE(surface_context_construct%x(size))
       ALLOCATE(surface_context_construct%y(size))
@@ -123,16 +131,27 @@
       ALLOCATE(surface_context_construct%k_y(size))
       ALLOCATE(surface_context_construct%k_z(size))
 
-      DO i = 1, size
-         READ (iou, *) surface_context_construct%x(i),                         &
-     &                 surface_context_construct%y(i),                         &
-     &                 surface_context_construct%z(i),                         &
-     &                 surface_context_construct%x_normal(i),                  &
-     &                 surface_context_construct%y_normal(i),                  &
-     &                 surface_context_construct%z_normal(i)
-      END DO
+      status = NF_INQ_VARID(ncid, 'x', xid)
+      status = NF_INQ_VARID(ncid, 'y', yid)
+      status = NF_INQ_VARID(ncid, 'z', zid)
+      status = NF_INQ_VARID(ncid, 'x_norm', xnid)
+      status = NF_INQ_VARID(ncid, 'y_norm', ynid)
+      status = NF_INQ_VARID(ncid, 'z_norm', znid)
 
-      CLOSE(iou)
+      status = NF_GET_VARA_DOUBLE(ncid, xid, (/ 1 /), (/ size /),              &
+     &                            surface_context_construct%x)
+      status = NF_GET_VARA_DOUBLE(ncid, yid, (/ 1 /), (/ size /),              &
+     &                            surface_context_construct%y)
+      status = NF_GET_VARA_DOUBLE(ncid, zid, (/ 1 /), (/ size /),              &
+     &                            surface_context_construct%z)
+      status = NF_GET_VARA_DOUBLE(ncid, xnid, (/ 1 /), (/ size /),             &
+     &                            surface_context_construct%x_normal)
+      status = NF_GET_VARA_DOUBLE(ncid, ynid, (/ 1 /), (/ size /),             &
+     &                            surface_context_construct%y_normal)
+      status = NF_GET_VARA_DOUBLE(ncid, znid, (/ 1 /), (/ size /),             &
+     &                            surface_context_construct%z_normal)
+
+      WRITE (666,*) surface_context_construct%z
 
       CALL profiler_set_stop_time('surface_context_construct',                 &
      &                            start_time)
@@ -254,8 +273,6 @@
       REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE   :: ly
       REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE   :: lz
       REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE   :: l
-      REAL (rprec)                                  :: cosphi
-      REAL (rprec)                                  :: sinphi
       REAL (rprec)                                  :: bx
       REAL (rprec)                                  :: by
       REAL (rprec)                                  :: bz
@@ -274,7 +291,7 @@
 
 !$OMP PARALLEL
 !$OMP& DEFAULT(SHARED)
-!$OMP& PRIVATE(i, lx, ly, lz, l, cosphi, sinphi, bx, by, bz)
+!$OMP& PRIVATE(i, lx, ly, lz, l, bx, by, bz)
 
       ALLOCATE(lx(SIZE(p_grid%x, 1),                                           &
      &            SIZE(p_grid%x, 2),                                           &
@@ -293,21 +310,6 @@
 !$OMP& SCHEDULE(STATIC)
       DO i = bmw_parallel_context_start(parallel, SIZE(this%x)),               &
      &       bmw_parallel_context_end(parallel, SIZE(this%x))
-         cosphi = COS(this%y(i))
-         sinphi = SIN(this%y(i))
-
-!  FIXME: This conversion will be unnessecary when the coupling surface is
-!         provided in cartesian. For now convert the coordinates. Convert y
-!         first since the radius is needed again.
-         this%y(i) = this%x(i)*sinphi
-         this%x(i) = this%x(i)*cosphi
-
-!  Use these as temp variables to convert the normal direction to cartesian.
-         lx(1,1,1) = cosphi*this%x_normal(i) - sinphi*this%y_normal(i)
-         ly(1,1,1) = sinphi*this%x_normal(i) + cosphi*this%y_normal(i)
-         this%x_normal(i) = lx(1,1,1)
-         this%y_normal(i) = ly(1,1,1)
-
          lx = this%x(i) - p_grid%x
          ly = this%y(i) - p_grid%y
          lz = this%z(i) - p_grid%z
@@ -318,9 +320,14 @@
          by = SUM((p_grid%j_z*lx - p_grid%j_x*lz)/l)*p_grid%dvol
          bz = SUM((p_grid%j_x*ly - p_grid%j_y*lx)/l)*p_grid%dvol
 
-         this%k_x(i) = -(this%y_normal(i)*bz - this%z_normal(i)*by)/mu0
-         this%k_y(i) = -(this%z_normal(i)*bx - this%x_normal(i)*bz)/mu0
-         this%k_z(i) = -(this%x_normal(i)*by - this%y_normal(i)*bx)/mu0
+!  NOTE: The proper VC current for the coupling surface requires a minus sign
+!        here (-n_hat X B_in). However, the field produced by this current is
+!        meant to cancel out the field due to currents encoded so B_vc = -B_im.
+!        For the coupling ignore the minus so the currents can be used without
+!        adding additonal signs.
+         this%k_x(i) = (this%y_normal(i)*bz - this%z_normal(i)*by)/mu0
+         this%k_y(i) = (this%z_normal(i)*bx - this%x_normal(i)*bz)/mu0
+         this%k_z(i) = (this%x_normal(i)*by - this%y_normal(i)*bx)/mu0
 
 !  Progress Reporting
          IF (parallel%offset .eq. 0) THEN
@@ -389,7 +396,7 @@
       SUBROUTINE surface_context_write(this, output_file, io_unit,             &
      &                                 parallel)
       USE bmw_parallel_context
-      USE safe_open_mod
+      USE ezcdf
 
       IMPLICIT NONE
 
@@ -404,21 +411,49 @@
       INTEGER                                       :: i
       INTEGER                                       :: status
       REAL (rprec)                                  :: start_time
+      INTEGER                                       :: ncid
+      INTEGER                                       :: size_dim
+      INTEGER                                       :: kxid
+      INTEGER                                       :: kyid
+      INTEGER                                       :: kzid
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
       IF (parallel%offset .eq. 0) THEN
-         iou = 0
-         CALL safe_open(iou, status, TRIM(output_file), 'replace',             &
-     &                  'formatted', delim_in='none')
+         status = NF_OPEN(TRIM(output_file), NF_WRITE, ncid)
 
-         DO i = 1, SIZE(this%k_x)
-            WRITE (iou,*) this%x(i),   this%y(i),   this%z(i),                 &
-     &                    this%k_x(i), this%k_y(i), this%k_z(i)
-         END DO
+         status = NF_INQ_DIMID(ncid, 'size', size_dim)
 
-         CLOSE(iou)
+         status = NF_INQ_VARID(ncid, 'k_x', kxid)
+         IF (status .ne. NF_NOERR) THEN
+            status = NF_REDEF(ncid)
+            status = NF_DEF_VAR(ncid, 'k_x', NF_DOUBLE, 1,                     &
+     &                          (/ size_dim /), kxid)
+         END IF
+         status = NF_INQ_VARID(ncid, 'k_y', kyid)
+         IF (status .ne. NF_NOERR) THEN
+            status = NF_REDEF(ncid)
+            status = NF_DEF_VAR(ncid, 'k_y', NF_DOUBLE, 1,                     &
+     &                          (/ size_dim /), kyid)
+         END IF
+         status = NF_INQ_VARID(ncid, 'k_z', kzid)
+         IF (status .ne. NF_NOERR) THEN
+            status = NF_REDEF(ncid)
+            status = NF_DEF_VAR(ncid, 'k_z', NF_DOUBLE, 1,                     &
+     &                          (/ size_dim /), kzid)
+         END IF
+
+         status = NF_ENDDEF(ncid)
+
+         status = NF_PUT_VARA_DOUBLE(ncid, kxid, 1, SIZE(this%x),              &
+     &                               this%k_x)
+         status = NF_PUT_VARA_DOUBLE(ncid, kyid, 1, SIZE(this%x),              &
+     &                               this%k_y)
+         status = NF_PUT_VARA_DOUBLE(ncid, kzid, 1, SIZE(this%x),              &
+     &                               this%k_z)
+
+         status = NF_CLOSE(ncid)
       END IF
 
       CALL profiler_set_stop_time('surface_context_write', start_time)

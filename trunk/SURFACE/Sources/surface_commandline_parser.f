@@ -20,7 +20,6 @@
 !>     @item3{@fixed_width{-h},       N, Displays the help text and exits the program.}
 !>     @item3{@fixed_width{-woutf},   Y, Specify the wout input file name.}
 !>     @item3{@fixed_width{-surff},   Y, Specify the surface file name.}
-!>     @item3{@fixed_width{-outf},    Y, Specify the output input file name.}
 !>     @item3{@fixed_width{-logf},    Y, Write screen output to a log file.}
 !>     @item3{@fixed_width{-para},    Y, Configures openmp parallelism. The value of this flag sets the maximum
 !>                                       number of threads to use. A value of @fixed_width{-1} uses the default.}
@@ -501,8 +500,6 @@
       WRITE(*,*) '  -woutf   Y Specify the wout file name.             '
       WRITE(*,*) '                                                     '
       WRITE(*,*) '  -surff   Y Specify the surface file name.          '
-      WRITE(*,*) '                                                     '
-      WRITE(*,*) '  -outf    Y Specify the output file name.           '
       WRITE(*,*) '                                                     '
       WRITE(*,*) '  -logf    Y Write screen output to a log file.      '
 !     WRITE(*,*) '                                                     '
