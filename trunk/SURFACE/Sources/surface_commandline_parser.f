@@ -425,10 +425,8 @@
 !>
 !>  Command line arguments for
 !>
-!>    * -mgridf
 !>    * -woutf
-!>    * -siestaf
-!>    * -outf
+!>    * -surff
 !>    * -logf
 !>
 !>  require a value to be set.
@@ -454,7 +452,7 @@
 
       SELECT CASE (TRIM(this%arg(index)))
 
-         CASE ('-mgridf','-woutf','-siestaf','-outf','-logf')
+         CASE ('-woutf','-surff','-logf')
             IF (TRIM(this%value(index)) .eq. '') THEN
                WRITE (*,1000) TRIM(this%arg(index)),                           &
      &                        TRIM(this%arg(index))
@@ -502,11 +500,11 @@
       WRITE(*,*) '  -surff   Y Specify the surface file name.          '
       WRITE(*,*) '                                                     '
       WRITE(*,*) '  -logf    Y Write screen output to a log file.      '
-!     WRITE(*,*) '                                                     '
+!$    WRITE(*,*) '                                                     '
 !$    WRITE(*,*) '  -para    Y Determines number of threads threads to '
 !$    WRITE(*,*) '             run with. A value of -1 means use the   '
 !$    WRITE(*,*) '             default number of threads.              '
-!     WRITE(*,*) '                                                     '
+!$    WRITE(*,*) '                                                     '
 
       CALL bmw_parallel_context_abort(0)
 

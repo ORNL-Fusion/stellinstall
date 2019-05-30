@@ -6,7 +6,7 @@
 !  found in the Module not the file.
 !
 !>  SURFACE is a code for computing the virual surface on an arbitray wall
-!>  structure. This uses the virtual casing to compute the interior magnetic
+!>  structure. This uses the biot-savart law to compute the interior magnetic
 !>  field.
 !>
 !>  @author Mark Cianciosa
