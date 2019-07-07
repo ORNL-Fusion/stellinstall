@@ -18,13 +18,16 @@ C-----------------------------------------------
       INTEGER, INTENT(in) :: iseq, ictrl_flag
       INTEGER, INTENT(inout) :: ier_flag
       LOGICAL :: lscreen
+      LOGICAL :: loutput !SAL 070719
       INTEGER :: i, j, ij, k, js, jk, lk, lt, lz, jcount
       REAL(dp) :: tfileon, tfileoff
       REAL(dp), ALLOCATABLE :: buffer(:,:), tmp(:,:)
 C-----------------------------------------------
       CALL second0(tfileon)
 
-      IF (lfreeb .AND. vlactive) THEN
+      loutput = (IAND(ictrl_flag, output_flag) .ne. 0) !SAL 070719
+
+      IF (lfreeb .AND. vlactive .AND. loutput) THEN !SAL070719
          ALLOCATE(buffer(numjs_vac, 7), tmp(nznt, 7),stat=i)
          IF (i .NE. 0) CALL STOPMPI(440)
          buffer(:,1) = brv(nuv3min:nuv3max)
@@ -112,7 +115,7 @@ C-----------------------------------------------
       IF (grank .EQ. 0) THEN
          CALL fileout(iseq, ictrl_flag, ier_flag, lscreen) 
       ENDIF
-      CALL MPI_Barrier(NS_COMM, MPI_ERR)
+      !CALL MPI_Barrier(NS_COMM, MPI_ERR) !SAL 070719
       CALL second0(tfileoff)
       fileout_time = fileout_time + (tfileoff-tfileon)
       fo_par_call_time = fileout_time
