@@ -204,7 +204,7 @@ C-----------------------------------------------
          CALL fixaray
       END IF
 
-      IF(lfreeb) CALL SetVacuumCommunicator(nuv, nuv3, max_grid_size)
+!      IF(lfreeb) CALL SetVacuumCommunicator(nuv, nuv3, max_grid_size)
 
       IF (lreset) THEN
 !
@@ -236,6 +236,8 @@ C-----------------------------------------------
       jacob_off = 0
 
       IF (IAND(ictrl_flag, timestep_flag) .EQ. 0) GOTO 1000
+
+      IF(lfreeb) CALL SetVacuumCommunicator(nuv, nuv3, max_grid_size) !SAL 070719
 
   50  CONTINUE
       iequi = 0
