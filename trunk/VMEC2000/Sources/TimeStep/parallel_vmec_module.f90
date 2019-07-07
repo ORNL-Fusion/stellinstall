@@ -124,7 +124,7 @@ CONTAINS
     INTEGER, INTENT(IN)  :: INCOMM
     LOGICAL, INTENT(IN)  :: LVALUE
 
-    NS_RESLTN = 0
+!    NS_RESLTN = 0  ! SAL 070619
     LIFFREEB = LVALUE
 #if defined(MPI_OPT)
     CALL MPI_Comm_dup(INCOMM,RUNVMEC_COMM_WORLD,MPI_ERR)
@@ -227,6 +227,10 @@ INTEGER, INTENT(IN) :: ns, nzeta, ntheta3
        END IF
        lactive = .TRUE.
        CALL MPI_Comm_rank(NS_COMM,rank,MPI_ERR)
+    ELSE
+       nranks  = 1
+       rank    = 0
+       lactive = .FALSE.
     END IF
 #endif
     END SUBROUTINE SetSurfaceCommunicator
@@ -392,6 +396,7 @@ INTEGER, INTENT(IN) :: ns, nzeta, ntheta3
     INTEGER, INTENT(IN)  :: INCOMM
 #if defined(MPI_OPT)
     CALL MPI_Comm_free(INCOMM, MPI_ERR)
+    lactive = .FALSE.
     IF (ALLOCATED(ntblkrcounts)) DEALLOCATE(ntblkrcounts)
     IF (ALLOCATED(ntblkdisp))    DEALLOCATE(ntblkdisp)
     IF (ALLOCATED(blkrcounts))   DEALLOCATE(blkrcounts)
@@ -405,9 +410,15 @@ INTEGER, INTENT(IN) :: ns, nzeta, ntheta3
   !--------------------------------------------------------------------------
     SUBROUTINE FinalizeRunVmec(INCOMM)
     
-    INTEGER, INTENT(IN)  :: INCOMM
+    INTEGER, INTENT(INOUT)  :: INCOMM
 #if defined(MPI_OPT)
     CALL MPI_Comm_free(INCOMM, MPI_ERR)
+    IF(LIFFREEB) CALL MPI_Comm_free(VAC_COMM,MPI_ERR)
+    INCOMM=0; VAC_COMM = 0
+    rank = 0; par_ns = 0; nranks = 1 !SAL
+    grank = 0; gnranks = 1; vrank = 0; vnranks = 1; last_ns = -1; !SAL
+    NS_RESLTN=0
+    vlactive = .FALSE.
 #endif
     END SUBROUTINE FinalizeRunVmec
   !--------------------------------------------------------------------------
@@ -441,6 +452,10 @@ INTEGER, INTENT(IN) :: ns, nzeta, ntheta3
        CALL SetVacuumPartitions(nuv3,nuv3min, nuv3max)
        CALL Setnuv3PartitionArrays
        vlactive=.TRUE.
+    ELSE
+      vnranks = 1
+      vrank   = 0
+      vlactive=.FALSE.
     END IF
 #else
     nuv3min = 1
