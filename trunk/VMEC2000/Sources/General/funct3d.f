@@ -2,7 +2,7 @@
       USE vmec_main
       USE vacmod, ONLY: bsqvac, bsqvac0, raxis_nestor, zaxis_nestor, 
      &                  nuv, nuv3
-      USE vmec_params, ONLY: ntmax
+      USE vmec_params, ONLY: ntmax, norm_term_flag
       USE realspace
       USE vforces
       USE vsvd, ONLY: router, rinner, gphifac, grmse
@@ -159,12 +159,16 @@ C-----------------------------------------------
          bcovar_time=bcovar_time+(tbcovoff - tbcovon)
 
       END IF ACTIVE1
+      
+      CALL MPI_BCast( ier_flag, 1, MPI_INTEGER, 0, 
+     &                RUNVMEC_COMM_WORLD, MPI_ERR) !SAL 070719
 
 #if defined(MPI_OPT)
       bbuf(1)=irst; bbuf(2)=iequi; bbuf(3)=ivac; bbuf(4)=iter2
       CALL MPI_BCast(bbuf,4,MPI_INTEGER,0,RUNVMEC_COMM_WORLD,MPI_ERR)
       irst=bbuf(1); iequi=bbuf(2); ivac=bbuf(3); iter2=bbuf(4)
       CALL MPI_BCast(lfreeb,1,MPI_LOGICAL,0,RUNVMEC_COMM_WORLD,MPI_ERR)
+      IF (ier_flag .ne. norm_term_flag) RETURN !SAL 070719
 #endif
 
       IF (irst.EQ.2 .AND. iequi.EQ.0) THEN
