@@ -181,4 +181,14 @@ file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/tests/preconditioner_test/input.te
 file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/tests/preconditioner_test/v3rfun.in
       DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tests/preconditioner_test)
 
+#  Copy common files to the lasym boundary test directory.
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/tests/lasym_boundary/input.test.v3fit
+      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tests/lasym_boundary)
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/tests/lasym_boundary/input.test.vmec
+      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tests/lasym_boundary)
+
+#  Copy common files to the niter  test directory.
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/tests/niter_test/input.test.vmec
+      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tests/niter_test)
+
 add_subdirectory (tests)
