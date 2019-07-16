@@ -68,10 +68,10 @@ C-----------------------------------------------
          IF (lactive) THEN
             IF (lfreeb) THEN
                WRITE(nthreed,1002) nranks, vnranks
-               PRINT 1002, nranks, vnranks
+               IF (lscreen) PRINT 1002, nranks, vnranks
             ELSE
                WRITE (nthreed, 1001) nranks
-               PRINT 1001, nranks
+               IF (lscreen) PRINT 1001, nranks
             END IF
          END IF
 
@@ -96,7 +96,7 @@ C-----------------------------------------------
          CALL getrz(xstore)
          ns = ns1 + 1
 #endif
-         IF(PARVMEC) THEN
+         IF (PARVMEC) THEN
 #if defined(MPI_OPT)
             pgc(1:neqs2_old) = pscalxc(1:neqs2_old)*pxstore(1:neqs2_old)
             IF (lfreeb) THEN
