@@ -14,6 +14,7 @@
        USE mpi_inc
  
        IMPLICIT NONE
+
        PRIVATE
        INTEGER, PARAMETER :: isym=0, iasym=1
        INTEGER, PARAMETER :: m0=0, m1=1
@@ -26,135 +27,155 @@
 
        CONTAINS
 
-       SUBROUTINE init_state(lcurrent_only, lpar_in)
-!     
-!     PURPOSE: Computes initial values of equilibrium pressure, fields
-!              needed to evaluate forces to update those quantities
-!              NOT called inside of linearization loops (where these are
-!              FIXED quantities)
-!
-       USE bhtobf
-       USE utilities, ONLY: GradientFull
-       USE metrics, ONLY: tolowerf
-       USE shared_data, ONLY: fsq_total, l_getfsq, ste, buv_res,        &
-                              l_update_state
-       USE hessian, ONLY: muPar
-       USE siesta_currents, ONLY: cv_currents
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-       LOGICAL, INTENT(IN)           :: lcurrent_only
-       LOGICAL, INTENT(IN), OPTIONAL :: lpar_in
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-       INTEGER            :: istat, n1, n2, nmax, endr, startr
-       REAL(dp)           :: ton, toff, stes(2), rtes(2)
-       LOGICAL            :: ladd_pert0, lpar
-!-----------------------------------------------
-!NOTE: jbupXmnPh, jpmnPh are initially computed on FULL ns mesh, and are GATHERED to that 
-!      FULL ns mesh in update_state
+!-------------------------------------------------------------------------------
+!>  @brief Initialize equilibrium state.
+!>
+!>  @param[in] lcurrent_only Only update to the current.
+!>  @param[in] lpar_in       Controls if this is a parallel call or a serial
+!>                           call.
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_state(lcurrent_only, lpar_in)
+      USE bhtobf
+      USE utilities, ONLY: GradientFull
+      USE metrics, ONLY: tolowerf
+      USE shared_data, ONLY: fsq_total, l_getfsq, ste, buv_res,                &
+                             l_update_state
+      USE hessian, ONLY: muPar
+      USE siesta_currents, ONLY: cv_currents
+      USE island_params, ONLY: ohs=>ohs_i
 
-       istat = 0
-       lpar = .TRUE.
-       IF (PRESENT(lpar_in)) lpar=lpar_in
-       IF (.NOT.lpar) THEN
-          startr = startglobrow;  endr = endglobrow
-          startglobrow = 1;       endglobrow = ns
-       END IF
-       nsmin=MAX(1,startglobrow-1); nsmax=MIN(ns,endglobrow+2)
+      IMPLICIT NONE
+
+!  Declare Arguments
+      LOGICAL, INTENT(IN)           :: lcurrent_only
+      LOGICAL, INTENT(IN), OPTIONAL :: lpar_in
+
+!  local variables
+      INTEGER                       :: istat
+      INTEGER                       :: n1
+      INTEGER                       :: n2
+      INTEGER                       :: nmax
+      INTEGER                       :: endr
+      INTEGER                       :: startr
+      REAL (dp)                     :: ton
+      REAL (dp)                     :: toff
+      REAL (dp)                     :: temp(2)
+      LOGICAL                       :: ladd_pert0
+      LOGICAL                       :: lpar
+
+!  Start of executable code
+!  jbupXmnPh and jpmnPh are initially computed on full ns mesh, and are gathered
+!  to that full ns mesh in update_state
+      istat = 0
+      IF (PRESENT(lpar_in)) THEN
+         lpar = lpar_in
+      ELSE
+         lpar = .true.
+      END IF
+
+      IF (.not.lpar) THEN
+         startr = startglobrow
+         endr = endglobrow
+         startglobrow = 1
+         endglobrow = ns
+      END IF
+      nsmin = MAX(1, startglobrow - 1)
+      nsmax = MIN(ns, endglobrow + 2)
        
 !Unnecessary to recompute magnetic fields or currents: already stored at this point!
-       ladd_pert0 = ALLOCATED(buv_res)
-       IF (ladd_pert0) GOTO 100
-       
-       CALL Init_Allocate_Arrays (lpar)
+      ladd_pert0 = ALLOCATED(buv_res)
+      IF (ladd_pert0) GOTO 100
 
+      CALL Init_Allocate_Arrays(lpar)
 
-!Calculate unperturbed half mesh jac*bsupX and jac*pressure on [nsmin,nsmax]
-!Sum symmetric and (for lasym) asymmetric parts
-!Returning from update_state, jbsupXmn, jpmn have been gathered onto all processors
-       CALL GetFields(jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch, isym)
-       IF (lasym)                                                       &
-       CALL GetFields(jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh, iasym)
-       
-!Convert jac*bsubXh to bsupXh and jac*pres to presh in real space
+!  Calculate unperturbed half mesh jac*bsupX and jac*pressure from nsmin to
+!  nsmax. Sum symmetric and (for lasym) asymmetric parts. Returning from
+!  update_state, jbsupXmn, jpmn have been gathered onto all processors.
+      CALL GetFields(jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch, isym)
+      IF (lasym) THEN
+         CALL GetFields(jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh, iasym)
+      END IF
 
-!On exit, bsupXf, pf0 valid on [nsmin, nsmax-1]
-       CALL bhalftobfull (bsupsijh0, bsupuijh0, bsupvijh0,              &
-                          bsupsijf0, bsupuijf0, bsupvijf0,              &
-                          pijh0, pijf0)
+!  Convert jac*bsubXh to bsupXh and jac*pres to presh in real space. On exit,
+!  bsupXf and pf0 ae valid on [nsmin, nsmax - 1]
+      CALL bhalftobfull(bsupsijh0, bsupuijh0, bsupvijh0,                       &
+                        bsupsijf0, bsupuijf0, bsupvijf0,                       &
+                        pijh0, pijf0)
 
-!Compute and store unperturbed current components on full mesh, KsupX = sqrt(g)*JsupX
-       CALL cv_currents (bsupsijh0, bsupuijh0, bsupvijh0,               &
-                         ksupsijf0, ksupuijf0, ksupvijf0,               &
-                         l_getfsq, .TRUE.)
+!  Compute and store unperturbed current components on full mesh,
+!  KsupX = sqrt(g)*JsupX
+      CALL cv_currents(bsupsijh0, bsupuijh0, bsupvijh0,                       &
+                       ksupsijf0, ksupuijf0, ksupvijf0,                       &
+                       l_getfsq, .TRUE.)
 
-       IF (lcurrent_only) RETURN
+      IF (lcurrent_only) RETURN
 
-!Need this for resistive diffusion (|| resistivity) and mupar damping
- 100   CONTINUE
+!  Need this for resistive diffusion (|| resistivity) and mupar damping
+ 100  CONTINUE
  
-       IF (ladd_pert0 .OR. muPar.NE.zero) THEN
-          nmax=MIN(endglobrow+1,ns)
-          CALL tolowerf(bsupsijf0,bsupuijf0,bsupvijf0,                  & ! Calculate K || B
-                        bsubsijf, bsubuijf, bsubvijf,                   &
-                        nsmin, nmax)  
-!     IN UPDATE-BFIELD, KSUB = jacob*JSUB: PARALLEL CURRENT
-          IF (ladd_pert0) THEN
-             ksubsijf(:,:,nsmin:nmax) = bsubsijf(:,:,nsmin:nmax)
-             ksubuijf(:,:,nsmin:nmax) = bsubuijf(:,:,nsmin:nmax)
-             ksubvijf(:,:,nsmin:nmax) = bsubvijf(:,:,nsmin:nmax)
-             RETURN
-          END IF
-       END IF
+      IF (ladd_pert0 .OR. muPar.NE.zero) THEN
+         nmax = MIN(endglobrow + 1,ns)
+!  Calculate K || B
+         CALL tolowerf(bsupsijf0,bsupuijf0,bsupvijf0,                         &
+                       bsubsijf, bsubuijf, bsubvijf,                          &
+                       nsmin, nmax)
+!  IN UPDATE-BFIELD, KSUB = jacob*JSUB: PARALLEL CURRENT
+         IF (ladd_pert0) THEN
+            ksubsijf(:,:,nsmin:nmax) = bsubsijf(:,:,nsmin:nmax)
+            ksubuijf(:,:,nsmin:nmax) = bsubuijf(:,:,nsmin:nmax)
+            ksubvijf(:,:,nsmin:nmax) = bsubvijf(:,:,nsmin:nmax)
+            RETURN
+         END IF
+      END IF
      
 !Compute spectrally filtered dp/du and dp/dv on half radial grid [nsmin:nsmax]
-       IF (l_update_state) ALLOCATE (pfilter(ntheta, nzeta, nsmin:nsmax))
-       CALL FilterPressure(isym)
-       IF (lasym)                                                       &
-       CALL FilterPressure(iasym)
+      IF (l_update_state) THEN
+         ALLOCATE(pfilter(ntheta, nzeta, nsmin:nsmax))
+      END IF
+      CALL FilterPressure(isym)
+      IF (lasym) THEN
+         CALL FilterPressure(iasym)
+      END IF
 
 !Compute radial pressure derivative pijf0_ds at full mesh points [nsmin:nsmax-1]
-       CALL GradientFull(pijf0_ds, pijh0)
+      CALL GradientFull(pijf0_ds, pijh0)
 
 !SPH: one-sided (m=1) derivative at origin yields factor of 2 (1/(hs/2))
-       IF (nsmin .EQ. 1) THEN
-          pijf0_ds(:,:,1) = 2*(pijh0(:,:,2)-pijh0(:,:,1))*ohs
-       END IF
+      IF (nsmin .EQ. 1) THEN
+         pijf0_ds(:,:,1) = 2*(pijh0(:,:,2)-pijh0(:,:,1))*ohs
+      END IF
       
 !SPH11-3-16 preserve s=1 as iso-pressure contour
-       IF (nsmax.EQ.ns .AND. l_pedge) THEN
-          pijf0(:,:,ns) = pedge
-          pijf0_ds(:,:,ns) = 0
-       END IF
+      IF (nsmax.EQ.ns .AND. l_pedge) THEN
+         pijf0(:,:,ns) = pedge
+         pijf0_ds(:,:,ns) = 0
+      END IF
 
 !Fourier filter (Nyquist) check
-       IF (.NOT.l_update_state) RETURN
+      IF (.NOT.l_update_state) RETURN
 !pijh is unfiltered
-       n1=MAX(1,startglobrow); n2=MIN(ns,endglobrow)
-       IF (n1 .EQ. 1) pfilter(:,:,1) = 0
-       stes(1) = SUM((pijh0(:,:,n1:n2)-pfilter(:,:,n1:n2))**2)
-       stes(2) = SUM((pijh0(:,:,n1:n2)+pfilter(:,:,n1:n2))**2)
+      n1=MAX(1,startglobrow); n2=MIN(ns,endglobrow)
+      IF (n1 .EQ. 1) pfilter(:,:,1) = 0
+      temp(1) = SUM((pijh0(:,:,n1:n2)-pfilter(:,:,n1:n2))**2)
+      temp(2) = SUM((pijh0(:,:,n1:n2)+pfilter(:,:,n1:n2))**2)
 #if defined(MPI_OPT)
-       CALL MPI_ALLREDUCE(stes, rtes, 2, MPI_REAL8, MPI_SUM,            &
-                          SIESTA_COMM, MPI_ERR)
-       IF (rtes(2) .NE. zero) ste(1) = SQRT(rtes(1)/rtes(2))
-#else
-       IF (stes(2) .NE. zero) ste(1) = SQRT(stes(1)/stes(2))
+      CALL MPI_ALLREDUCE(MPI_IN_PLACE, temp, 2, MPI_REAL8, MPI_SUM,            &
+                         SIESTA_COMM, MPI_ERR)
 #endif
-       DEALLOCATE (pfilter)
+      IF (temp(2) .ne. zero) ste(1) = SQRT(temp(1)/temp(2))
+      DEALLOCATE(pfilter)
 
-       CALL CheckFFT(jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch, isym)
-       IF (lasym)                                                       &
-       CALL CheckFFT(jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh, iasym)
+      CALL CheckFFT(jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch, isym)
+      IF (lasym) THEN
+         CALL CheckFFT(jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh, iasym)
+      END IF
 
-       IF (.NOT.lpar) THEN
-          startglobrow=startr;  endglobrow=endr 
-       END IF
+      IF (.not.lpar) THEN
+         startglobrow = startr
+         endglobrow = endr
+      END IF
 
-       END SUBROUTINE init_state
-
+      END SUBROUTINE init_state
 
 !>  \brief subroutine for allocating unperturbed array
        SUBROUTINE Init_Allocate_Arrays(lpar)
@@ -267,118 +288,139 @@
        END IF
 
        IF (lalloc) THEN
-          IF (SIZE(ksupsmnsf,3) .EQ. n3) lrealloc=.FALSE.
-          IF (lrealloc) THEN
-          DEALLOCATE (ksupsmnsf, ksupumncf, ksupvmncf,                  &
-                      djpmnch, djbsupsmnsh, djbsupumnch, djbsupvmnch,   &
-                      stat=istat)
-          CALL ASSERT(istat.EQ.0,'Deallocation error #2 in Init_Allocate_Arrays')
-          IF (lasym) THEN
-          DEALLOCATE (ksupsmncf, ksupumnsf, ksupvmnsf,                  &
-                      djpmnsh, djbsupsmnch, djbsupumnsh, djbsupvmnsh,   &
-                      stat=istat)
-          CALL ASSERT(istat.EQ.0,'Deallocation error #3 in Init_Allocate_Arrays')
+          IF (SIZE(ksupsmnsf,3) .EQ. n3) THEN
+             lrealloc = .FALSE.
           END IF
+          IF (lrealloc) THEN
+             DEALLOCATE(ksupsmnsf, ksupumncf, ksupvmncf,                    &
+                        djpmnch, djbsupsmnsh, djbsupumnch, djbsupvmnch,     &
+                        stat=istat)
+             CALL ASSERT(istat.EQ.0,'Deallocation error #2 in Init_Allocate_Arrays')
+             IF (lasym) THEN
+                DEALLOCATE(ksupsmncf, ksupumnsf, ksupvmnsf,                 &
+                           djpmnsh, djbsupsmnch, djbsupumnsh, djbsupvmnsh,  &
+                           stat=istat)
+                CALL ASSERT(istat.EQ.0,'Deallocation error #3 in Init_Allocate_Arrays')
+             END IF
           END IF
        END IF
 
        IF (lrealloc) THEN
           IF (lpar) THEN
-             ALLOCATE (ksupsmnsf(0:mpol,-ntor:ntor,nsmin1:nsmax),       & 
-                       ksupumncf(0:mpol,-ntor:ntor,nsmin1:nsmax),       &
-                       ksupvmncf(0:mpol,-ntor:ntor,nsmin1:nsmax),       &
-                       djpmnch(0:mpol,-ntor:ntor,nsmin:nsmax),          &
-                       djbsupsmnsh(0:mpol,-ntor:ntor,nsmin:nsmax),      &
-                       djbsupumnch(0:mpol,-ntor:ntor,nsmin:nsmax),      &
-                       djbsupvmnch(0:mpol,-ntor:ntor,nsmin:nsmax),      &
-                       stat=istat)
+                ALLOCATE(ksupsmnsf(0:mpol,-ntor:ntor,nsmin1:nsmax),            &
+                         ksupumncf(0:mpol,-ntor:ntor,nsmin1:nsmax),            &
+                         ksupvmncf(0:mpol,-ntor:ntor,nsmin1:nsmax),            &
+                         djpmnch(0:mpol,-ntor:ntor,nsmin:nsmax),               &
+                         djbsupsmnsh(0:mpol,-ntor:ntor,nsmin:nsmax),           &
+                         djbsupumnch(0:mpol,-ntor:ntor,nsmin:nsmax),           &
+                         djbsupvmnch(0:mpol,-ntor:ntor,nsmin:nsmax),           &
+                         stat=istat)
              IF (lasym) THEN
-             ALLOCATE (ksupsmncf(0:mpol,-ntor:ntor,nsmin1:nsmax),       & 
-                       ksupumnsf(0:mpol,-ntor:ntor,nsmin1:nsmax),       &
-                       ksupvmnsf(0:mpol,-ntor:ntor,nsmin1:nsmax),       &
-                       djpmnsh(0:mpol,-ntor:ntor,nsmin:nsmax),          &
-                       djbsupsmnch(0:mpol,-ntor:ntor,nsmin:nsmax),      &
-                       djbsupumnsh(0:mpol,-ntor:ntor,nsmin:nsmax),      &
-                       djbsupvmnsh(0:mpol,-ntor:ntor,nsmin:nsmax),      &
-                       stat=istat)
+                ALLOCATE(ksupsmncf(0:mpol,-ntor:ntor,nsmin1:nsmax),            &
+                         ksupumnsf(0:mpol,-ntor:ntor,nsmin1:nsmax),            &
+                         ksupvmnsf(0:mpol,-ntor:ntor,nsmin1:nsmax),            &
+                         djpmnsh(0:mpol,-ntor:ntor,nsmin:nsmax),               &
+                         djbsupsmnch(0:mpol,-ntor:ntor,nsmin:nsmax),           &
+                         djbsupumnsh(0:mpol,-ntor:ntor,nsmin:nsmax),           &
+                         djbsupvmnsh(0:mpol,-ntor:ntor,nsmin:nsmax),           &
+                         stat=istat)
              END IF
-                       
           ELSE
-             ALLOCATE (ksupsmnsf(0:mpol,-ntor:ntor,n3),                 & 
-                       ksupumncf(0:mpol,-ntor:ntor,n3),                 &
-                       ksupvmncf(0:mpol,-ntor:ntor,n3),                 & 
-                       djpmnch(0:mpol,-ntor:ntor,n3),                   &
-                       djbsupsmnsh(0:mpol,-ntor:ntor,n3),               &
-                       djbsupumnch(0:mpol,-ntor:ntor,n3),               &
-                       djbsupvmnch(0:mpol,-ntor:ntor,n3),               &
-                       stat=istat)
+             ALLOCATE(ksupsmnsf(0:mpol,-ntor:ntor,n3),                         &
+                      ksupumncf(0:mpol,-ntor:ntor,n3),                         &
+                      ksupvmncf(0:mpol,-ntor:ntor,n3),                         &
+                      djpmnch(0:mpol,-ntor:ntor,n3),                           &
+                      djbsupsmnsh(0:mpol,-ntor:ntor,n3),                       &
+                      djbsupumnch(0:mpol,-ntor:ntor,n3),                       &
+                      djbsupvmnch(0:mpol,-ntor:ntor,n3),                       &
+                      stat=istat)
              IF (lasym) THEN
-             ALLOCATE (ksupsmncf(0:mpol,-ntor:ntor,n3),                 & 
-                       ksupumnsf(0:mpol,-ntor:ntor,n3),                 &
-                       ksupvmnsf(0:mpol,-ntor:ntor,n3),                 & 
-                       djpmnsh(0:mpol,-ntor:ntor,n3),                   &
-                       djbsupsmnch(0:mpol,-ntor:ntor,n3),               &
-                       djbsupumnsh(0:mpol,-ntor:ntor,n3),               &
-                       djbsupvmnsh(0:mpol,-ntor:ntor,n3),               &
-                       stat=istat)
+                ALLOCATE(ksupsmncf(0:mpol,-ntor:ntor,n3),                      &
+                         ksupumnsf(0:mpol,-ntor:ntor,n3),                      &
+                         ksupvmnsf(0:mpol,-ntor:ntor,n3),                      &
+                         djpmnsh(0:mpol,-ntor:ntor,n3),                        &
+                         djbsupsmnch(0:mpol,-ntor:ntor,n3),                    &
+                         djbsupumnsh(0:mpol,-ntor:ntor,n3),                    &
+                         djbsupvmnsh(0:mpol,-ntor:ntor,n3),                    &
+                         stat=istat)
              END IF
           END IF
           CALL ASSERT(istat.EQ.0, 'Allocation error #2 in Init_Allocate_Arrays')
-          djpmnch = 0; djbsupsmnsh = 0; djbsupumnch = 0; djbsupvmnch = 0 
+          djpmnch = 0
+          djbsupsmnsh = 0
+          djbsupumnch = 0
+          djbsupvmnch = 0
           IF (lasym) THEN
-          djpmnsh = 0; djbsupsmnch = 0; djbsupumnsh = 0; djbsupvmnsh = 0 
-          ENDIF
+             djpmnsh = 0
+             djbsupsmnch = 0
+             djbsupumnsh = 0
+             djbsupvmnsh = 0
+          END IF
        END IF
 
-
-       END SUBROUTINE Init_Allocate_Arrays
+       END SUBROUTINE
        
+!-------------------------------------------------------------------------------
+!>  @brief Get magnetic field and pressure on the real space mesh.
+!>
+!>  All quantities contain a Jacobian term.
+!>
+!>  @param[inout] jbsupsmnh Contravariant B field s component on the half grid.
+!>  @param[inout] jbsupumnh Contravariant B field u component on the half grid.
+!>  @param[inout] jbsupvmnh Contravariant B field v component on the half grid.
+!>  @param[inout] jpmnh     Pressure on the half grid.
+!>  @param[in]    iparity   Parity of the quantities.
+!-------------------------------------------------------------------------------
+      SUBROUTINE GetFields(jbsupsmnh, jbsupumnh, jbsupvmnh, jpmnh, iparity)
 
-!>  \brief Subroutine for getting magnetic field components, pressure in
-!>   real space (half radial grid)
-       SUBROUTINE GetFields(jbsupsmnh, jbsupumnh, jbsupvmnh,            &
-                            jpmnh, ipar)
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-       REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(INOUT) ::        &
-             jbsupsmnh, jbsupumnh, jbsupvmnh, jpmnh
-       INTEGER, INTENT(IN) :: ipar
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-       INTEGER  :: fours, fouru, fourv, fcomb
-!-----------------------------------------------
-       IF (ipar .EQ. isym) THEN
-          fcomb = f_none; fours = f_sin; fouru = f_cos; fourv = f_cos
-       ELSE
-          fcomb = f_sum;  fours = f_cos; fouru = f_sin; fourv = f_sin
-       END IF
+      IMPLICIT NONE
 
-       CALL toijsp_par(jbsupsmnh(:,:,nsmin:nsmax), bsupsijh0, fcomb,    &
-                       fours)
-       CALL toijsp_par(jbsupumnh(:,:,nsmin:nsmax), bsupuijh0, fcomb,    &
-                       fouru)
-       CALL toijsp_par(jbsupvmnh(:,:,nsmin:nsmax), bsupvijh0, fcomb,    &
-                       fourv)
-       CALL toijsp_par(jpmnh(:,:,nsmin:nsmax), pijh0, fcomb,            &
-                       fourv)
+!  Declare Arguments
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jbsupsmnh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jbsupumnh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jbsupvmnh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jpmnh
+      INTEGER, INTENT(in)                                     :: iparity
 
-!
-!check origin values
-       IF (nsmin .EQ. 1) THEN
-          CALL ASSERT(ALL(jbsupsmnh(m1,:,1).EQ.jbsupsmnh(m1,:,2)), 'bmnsh(1) != bmnsh(2)')
-          CALL ASSERT(ALL(jbsupsmnh(m0,:,1).EQ.zero), 'bmnsh(m0:,1) != 0')
-          CALL ASSERT(ALL(jbsupsmnh(m1+1:,:,1).EQ.zero), 'bmnsh(m2:,1) != 0')
-          CALL ASSERT(ALL(jbsupumnh(m0:m1,:,1).EQ.jbsupumnh(m0:m1,:,2)), 'bmnuh(1) != bmnuh(2)')
-          CALL ASSERT(ALL(jbsupumnh(m1+1:,:,1).EQ.zero), 'bmnuh(m2:,1) != 0')
-          CALL ASSERT(ALL(jbsupvmnh(m0,:,1).EQ.jbsupvmnh(m0,:,2)), 'bmnvh(m0,1) != bmnvh(m0,2)')
-          CALL ASSERT(ALL(jbsupvmnh(m1:,:,1).EQ.zero), 'bmnvh(m1:,1) != 0')
-          CALL ASSERT(ALL(jpmnh(m0,:,1).EQ.jpmnh(m0,:,2)), 'pmnh(m0,1) != pmnh(m0,2)')
-          CALL ASSERT(ALL(jpmnh(m1:,:,1).EQ.zero), 'pmnh(m1:,1) != 0')
-       END IF          
+!  local variables
+      INTEGER                                                 :: fours
+      INTEGER                                                 :: fouruvp
+      INTEGER                                                 :: fcomb
 
-       END SUBROUTINE GetFields
+!  Start of executable code
+!  Check origin values
+      IF (nsmin .EQ. 1) THEN
+         CALL assert(ALL(jbsupsmnh(m1,:,1)    .eq. jbsupsmnh(m1,:,2)),         &
+                     'bmnsh(1) != bmnsh(2)')
+         CALL assert(ALL(jbsupsmnh(m0,:,1)    .eq. zero), 'bmnsh(m0:,1) != 0')
+         CALL assert(ALL(jbsupsmnh(m1+1:,:,1) .eq. zero), 'bmnsh(m2:,1) != 0')
+         CALL assert(ALL(jbsupumnh(m0:m1,:,1) .eq. jbsupumnh(m0:m1,:,2)),      &
+                     'bmnuh(1) != bmnuh(2)')
+         CALL assert(ALL(jbsupumnh(m1+1:,:,1) .eq. zero), 'bmnuh(m2:,1) != 0')
+         CALL assert(ALL(jbsupvmnh(m0,:,1)    .eq. jbsupvmnh(m0,:,2)),         &
+                     'bmnvh(m0,1) != bmnvh(m0,2)')
+         CALL assert(ALL(jbsupvmnh(m1:,:,1)   .eq. zero), 'bmnvh(m1:,1) != 0')
+         CALL assert(ALL(jpmnh(m0,:,1)        .eq. jpmnh(m0,:,2)),             &
+                     'pmnh(m0,1) != pmnh(m0,2)')
+         CALL assert(ALL(jpmnh(m1:,:,1)       .eq. zero), 'pmnh(m1:,1) != 0')
+      END IF
+
+      IF (iparity .EQ. isym) THEN
+         fcomb = f_none
+         fours = f_sin
+         fouruvp = f_cos
+      ELSE
+         fcomb = f_sum
+         fours = f_cos
+         fouruvp = f_sin
+      END IF
+
+      CALL toijsp_par(jbsupsmnh(:,:,nsmin:nsmax), bsupsijh0, fcomb, fours)
+      CALL toijsp_par(jbsupumnh(:,:,nsmin:nsmax), bsupuijh0, fcomb, fouruvp)
+      CALL toijsp_par(jbsupvmnh(:,:,nsmin:nsmax), bsupvijh0, fcomb, fouruvp)
+      CALL toijsp_par(jpmnh(:,:,nsmin:nsmax), pijh0, fcomb, fouruvp)
+
+      END SUBROUTINE
 
 
 !>  \brief Subroutine for getting angular derivatives of the pressure
@@ -492,31 +534,26 @@
        
        END SUBROUTINE CheckFFT
 
-!>  \brief Subroutine for checking that p>0
-       SUBROUTINE CheckPressure
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-       REAL(dp) :: pmin, pming
-!-----------------------------------------------
-       pmin = MINVAL(pijh0)
-       pming = pmin
-#if defined(MPI_OPT)
-       IF (PARSOLVER) THEN
-          CALL MPI_ALLREDUCE(pmin, pming, 1 , MPI_REAL8,                &
-               MPI_MIN, SIESTA_COMM, MPI_ERR)
-       END IF
-#endif
-       
-       IF (iam.EQ.0 .AND. lverbose .AND. pming.LT.zero) THEN
-          PRINT 100, 'pijh < 0 in init_state.  ===>',                   &
-              ' Recommend lowering f2 exponent in EVOLUTION'
-       END IF
- 100   FORMAT(1x,2a)
+!-------------------------------------------------------------------------------
+!>  @brief Check that p > 0.
+!-------------------------------------------------------------------------------
+      SUBROUTINE CheckPressure
 
-!SPH101017 This may stabilize convergence (lower f2 exponent or raise lev_marq)
-       IF (pmin .LT. zero) WHERE (pijh0 .LT. zero) pijh0 = zero
-       
-       END SUBROUTINE CheckPressure
+      IMPLICIT NONE
 
-       END MODULE siesta_init
+!  Start of executable code
+      IF (lverbose .and. MINVAL(pijh0) .lt. zero) THEN
+         WRITE (*,1000)
+      END IF
+
+!  This may stabilize convergence (lower f2 exponent or raise lev_marq)
+      WHERE (pijh0 .LT. zero)
+         pijh0 = zero
+      END WHERE
+
+1000  FORMAT(' pijh < 0 in init_state. ===> Recommend lowering f2 exponent',   &
+             ' in evolution')
+
+      END SUBROUTINE
+
+      END MODULE siesta_init

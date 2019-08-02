@@ -29,7 +29,8 @@
       USE island_params, ns => ns_i, mpol => mpol_i, ntor => ntor_i,    &
          ohs => ohs_i, nfp => nfp_i, ntheta => nu_i, nzeta => nv_i  
       USE metrics, rmax_v => rmax, rmin_v => rmin, zmax_v => zmax,      &
-         zmin_v => zmin           
+                   zmin_v => zmin
+      USE vmec_info, ONLY: rmnc_i, rmns_i, zmnc_i, zmns_i
       USE siesta_namelist, ONLY: nphis1=>nphis, nrs1=>nrs, nzs1=>nzs,   & ! NPHIS = number of toroidal planes (CYL or VMEC)
           nus1=>nus, nss1=>nss, nvs1=>nvs, restart_ext,                 & ! NSS, NUS = resolution(VMEC) in PHI-plane
           l_tracing1=>l_tracing,                                        & ! NRS, NZS = resolution(CYL) in PHI-plane
@@ -131,6 +132,7 @@
       USE read_wout_mod, ONLY: lwout_opened, read_wout_file,            &
           read_wout_deallocate
       USE diagnostics_mod, ONLY: dealloc_diagnostics
+      USE siesta_namelist, ONLY: lrestart
       CHARACTER(LEN=*), INTENT(IN) :: wout_file
       INTEGER, INTENT(IN)  :: iter
       LOGICAL, INTENT(IN)  :: close_wout
@@ -139,7 +141,7 @@
 !-----------------------------------------------
       INTEGER  :: istat
 !-----------------------------------------------
-
+      IF (lrestart) RETURN
       CALL read_wout_file(wout_file, istat)
       CALL ASSERT(istat.eq.0,'Error in write_output')
 
@@ -912,7 +914,6 @@
                               ksupsmncf,  ksupumnsf,  ksupvmnsf
         USE diagnostics_mod, ONLY: bdotjmnch, divjmnsh, divbmnsf,       &
                                    bdotjmnsh, divjmnch, divbmncf
-        USE siesta_namelist, ONLY: mres1, nres1, mres2, nres2
         LOGICAL, INTENT(IN)    :: lbfld, lsilo
         REAL(dp), INTENT(IN):: rr, zz, vv, ss, uu                          ! flux-coordinates: (s, u, v) = (SS, UU, VV)
         REAL(dp):: pp, bs, bu, bv, ru, rv, rs, zu, zv, zs,              &

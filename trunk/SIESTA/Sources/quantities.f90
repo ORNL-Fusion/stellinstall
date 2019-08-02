@@ -12,10 +12,10 @@
 !
       USE stel_kinds
       USE stel_constants      
-      USE v3_utilities, ONLY: assert
+      USE v3_utilities, ONLY: assert, assert_eq
       USE island_params, ns=>ns_i, ntheta=>nu_i, nzeta=>nv_i,           &
           mpol=>mpol_i, ntor=>ntor_i, nuv=>nuv_i, mnmax=>mnmax_i,       &
-          ohs=>ohs_i, nfp=>nfp_i    !, mpol32=>mpol32_i, ntor32=>ntor32_i
+          nfp=>nfp_i
       USE descriptor_mod, ONLY: iam, nprocs, SIESTA_COMM
       USE shared_data, ONLY: lasym, lverbose
       USE nscalingtools, ONLY: startglobrow, endglobrow, PARSOLVER, MPI_ERR
@@ -47,7 +47,7 @@
        INTEGER, PRIVATE :: isym=0, iasym=1
        REAL(dp) :: b_factor, p_factor                                      ! Scale internal energy <wb+wp/(gam-1)> to 1
        REAL(dp) :: signjac
-       REAL(dp) :: wp, wb, wp0, wb0                                        ! summed (over procs) energies/local energies
+       REAL(dp) :: wp, wb, wp0                                             ! summed (over procs) energies/local energies
 !---- Fourier Space Arrays - lasym=F parity
        REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                       &  ! Fourier harmonics= BSUP?, VSUB?, P
         jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch,                     & 
@@ -107,104 +107,101 @@
 !*******************************************************************************
 !>  \brief Initializes mpi and computes jacobian
 !*******************************************************************************
-        SUBROUTINE init_quantities
-        USE descriptor_mod, ONLY: LSCALAPACK
-        USE fourier, ONLY: getorigin, tomnsp, toijsp, f_none, f_cos,    &
+      SUBROUTINE init_quantities
+      USE descriptor_mod, ONLY: LSCALAPACK
+      USE fourier, ONLY: getorigin, tomnsp, toijsp, f_none, f_cos,    &
                            f_sin, f_sum, Test_Fourier
-        USE metrics, ONLY: sqrtg
-        USE shared_data, ONLY: mblk_size, ndims, lasym
+      USE metrics, ONLY: sqrtg
+      USE shared_data, ONLY: mblk_size, ndims, lasym
 #if defined(MPI_OPT)        
-        USE prof_mod, ONLY: SetUpScalingAllGather
-#endif        
-#if defined(SKS)
-        USE blocktridiagonalsolver_s, ONLY: Initialize
+      USE prof_mod, ONLY: SetUpScalingAllGather
 #endif
+      USE blocktridiagonalsolver_s, ONLY: Initialize
+      USE siesta_namelist, ONLY: lrestart
+
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-        INTEGER, PARAMETER :: m0=0
-        INTEGER :: istat, l
-        REAL(dp) :: sum1
+      INTEGER, PARAMETER :: m0=0
+      INTEGER :: istat, l
+      REAL(dp) :: sum1
 !-----------------------------------------------
-        p_factor = 1._dp/ABS(wb_i)
-        b_factor = SQRT(p_factor)
-        gnorm_i  = gnorm_i/p_factor
-        
-!Store dimensions
-        IF (lasym) THEN
-           ndims = 6
-        ELSE
-           ndims = 3
-        END IF      
-                
-        mblk_size=ndims*(mpol+1)*(2*ntor+1)
-        
-        CALL ASSERT(mblk_size.NE.0, 'mblk_size = 0 in init_quantities')
-        
-        IF (PARSOLVER) THEN
-#if defined(SKS)
-           CALL Initialize(ns, mblk_size) 
-#endif
-        ELSE IF (LSCALAPACK) THEN
+      IF (PARSOLVER) THEN
+         CALL Initialize(ns, mblk_size)
+      ELSE IF (LSCALAPACK) THEN
 #if defined(MPI_OPT)
-        CALL SetUpScalingAllGather(mblk_size)
+         CALL SetUpScalingAllGather(mblk_size)
 #endif
-        ELSE
-           startglobrow = 1; endglobrow = ns
-        END IF
-        
-!Test orthogonality AFTER mpi is initialized        
-        CALL Test_Fourier
+      ELSE
+         startglobrow = 1
+         endglobrow = ns
+      END IF
 
-!       Allocate and initialize dependent variables
-        CALL alloc_quantities
+#if !defined(NDEBUG)
+!  Test orthogonality AFTER mpi is initialized
+      CALL Test_Fourier
+#endif
 
-        jacobh(:,:,:) = RESHAPE(sqrtg, SHAPE(jacobh))  ! Reshapes sqrtg in local form
+      IF (.not.lrestart) THEN
+!  Allocate and initialize dependent variables
+         CALL alloc_quantities
+
+         p_factor = 1.0_dp/ABS(wb_i)
+         b_factor = SQRT(p_factor)
+         gnorm_i = ABS(wb_i)/(wb_i + wp_i/(gamma - 1.0))
+      END IF
+
+!  Reshapes sqrtg in local form
+      jacobh(:,:,:) = RESHAPE(sqrtg, SHAPE(jacobh))
 
 !AVOID DIVIDE BY ZERO AND STORE AVERAGED VALUE (OVER THETA) 
 !AT FIRST 1/2 GRID PT AT ORIGIN IN JACOBH(1)
-        CALL getorigin (jacobh, m0)
-        signjac = jacobh(1,1,2)/ABS(jacobh(1,1,2))
+      CALL getorigin(jacobh, m0)
+      signjac = jacobh(1,1,2)/ABS(jacobh(1,1,2))
 
-!TO PRESERVE UNPERTURBED (CONSTANT IN s) PART OF PRESSURE, NYQUIST-FILTER JACOBIAN
-!ON: SPH 04-28-16
-!        IF (.FALSE.) THEN
-        CALL tomnsp(jacobh, jacobf, f_cos)                            !use jacobf for dummy storage
-        CALL toijsp(jacobf, jacobh, f_none, f_cos)
-        IF (lasym) THEN
-           CALL tomnsp(jacobh, jacobf, f_sin)
-           CALL toijsp(jacobf, jacobh, f_sum, f_sin)
-        END IF
-!       END IF        
+!  Filter jacobian ro preserve the unperturbed (constant in s) part of the
+!  pressure use jacobf as a temp buffer.
+      CALL tomnsp(jacobh, jacobf, f_cos)
+      CALL toijsp(jacobf, jacobh, f_none, f_cos)
+      IF (lasym) THEN
+         CALL tomnsp(jacobh, jacobf, f_sin)
+         CALL toijsp(jacobf, jacobh, f_sum, f_sin)
+      END IF
         
-        CALL ASSERT(ALL(jacobh*signjac.GT.0),'FILTERED JACOBIAN CHANGED SIGN!')
-        sum1 = SUM((jacobh(:,:,2:)-jacobf(:,:,2:))**2/                  &
-                   (jacobh(:,:,2:)+jacobf(:,:,2:))**2)
-        IF (iam .EQ. 0 .AND. lverbose) PRINT '(a,1pe8.2)',              &
-           ' JACOBIAN SPECTRAL TRUNCATION ERROR: ', SQRT(sum1/SIZE(jacobh))
-!        END IF
+      CALL assert(ALL(jacobh*signjac .gt. 0), 'FILTERED JACOBIAN CHANGED SIGN!')
 
-        CALL to_full_mesh(jacobh, jacobf)
-!Must be consistent with variational form of pressure evolution equation (DO NOT USE 2pt EXTRAPOLATIONS!)
-        jacobf(:,:,1) = jacobh(:,:,1)
-        jacobf(:,:,ns)= jacobh(:,:,ns)
+      IF (iam .eq. 0 .and. lverbose) THEN
+         sum1 = SUM((jacobh(:,:,2:) - jacobf(:,:,2:))**2 /                     &
+                    (jacobh(:,:,2:) + jacobf(:,:,2:))**2)
+         WRITE (*,1000) SQRT(sum1/SIZE(jacobh))
+      END IF
 
-        DO l = 1, ntheta
-            wint(l,:,:) = cosmui(l,m0)
-        END DO         
+      CALL to_full_mesh(jacobh, jacobf)
+! Must be consistent with variational form of pressure evolution equation (DO NOT USE 2pt EXTRAPOLATIONS!)
+      jacobf(:,:,1) = jacobh(:,:,1)
+      jacobf(:,:,ns)= jacobh(:,:,ns)
 
-        ALLOCATE (vp_f(ns), stat=istat)
-        CALL ASSERT(istat.EQ.0,'Allocation error in init_quantities')
-        CALL SurfAverage(vp_f, jacobf, 1, ns)
+      DO l = 1, ntheta
+         wint(l,:,:) = cosmui(l,m0)
+      END DO
+
+      ALLOCATE (vp_f(ns), stat=istat)
+      CALL assert_eq(0, istat, 'Allocation error in init_quantities')
+      CALL SurfAverage(vp_f, jacobf, 1, ns)
 
 !SANITY CHECK: COMPARE TO volume_i
-        sum1 = 0.5*hs_i*(SUM(vp_f(2:ns)) + SUM(vp_f(1:ns-1)))*signjac
-        sum1 = (twopi*twopi)*sum1
-        IF (ABS((sum1-volume_i)/volume_i) .GT. 1.E-3_dp) THEN
-            IF (IAM .EQ. 0 .and. lverbose) PRINT *,'VMEC VOLUME: ',     &
-               volume_i,' SIESTA VOLUME: ', sum1
-        END IF
-        END SUBROUTINE init_quantities
+      sum1 = 0.5*hs_i*(SUM(vp_f(2:ns)) + SUM(vp_f(1:ns-1)))*signjac
+      sum1 = (twopi*twopi)*sum1
+      IF (ABS((sum1-volume_i)/volume_i) .GT. 1.E-3_dp) THEN
+         IF (IAM .EQ. 0 .and. lverbose) THEN
+            WRITE (*,1001) volume_i, sum1
+         END IF
+      END IF
+
+1000  FORMAT(' JACOBIAN SPECTRAL TRUNCATION ERROR: ',1pe8.2)
+1001  FORMAT(' VMEC VOLUME: ', 1pe8.2, 'SIESTA VOLUME: ',1pe8.2)
+
+      END SUBROUTINE init_quantities
 
 !*******************************************************************************
 !>  \brief Initializes half-mesh covariant components of jac*Bsuph-i and jac*presh
@@ -213,7 +210,8 @@
 !*******************************************************************************
         SUBROUTINE Init_Fields
         USE fourier, ONLY: orthonorm, tomnsp_par, f_sin, f_cos
-        USE metrics, ONLY: lmns_i, lmnc_i, sqrtg, iflipj
+        USE vmec_info, ONLY: lmns_i, lmnc_i, iflipj
+        USE metrics, ONLY: sqrtg
         USE mpi_inc
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
@@ -481,81 +479,98 @@
 100     FORMAT(a,f10.2,a)
         END SUBROUTINE Recompute_Lambda
 
-!*******************************************************************************
-!>  \brief Allocates variables that will be updated in the time-advancing subroutines. 
-!>       All variables allocated here are then deallocated in DEALLOC_QUANTITIES, 
-!>       which should be called at the end of the run.
-!*******************************************************************************
-        SUBROUTINE alloc_quantities
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-        INTEGER :: istat
-!-----------------------------------------------
-! Half mesh quantities (harmonics) evolved: 3 magnetic field components and pressure                
-! CONTRAVARIANT MAGNETIC FIELDS
-        ALLOCATE(jbsupsmnsh(0:mpol,-ntor:ntor,ns),                      &  ! Half mesh quantities (harmonics)
-                 jbsupumnch(0:mpol,-ntor:ntor,ns),                      &  ! B^s (sine), B^u (cosine), B^v (cosine)
-                 jbsupvmnch(0:mpol,-ntor:ntor,ns),                      & 
-                 jpmnch    (0:mpol,-ntor:ntor,ns), stat=istat)
-        CALL ASSERT(istat.EQ.0,'Allocation #1 failed in ALLOC_QUANTITIES')
-        jbsupsmnsh = zero; jbsupumnch = zero; jbsupvmnch = zero        
-        jpmnch = zero
+!-------------------------------------------------------------------------------
+!>  @brief Allocates dependant variables.
+!>
+!>  All variables allocated here are then deallocated in dealloc_quantities,
+!>  which should be called at the end of the run.
+!-------------------------------------------------------------------------------
+      SUBROUTINE alloc_quantities
 
-        ALLOCATE (pwr_spec_s(0:mpol,-ntor:ntor,ns,4),                   &
-                  pwr_spec_a(0:mpol,-ntor:ntor,ns,4), stat=istat)
-        CALL ASSERT(istat.EQ.0,'Allocation #2 failed in ALLOC_QUANTITIES')
+      IMPLICIT NONE
 
+!  local variables
+      INTEGER :: istat
 
-        IF (lasym) THEN
+!  Start of executable code
+!  Half mesh quantities (harmonics), B^s (sine), B^u (cosine), B^v (cosine)
+      ALLOCATE(jbsupsmnsh(0:mpol,-ntor:ntor,ns),                             &
+               jbsupumnch(0:mpol,-ntor:ntor,ns),                             &
+               jbsupvmnch(0:mpol,-ntor:ntor,ns),                             &
+               jpmnch    (0:mpol,-ntor:ntor,ns), stat=istat)
+      CALL assert_eq(0, istat, 'Allocation #1 failed in alloc_quantities')
+      jbsupsmnsh = zero
+      jbsupumnch = zero
+      jbsupvmnch = zero
+      jpmnch = zero
 
-        ALLOCATE(jbsupsmnch(0:mpol,-ntor:ntor,ns),                      &  ! Half mesh quantities (harmonics)
-                 jbsupumnsh(0:mpol,-ntor:ntor,ns),                      &  ! B^s (sine), B^u (cosine), B^v (cosine)
-                 jbsupvmnsh(0:mpol,-ntor:ntor,ns),                      & 
-                 jpmnsh    (0:mpol,-ntor:ntor,ns), stat=istat)
-        CALL ASSERT(istat.EQ.0,'Allocation #4 failed in ALLOC_QUANTITIES')
-        jbsupsmnch = zero; jbsupumnsh = zero; jbsupvmnsh = zero        
-        jpmnsh = zero
+      ALLOCATE(pwr_spec_s(0:mpol,-ntor:ntor,ns,4),                             &
+               pwr_spec_a(0:mpol,-ntor:ntor,ns,4), stat=istat)
+      CALL assert_eq(0, istat, 'Allocation #2 failed in alloc_quantities')
 
-        ENDIF
+      IF (lasym) THEN
+!  Half mesh quantities (harmonics), B^s (sine), B^u (cosine), B^v (cosine)
+         ALLOCATE(jbsupsmnch(0:mpol,-ntor:ntor,ns),                            &
+                  jbsupumnsh(0:mpol,-ntor:ntor,ns),                            &
+                  jbsupvmnsh(0:mpol,-ntor:ntor,ns),                            &
+                  jpmnsh    (0:mpol,-ntor:ntor,ns), stat=istat)
+         CALL assert_eq(0, istat, 'Allocation #3 failed in alloc_quantities')
+         jbsupsmnch = zero
+         jbsupumnsh = zero
+         jbsupvmnsh = zero
+         jpmnsh = zero
+      END IF
                 
-        ALLOCATE (bsq(ntheta,nzeta,ns),                                 &
-                  jacobh(ntheta,nzeta,ns), jacobf(ntheta,nzeta,ns),     &
-                  wint(ntheta,nzeta,ns), stat=istat)
-        CALL ASSERT(istat.EQ.0,'Allocation #6 failed in ALLOC_QUANTITIES')
+      ALLOCATE(bsq(ntheta,nzeta,ns), jacobh(ntheta,nzeta,ns),                  &
+               jacobf(ntheta,nzeta,ns), wint(ntheta,nzeta,ns), stat=istat)
+      bsq = 0.0
+      CALL assert_eq(0, istat, 'Allocation #4 failed in alloc_quantities')
 
-        END SUBROUTINE alloc_quantities
-        
-        
-        SUBROUTINE dealloc_quantities
-        USE metrics, ONLY: lmns_i, lmnc_i
-!
-!       Deallocates all variables allocated in ALLOC_QUANTITIES
-!        
-        INTEGER :: istat
-        
-        DEALLOCATE(jpmnch, jbsupsmnsh, jbsupumnch, jbsupvmnch, djpmnch, &
-          djbsupsmnsh, djbsupumnch, djbsupvmnch,                        &
-          ksupsmnsf, ksupumncf, ksupvmncf, pwr_spec_s, pwr_spec_a,      &
-          stat=istat)
+      END SUBROUTINE
 
-        IF (lasym) THEN
-        DEALLOCATE(jpmnsh, jbsupsmnch, jbsupumnsh, jbsupvmnsh, djpmnsh, &
-          djbsupsmnch, djbsupumnsh, djbsupvmnsh,                        &
-          ksupsmncf, ksupumnsf, ksupvmnsf, stat=istat)
-        END IF
+!-------------------------------------------------------------------------------
+!>  @brief Deallocates dependant variables.
+!>
+!>  Deallocates all variables in @ref alloc_quantities and some additional
+!>  variables.
+!-------------------------------------------------------------------------------
+      SUBROUTINE dealloc_quantities
 
-        DEALLOCATE(jacobh, jacobf, jvsupsijf, jvsupuijf, jvsupvijf,     &
-          ksubsijf, ksubuijf, ksubvijf, pijh0, pijf0,                   &
-          pijf0_ds, bsupuijf0, vp_f, bsq, wint,                         &
-          bsupvijf0, bsupsijf0, pijh0_du, pijh0_dv, stat=istat)                      
-        IF(ALLOCATED(bsupsijf0)) DEALLOCATE(bsupsijf0, bsupuijf0, bsupvijf0)
-        IF(ALLOCATED(bsupsijh0)) DEALLOCATE(bsupsijh0, bsupuijh0, bsupvijh0)
-        IF(ALLOCATED(ksupsijf0)) DEALLOCATE(ksupsijf0, ksupuijf0, ksupvijf0)
-        IF(ALLOCATED(bsubsijf))  DEALLOCATE(bsubsijf,  bsubuijf, bsubvijf)
- 
-        CALL ASSERT(istat.EQ.0,'Deallocation failed in dealloc_quantities')
-        
+      IMPLICIT NONE
+
+!  Start of executable code
+!  Quantities allocated in alloc_quantities
+      DEALLOCATE(jpmnch, jbsupsmnsh, jbsupumnch, jbsupvmnch)
+      DEALLOCATE(pwr_spec_s, pwr_spec_a)
+
+!  Other quantities
+      DEALLOCATE(djpmnch, djbsupsmnsh, djbsupumnch, djbsupvmnch,               &
+                 ksupsmnsf, ksupumncf, ksupvmncf)
+      DEALLOCATE(jacobh, jacobf, jvsupsijf, jvsupuijf, jvsupvijf,              &
+                 ksubsijf, ksubuijf, ksubvijf, pijh0, pijf0,                   &
+                 pijf0_ds, bsupuijf0, vp_f, bsq, wint,                         &
+                 bsupvijf0, bsupsijf0, pijh0_du, pijh0_dv)
+      IF (ALLOCATED(bsupsijf0)) THEN
+         DEALLOCATE(bsupsijf0, bsupuijf0, bsupvijf0)
+      END IF
+      IF (ALLOCATED(bsupsijh0)) THEN
+         DEALLOCATE(bsupsijh0, bsupuijh0, bsupvijh0)
+      END IF
+      IF (ALLOCATED(ksupsijf0)) THEN
+         DEALLOCATE(ksupsijf0, ksupuijf0, ksupvijf0)
+      END IF
+      IF (ALLOCATED(bsubsijf)) THEN
+         DEALLOCATE(bsubsijf, bsubuijf, bsubvijf)
+      END IF
+
+!  Asymmetric quantities.
+      IF (lasym) THEN
+!  Quantities allocated in alloc_quantities
+         DEALLOCATE(jpmnsh, jbsupsmnch, jbsupumnsh, jbsupvmnsh)
+!  Other quantities
+         DEALLOCATE(djpmnsh, djbsupsmnch, djbsupumnsh, djbsupvmnsh,                        &
+                    ksupsmncf, ksupumnsf, ksupvmnsf)
+      END IF
 
       END SUBROUTINE dealloc_quantities
 
@@ -622,16 +637,22 @@
 
       END SUBROUTINE toupper_forces
 
-
+!-------------------------------------------------------------------------------
+!>  @brief Gather fields from all processors if running in parallel.
+!-------------------------------------------------------------------------------
       SUBROUTINE GATHERFIELDS
-      
+
+      IMPLICIT NONE
+
+!  Start of executable code
       IF (PARSOLVER) THEN
-      CALL GATHER_FIELDS(jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch)
-      IF (lasym)                                                        &
-      CALL GATHER_FIELDS(jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh)
+         CALL GATHER_FIELDS(jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch)
+         IF (lasym) THEN
+            CALL GATHER_FIELDS(jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh)
+         END IF
       END IF
       
-      END SUBROUTINE GATHERFIELDS  
+      END SUBROUTINE
 
 #if 0
       SUBROUTINE PADFIELDS
@@ -645,55 +666,34 @@
       END SUBROUTINE PADFIELDS      
 #endif
 
+!-------------------------------------------------------------------------------
+!>  @brief Gather fields for a partity.
+!>
+!>
+!-------------------------------------------------------------------------------
       SUBROUTINE GATHER_FIELDS(jbsupsmnh, jbsupumnh, jbsupvmnh, jpmnh)
       USE hessian, ONLY: gather_array
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)   ::                      &
-                jbsupsmnh, jbsupumnh, jbsupvmnh, jpmnh
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: tmps, tmpu, tmpv, tmpp
-      INTEGER  :: istat, nsmin, nsmax, k1, k2
-!-----------------------------------------------
-!
-!     gathers (total) field arrays for [1,ns] onto all processors
-!
-      nsmin=MAX(1,startglobrow); nsmax=MIN(endglobrow,ns)
 
-      CALL ASSERT(ALLOCATED(jbsupsmnh), 'input arrays not allocated in gather_fields')
+      IMPLICIT NONE
 
-      ALLOCATE (tmps(0:mpol,-ntor:ntor,ns), tmpu(0:mpol,-ntor:ntor,ns), &
-                tmpv(0:mpol,-ntor:ntor,ns), tmpp(0:mpol,-ntor:ntor,ns), &
-                stat=istat)
-      CALL ASSERT(istat.EQ.0,'Allocation error #1 in gather_fields')
-      k1 = SIZE(tmps,1)*SIZE(tmps,2)
+!  Start of executable code
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jbsupsmnh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jbsupumnh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jbsupvmnh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jpmnh
 
-      CALL gather_array(jbsupsmnh(:,:,nsmin:nsmax), tmps)
-      CALL gather_array(jbsupumnh(:,:,nsmin:nsmax), tmpu)
-      CALL gather_array(jbsupvmnh(:,:,nsmin:nsmax), tmpv)
-      CALL gather_array(jpmnh(:,:,nsmin:nsmax), tmpp)
+!  Start of executable code
+      CALL assert(ALLOCATED(jbsupsmnh),                                        &
+                  'input arrays not allocated in gather_fields')
+      CALL assert_eq(ns, SIZE(jbsupsmnh,3),                                    &
+                     'Radial array size needs to be ns in GATHER_FIELDS')
 
-      k1 = LBOUND(jpmnh,3);  k2 = UBOUND(jpmnh,3)
-      IF (k1.NE.1 .OR. k2.NE.ns) THEN
-         DEALLOCATE(jbsupsmnh, jbsupumnh, jbsupvmnh, jpmnh, stat=istat)
-         IF (istat .EQ. 0)                                              &
-         ALLOCATE (jbsupsmnh(0:mpol,-ntor:ntor,ns),                     &
-                   jbsupumnh(0:mpol,-ntor:ntor,ns),                     &
-                   jbsupvmnh(0:mpol,-ntor:ntor,ns),                     &
-                   jpmnh(0:mpol,-ntor:ntor,ns), stat=istat)
-         CALL ASSERT(istat.EQ.0,'Allocation error #2 in gather_fields')
-      END IF
+      CALL gather_array(jbsupsmnh)
+      CALL gather_array(jbsupumnh)
+      CALL gather_array(jbsupvmnh)
+      CALL gather_array(jpmnh)
 
-      jbsupsmnh = tmps
-      jbsupumnh = tmpu
-      jbsupvmnh = tmpv
-      jpmnh     = tmpp
-      DEALLOCATE (tmps, tmpu, tmpv, tmpp)
-
-      END SUBROUTINE GATHER_FIELDS
+      END SUBROUTINE
 
 #if 0          
       SUBROUTINE PAD_FIELDS(djbsupsmnh, djbsupumnh, djbsupvmnh, djpmnh)

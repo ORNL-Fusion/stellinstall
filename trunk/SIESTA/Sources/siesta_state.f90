@@ -22,89 +22,113 @@
 
       CONTAINS
 
-!>  \brief Parallel/Serial subroutine for updating the SIESTA state
-      SUBROUTINE update_state (lprint, fsq_total, ftol)
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), INTENT(IN)  :: fsq_total, ftol
-      LOGICAL, INTENT(IN)   :: lprint
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      REAL(dp) :: ton, toff
-      INTEGER  :: nsmin, nsmax, istat
-!-----------------------------------------------
-      CALL second0(ton)
-       
-      CALL UpdateFields(jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch,     &
-                        djbsupsmnsh,djbsupumnch,djbsupvmnch,djpmnch) 
-      IF (lasym)                                                        &
-      CALL UpdateFields(jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh,     &
-                        djbsupsmnch,djbsupumnsh,djbsupvmnsh,djpmnsh)
+!*******************************************************************************
+!  UTILITY SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Update the SIESTA state.
+!>
+!>  Adds the perturbation to the field. This is called before taking the next
+!>  step.
+!>
+!>  @param[in] lprint    Controls screen output.
+!>  @param[in] fsq_total Total force residual.
+!>  @param[in] ftol      Force residual tolarance.
+!-------------------------------------------------------------------------------
+      SUBROUTINE update_state(lprint, fsq_total, ftol)
 
-!     Gather new total fields onto all processors
-      IF (PARSOLVER) CALL GatherFields
+      IMPLICIT NONE
+
+!  Declare Arguments
+      LOGICAL, INTENT(IN)   :: lprint
+      REAL (dp), INTENT(IN) :: fsq_total
+      REAL (dp), INTENT(IN) :: ftol
+
+!  local variables
+      REAL (dp)             :: ton
+      REAL (dp)             :: toff
+      INTEGER               :: nsmin
+      INTEGER               :: nsmax
+
+!  Start of executable code
+      CALL second0(ton)
+
+      CALL UpdateFields(jbsupsmnsh,  jbsupumnch,  jbsupvmnch,  jpmnch,         &
+                        djbsupsmnsh, djbsupumnch, djbsupvmnch, djpmnch)
+      IF (lasym) THEN
+         CALL UpdateFields(jbsupsmnch,  jbsupumnsh,  jbsupvmnsh,  jpmnsh,      &
+                           djbsupsmnch, djbsupumnsh, djbsupvmnsh, djpmnsh)
+      END IF
+
+! Gather new total fields onto all processors
+      IF (PARSOLVER) THEN
+         CALL GatherFields
+      END IF
 
       CALL second0(toff)
-      time_update_state = time_update_state + (toff-ton)
+      time_update_state = time_update_state + (toff - ton)
 
-!     Reset perturbations
+! Reset perturbations
       CALL Clear_Field_Perts
 
       CALL second0(toff)
-      time_update_state = time_update_state + (toff-ton)
+      time_update_state = time_update_state + (toff - ton)
 
-      IF (.NOT.lprint) RETURN
+      IF (.not.lprint) THEN
+         RETURN
+      END IF
 
       CALL second0(ton)
 
-      CALL Update_Diagnostics(jbsupsmnsh, jbsupumnch, jbsupumnch,       &
-                              jpmnch, bs0(1:6), bu0(1:6),               &
-                              bsbu_ratio_s, pwr_spec_s, isym)
-      IF (lasym)                                                        &
-      CALL Update_Diagnostics(jbsupsmnch, jbsupumnsh, jbsupvmnsh,       &
-                              jpmnsh, bs0(7:12), bu0(7:12),             &
-                              bsbu_ratio_a, pwr_spec_a, iasym)
-      lfirst = .FALSE.
+      CALL Update_Diagnostics(jbsupsmnsh, jbsupumnch, jbsupumnch, jpmnch,      &
+                              bs0(1:6), bu0(1:6), bsbu_ratio_s, pwr_spec_s,    &
+                              isym)
+      IF (lasym) THEN
+         CALL Update_Diagnostics(jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh,   &
+                                 bs0(7:12), bu0(7:12), bsbu_ratio_a,           &
+                                 pwr_spec_a, iasym)
+      END IF
+      lfirst = .false.
 
-      nsmin=MAX(1,startglobrow); nsmax=MIN(endglobrow,ns)
+      nsmin = MAX(1, startglobrow)
+      nsmax = MIN(endglobrow, ns)
 
-      CALL init_state (.TRUE.)                          
-!   Compute co-variant and contravariant components of current (times jacobian) - need for divJ, BdotJ
-      lcurr_init=.TRUE.
-      CALL divb(nsmin,nsmax)
-      CALL divj(nsmin,nsmax)
-      CALL bgradp(nsmin,nsmax)
+      CALL init_state(.true.)
+
+!  Compute co-variant and contravariant components of current (times jacobian)
+!  need for divJ, BdotJ
+      lcurr_init = .true.
+      CALL divb(nsmin, nsmax)
+      CALL divj(nsmin, nsmax)
+      CALL bgradp(nsmin, nsmax)
       CALL tflux
-      CALL bdotj_par      
-      lcurr_init=.FALSE.                             
+      CALL bdotj_par
+      lcurr_init = .false.
 
       toroidal_flux = toroidal_flux - toroidal_flux0
       IF (iam .EQ. 0) THEN
-      DO ISTAT = 6, unit_out, unit_out-6
-         IF (.NOT.lverbose .AND. ISTAT.EQ.6) CYCLE
-         WRITE (ISTAT , 110) ste(1), ste(2), ste(3), ste(4),            &
-                             divb_rms, toroidal_flux, wp/wb,            &
-                             bgradp_rms, max_bgradp, min_bgradp,        &
-                             bdotj_rms, bdotj2_rms, divj_rms
-      END DO
-      ENDIF
-
- 110   FORMAT(' SPECTRAL TRUNC ERROR - p: ',1pe11.3,' B_s: ',1pe11.3,   &
-             ' B_u: ',1pe11.3,' B_v: ',1pe11.3,/,                       &
-             ' DIV-B (rms): ',1pe11.3, ' DEL_TFLUX: ',1pe11.3,/,        &
-             ' <BETA>: ', 1pe11.3,' B.GRAD-P (rms): ', 1pe11.3,         &
-             ' B.GRAD-P (max): ', 1pe11.3,' B.GRAD-P (min): ',1pe11.3,  & 
-           /,' (J*B)/|JxB| (rms): ', 1pe11.3,                           &
-             ' (J_par)/|J_tot| (rms): ', 1pe11.3,                       &
-             '   DIV-J (rms): ', 1pe11.3)
+         IF (lverbose) THEN
+            WRITE (*,1000) ste(1), ste(2), ste(3), ste(4), divb_rms,           &
+                           toroidal_flux, wp/wb, bgradp_rms, max_bgradp,       &
+                           min_bgradp, bdotj_rms, bdotj2_rms, divj_rms
+         END IF
+         WRITE (unit_out,1000) ste(1), ste(2), ste(3), ste(4), divb_rms,       &
+                               toroidal_flux, wp/wb, bgradp_rms, max_bgradp,   &
+                               min_bgradp, bdotj_rms, bdotj2_rms, divj_rms
+      END IF
 
       CALL second0(toff)
-      time_update_state = time_update_state + (toff-ton)
+      time_update_state = time_update_state + (toff - ton)
+
+1000  FORMAT(' SPECTRAL TRUNC ERROR - p: ',1pe11.3,' B_s: ',1pe11.3,           &
+             ' B_u: ',1pe11.3,' B_v: ',1pe11.3,/,                              &
+             ' DIV-B (rms): ',1pe11.3, ' DEL_TFLUX: ',1pe11.3,/,               &
+             ' <BETA>: ', 1pe11.3,' B.GRAD-P (rms): ',1pe11.3,                 &
+             ' B.GRAD-P (max): ',1pe11.3,' B.GRAD-P (min): ',1pe11.3,/,        &
+             ' (J*B)/|JxB| (rms): ', 1pe11.3,' (J_par)/|J_tot| (rms): ',       &
+             1pe11.3,'   DIV-J (rms): ',1pe11.3)
 
       END SUBROUTINE update_state
-
 
 !>  \brief Subroutine for updating the fields (B,p) of the SIESTA state
 !!   based on dJBSUPXMNH perturbations computed in update_bfield and update_pressure
@@ -122,7 +146,8 @@
       REAL(dp) :: rho
       INTEGER :: n1, n2
 !-----------------------------------------------
-      n1 = startglobrow;  n2 = endglobrow
+      n1 = startglobrow
+      n2 = endglobrow
 
       jbsupsmnh(:,:,n1:n2) = jbsupsmnh(:,:,n1:n2) + djbsupsmnh(:,:,n1:n2)
       jbsupumnh(:,:,n1:n2) = jbsupumnh(:,:,n1:n2) + djbsupumnh(:,:,n1:n2)
@@ -149,7 +174,7 @@
 !-----------------------------------------------
       CHARACTER*(4)      :: def(2) = (/'SYM ', 'ASYM'/)
       INTEGER, PARAMETER :: m1=1
-      REAL(dp) :: r12, diag_b, diag_p, d1(12), d2(12)
+      REAL(dp) :: r12, diag_b, diag_p, d1(12)
       INTEGER  :: js, itype, n1, n2
 !-----------------------------------------------
       n1 = startglobrow;  n2 = endglobrow
@@ -178,9 +203,9 @@
       
 #if defined(MPI_OPT)
       IF (PARSOLVER) THEN
-      d1(1) = bs(1); d1(2) = bu(1)
-      CALL MPI_BCAST(d1,2,MPI_REAL8,0,SIESTA_COMM,MPI_ERR)
-      bs(1) = d1(1); bu(1) = d1(2)
+         d1(1) = bs(1); d1(2) = bu(1)
+         CALL MPI_BCAST(d1,2,MPI_REAL8,0,SIESTA_COMM,MPI_ERR)
+         bs(1) = d1(1); bu(1) = d1(2)
       END IF
 #endif
       IF (ABS(bu(1)) .GT. 1.E-10_dp) THEN
@@ -192,9 +217,8 @@
          END DO
 #if defined(MPI_OPT)
          IF (PARSOLVER) THEN
-         d2 = d1
-         CALL MPI_ALLREDUCE(d2, d1, 12, MPI_REAL8, MPI_SUM,             &
-                            SIESTA_COMM, MPI_ERR)
+            CALL MPI_ALLREDUCE(MPI_IN_PLACE, d1, 12, MPI_REAL8, MPI_SUM,       &
+                               SIESTA_COMM, MPI_ERR)
          END IF
 #endif
          bs(1:6) = d1(1:6);  bu(1:6) = d1(7:12)
@@ -209,15 +233,14 @@
          pwr_spec(:,:,n1:n2,3) = jbsupvmnh(:,:,n1:n2)
          pwr_spec(:,:,n1:n2,4) = jpmnh(:,:,n1:n2)
       ELSE
-         d1(1) = SUM((jbsupsmnh(:,:,n1:n2)-pwr_spec(:,:,n1:n2,1))**2    &
-                +    (jbsupumnh(:,:,n1:n2)-pwr_spec(:,:,n1:n2,2))**2    &
-                +    (jbsupvmnh(:,:,n1:n2)-pwr_spec(:,:,n1:n2,3))**2)              
+         d1(1) = SUM((jbsupsmnh(:,:,n1:n2)-pwr_spec(:,:,n1:n2,1))**2 + &
+                     (jbsupumnh(:,:,n1:n2)-pwr_spec(:,:,n1:n2,2))**2 + &
+                     (jbsupvmnh(:,:,n1:n2)-pwr_spec(:,:,n1:n2,3))**2)
          d1(2) = SUM((jpmnh(:,:,n1:n2)-pwr_spec(:,:,n1:n2,4))**2)
 #if defined(MPI_OPT)
          IF (PARSOLVER) THEN
-         d2 = d1
-         CALL MPI_ALLREDUCE(d2, d1, 2, MPI_REAL8, MPI_SUM,              &
-                            SIESTA_COMM, MPI_ERR)
+            CALL MPI_ALLREDUCE(MPI_IN_PLACE, d1, 2, MPI_REAL8, MPI_SUM,        &
+                               SIESTA_COMM, MPI_ERR)
 		 END IF
 #endif		 
          diag_b = d1(1);  diag_p = d1(2)

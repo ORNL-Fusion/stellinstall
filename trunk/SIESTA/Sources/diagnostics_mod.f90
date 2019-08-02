@@ -37,6 +37,7 @@
       CONTAINS
 
         SUBROUTINE divb (ns_min, ns_max)
+        USE island_params, ONLY: ohs=>ohs_i
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -45,7 +46,7 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
         INTEGER  :: istat, m, n, n1, n2
-        REAL(dp) :: tnorm, s1(2), r1(2), ton, toff
+        REAL(dp) :: tnorm, temp(2), ton, toff
 !-----------------------------------------------
 !
 !     COMPUTE divB ON FULL MESH POINTS
@@ -85,10 +86,10 @@
        
         divb_rms = SUM(divbmnsf**2 + divbmncf**2)
 #if defined(MPI_OPT)        
-        s1(1) = divb_rms; s1(2) = tnorm
-        CALL MPI_ALLREDUCE(s1,r1,2,MPI_REAL8, MPI_SUM,                  &
+        temp(1) = divb_rms; temp(2) = tnorm
+        CALL MPI_ALLREDUCE(MPI_IN_PLACE,temp,2,MPI_REAL8, MPI_SUM,             &
                            SIESTA_COMM,MPI_ERR)
-        divb_rms=r1(1);   tnorm = r1(2)
+        divb_rms=temp(1);   tnorm = temp(2)
 #endif
         IF (tnorm .NE. zero) THEN
            divb_rms = SQRT(divb_rms/tnorm)
@@ -199,52 +200,82 @@
 
       END SUBROUTINE WRITE_PROFILES
       
-      
-      SUBROUTINE WRITE_SPECTRA (XIJ, XMN, FSYM, FASYM, IGRID,  LABEL, FSQ_TOTAL)
+!-------------------------------------------------------------------------------
+!>  @brief  Write fourier spectra for both regular and pest coordinates.
+!>
+!>  There is no lmn* quantity when using free boundary SIESTA so pest output is
+!>  disabled. Arrays must be ALLOCATABLE to preserve array bounds.
+!>
+!>  @param[inout] xij       Real space quantity.
+!>  @param[inout] xmn       Fourier space buffer.
+!>  @param[in]    fsym      Symmetric parity.
+!>  @param[in]    fasym     Asymmetric parity.
+!>  @param[in]    igrid     Radial grid type. This should either be 0 for full
+!>                          or 1 for half grid.
+!>  @param[in]    label     Name of the quantity in xij.
+!>  @param[in]    fsq_total
+!>------------------------------------------------------------------------------
+      SUBROUTINE write_spectra(xij, xmn, fsym, fasym, igrid, label, fsq_total)
       USE fourier, ONLY: tomnsp_pest
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      INTEGER, INTENT(IN)   :: FSYM, FASYM, IGRID
-      REAL(dp), INTENT(IN)  :: fsq_total
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: XIJ, XMN
-      CHARACTER*(*)         :: LABEL
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      INTEGER               :: n1, n2, n3
-      REAL(dp), ALLOCATABLE :: xijf(:,:,:)
-      CHARACTER(LEN=128)    :: MYLABEL
-!-----------------------------------------------
+      USE vmec_info, ONLY:  lmns => lmns_i, lmnc => lmnc_i
+      USE siesta_namelist, ONLY: l_vessel
+      USE utilities, ONLY: to_full_mesh
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: xij
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: xmn
+      INTEGER, INTENT(IN)                                     :: fsym
+      INTEGER, INTENT(IN)                                     :: fasym
+      INTEGER, INTENT(IN)                                     :: igrid
+      CHARACTER (len=*), INTENT(in)                           :: label
+      REAL (dp), INTENT(IN)                                   :: fsq_total
+
+!  Local variables
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE                :: xijf
+      CHARACTER (LEN=128)                                     :: mylabel
+
+!  Start of executable code
       IF (igrid .EQ. 1) THEN
-         n1 = SIZE(xij,1); n2 = SIZE(xij,2); n3 = SIZE(xij,3)
-         ALLOCATE(xijf(n1,n2,n3))
+         ALLOCATE(xijf(SIZE(xij,1), SIZE(xij,2), SIZE(xij,3)))
          CALL to_full_mesh(xij, xijf)
-         xij = xijf
-         xij = xij/jacobf
+         xij = xijf/jacobf
          DEALLOCATE(xijf)
       END IF
- 
 
-      IF (fsym .EQ. f_cos) MYLABEL = TRIM(LABEL) // "_cosmn; fsq_total: "
-      IF (fsym .EQ. f_sin) MYLABEL = TRIM(LABEL) // "_sinmn; fsq_total: "
-      
-      CALL tomnsp(xij, xmn, fsym)
-      CALL siesta_profiles (unit35, xmn, TRIM(mylabel), fsq_total)
-      CALL tomnsp_pest(xij, xmn, fsym)
-      CALL siesta_profiles (unit36, xmn, TRIM(mylabel), fsq_total)
-      IF (lasym) THEN
-
-         IF (fasym .EQ. f_cos) MYLABEL = TRIM(LABEL) // "_cosmn; fsq_total: "
-         IF (fasym .EQ. f_sin) MYLABEL = TRIM(LABEL) // "_sinmn; fsq_total: "
-
-         CALL tomnsp(xij, xmn, fasym)
-         CALL siesta_profiles (unit35, xmn, TRIM(mylabel), fsq_total)
-         CALL tomnsp_pest(xij, xmn, fasym)
-         CALL siesta_profiles (unit36, xmn, TRIM(mylabel), fsq_total)
+      IF (fsym .EQ. f_cos) THEN
+         WRITE (mylabel,1000) TRIM(LABEL)
+      ELSE
+         WRITE (mylabel,1001) TRIM(LABEL)
       END IF
       
-      END SUBROUTINE WRITE_SPECTRA
+      CALL tomnsp(xij, xmn, fsym)
+      CALL siesta_profiles(unit35, xmn, TRIM(mylabel), fsq_total)
+      IF (.not.l_vessel) THEN
+         CALL tomnsp_pest(xij, xmn, lmns, lmnc, fsym)
+         CALL siesta_profiles(unit36, xmn, TRIM(mylabel), fsq_total)
+      END IF
+      IF (lasym) THEN
+
+         IF (fasym .EQ. f_cos) THEN
+            WRITE (mylabel,1000) TRIM(LABEL)
+         ELSE
+            WRITE (mylabel,1001) TRIM(LABEL)
+         END IF
+
+         CALL tomnsp(xij, xmn, fasym)
+         CALL siesta_profiles(unit35, xmn, TRIM(mylabel), fsq_total)
+         IF (.not.l_vessel) THEN
+            CALL tomnsp_pest(xij, xmn, lmns, lmnc, fasym)
+            CALL siesta_profiles(unit36, xmn, TRIM(mylabel), fsq_total)
+         END IF
+      END IF
+
+1000  FORMAT(a,'_cosmn; fsq_total: ')
+1001  FORMAT(a,'_sinmn; fsq_total: ')
+
+      END SUBROUTINE
 
       SUBROUTINE SIESTA_PROFILES (iunit, arr_value, label, fsq_total)
 !-----------------------------------------------
@@ -287,7 +318,7 @@
 
       WRITE (p_format,1002) mnmax
       DO js = 2, ns
-         sj = hs_i*(js-1)
+         sj = hs_i*(js - 1)
          rms_value = SQRT(SUM(arr_value(:,:,js)**2)/mnmax)
          WRITE(iunit,p_format) sj, rms_value, arr_value(:,:,js)
       END DO
@@ -329,86 +360,96 @@
 
       END SUBROUTINE bgradp
 
-
+!-------------------------------------------------------------------------------
+!>  @brief Compute B.Grad(p) on the full mesh sans end points.
+!>
+!>  @param[in] ns_min Minimum radial index.
+!>  @param[in] ns_max Maximum radial index.
+!-------------------------------------------------------------------------------
       SUBROUTINE get_bgradp(ns_min, ns_max)
-!     
-!     PURPOSE: Computes B*GRAD P on the FULL mesh
-!
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      INTEGER, INTENT(IN) :: ns_min, ns_max
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      INTEGER     :: istat, n1, n2, i, j, k
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)  ::  dpduijf, dpdvijf
-      REAL(dp)    :: s1(2), r1(2), ton, toff
-!-----------------------------------------------
-!
-!     COMPUTE B DOT GRAD P AT FULL-GRID POINTS (sans endpts)
-!
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER, INTENT(in)                      :: ns_min
+      INTEGER, INTENT(in)                      :: ns_max
+
+!  local variables
+      INTEGER                                  :: istat
+      INTEGER                                  :: n1
+      INTEGER                                  :: n2
+      INTEGER                                  :: i
+      INTEGER                                  :: j
+      INTEGER                                  :: k
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: dpduijf
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: dpdvijf
+      REAL (dp), DIMENSION(2)                  :: temp(2)
+      REAL (dp)                                :: ton
+      REAL (dp)                                :: toff
+
+!  Start of executable code
       CALL second0(ton)
 
-      nsmin = ns_min; nsmax=MIN(ns_max+1,ns)
+      CALL assert(ALLOCATED(jbsupsmnsh),'jbsupXmn unallocated in get_bgradp')
+
+      nsmin = ns_min
+      nsmax = MIN(ns_max + 1, ns)
 
       bgradpf = 0 
 
-!     Compute pressure and angle derivatives
-!
-      ALLOCATE(dpduijf(ntheta,nzeta,nsmin:nsmax),                       &
+!  Compute pressure and angle derivatives
+      ALLOCATE(dpduijf(ntheta,nzeta,nsmin:nsmax),                              &
                dpdvijf(ntheta,nzeta,nsmin:nsmax), stat=istat)
-      CALL ASSERT(istat.EQ.0,'Allocation failed in GET_BGRADP_PAR')
+      CALL assert_eq(0, istat, 'Allocation failed in get_bgradp')
 
-      CALL ASSERT(ALLOCATED(jbsupsmnsh),'jbsupXmn UNALLOCATED IN GET_BGRADP_PAR')
+      CALL GetPressure(dpduijf, dpdvijf)
 
-      CALL GetPressure (dpduijf, dpdvijf)
+      nsmax = MIN(endglobrow, ns)
+      n1 = MAX(2, nsmin)
+      n2 = MIN(nsh, nsmax)
+!  Get all values except first and
+      bgradpf(:,:,n1:n2) = bsupsijf0(:,:,n1:n2)*pijf0_ds(:,:,n1:n2)            &
+                         + bsupuijf0(:,:,n1:n2)*dpduijf(:,:,n1:n2)             &
+                         + bsupvijf0(:,:,n1:n2)*dpdvijf(:,:,n1:n2)
 
-      nsmax=MIN(endglobrow,ns)
-      n1 = MAX(2, nsmin); n2 = MIN(nsh, nsmax)
-      bgradpf(:,:,n1:n2) =                                              &   ! Get all values except first and
-               bsupsijf0(:,:,n1:n2)*pijf0_ds(:,:,n1:n2)                 &
-             + bsupuijf0(:,:,n1:n2)*dpduijf(:,:,n1:n2)                  &
-             + bsupvijf0(:,:,n1:n2)*dpdvijf(:,:,n1:n2)         
-    
-      tnorm_bgradp = SUM((bsupsijf0(:,:,n1:nsmax)**2                    &
-                   +      bsupuijf0(:,:,n1:nsmax)**2                    &
-                   +      bsupvijf0(:,:,n1:nsmax)**2)                   &
-                   *          pijf0(:,:,n1:nsmax)**2*wint(:,:,n1:nsmax))
+      tnorm_bgradp = SUM((bsupsijf0(:,:,n1:nsmax)**2 +                         &
+                          bsupuijf0(:,:,n1:nsmax)**2 +                         &
+                          bsupvijf0(:,:,n1:nsmax)**2)*                         &
+                         pijf0(:,:,n1:nsmax)**2*wint(:,:,n1:nsmax))
 
-!SPH10-31-16: ignore inner s<0.1 for this diagnostic
+!  Ignore inner s<0.1 for this diagnostic
       n1 = MAX(ns/20, nsmin)
-      wbgradp = SUM(bgradpf(:,:, n1:n2)**2*wint(:,:,n1:n2))
-      s1(1)=tnorm_bgradp;  s1(2)=wbgradp
+      wbgradp = SUM(bgradpf(:,:,n1:n2)**2*wint(:,:,n1:n2))
+      temp(1) = tnorm_bgradp
+      temp(2) = wbgradp
       IF (PARSOLVER) THEN
 #if defined(MPI_OPT)
-      CALL MPI_ALLREDUCE(s1,r1,2,MPI_REAL8, MPI_SUM,                    &
-                         SIESTA_COMM,MPI_ERR)
-#endif                         
-      ELSE
-      r1 = s1
+         CALL MPI_ALLREDUCE(MPI_IN_PLACE, temp, 2, MPI_REAL8, MPI_SUM,         &
+                            SIESTA_COMM, MPI_ERR)
+#endif
       END IF
-      tnorm_bgradp=r1(1); wbgradp=r1(2)
+      tnorm_bgradp = temp(1)
+      wbgradp = temp(2)
 
       IF (tnorm_bgradp .GT. zero) THEN
          bgradp_rms = SQRT(wbgradp/tnorm_bgradp)
          tnorm_bgradp = SQRT(tnorm_bgradp/ns)
 
-!IGNORE FIRST POINT
+!  Ignore first point
          max_bgradp = MAXVAL(bgradpf(:,:,n1:n2))/tnorm_bgradp
          min_bgradp = MINVAL(bgradpf(:,:,n1:n2))/tnorm_bgradp
-         s1(1)=max_bgradp; s1(2) = -min_bgradp
+         temp(1) = max_bgradp
+         temp(2) = -min_bgradp
          IF (PARSOLVER) THEN
 #if defined(MPI_OPT)
-         CALL MPI_ALLREDUCE(s1,r1,2,MPI_REAL8, MPI_MAX,                 &
-                            SIESTA_COMM,MPI_ERR)
-#endif                         
-         ELSE
-         r1 = s1
+            CALL MPI_ALLREDUCE(MPI_IN_PLACE, temp, 2, MPI_REAL8, MPI_MAX,      &
+                               SIESTA_COMM, MPI_ERR)
+#endif
          END IF
-         max_bgradp=r1(1)
-         min_bgradp=-r1(2)
-         IF (.NOT.lasym) THEN                                              !reflect onto u=pi-2*pi: bgradp is sin parity
+         max_bgradp = temp(1)
+         min_bgradp = -temp(2)
+         IF (.not.lasym) THEN
+!  Reflect onto u = pi - 2*pi: bgradp has sin parity.
             max_bgradp = MAX(max_bgradp, -min_bgradp)
             min_bgradp = MIN(min_bgradp, -max_bgradp)
          END IF
@@ -417,9 +458,9 @@
       DEALLOCATE (dpdvijf, dpduijf, stat=istat)
 
       CALL second0(toff)
-      time_bgradp = time_bgradp+(toff-ton)
+      time_bgradp = time_bgradp + (toff - ton)
 
-      END SUBROUTINE get_bgradp
+      END SUBROUTINE
       
 
       SUBROUTINE GetPressure (dpduijf, dpdvijf)
@@ -467,14 +508,14 @@
       nsmin=MAX(2,startglobrow); nsmax=MIN(endglobrow,ns)
 
 !Averages over all toroidal cross sections (which should be the same)
-      part_sum = SUM(jbsupvmnch(m0,n0,nsmin:nsmax))
+      toroidal_flux = SUM(jbsupvmnch(m0,n0,nsmin:nsmax))
       IF (PARSOLVER) THEN
 #if defined(MPI_OPT)
-      CALL MPI_ALLREDUCE(part_sum,toroidal_flux,1,MPI_REAL8, MPI_SUM,   &
+      CALL MPI_ALLREDUCE(MPI_IN_PLACE,toroidal_flux,1,MPI_REAL8, MPI_SUM,   &
                          SIESTA_COMM,MPI_ERR)
 #endif      
-      ELSE
-      toroidal_flux = part_sum      
+!      ELSE
+!      toroidal_flux = part_sum      
       END IF
       toroidal_flux = signjac*twopi*toroidal_flux*hs_i/b_factor  
       
@@ -632,7 +673,7 @@
         END SUBROUTINE bdotj
 
       SUBROUTINE bdotj_par
-!#if defined(SKS)
+
 !     
 !     WRITTEN 08-20-07 BY R. SANCHEZ AS PART OF THE ORNL SIESTA PROJECT (c)
 !     UPDATED 03-21-13 BY S. HIRSHMAN FOR PARALLEL EXECUTION
@@ -648,7 +689,7 @@
           bsubsijh, bsubuijh, bsubvijh, ksubsijh, ksubuijh,             &
           ksubvijh, ksupsijh, ksupuijh, ksupvijh, work1, work2,         &
           work3, work4, work5, work6
-      REAL(dp)  :: tnorm, tnorm2, s1(3), r1(3), ton, toff
+      REAL(dp)  :: tnorm, tnorm2, temp(3), ton, toff
 !-----------------------------------------------
       CALL second0(ton)
 
@@ -795,12 +836,12 @@
         tnorm2 = SUM(work1(:,:,n1:n2)*work2(:,:,n1:n2))
         bdotj_rms = SUM(bdotjijh(:,:,n1:n2)*bdotjijh(:,:,n1:n2))
 #if defined(MPI_OPT)
-        s1(1)=tnorm; s1(2)=tnorm2; s1(3)=bdotj_rms
-        CALL MPI_ALLREDUCE(s1,r1,3,MPI_REAL8, MPI_SUM,                  &
+        temp(1)=tnorm; temp(2)=tnorm2; temp(3)=bdotj_rms
+        CALL MPI_ALLREDUCE(MPI_IN_PLACE,temp,3,MPI_REAL8, MPI_SUM,                  &
                            SIESTA_COMM,MPI_ERR)
-        tnorm  = SQRT(ABS(r1(1)))
-        tnorm2 = SQRT(ABS(r1(2)))                                         ! |J|*|B|
-        bdotj_rms = r1(3) 
+        tnorm  = SQRT(ABS(temp(1)))
+        tnorm2 = SQRT(ABS(temp(2)))                                         ! |J|*|B|
+        bdotj_rms = temp(3)
 #else
         tnorm = SQRT(ABS(tnorm)); tnorm2 = SQRT(ABS(tnorm2))
 #endif
@@ -825,11 +866,12 @@
 
         CALL second0(toff)
         time_bdotj = time_bdotj+(toff-ton)
-!#endif
+
         END SUBROUTINE bdotj_par
       
 
         SUBROUTINE divj(ns_min, ns_max)
+        USE island_params, ONLY: ohs=>ohs_i
 !     
 !     WRITTEN 03-18-13 BY S. HIRSHMAN AS PART OF THE ORNL SIESTA PROJECT (c)
 !     
@@ -844,7 +886,7 @@
 !-----------------------------------------------
         INTEGER              :: m, n, istat, n1, n2
         REAL(dp), DIMENSION(:,:,:), ALLOCATABLE ::  temp1, temp2
-        REAL(dp)             :: tnorm, s1(2), r1(2), ton, toff
+        REAL(dp)             :: tnorm, temp(2), ton, toff
 !-----------------------------------------------
 !
 !     COMPUTE divJ ON HALF MESH POINTS
@@ -905,10 +947,10 @@
         divj_rms = SUM(divjmnsh(:,:,n1:n2)**2                           &
                  +     divjmnch(:,:,n1:n2)**2)
 #if defined(MPI_OPT)
-        s1(1) = divj_rms; s1(2) = tnorm
-        CALL MPI_ALLREDUCE(s1,r1,2,MPI_REAL8, MPI_SUM,                  &
+        temp(1) = divj_rms; temp(2) = tnorm
+        CALL MPI_ALLREDUCE(MPI_IN_PLACE,temp,2,MPI_REAL8, MPI_SUM,             &
                            SIESTA_COMM,MPI_ERR)
-        divj_rms=r1(1);   tnorm = r1(2)
+        divj_rms=temp(1);   tnorm = temp(2)
 #endif   
  !   Compute rms of divergence of J
  !     

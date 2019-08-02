@@ -14,7 +14,6 @@ MODULE grid_extension
 
   IMPLICIT NONE
 
-
   ! Vessel information
   INTEGER, PARAMETER :: LIN=1, QUAD=2, CUB=3
   INTEGER :: interp_type
@@ -52,8 +51,6 @@ MODULE grid_extension
   REAL(dp), PARAMETER :: p5 = 0.5_dp
   REAL(dp)            :: s_edge, ming, maxg
 
-!  LOGICAL :: l_vessel
-
 CONTAINS
 
   SUBROUTINE grid_extender(wout_file, itype, istat)
@@ -64,6 +61,7 @@ CONTAINS
                          jcurrumnc, jcurrvmnc, jcurrumns, jcurrvmns
     USE descriptor_mod, ONLY: SIESTA_COMM
     USE siesta_namelist, ONLY: nsin_ext
+    USE shared_data, ONLY: lverbose
 
     IMPLICIT NONE
 
@@ -137,8 +135,8 @@ CONTAINS
     nse = NINT(s_edge*ohs) + 1
 !    print *,"SKS> ns: ", ns, " nse: ",nse, "s_edge: ",s_edge, "vp1: ", vp1
 
-    nsv = nse-ns
-    s_edge = (nsv-1)*hs_i + 1
+    nsv = nse - ns
+    s_edge = (nsv - 1)*hs_i + 1
 
     !rounding discrepancy in volume due to integer nse 
     delv = vol1 - (vol0 + p5*vp1*(s_edge**2-1))
@@ -207,13 +205,18 @@ CONTAINS
 
 !    CALL PLOTRZ (device, chfit)
     nse = MIN(ns + nsin_ext, nse)
-    WRITE (*,1000) nse
-1000 FORMAT('Using ',i4,' Surfaces')
+
+    IF (lverbose .and. iam .eq. 0) THEN
+       WRITE (*,1000) nse, ns, nsin_ext
+    END IF
+1000 FORMAT('Using ',i4,' Total Surfaces.',/,                                  &
+            'Number of VMEC surfaces ',i4,/,                                   &
+            'Number of extended surfaces ',i4)
 
     !REASSIGN THE NEW VALUE OF NS
     nsp = ns
     ns = nse
-    nsh = ns-1
+    nsh = ns - 1
 
     IF (nsp .NE. ns) THEN
        DEALLOCATE(r1_i);
@@ -238,7 +241,7 @@ CONTAINS
     DEALLOCATE(rv_full,zv_full)
     
     IF (nsp .NE. ns) THEN
-       nsp1 = nsp+1
+       nsp1 = nsp + 1
        ALLOCATE(tmp(0:mpol,-ntor:ntor,ns), tmp2(0:mpol,-ntor:ntor, ns))
        tmp(:,:,1:nsp) = rmnc_i; tmp2(:,:,1:nsp) = zmns_i
        DEALLOCATE(rmnc_i, zmns_i)
@@ -300,7 +303,7 @@ CONTAINS
              zmnc_i(:,:,js) = zmnc_i(:,:,js)/orthonorm(0:mpol,-ntor:ntor)
           END DO
 
-          tmp=0
+          tmp = 0
           tmp(:,:,1:nsp)=jcurrumns
           DEALLOCATE(jcurrumns)
           ALLOCATE(jcurrumns(0:mpol,-ntor:ntor,ns))
@@ -388,14 +391,14 @@ CONTAINS
 
     fac =.5  !COULD SCAN THIS TO MAKE MAX(sqrt(g) < 0) IF NECESSARY
 !!    fac =.17  !COULD SCAN THIS TO MAKE MAX(sqrt(g) < 0) IF NECESSARY
-    r1s_vmec=(r1_vmec - r1_i(:,:,ns-1))*ohs * fac
-    z1s_vmec=(z1_vmec - z1_i(:,:,ns-1))*ohs * fac
+    r1s_vmec=(r1_vmec - r1_i(:,:,ns-1))*ohs*fac
+    z1s_vmec=(z1_vmec - z1_i(:,:,ns-1))*ohs*fac
 
-    r1su_vmec = (ru_vmec - ru_i(:,:,ns-1))*ohs * fac
-    z1su_vmec = (zu_vmec - zu_i(:,:,ns-1))*ohs * fac
+    r1su_vmec = (ru_vmec - ru_i(:,:,ns-1))*ohs*fac
+    z1su_vmec = (zu_vmec - zu_i(:,:,ns-1))*ohs*fac
 
-    r1sv_vmec = (rv_vmec - rv_i(:,:,ns-1))*ohs * fac
-    z1sv_vmec = (zv_vmec - zv_i(:,:,ns-1))*ohs * fac
+    r1sv_vmec = (rv_vmec - rv_i(:,:,ns-1))*ohs*fac
+    z1sv_vmec = (zv_vmec - zv_i(:,:,ns-1))*ohs*fac
 
   END SUBROUTINE init_extender
 
@@ -664,72 +667,82 @@ CONTAINS
     END IF
   END SUBROUTINE LoadSurfacePoints
 
-  SUBROUTINE read_vessel_file(wout_file, istat)
-    USE island_params, ns=>ns_i, mpol=>mpol_i, ntor=>ntor_i, &
-      ntheta=>nu_i, nzeta=>nv_i, mnmax=>mnmax_i
-    USE siesta_namelist, ONLY: vessel_file
-    IMPLICIT NONE
+!-------------------------------------------------------------------------------
+!>  @brief Read the vessel file.
+!>
+!>  @returns Error status of the read.
+!-------------------------------------------------------------------------------
+      FUNCTION read_vessel_file()
+      USE island_params, ns=>ns_i, mpol=>mpol_i, ntor=>ntor_i, &
+                         ntheta=>nu_i, nzeta=>nv_i, mnmax=>mnmax_i
+      USE siesta_namelist, ONLY: vessel_file
 
-    ! Dummy variables
-    CHARACTER(*), INTENT(IN) :: wout_file
-    INTEGER, INTENT(OUT) :: istat
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER   :: read_vessel_file
 
     ! Local variables
-    CHARACTER(LEN=400) :: cprefix
-    INTEGER :: j, l1, m, n, mn, mnmax_v
-    LOGICAL :: lex
-    REAL(dp) :: rv1, zv1
+      INTEGER   :: m
+      INTEGER   :: n
+      INTEGER   :: mn
+      INTEGER   :: mnmax_v
+      INTEGER   :: iou
+      REAL (dp) :: rv1
+      REAL (dp) :: zv1
 
-    mpol_v = 0; ntor_v =0
-
-    l1=LEN(TRIM(wout_file))
-    WRITE(cprefix,*) wout_file
-    cprefix=TRIM(ADJUSTL(cprefix))
-
-    INQUIRE(file=vessel_file, exist=lex)
-    IF (.not.lex) THEN
-!        PRINT *, 'Message from line ', __LINE__,' of ', __FILE__
-      STOP "Vessel file not found."
-    END IF
-
-    IF (lex) THEN
-      istat = 0
+      mpol_v = 0
+      ntor_v = 0
       mnmax_v = 0
-      OPEN(UNIT=36, FILE=vessel_file,STATUS="old",FORM="formatted", iostat=j)
-      IF (j .NE. 0) RETURN
-      DO WHILE(.TRUE.)
-        READ(36, *, END=101) n, m, rv1, zv1
-        mpol_v=MAX(m,mpol_v)
-        ntor_v=MAX(ABS(n),ntor_v)
-        mnmax_v = mnmax_v + 1
-      END DO
-      101   CONTINUE
 
-      REWIND(UNIT=36,iostat=istat)
-      IF(istat .NE. 0) RETURN
-      ALLOCATE(rmnc_v(0:mpol_v,-ntor_v:ntor_v), zmns_v(0:mpol_v,-ntor_v:ntor_v))
-      rmnc_v=0; zmns_v=0 
+      iou = 36
+      OPEN(UNIT=iou, FILE=vessel_file, STATUS="old", FORM="formatted",         &
+           iostat=read_vessel_file)
+      IF (read_vessel_file .NE. 0) THEN
+         WRITE (*,1000) vessel_file
+         RETURN
+      END IF
+
+      DO WHILE(.TRUE.)
+         READ(iou,*,END=100) n, m, rv1, zv1
+         mpol_v = MAX(m, mpol_v)
+         ntor_v = MAX(ABS(n), ntor_v)
+         mnmax_v = mnmax_v + 1
+      END DO
+  100 CONTINUE
+
+      REWIND(UNIT=iou, iostat=read_vessel_file)
+      IF (read_vessel_file .NE. 0) THEN
+         WRITE (*,*) vessel_file
+         RETURN
+      END IF
+      ALLOCATE(rmnc_v(0:mpol_v,-ntor_v:ntor_v),                                &
+               zmns_v(0:mpol_v,-ntor_v:ntor_v))
+      rmnc_v = 0
+      zmns_v = 0
       IF (lasym) THEN
-        ALLOCATE(rmns_v(0:mpol_v,-ntor_v:ntor_v), zmnc_v(0:mpol_v,-ntor_v:ntor_v))
-        rmns_v=0; zmnc_v=0 
+         ALLOCATE(rmns_v(0:mpol_v,-ntor_v:ntor_v),                             &
+                  zmnc_v(0:mpol_v,-ntor_v:ntor_v))
+         rmns_v = 0
+         zmnc_v = 0
       END IF
 
       DO mn = 1, mnmax_v
-        READ(36, *, END=102) n, m, rv1, zv1
-        CALL ASSERT(m.GE.0.AND.m.LE.mpol_v,'m out of bounds: read_vessel_file')
-        CALL ASSERT(n.GE.-ntor_v.AND.n.LE.ntor_v, 'n out of bounds: read_vessel_file')
-        rmnc_v(m,-n) = rv1;  zmns_v(m,-n) = zv1
+         READ(iou,*,END=101) n, m, rv1, zv1
+         CALL assert(m .ge. 0 .and. m .le. mpol_v,                             &
+                     'm out of bounds: read_vessel_file')
+         CALL ASSERT(n .ge. -ntor_v .and. n .le. ntor_v,                       &
+                     'n out of bounds: read_vessel_file')
+         rmnc_v(m,-n) = rv1
+         zmns_v(m,-n) = zv1
       END DO
-      102   CONTINUE 
-      CLOSE(UNIT=36)
-      l_vessel = .TRUE.
+  101 CONTINUE
+      CLOSE(UNIT=iou)
 
-    ELSE IF (.NOT.lex) THEN
-      l_vessel = .FALSE.
-      istat = 1
-    END IF
+1000  FORMAT('Warning: Failed to open vessel file ',a)
+1001  FORMAT('Warning: Failed to read vessel file ',a)
 
-  END SUBROUTINE read_vessel_file
+      END FUNCTION
 
   SUBROUTINE SurfAvgLocal(average, q3d, nsmin, nsmax)
     USE island_params, ONLY: cosmui 

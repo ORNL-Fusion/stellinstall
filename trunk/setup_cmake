@@ -149,12 +149,12 @@ elif [ $MACHINE_ID == "mbp103254"     ] || \
 then
 	# Config for Mark Cianciosa's ORNL machine.
 
-        cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE      \
-              -DCMAKE_Fortran_COMPILER=gfortran          \
-              -DNETCDF_INC_PATH=/usr/local/include/      \
-              -DNETCDF_LIB_PATH=/usr/local/lib           \
-              -DEXTRA_FLAGS="-fopenmp -DNEW_CODE -mavx2" \
-              -DUSE_PARVMEC=ON                           \
+        cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE                      \
+              -DCMAKE_Fortran_COMPILER=gfortran                          \
+              -DNETCDF_INC_PATH=/usr/local/include/                      \
+              -DNETCDF_LIB_PATH=/usr/local/lib                           \
+              -DEXTRA_FLAGS="-fopenmp -DNEW_CODE -mavx2 -Wuninitialized" \
+              -DUSE_PARVMEC=ON                                           \
               -DUSE_FAST_COPY=ON
 
 elif [ $MACHINE_ID == "swim.ornl.gov"    ] || \
@@ -171,7 +171,7 @@ then
               -DCMAKE_Fortran_COMPILER=gfortran                                             \
               -DNETCDF_INC_PATH=/usr/include                                                \
               -DNETCDF_LIB_PATH=/usr/lib64/openmpi/lib                                      \
-              -DEXTRA_FLAGS="-fopenmp -DNEW_CODE"                                           \
+              -DEXTRA_FLAGS="-fopenmp -DNEW_CODE -Wuninitialized"                           \
               -DCMAKE_PREFIX_PATH:FILEPATH=/usr/lib64/openmpi/lib                           \
               -DEXTRA_RELEASE_FLAGS:String="-m64 -mfpmath=sse -march=native -msse4a -msse3" \
               -DUSE_PARVMEC=ON                                                              \

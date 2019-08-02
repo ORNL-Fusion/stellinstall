@@ -24,6 +24,7 @@
       INTEGER, PRIVATE ::  nsmin, nsmax
 
       CONTAINS
+
 !>    \brief Parallel/Serial subroutine for initializing updated displacement components in real space
       SUBROUTINE update_upperv
       USE shared_data, ONLY: lasym, gc_sup, xc, col_scale

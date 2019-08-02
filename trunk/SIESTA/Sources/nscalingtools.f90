@@ -9,12 +9,10 @@ USE stel_kinds
 USE v3_utilities, ONLY: assert
 USE descriptor_mod, ONLY: SIESTA_COMM
 #if defined(MPI_OPT)
-#if defined(SKS)
 USE blocktridiagonalsolver_s, ONLY: &
 & SetMatrixRowColL, SetMatrixRowColD, SetMatrixRowColU, &
 & GetMatrixRowColL, GetMatrixRowColD, GetMatrixRowColU, &
 & GetMatrixRHS, StoreDiagonal
-#endif
 USE mpi_inc
 #endif
 IMPLICIT NONE
@@ -42,7 +40,7 @@ CHARACTER, ALLOCATABLE :: remapBuffer(:)
 
 INTEGER :: TOFU
 INTEGER :: OpenStatus, nargs
-INTEGER, PRIVATE :: N, M, K, KSQR, MPOL, NTOR
+INTEGER, PRIVATE :: N, M, K, KSQR
 INTEGER, PARAMETER :: SAVEDIAG=4, LOWER=3,DIAG=2,UPPER=1
 
 !This is to stitch to blocktri variables of
@@ -132,7 +130,6 @@ WRITE(TOFU,*)
 END SUBROUTINE SetOutputFile
 !------------------------------------------------
 
-#if defined(SKS)
 !------------------------------------------------
 ! This routine initializes all the necessary 
 ! variables used by all the routines in this 
@@ -150,9 +147,8 @@ INTEGER*8 :: nBuffSize
 
 IF(INITREMAPDONE .OR. .NOT.PARSOLVER) RETURN
 
-MPOL=mpol_in
-NTOR=ntor_in
-M=ndims*(MPOL+1)*(2*NTOR+1)
+linblksize=(mpol_in+1)*(2*ntor_in+1)
+M=ndims*linblksize
 N=blkrownum
 
 CALL ASSERT(M.NE.0, N.NE.0,'M, N = 0 IN initRemap')
@@ -324,7 +320,7 @@ SUBROUTINE computeAllGatherParameters
 
 INTEGER :: i
 
-IF (.NOT.MAPPINGDONE) CALL MPI_Abort(MPI_COMM_WORLD,1,MPI_ERR)
+CALL assert(MAPPINGDONE, 'computeAllGatherParameters')
 
 IF(.NOT.ALLOCATED(rcounts)) ALLOCATE(rcounts(activeranks), rcountsNS(activeranks))
 IF(.NOT.ALLOCATED(disp)) ALLOCATE(disp(activeranks),dispNS(activeranks))
@@ -354,7 +350,7 @@ LOGICAL, INTENT(OUT) :: FOUND
 INTEGER, INTENT(OUT) :: location
 INTEGER :: p
 
-IF (.NOT.MAPPINGDONE) CALL MPI_Abort(MPI_COMM_WORLD,1,MPI_ERR)
+CALL assert(MAPPINGDONE, 'search')
 
 ! To account for P>N
 activeranks=activeranks
@@ -433,7 +429,7 @@ IF (FOUND) THEN
     END IF
   END IF
 ELSE 
-  CALL MPI_Abort(MPI_COMM_WORLD,1,MPI_ERR)
+  CALL assert(MAPPINGDONE, 'send')
 END IF
 
 END SUBROUTINE send
@@ -564,12 +560,10 @@ END SUBROUTINE WriteTime
 !-------------------------------------------------------------------------------
 
 !-------------------------------------------------------------------------------
-SUBROUTINE SetUpTOMNSPAllGather
+SUBROUTINE SetUpTOMNSPAllGather()
 INTEGER :: i
 
 SetUpTOMNSPAllGatherDONE=.FALSE.
-
-linblksize=(mpol+1)*(2*ntor+1)
 
 IF (.NOT.ALLOCATED(mnspcounts)) ALLOCATE (mnspcounts(nranks))
 IF (.NOT.ALLOCATED(mnspdisps)) ALLOCATE (mnspdisps(nranks))
@@ -712,7 +706,6 @@ WRITE (5000+rank, *)' Time spent in allgather                       :', gmres_wr
 WRITE (5000+rank, *)' Time spent in allreduce                       :', gmres_wrap_allreduce_time
 
 END SUBROUTINE GetTimes
-#endif
 !-------------------------------------------------------------------------------
 
 END MODULE nscalingtools

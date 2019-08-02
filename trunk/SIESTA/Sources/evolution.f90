@@ -52,6 +52,7 @@
       USE siesta_namelist, ONLY: ladd_pert, l_output_alliter   !R. Sanchez, added Jul '10: L_OUTPUT_ALLITER Dump info on file at each timestep
       USE perturbation, ONLY: add_perturb
       USE dumping_mod, ONLY: write_output
+
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -86,10 +87,11 @@
          CALL second0(t1)
          CALL evolve
          CALL second0(t2)
-#if defined(SKS)         
          diag_evolve_time=diag_evolve_time+(t2-t1)
-#endif         
-         IF (l_output_alliter) CALL write_output (wout_file, niter, .FALSE.)   !MRC Do not close wout_file
+
+         IF (l_output_alliter) THEN
+            CALL write_output (wout_file, niter, .FALSE.)   !MRC Do not close wout_file
+         END IF
 
          l_iterate = (fsq_ratio1.LE.0.5_dp .AND. fsq_total1.GT.fsq_block)
 
@@ -113,7 +115,7 @@
 !!  Applies an external island perturbation if not previously done.
       SUBROUTINE converge_blocks (wout_file, ftol)
       USE siesta_namelist, ONLY: l_output_alliter, ladd_pert
-      USE perturbation, ONLY: add_perturb, write_restart_file, niter_max   ! R. Sanchez, added Jul '10: Dump info on file at each timestep
+      USE perturbation, ONLY: add_perturb, niter_max   ! R. Sanchez, added Jul '10: Dump info on file at each timestep
       USE dumping_mod, ONLY: write_output
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -142,9 +144,8 @@
          CALL second0(t1)
          CALL evolve
          CALL second0(t2)
-#if defined(SKS)
          block_evolve_time=block_evolve_time+(t2-t1)
-#endif
+
          IF (l_output_alliter) CALL write_output (wout_file, niter, .FALSE.)   !MRC Do not close wout_file
 
          l_iterate = (niter.LT.niter_max) .AND. (fsq_total1.GT.ftol) 
@@ -157,7 +158,7 @@
             l_iterate=.FALSE.
          END IF
 !STOP IF LACK OF PROGRESS
-         IF (nprecon.GT.2 .AND. ABS(1-fsq_ratio1).LT.1.E-2_dp) THEN
+         IF (nprecon.GT.2 .AND. ABS(1 - fsq_ratio1).LT.1.E-2_dp) THEN
             levm_scale = levm_scale/3
             nrow = nrow+1
             IF (nrow.EQ.3 .AND. l_iterate) THEN
@@ -177,8 +178,8 @@
            ladd_pert = .FALSE.
 !TO OUTPUT RIGHT AFTER PERT IS APPLIED, SET l_iterate=.FALSE. HERE
          END IF
-         nprecon = nprecon+1
-         niter = niter+1
+         nprecon = nprecon + 1
+         niter = niter + 1
       END DO
 
 100   FORMAT (' FSQ RATIO: ',1p,e10.2, ' SIESTA CAN NOT CONVERGE FURTHER!')
@@ -203,9 +204,6 @@
 
 !     "natural" boundary condition at origin
 !     l_push_s/l_push_u can't both be .TRUE. (linearly dependent => 0 eigenvalue in Hessian)
-
-      l_natural = .TRUE.  !.FALSE.
-
 !     control evolve displacements (m=1 for s,u; m=0 for v) at s=0
       l_push_s = .FALSE.
       l_push_u = .FALSE.
@@ -270,22 +268,22 @@
 
 !>   \brief Evolves one step toward MHD equilibrium
       SUBROUTINE evolve
-      USE quantities, ONLY: jvsupsmncf, jvsupumnsf, jvsupvmnsf,         &
-                            jvsupsmnsf, jvsupumncf, jvsupvmncf,         &
-                            fsubsmncf,  fsubumnsf,  fsubvmnsf,          &
+      USE quantities, ONLY: jvsupsmncf, jvsupumnsf, jvsupvmnsf,                &
+                            jvsupsmnsf, jvsupumncf, jvsupvmncf,                &
+                            fsubsmncf,  fsubumnsf,  fsubvmnsf,                 &
                             fsubsmnsf,  fsubumncf,  fsubvmncf
       USE gmres, ONLY: gmres_fun
       USE hessian
-      USE siesta_namelist, ONLY: eta_factor, lresistive, ftol
-      USE perturbation, ONLY: write_restart_file, niter_max
-      USE diagnostics_mod, ONLY: bgradp_rms, toroidal_flux0, bgradp,    &
+      USE siesta_namelist, ONLY: eta_factor, lresistive, ftol, restart_ext,    &
+                                 wout_file
+      USE perturbation, ONLY: niter_max
+      USE diagnostics_mod, ONLY: bgradp_rms, toroidal_flux0, bgradp,           &
                                  tflux
       USE siesta_state, ONLY: update_state
-      USE siesta_init, ONLY: init_state
-#if defined(SKS)
       USE blocktridiagonalsolver_s, ONLY: RefactorHessian      
       USE timer_mod, ONLY: gmres_time
-#endif
+      USE restart_mod, ONLY: restart_write
+
 !
 !     Evolves the equilibrium equations one time step and updates delta_t
 !     
@@ -298,7 +296,7 @@
       REAL(dp)    :: v2tot, f1, f2
       REAL(dp)    :: t1, t2, lm0
       LOGICAL     :: lprint, ldiagonal, lblock
-      INTEGER, DIMENSION (2) :: snum_funct, rnum_funct 
+      INTEGER, DIMENSION (2) :: tnum_funct
       CHARACTER(LEN=20)    :: str_resistive
 !-----------------------------------------------
 !
@@ -317,7 +315,7 @@
 !     Determine levenberg and mu|| parameter guesses based on ||F||
 !
 !       IF (nprecon.GE.1 .AND. (fsq_total1.LT.1.E-8_dp .OR. .NOT.l_Gmres)) THEN
-      IF (fsq_total1.LT.1.E-6_dp) THEN
+      IF (fsq_total1 .LT. 1.E-6_dp) THEN
 !      IF (fsq_total1.LT.1.E-8_dp) THEN
 !        PSEUDO-TRANSIENT CONTINUATION: TURN OFF FOR CONSTANT levmarq_param, muPar option
          f2 = fsq_total1*1.E12_dp
@@ -412,7 +410,6 @@
          DO i = 1, 1
 !TURN OFF UNTIL RefactorHessian PROVIDED FOR LSCALAPACK=T
 !         DO i = 1, 1+SIZE(levscan)
-#if defined(SKS)
             IF (i .GT. 1) THEN 
                levmarq_param = levscan(i-1)*lm0
                IF (levmarq_param .GT. levmarq_param0) levmarq_param = levmarq_param0*1.E-2_dp
@@ -420,7 +417,7 @@
                IF (iam .EQ. 0 .and. lverbose) PRINT 930,' Refactoring Hessian: LM = ',levmarq_param
                CALL RefactorHessian(levmarq_param)
             END IF
-#endif
+
             CALL Conjugate_Grad(ftol)
             IF (l_conjmin) THEN
                IF (i .GT. 1) levm_scale = levm_scale*levmarq_param/lm0
@@ -460,12 +457,12 @@
 !     p by p_factor, WMHD by p_factor
 
 #if defined(MPI_OPT)   
-      snum_funct(1)=in_hess_nfunct; snum_funct(2)=out_hess_nfunct
-      CALL MPI_ALLREDUCE(snum_funct, rnum_funct, 2, MPI_INTEGER,        &
+      tnum_funct(1)=in_hess_nfunct; tnum_funct(2)=out_hess_nfunct
+      CALL MPI_ALLREDUCE(MPI_IN_PLACE, tnum_funct, 2, MPI_INTEGER,             &
                          MPI_MAX, SIESTA_COMM, MPI_ERR)
-      nfun_calls=(rnum_funct(1)+rnum_funct(2))
+      nfun_calls=(tnum_funct(1) + tnum_funct(2))
 #else 
-      nfun_calls=(in_hess_nfunct+out_hess_nfunct)
+      nfun_calls=(in_hess_nfunct + out_hess_nfunct)
 #endif
 
      IF (niter .EQ. 1) THEN
@@ -563,7 +560,7 @@
      CALL second0(skston)
      IF (fsq_total1 .LT. fsq_min) THEN
         fsq_min = fsq_total1
-        CALL write_restart_file
+        CALL restart_write(restart_ext, wout_file)
      END IF
      CALL second0(skstoff)
      evolve_restart_file_time=evolve_restart_file_time+(skstoff-skston)

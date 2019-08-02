@@ -128,33 +128,30 @@
              'l_getwmhd must be set to FALSE in Hessian')
           n2=MIN(ns,endglobrow)
           IF (nsmin .EQ. 1) n1 = MAX(2,n1)
-          wp = SUM(pijh(:,:,n1:n2)*wint(:,:,n1:n2))
-          wp0 = signjac*(twopi*twopi * hs_i)*wp
+          wp = signjac*(twopi*twopi*hs_i)*SUM(pijh(:,:,n1:n2)*wint(:,:,n1:n2))
           n1 = nsmin
           n2=nsmax
-          IF (PARSOLVER) THEN
 #if defined(MPI_OPT)
-             CALL MPI_ALLREDUCE(wp0, wp, 1, MPI_REAL8, MPI_SUM,         & 
+          IF (PARSOLVER) THEN
+             CALL MPI_ALLREDUCE(MPI_IN_PLACE, wp, 1, MPI_REAL8, MPI_SUM,       &
                                 SIESTA_COMM, MPI_ERR)
-#endif
-          ELSE
-             wp = wp0
           END IF
+#endif
        END IF WPRES
 
        ALLOCATE(pijf1(ntheta,nzeta,n1:n2), stat=istat)
        CALL ASSERT(istat.EQ.0,'Allocation2 failed in UPDATE_FORCE')
 !
 !Update FULL-MESH components of BSUPX and PRESSURE in real-space by averaging
-       CALL bhalftobfull (bsupsijh, bsupuijh, bsupvijh,                 &
-                          bsupsijf, bsupuijf, bsupvijf, pijh, pijf1)
+       CALL bhalftobfull(bsupsijh, bsupuijh, bsupvijh,                 &
+                         bsupsijf, bsupuijf, bsupvijf, pijh, pijf1)
                                  
 !
 !Calculate contravariant components of J = curl B (Ksup = gsqrt*Jsup)
 !and update the magnetic energy if nonlinear force is being computed
-       CALL cv_currents (bsupsijh, bsupuijh, bsupvijh,                  &
-                         ksupsijf, ksupuijf, ksupvijf,                  &
-                         (.NOT.l_linearize .OR. l_getwmhd), .FALSE.)
+       CALL cv_currents(bsupsijh, bsupuijh, bsupvijh,                  &
+                        ksupsijf, ksupuijf, ksupvijf,                  &
+                        (.NOT.l_linearize .OR. l_getwmhd), .FALSE.)
 
        DEALLOCATE(bsupsijh, bsupuijh, bsupvijh, stat=istat)
 
@@ -314,6 +311,8 @@
 !>  where K^i = sqrt(g)*J^i . 
 !>  Note this routine works on one parity at a time.
       SUBROUTINE GetMHDForce(fsubsmnf, fsubumnf, fsubvmnf, ipar)
+      USE island_params, ONLY: ohs=>ohs_i
+
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -438,28 +437,26 @@
        REAL(dp), PARAMETER :: p5 = 0.5_dp
        REAL(dp)            :: skston, skstoff 
        REAL(dp)            :: f1, f2, f3, tmps(6)
-       INTEGER             :: from, sparity, m, mp, n, np
+       INTEGER             :: from, sparity, m, n
        LOGICAL             :: ltest
 !-----------------------------------------------
        CALL second0(skston)
        
       IF (ipar .EQ. isym) THEN
-         sparity=1
+         sparity = 1
       ELSE
-         sparity=-1
+         sparity = -1
       END IF
 
 !add pressure gradient to Lorentz force
       f_smnf = f_smnf - pmnf_ds(:,:,nsmin:nsmax)
       
       DO m = 0, mpol
-         mp = m*sparity
-         f_umnf(m,:,:) = f_umnf(m,:,:) + mp*pmnf(m,:,nsmin:nsmax)         ! mp ~ -(d/du)p
+         f_umnf(m,:,:) = f_umnf(m,:,:) + m*sparity*pmnf(m,:,nsmin:nsmax)         ! mp ~ -(d/du)p
       END DO
        
-      DO n = -ntor, ntor       
-         np = n*nfp*sparity
-         f_vmnf(:,n,:) = f_vmnf(:,n,:) + np*pmnf(:,n,nsmin:nsmax)         ! np ~ -(d/dv)p
+      DO n = -ntor, ntor
+         f_vmnf(:,n,:) = f_vmnf(:,n,:) + n*nfp*sparity*pmnf(:,n,nsmin:nsmax)         ! np ~ -(d/dv)p
       ENDDO
        
        

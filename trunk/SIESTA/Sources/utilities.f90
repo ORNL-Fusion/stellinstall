@@ -1,422 +1,609 @@
+!*******************************************************************************
+!>  @file utilities.f90
+!>  @brief Contains module @ref utilities.
+!
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
+!
+!>  This file contains utilities for converting the siesta grids.
+!*******************************************************************************
       MODULE utilities
       USE stel_kinds
-      USE island_params, ONLY: ohs=>ohs_i, ns=>ns_i, mpol=>mpol_i,      &
+      USE island_params, ONLY: ohs=>ohs_i, ns=>ns_i, mpol=>mpol_i,             &
                                ntor=>ntor_i, nfp=>nfp_i
-      USE v3_utilities, ONLY: assert
+      USE v3_utilities, ONLY: assert, assert_eq
+
       IMPLICIT NONE
 
-      INTEGER, PARAMETER :: m0=0, m1=1, m2=2, isym=0, iasym=1
-     
+!*******************************************************************************
+!  utilities module parameters
+!*******************************************************************************
+!>  Flag for stellarator symmetry.
+      INTEGER, PARAMETER, PRIVATE :: isym = 0
+!>  Flag for non-stellarator symmetry.
+      INTEGER, PARAMETER, PRIVATE :: iasym = 1
+
+!*******************************************************************************
+!  INTERFACE BLOCKS
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Interface to convert between half and full mesh using either
+!>  @ref to_full_mesh2 or @ref to_full_mesh3
+!-------------------------------------------------------------------------------
       INTERFACE to_full_mesh
          MODULE PROCEDURE to_full_mesh2, to_full_mesh3
       END INTERFACE
-      
-      INTERFACE CURL_HtoF
-         MODULE PROCEDURE CURL_HTOF, CURL_HtoF_TARG
-      END INTERFACE
 
-#ifndef WIN32
+!-------------------------------------------------------------------------------
+!>  Interface to convert between full and half mesh using either
+!>  @ref to_half_mesh or @ref to_half_mesh_p
+!-------------------------------------------------------------------------------
       INTERFACE to_half_mesh
-         MODULE PROCEDURE to_half_mesh, to_half_mesh_3P
+         MODULE PROCEDURE to_half_mesh, to_half_mesh_p
       END INTERFACE
 
+!-------------------------------------------------------------------------------
+!>  Interface to convert between full and half mesh using either
+!>  @ref to_half_mesh or @ref to_half_mesh_p
+!-------------------------------------------------------------------------------
       INTERFACE GradientHalf
-         MODULE PROCEDURE GradientHalf, GradientHalf3P
+         MODULE PROCEDURE GradientHalf, GradientHalf_p
       END INTERFACE
-#endif
 
-      REAL(dp), PARAMETER, PRIVATE :: p5 = 0.5_dp
-      INTEGER, PRIVATE             :: nsmin, nsmax
+!-------------------------------------------------------------------------------
+!>  Interface to take the curl on a half mesh quantity and return a full mesh
+!>  using either @ref curl_htof or @ref curl_htof_targ
+!-------------------------------------------------------------------------------
+      INTERFACE curl_htof
+         MODULE PROCEDURE curl_htof, curl_htof_targ
+      END INTERFACE
 
       CONTAINS
-      
+
+!*******************************************************************************
+!  UTILITY SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Calculate the gradient to the half mesh from a full mesh quantity.
+!>
+!>  The arrays must be passed in as ALLOCATABLE to preserve the array bounds.
+!>
+!>  @param[inout] gradienth Gradient on the half grid.
+!>  @param[in]    vecf      Full grid quantity.
+!-------------------------------------------------------------------------------
       SUBROUTINE GradientHalf(gradienth, vecf)
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), INTENT(IN), ALLOCATABLE :: vecf(:,:,:)
-      REAL(dp), ALLOCATABLE :: gradienth(:,:,:)
-!-----------------------------------------------
-!     Contraction map
-!     INPUT (vecf)   : [nsmin:nsmax]
-!     OUTPUT(gradienth) : [nsmin+1:nsmax]
-      nsmin = LBOUND(gradienth,3); nsmax = UBOUND(gradienth,3)
 
-      gradienth(:,:,nsmin+1:nsmax) = ohs*(vecf(:,:,nsmin+1:nsmax)    & 
-                                   -      vecf(:,:,nsmin:nsmax-1))
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: gradienth
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in)    :: vecf
+
+!  local variables
+      INTEGER                                                 :: nsmin
+      INTEGER                                                 :: nsmax
+
+!  Start of executable code
+      nsmin = LBOUND(gradienth,3)
+      nsmax = UBOUND(gradienth,3)
+
+      gradienth(:,:,nsmin + 1:nsmax) = ohs*(vecf(:,:,nsmin + 1:nsmax)          &
+                                     -      vecf(:,:,nsmin:nsmax - 1))
       gradienth(:,:,nsmin) = 0
 
-      END SUBROUTINE GradientHalf
-!---------------------------------------------------------------------------------------------
+      END SUBROUTINE
 
-!---------------------------------------------------------------------------------------------
-#ifndef WIN32      
-	  SUBROUTINE GradientHalf3P(gradienth, vecf)
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), POINTER     :: vecf(:,:,:)
-      REAL(dp), ALLOCATABLE :: gradienth(:,:,:)
-!-----------------------------------------------
-!     Contraction map
-!     INPUT (vecf)      : [nsmin:nsmax]
-!     OUTPUT(gradienth) : [nsmin+1:nsmax]
+!-------------------------------------------------------------------------------
+!>  @brief Calculate the gradient to the half mesh from a full mesh quantity.
+!>
+!>  The arrays must be passed in as ALLOCATABLE to preserve the array bounds.
+!>  Full vector is passed in as a pointer.
+!>
+!>  @param[inout] gradienth Gradient on the half grid.
+!>  @param[in]    vecf      Full grid quantity.
+!-------------------------------------------------------------------------------
+      SUBROUTINE GradientHalf_p(gradienth, vecf)
 
-      nsmin = LBOUND(gradienth,3); nsmax = UBOUND(gradienth,3)
+      IMPLICIT NONE
 
-      CALL ASSERT(nsmin+1.GE.LBOUND(vecf,3),'LBOUND WRONG IN GradientHalf3P')
-      CALL ASSERT(nsmax.LE.UBOUND(vecf,3),'UBOUND WRONG IN GradientHalf3P')
+!  Declare Arguments
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: gradienth
+      REAL (dp), DIMENSION(:,:,:), POINTER                    :: vecf
 
-      gradienth(:,:,nsmin+1:nsmax) = ohs*(vecf(:,:,nsmin+1:nsmax)       & 
-                                   -      vecf(:,:,nsmin:nsmax-1))
+!  local variables
+      INTEGER                                                 :: nsmin
+      INTEGER                                                 :: nsmax
+
+!  Start of executable code
+      nsmin = LBOUND(gradienth,3)
+      nsmax = UBOUND(gradienth,3)
+
+      gradienth(:,:,nsmin + 1:nsmax) = ohs*(vecf(:,:,nsmin + 1:nsmax)          &
+                                     -      vecf(:,:,nsmin:nsmax - 1))
       gradienth(:,:,nsmin) = 0
 
-      END SUBROUTINE GradientHalf3P
-#endif
-!---------------------------------------------------------------------------------------------
+      END SUBROUTINE
 
-!---------------------------------------------------------------------------------------------
+!-------------------------------------------------------------------------------
+!>  @brief Calculate the gradient to the full mesh from a half mesh quantity.
+!>
+!>  The arrays must be passed in as ALLOCATABLE to preserve the array bounds.
+!>
+!>  @param[inout] gradientf Gradient on the full grid.
+!>  @param[in]    vech      Half grid quantity.
+!-------------------------------------------------------------------------------
       SUBROUTINE GradientFull(gradientf, vech)
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), INTENT(IN), ALLOCATABLE  :: vech(:,:,:)
-      REAL(dp), ALLOCATABLE :: gradientf(:,:,:)
-!-----------------------------------------------
-!     Contraction map
-!     INPUT (vech)   : [nsmin:nsmax]
-!     OUTPUT(gradientf) : [nsmin:nsmax-1]
-      nsmin = LBOUND(vech,3); nsmax = UBOUND(vech,3)
 
-      gradientf(:,:,nsmin:nsmax-1) = ohs*(vech(:,:,nsmin+1:nsmax)    &
-                                   -      vech(:,:,nsmin:nsmax-1))
+      IMPLICIT NONE
 
-      IF (nsmin .EQ. 1) gradientf(:,:,nsmin) = 0
-!      gradientf(:,:,nsmax) = 0                              
+!  Declare Arguments
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: gradientf
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in)    :: vech
 
-      IF (nsmax.EQ.ns .AND. nsmax.NE.nsmin) THEN
-         gradientf(:,:,nsmax) = gradientf(:,:,nsmax-1)
+!  local variables
+      INTEGER                                                 :: nsmin
+      INTEGER                                                 :: nsmax
+
+!  Start of executable code
+      nsmin = LBOUND(vech,3)
+      nsmax = UBOUND(vech,3)
+
+      gradientf(:,:,nsmin:nsmax - 1) = ohs*(vech(:,:,nsmin + 1:nsmax)          &
+                                     -      vech(:,:,nsmin:nsmax - 1))
+
+      IF (nsmin .eq. 1) THEN
+         gradientf(:,:,nsmin) = 0
       END IF
 
-      END SUBROUTINE GradientFull
-!---------------------------------------------------------------------------------------------
+      IF (nsmax .eq. ns .and. nsmax .ne. nsmin) THEN
+         gradientf(:,:,nsmax) = gradientf(:,:,nsmax - 1)
+      END IF
 
-!---------------------------------------------------------------------------------------------
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Migrates a full mesh quantity to the half mesh.
+!>
+!>  The arrays must be passed in as ALLOCATABLE to preserve the array bounds.
+!>
+!>  @param[in]    vecf Full grid quantity.
+!>  @param[inout] vech Half grid quantity.
+!-------------------------------------------------------------------------------
       SUBROUTINE to_half_mesh(vecf, vech)
-!  
-!     This subroutine migrates a full mesh quantity to the half mesh
-!
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), INTENT(IN), ALLOCATABLE  :: vecf(:,:,:)   
-      REAL(dp), ALLOCATABLE :: vech(:,:,:)
-!-----------------------------------------------
-!     Contraction map
-!     INPUT (vecf)   : [nsmin:nsmax]
-!     OUTPUT(vech)   : [nsmin+1:nsmax]
 
-      nsmin = LBOUND(vech,3); nsmax = UBOUND(vech,3)
+      IMPLICIT NONE
 
-      vech(:,:,nsmin+1:nsmax) = p5*(vecf(:,:,nsmin:nsmax-1)             &
-                              +     vecf(:,:,nsmin+1:nsmax))
+!  Declare Arguments
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in)    :: vecf
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: vech
+
+!  local variables
+      INTEGER                                                 :: nsmin
+      INTEGER                                                 :: nsmax
+
+!  Start of executable code
+      nsmin = LBOUND(vech,3)
+      nsmax = UBOUND(vech,3)
+
+      vech(:,:,nsmin + 1:nsmax) = 0.5*(vecf(:,:,nsmin:nsmax - 1)               &
+                                +      vecf(:,:,nsmin + 1:nsmax))
       vech(:,:,nsmin) = 0
 
-      END SUBROUTINE to_half_mesh 
-!---------------------------------------------------------------------------------------------
+      END SUBROUTINE
 
-!---------------------------------------------------------------------------------------------
-#ifndef WIN32
-      SUBROUTINE to_half_mesh_3P(vecf, vech)
-!  
-!     This subroutine migrates a full mesh quantity to the half mesh
-!
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), POINTER  :: vecf(:,:,:)   
-      REAL(dp), ALLOCATABLE :: vech(:,:,:)
-!-----------------------------------------------
-!     Contraction map
-!     INPUT (vecf)   : [nsmin:nsmax]
-!     OUTPUT(vech)   : [nsmin+1:nsmax]
+!-------------------------------------------------------------------------------
+!>  @brief Migrates a full mesh quantity to the half mesh.
+!>
+!>  The arrays must be passed in as ALLOCATABLE to preserve the array bounds.
+!>  Full vector grid is passed in as pointer.
+!>
+!>  @param[in]    vecf Full grid quantity.
+!>  @param[inout] vech Half grid quantity.
+!-------------------------------------------------------------------------------
+      SUBROUTINE to_half_mesh_p(vecf, vech)
 
-      nsmin = LBOUND(vech,3); nsmax = UBOUND(vech,3)
-      CALL ASSERT(nsmin+1.GE.LBOUND(vecf,3),'LBOUND WRONG IN to_half_mesh_3P')
-      CALL ASSERT(nsmax.LE.UBOUND(vecf,3),'UBOUND WRONG IN to_half_mesh_3P')
+      IMPLICIT NONE
 
-      vech(:,:,nsmin+1:nsmax) = p5*(vecf(:,:,nsmin+1:nsmax)             &
-                              +     vecf(:,:,nsmin:nsmax-1))
-!      vech(:,:,nsmin) = 0
+!  Declare Arguments
+      REAL (dp), DIMENSION(:,:,:), POINTER                    :: vecf
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: vech
 
-      END SUBROUTINE to_half_mesh_3P
-#endif
-!---------------------------------------------------------------------------------------------
+!  local variables
+      INTEGER                                                 :: nsmin
+      INTEGER                                                 :: nsmax
 
-!---------------------------------------------------------------------------------------------
+!  Start of executable code
+      nsmin = LBOUND(vech,3)
+      nsmax = UBOUND(vech,3)
+
+      vech(:,:,nsmin + 1:nsmax) = 0.5*(vecf(:,:,nsmin:nsmax - 1)               &
+                                +      vecf(:,:,nsmin + 1:nsmax))
+      vech(:,:,nsmin) = 0
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Migrate a three dimensional quantity form the half mesh to the full
+!>         mesh.
+!>
+!>  First and last point are extrapolated linearly. The arrays must be passed in
+!>  as ALLOCATABLE to preserve the array bounds.
+!>
+!>  @param[in]    vech Half mesh qantity.
+!>  @param[inout] vecf Full mesh quantity.
+!-------------------------------------------------------------------------------
       SUBROUTINE to_full_mesh3(vech, vecf)
-!  
-!     This subroutine migrates a half mesh quantity to the full mesh.
-!     First and last point are extrapolated linearly.
-!
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), INTENT(IN), ALLOCATABLE :: vech(:,:,:)
-      REAL(dp), ALLOCATABLE :: vecf(:,:,:)
-!-----------------------------------------------
-!     Contraction map
-!     INPUT (vech)   : [nsmin:nsmax]
-!     OUTPUT(vecf)   : [nsmin:nsmax-1]
- 
-      nsmin = LBOUND(vecf,3); nsmax = UBOUND(vecf,3)
-      CALL ASSERT(nsmin.GE.LBOUND(vech,3),'LBOUND WRONG IN to_full_mesh3')
-      CALL ASSERT(nsmax.LE.UBOUND(vech,3),'UBOUND WRONG IN to_full_mesh3')
 
-      vecf(:,:,nsmin:nsmax-1) = p5*(vech(:,:,nsmin+1:nsmax)             &
-                              +     vech(:,:,nsmin:nsmax-1))
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in)    :: vech
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: vecf
+
+!  local variables
+      INTEGER                                                 :: nsmin
+      INTEGER                                                 :: nsmax
+
+!  Start of executable code
+      nsmin = LBOUND(vecf, 3)
+      CALL assert(nsmin .ge. LBOUND(vech,3), 'LBOUND WRONG IN to_full_mesh3')
+      nsmax = UBOUND(vecf, 3)
+      CALL assert(nsmax .le. UBOUND(vech,3), 'UBOUND WRONG IN to_full_mesh3')
+
+      vecf(:,:,nsmin:nsmax - 1) = 0.5*(vech(:,:,nsmin + 1:nsmax)               &
+                                +      vech(:,:,nsmin:nsmax - 1))
       vecf(:,:,nsmax) = 0                              
-      IF (nsmin .EQ. 1)  vecf(:,:,1) = vech(:,:,2)
-      IF (nsmax .EQ. ns) vecf(:,:,ns)= vech(:,:,ns)
-      
-      END SUBROUTINE to_full_mesh3
-!---------------------------------------------------------------------------------------------
-
-!---------------------------------------------------------------------------------------------
-      SUBROUTINE to_full_mesh2(vech, vecf)
-!  
-!     This subroutine migrates a half mesh quantity to the full mesh.
-!     First and last point are extrapolated linearly.
-!
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), INTENT(IN), ALLOCATABLE :: vech(:,:)
-      REAL(dp), ALLOCATABLE :: vecf(:,:)
-!-----------------------------------------------
-!     Contraction map
-!     INPUT (vech)   : [nsmin:nsmax]
-!     OUTPUT(vecf)   : [nsmin:nsmax-1]
-
-      nsmin = LBOUND(vecf,2); nsmax = UBOUND(vecf,2)
-      CALL ASSERT(nsmin.GE.LBOUND(vech,2),'LBOUND WRONG IN to_full_mesh2')
-      CALL ASSERT(nsmax.LE.UBOUND(vech,2),'UBOUND WRONG IN to_full_mesh2')
-
-      vecf(:,nsmin:nsmax-1) = p5*(vech(:,nsmin:nsmax-1)                 &
-                            +     vech(:,nsmin+1:nsmax))
-
-      vecf(:,nsmax) = 0                              
-      IF (nsmin .EQ. 1)  vecf(:,1) = vech(:,2)
-      IF (nsmax .EQ. ns) vecf(:,ns)= vech(:,ns)
-
-      END SUBROUTINE to_full_mesh2
-
-!>    \brief Compute real-space components of contravariant jac*B^i 
-!>     on half radial grid from curl(A) (drop "j" on B's for notational
-!>     simplicity)
-      SUBROUTINE CURL_FtoH(Asubsmnf, Asubumnf, Asubvmnf,                &
-                           Bsupsmnh, Bsupumnh, Bsupvmnh, ipar, nsmin0, nsmax0)
-      USE nscalingtools, ONLY: startglobrow
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      INTEGER, INTENT(IN) :: ipar, nsmin0, nsmax0
-      REAL(dp), POINTER, DIMENSION(:,:,:)     ::                        &
-                Asubsmnf, Asubumnf, Asubvmnf
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                        &
-                bsupsmnh, bsupumnh, bsupvmnh
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      INTEGER  :: m, n, mp, np, sparity, istat, moff, nmin, nmax
-!----------------------------------------------- 
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                        &
-         asubsmnh, asubumnh, asubvmnh, da_uds, da_vds
-!-----------------------------------------------
-      IF (ipar .EQ. isym) THEN
-         sparity=1
-      ELSE
-         sparity=-1
+      IF (nsmin .eq. 1)  THEN
+         vecf(:,:,1) = vech(:,:,2)
+      END IF
+      IF (nsmax .eq. ns) THEN
+         vecf(:,:,ns)= vech(:,:,ns)
       END IF
 
-      nmin = nsmin0; nmax = nsmax0
+      END SUBROUTINE
 
-      ALLOCATE(asubsmnh(0:mpol,-ntor:ntor,nmin:nmax),                   &
-               asubumnh(0:mpol,-ntor:ntor,nmin:nmax),                   &
-               asubvmnh(0:mpol,-ntor:ntor,nmin:nmax), stat=istat)   
-      CALL ASSERT(istat.EQ.0,'Allocation1 failed in CURL_FtoH')
+!-------------------------------------------------------------------------------
+!>  @brief Migrate a two dimensional quantity form the half mesh to the full
+!>         mesh.
+!>
+!>  First and last point are extrapolated linearly. The arrays must be passed in
+!>  as ALLOCATABLE to preserve the array bounds.
+!>
+!>  @param[in]    vech Half mesh qantity.
+!>  @param[inout] vecf Full mesh quantity.
+!-------------------------------------------------------------------------------
+      SUBROUTINE to_full_mesh2(vech, vecf)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp), DIMENSION(:,:), ALLOCATABLE, INTENT(in)    :: vech
+      REAL (dp), DIMENSION(:,:), ALLOCATABLE, INTENT(inout) :: vecf
+
+!  local variables
+      INTEGER                                               :: nsmin
+      INTEGER                                               :: nsmax
+
+!  Start of executable code
+      nsmin = LBOUND(vecf,2)
+      CALL ASSERT(nsmin .ge. LBOUND(vech,2), 'LBOUND WRONG IN to_full_mesh2')
+      nsmax = UBOUND(vecf,2)
+      CALL ASSERT(nsmax .le. UBOUND(vech,2), 'UBOUND WRONG IN to_full_mesh2')
+
+      vecf(:,nsmin:nsmax - 1) = 0.5*(vech(:,nsmin:nsmax - 1)                   &
+                              +      vech(:,nsmin + 1:nsmax))
+
+      vecf(:,nsmax) = 0                              
+      IF (nsmin .EQ. 1)  THEN
+         vecf(:,1) = vech(:,2)
+      END IF
+      IF (nsmax .EQ. ns) THEN
+         vecf(:,ns)= vech(:,ns)
+      END IF
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Compute curl of the full grid quantity a on the half grid.
+!>
+!>  The contravariant components of jac*Curl A are equal to
+!>
+!>    sqrt(g)*B^k = dA_j/du^i - dA_i/du^j                                    (j)
+!>
+!>  for cyclic permutations of i,j,k. This routine does not remove the jacobian
+!>  factor. The arrays must be passed in as ALLOCATABLE or POINTER to preserve
+!>  the array bounds.
+!>
+!>  @param[in]    asubsmnf  Covariant vector in the s direction full grid.
+!>  @param[in]    asubsmnf  Covariant vector in the u direction full grid.
+!>  @param[in]    asubsmnf  Covariant vector in the v direction full grid.
+!>  @param[inout] jbsubsmnh Contravariant vector in the s direction with
+!>                          jacobian factor half grid.
+!>  @param[inout] jbsubsmnh Contravariant vector in the u direction with
+!>                          jacobian factor half grid.
+!>  @param[inout] jbsubsmnh Contravariant vector in the v direction with
+!>                          jacobian factor half grid.
+!>  @param[in]    iparity   Parity flag.
+!>  @param[in]    nsmin     Minimum radial index.
+!>  @param[in]    nsmax     Maximum radial index.
+!-------------------------------------------------------------------------------
+      SUBROUTINE curl_ftoh(asubsmnf, asubumnf, asubvmnf,                       &
+                           jbsupsmnh, jbsupumnh, jbsupvmnh, iparity,           &
+                           nsmin, nsmax)
+      USE nscalingtools, ONLY: startglobrow
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp), DIMENSION(:,:,:), POINTER                    :: asubsmnf
+      REAL (dp), DIMENSION(:,:,:), POINTER                    :: asubumnf
+      REAL (dp), DIMENSION(:,:,:), POINTER                    :: asubvmnf
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jbsupsmnh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jbsupumnh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jbsupvmnh
+      INTEGER, INTENT(IN)                                     :: iparity
+      INTEGER, INTENT(IN)                                     :: nsmin
+      INTEGER, INTENT(IN)                                     :: nsmax
+
+!  Local variables
+      INTEGER                                                 :: m
+      INTEGER                                                 :: n
+      INTEGER                                                 :: mp
+      INTEGER                                                 :: np
+      INTEGER                                                 :: sparity
+      INTEGER                                                 :: istat
+      INTEGER                                                 :: nmin
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)                :: asubsmnh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)                :: asubumnh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)                :: asubvmnh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)                :: da_uds
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)                :: da_vds
+
+!  Start of executable code
+      CALL assert(nsmax .le. UBOUND(jbsupsmnh,3), 'UBOUND wrong in curl_ftoh')
+
+      IF (iparity .EQ. isym) THEN
+         sparity = 1
+      ELSE
+         sparity = -1
+      END IF
+
+      ALLOCATE(asubsmnh(0:mpol,-ntor:ntor,nsmin:nsmax),                   &
+               asubumnh(0:mpol,-ntor:ntor,nsmin:nsmax),                   &
+               asubvmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
+      CALL assert_eq(0, istat, 'Allocation1 failed in curl_ftoh')
 
       CALL to_half_mesh(asubsmnf, asubsmnh)                       
       CALL to_half_mesh(asubumnf, asubumnh)
       CALL to_half_mesh(asubvmnf, asubvmnh)
 
-!
-!     Compute sqrt(g)B^X contravariant B-field components in Fourier space
-!                   
-      ALLOCATE(da_uds(0:mpol,-ntor:ntor,nmin:nmax),                     &
-               da_vds(0:mpol,-ntor:ntor,nmin:nmax), stat=istat)
-      CALL ASSERT(istat.EQ.0,'Allocation2 failed in CURL_FtoH')
+!  Compute sqrt(g)B^X contravariant B-field components in Fourier space
+      ALLOCATE(da_uds(0:mpol,-ntor:ntor,nsmin:nsmax),                     &
+               da_vds(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
+      CALL assert_eq(0, istat, 'Allocation2 failed in curl_ftoh')
 
-!     Radial gradients of asubmnu,v on half grid (excluding origin and edge: treat separately)
+!  Radial gradients of asubmnu,v on half grid excluding origin and edge. Origin
+!  and edge will be treated separately.
       CALL GradientHalf(da_uds, asubumnf)
       CALL GradientHalf(da_vds, asubvmnf)
 
-!
-!     (sqrt(g)*B^X)mn
-!
       nmin = MAX(2, startglobrow)
-      CALL ASSERT(nmin.GE.LBOUND(bsupsmnh,3),'LBOUND WRONG IN CURL_FTOH')
-      CALL ASSERT(nmax.LE.UBOUND(bsupsmnh,3),'UBOUND WRONG IN CURL_FTOH')
-      
+      CALL assert(nmin .ge. LBOUND(jbsupsmnh,3), 'LBOUND wrong in curl_ftoh')
+
+! (sqrt(g)*B^X)mn
       DO m = 0, mpol
          mp = sparity*m
          DO n = -ntor, ntor
-           np = sparity*n*nfp
-           bsupsmnh(m,n,nmin:nmax) = -mp*asubvmnh(m,n,nmin:nmax)        &
-                                   +  np*asubumnh(m,n,nmin:nmax)
-           bsupumnh(m,n,nmin:nmax) =  np*asubsmnh(m,n,nmin:nmax)        &
-                                   -  da_vds(m,n,nmin:nmax)                     
-           bsupvmnh(m,n,nmin:nmax) = -mp*asubsmnh(m,n,nmin:nmax)        &
-                                   +  da_uds(m,n,nmin:nmax)
-         ENDDO
-      ENDDO
+            np = sparity*n*nfp
+            jbsupsmnh(m,n,nmin:nsmax) = np*asubumnh(m,n,nmin:nsmax)            &
+                                      - mp*asubvmnh(m,n,nmin:nsmax)
+            jbsupumnh(m,n,nmin:nsmax) = np*asubsmnh(m,n,nmin:nsmax)            &
+                                      - da_vds(m,n,nmin:nsmax)
+            jbsupvmnh(m,n,nmin:nsmax) = da_uds(m,n,nmin:nsmax)                 &
+                                      - mp*asubsmnh(m,n,nmin:nsmax)
+         END DO
+      END DO
 
       DEALLOCATE (asubsmnh, asubumnh, asubvmnh, da_vds, da_uds, stat=istat)   
-      CALL ASSERT(istat.EQ.0,'Deallocation failed in CURL_FtoH')
+      CALL assert_eq(0, istat, 'Deallocation failed in curl_ftoh')
 
-      IF (startglobrow .EQ. 1) THEN
-         bsupsmnh(:,:,1) = 0
-         bsupumnh(:,:,1) = 0
-         bsupvmnh(:,:,1) = 0
+      IF (startglobrow .eq. 1) THEN
+         jbsupsmnh(:,:,1) = 0
+         jbsupumnh(:,:,1) = 0
+         jbsupvmnh(:,:,1) = 0
       END IF
 
-      bsupsmnh(m0,-ntor:-1,nmin:nmax) = 0
-      bsupumnh(m0,-ntor:-1,nmin:nmax) = 0
-      bsupvmnh(m0,-ntor:-1,nmin:nmax) = 0
+      jbsupsmnh(0,-ntor:-1,:) = 0
+      jbsupumnh(0,-ntor:-1,:) = 0
+      jbsupvmnh(0,-ntor:-1,:) = 0
 
-      END SUBROUTINE CURL_FtoH
+      END SUBROUTINE
 
 
-!>    \brief Compute real-space components of contravariant jac*J^i == K^i 
-!>     on half radial grid from curl(B)
-!>     simplicity)
-      SUBROUTINE CURL_HtoF(Bsubsmnh, Bsubumnh, Bsubvmnh,                &
-                           Ksupsmnf, Ksupumnf, Ksupvmnf, ipar, nsmin0, nsmax0)
+!-------------------------------------------------------------------------------
+!>  @brief Compute curl of the half grid quantity a on the full grid.
+!>
+!>  The contravariant components of jac*Curl A are equal to
+!>
+!>    sqrt(g)*B^k = dA_j/du^i - dA_i/du^j                                    (j)
+!>
+!>  for cyclic permutations of i,j,k. This routine does not remove the jacobian
+!>  factor. The arrays must be passed in as ALLOCATABLE or POINTER to preserve
+!>  the array bounds.
+!>
+!>  @param[in]    Asubsmnh  Covariant vector in the s direction half grid.
+!>  @param[in]    Asubsmnh  Covariant vector in the u direction half grid.
+!>  @param[in]    Asubsmnh  Covariant vector in the v direction half grid.
+!>  @param[inout] jBsubsmnf Contravariant vector in the s direction with
+!>                          jacobian factor full grid.
+!>  @param[inout] jBsubsmnf Contravariant vector in the u direction with
+!>                          jacobian factor full grid.
+!>  @param[inout] jBsubsmnf Contravariant vector in the v direction with
+!>                          jacobian factor full grid.
+!>  @param[in]    ipar      Parity flag.
+!>  @param[in]    nsmin     Minimum radial index.
+!>  @param[in]    nsmax     Maximum radial index.
+!-------------------------------------------------------------------------------
+      SUBROUTINE curl_htof(asubsmnh, asubumnh, asubvmnh,                       &
+                           jbsupsmnf, jbsupumnf, jbsupvmnf, ipar, nsmin, nsmax)
       USE nscalingtools, ONLY: endglobrow
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      INTEGER, INTENT(IN) :: ipar, nsmin0, nsmax0
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                        &
-                Bsubsmnh, Bsubumnh, Bsubvmnh
-      REAL(dp), DIMENSION(:,:,:), POINTER ::                            &
-                Ksupsmnf, Ksupumnf, Ksupvmnf
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      INTEGER  :: m, n, mp, np, mo, no, sparity, istat, nmin, nmax, moff, noff
-!----------------------------------------------- 
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                        &
-         bsubsmnf, bsubumnf, bsubvmnf, db_uds, db_vds
-!-----------------------------------------------
-      IF (ipar .EQ. isym) THEN
-         sparity=1
+      USE descriptor_mod, ONLY: iam
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in) :: asubsmnh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in) :: asubumnh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in) :: asubvmnh
+      REAL (dp), DIMENSION(:,:,:), POINTER                 :: jbsupsmnf
+      REAL (dp), DIMENSION(:,:,:), POINTER                 :: jbsupumnf
+      REAL (dp), DIMENSION(:,:,:), POINTER                 :: jbsupvmnf
+      INTEGER, INTENT(IN)                                  :: ipar
+      INTEGER, INTENT(IN)                                  :: nsmin
+      INTEGER, INTENT(IN)                                  :: nsmax
+
+!  Local variables
+      INTEGER                                              :: m
+      INTEGER                                              :: n
+      INTEGER                                              :: mp
+      INTEGER                                              :: np
+      INTEGER                                              :: mo
+      INTEGER                                              :: no
+      INTEGER                                              :: moff
+      INTEGER                                              :: noff
+      INTEGER                                              :: sparity
+      INTEGER                                              :: istat
+      INTEGER                                              :: nmax
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE             :: asubsmnf
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE             :: asubumnf
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE             :: asubvmnf
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE             :: da_uds
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE             :: da_vds
+
+!  Start of executable code
+      CALL assert(nsmin .ge. LBOUND(jbsupsmnf,3), 'LBOUND wrong in curl_htof')
+
+      IF (ipar .eq. isym) THEN
+         sparity = 1
       ELSE
-         sparity=-1
+         sparity = -1
       END IF
-      
-      nmin = nsmin0; nmax = nsmax0
-      moff = LBOUND(Ksupsmnf,1); noff = LBOUND(Ksupsmnf,2)+ntor
 
-      ALLOCATE(bsubsmnf(0:mpol,-ntor:ntor,nmin:nmax),                   & 
-               bsubumnf(0:mpol,-ntor:ntor,nmin:nmax),                   &
-               bsubvmnf(0:mpol,-ntor:ntor,nmin:nmax), stat=istat)   
-      CALL ASSERT(istat.EQ.0,'Allocation1 failed in CURL_HtoF')
- 
-      CALL to_full_mesh(bsubsmnh, bsubsmnf)                             ! Compute BSUBXMNF
-      CALL to_full_mesh(bsubumnh, bsubumnf)
-      CALL to_full_mesh(bsubvmnh, bsubvmnf)
+      moff = LBOUND(jbsupsmnf,1)
+      noff = LBOUND(jbsupsmnf,2) + ntor
 
-!     Compute sqrt(g)J^X == K^X contravariant current components in Fourier space
-!                   
-      ALLOCATE(db_uds(0:mpol,-ntor:ntor,nmin:nmax),                     &
-               db_vds(0:mpol,-ntor:ntor,nmin:nmax), stat=istat)
-      CALL ASSERT(istat.EQ.0,'Allocation2 failed in CURL_HtoF')
+      ALLOCATE(asubsmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                        &
+               asubumnf(0:mpol,-ntor:ntor,nsmin:nsmax),                        &
+               asubvmnf(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
+      CALL assert_eq(0, istat, 'Allocation1 failed in curl_htof')
 
-!     Radial gradients of bsubmnu,v on full grid (excluding origin and edge: treat separately)
-      CALL GradientFull(db_uds, bsubumnh)
-      CALL GradientFull(db_vds, bsubvmnh)
+      CALL to_full_mesh(asubsmnh, asubsmnf)
+      CALL to_full_mesh(asubumnh, asubumnf)
+      CALL to_full_mesh(asubvmnh, asubvmnf)
 
-!     Approximate end values...(factor of 2 at origin due to 1/2*hs interval)
-      IF (nmin .EQ. 1) THEN
-         bsubsmnf(m2:,:,1) = 0
-         bsubumnf(:,:,1) = 0;  bsubumnf(m1,:,1) = bsubumnh(m1,:,2)
-         db_uds(:,:,1) = 0;  db_uds(m0:m1,:,1) = 2*ohs*bsubumnh(m0:m1,:,2)
-         db_vds(:,:,1) = 0;  db_vds(m1,:,1) = 2*ohs*bsubvmnh(m1,:,2)
-         bsubvmnf(m2:,:,1) = 0  
+!  Compute sqrt(g)B^X == A^X contravariant current components in Fourier space.
+      ALLOCATE(da_uds(0:mpol,-ntor:ntor,nsmin:nsmax),                          &
+               da_vds(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
+      CALL assert_eq(0, istat, 'Allocation2 failed in curl_htof')
+
+!  Radial gradients of asubmnu,v on full grid excluding origin and edge. Origin
+!  and edge will be treated separately.
+      CALL GradientFull(da_uds, asubumnh)
+      CALL GradientFull(da_vds, asubvmnh)
+
+!  Approximate end values...(factor of 2 at origin due to 1/2*hs interval)
+      IF (nsmin .eq. 1) THEN
+         asubsmnf(2:,:,1) = 0
+         asubumnf(:,:,1) = 0
+         asubumnf(1,:,1) = asubumnh(1,:,2)
+         da_uds(:,:,1) = 0
+         da_uds(0:1,:,1) = 2*ohs*asubumnh(0:1,:,2)
+         da_vds(:,:,1) = 0
+         da_vds(1,:,1) = 2*ohs*asubvmnh(1,:,2)
+         asubvmnf(2:,:,1) = 0
       END IF
 
       nmax = endglobrow
-      CALL ASSERT(nmin.GE.LBOUND(ksupsmnf,3),'LBOUND WRONG IN CURL_HTOF')
-      CALL ASSERT(nmax.LE.UBOUND(ksupsmnf,3),'UBOUND WRONG IN CURL_HTOF')
-!
-!     (sqrt(g)*J^X)mn
-!
+      CALL assert(nmax .le. UBOUND(jbsupsmnf,3), 'UBOUND wrong in curl_htof')
+
+!  (sqrt(g)*J^X)mn
       DO m = 0, mpol
          mp = sparity*m
-         mo = m+moff
+         mo = m + moff
          DO n = -ntor, ntor
-           np = sparity*n*nfp
-           no = n+noff
-           ksupsmnf(mo,no,nmin:nmax) = -mp*bsubvmnf(m,n,nmin:nmax)      &
-                                     +  np*bsubumnf(m,n,nmin:nmax)
-           ksupumnf(mo,no,nmin:nmax) =  np*bsubsmnf(m,n,nmin:nmax)      &
-                                     -  db_vds(m,n,nmin:nmax)                     
-           ksupvmnf(mo,no,nmin:nmax) = -mp*bsubsmnf(m,n,nmin:nmax)      &
-                                     +  db_uds(m,n,nmin:nmax)
-         ENDDO
-      ENDDO
-      
-!Avoid fp failure in debug mode      
-      ksupsmnf(:,:,nmax+1:UBOUND(ksupsmnf,3)) = 0
-      ksupumnf(:,:,nmax+1:UBOUND(ksupsmnf,3)) = 0
-      ksupvmnf(:,:,nmax+1:UBOUND(ksupsmnf,3)) = 0
+            np = sparity*n*nfp
+            no = n + noff
+            jbsupsmnf(mo,no,nsmin:nmax) = np*asubumnf(m,n,nsmin:nmax)          &
+                                        - mp*asubvmnf(m,n,nsmin:nmax)
+            jbsupumnf(mo,no,nsmin:nmax) = np*asubsmnf(m,n,nsmin:nmax)          &
+                                        - da_vds(m,n,nsmin:nmax)
+            jbsupvmnf(mo,no,nsmin:nmax) = da_uds(m,n,nsmin:nmax)               &
+                                        - mp*asubsmnf(m,n,nsmin:nmax)
+         END DO
+      END DO
 
-      ksupsmnf(:,:,LBOUND(ksupsmnf,3):nmin-1) = 0
-      ksupumnf(:,:,LBOUND(ksupsmnf,3):nmin-1) = 0
-      ksupvmnf(:,:,LBOUND(ksupsmnf,3):nmin-1) = 0
+      DEALLOCATE(asubsmnf, asubumnf,  asubvmnf, da_uds, da_vds)
 
-      ksupsmnf(m0+moff,-ntor+noff:-1+noff,nmin:nmax) = 0
-      ksupumnf(m0+moff,-ntor+noff:-1+noff,nmin:nmax) = 0
-      ksupvmnf(m0+moff,-ntor+noff:-1+noff,nmin:nmax) = 0
+!  Avoid fp failure in debug mode
+      jbsupsmnf(:,:,nmax+1:UBOUND(jbsupsmnf,3)) = 0
+      jbsupumnf(:,:,nmax+1:UBOUND(jbsupsmnf,3)) = 0
+      jbsupvmnf(:,:,nmax+1:UBOUND(jbsupsmnf,3)) = 0
 
-      DEALLOCATE(bsubsmnf, bsubumnf,  bsubvmnf, db_uds, db_vds)   
+      jbsupsmnf(:,:,LBOUND(jbsupsmnf,3):nsmin-1) = 0
+      jbsupumnf(:,:,LBOUND(jbsupsmnf,3):nsmin-1) = 0
+      jbsupvmnf(:,:,LBOUND(jbsupsmnf,3):nsmin-1) = 0
 
+      jbsupsmnf(moff,-ntor+noff:-1+noff,:) = 0
+      jbsupumnf(moff,-ntor+noff:-1+noff,:) = 0
+      jbsupvmnf(moff,-ntor+noff:-1+noff,:) = 0
 
-      END SUBROUTINE CURL_HtoF
+      END SUBROUTINE
 
+!-------------------------------------------------------------------------------
+!>  @brief Convert allocatable to pointer for use in @ref curl_htof
+!>
+!>  @param[in]    Asubsmnh  Covariant vector in the s direction half grid.
+!>  @param[in]    Asubsmnh  Covariant vector in the u direction half grid.
+!>  @param[in]    Asubsmnh  Covariant vector in the v direction half grid.
+!>  @param[inout] jBsubsmnf Contravariant vector in the s direction with
+!>                          jacobian factor full grid.
+!>  @param[inout] jBsubsmnf Contravariant vector in the u direction with
+!>                          jacobian factor full grid.
+!>  @param[inout] jBsubsmnf Contravariant vector in the v direction with
+!>                          jacobian factor full grid.
+!>  @param[in]    ipar      Parity flag.
+!>  @param[in]    nsmin     Minimum radial index.
+!>  @param[in]    nsmax     Maximum radial index.
+!-------------------------------------------------------------------------------
+      SUBROUTINE curl_htof_targ(asubsmnh, asubumnh, asubvmnh,                  &
+                                jbsupsmnf, jbsupumnf, jbsupvmnf,               &
+                                ipar, nsmin, nsmax)
 
-      SUBROUTINE CURL_HtoF_TARG(Bsubsmnh, Bsubumnh, Bsubvmnh,           &
-                 Ksupsmnf, Ksupumnf, Ksupvmnf, ipar, nsmin0, nsmax0)
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      INTEGER, INTENT(IN) :: ipar, nsmin0, nsmax0
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                        &
-                Bsubsmnh, Bsubumnh, Bsubvmnh
-      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, TARGET ::                &
-                Ksupsmnf, Ksupumnf, Ksupvmnf
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      REAL(dp), POINTER, DIMENSION(:,:,:) :: ksp, kup, kvp
-!----------------------------------------------- 
-      ksp=>ksupsmnf; kup=>ksupumnf; kvp=>ksupvmnf
-      CALL CURL_HtoF(Bsubsmnh, Bsubumnh, Bsubvmnh,                      &
-                     ksp, kup, kvp, ipar, nsmin0, nsmax0)
+!  Declare Arguments
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(in) :: asubsmnh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(in) :: asubumnh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(in) :: asubvmnh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, TARGET, INTENT(inout) ::       &
+         jbsupsmnf
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, TARGET, INTENT(inout) ::       &
+         jbsupumnf
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, TARGET, INTENT(inout) ::       &
+         jbsupvmnf
+      INTEGER, INTENT(IN)                                  :: ipar
+      INTEGER, INTENT(IN)                                  :: nsmin
+      INTEGER, INTENT(IN)                                  :: nsmax
 
-      END SUBROUTINE CURL_HtoF_TARG
+!  Local variables
+      REAL (dp), POINTER, DIMENSION(:,:,:)                 :: jbsp
+      REAL (dp), POINTER, DIMENSION(:,:,:)                 :: jbup
+      REAL (dp), POINTER, DIMENSION(:,:,:)                 :: jbvp
 
-          
-      END MODULE utilities
-          
+!  Start of executable code
+      jbsp => jbsupsmnf
+      jbup => jbsupumnf
+      jbvp => jbsupvmnf
+      CALL curl_htof(asubsmnh, asubumnh, asubvmnh,                      &
+                     jbsp, jbup, jbvp, ipar, nsmin, nsmax)
+
+      END SUBROUTINE
+
+      END MODULE

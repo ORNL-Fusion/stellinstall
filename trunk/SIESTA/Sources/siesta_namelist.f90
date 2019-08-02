@@ -48,15 +48,6 @@
 !>  @table_section{siesta_island_sec, Island Parameters}
 !>     @item{mres,    M numbers of island resonances.}
 !>     @item{helpert, Sizes of the helical perturbation.}
-!>     @table_subsection{siesta_island_dep_sec, Deprecated Parameters}
-!>        @item{mres1,    First M number of island resonance.}
-!>        @item{nres1,    First N number of island resonance.}
-!>        @item{rad1,     First radius of island resonance.}
-!>        @item{helpert1, First size of the helical perturbation.}
-!>        @item{mres2,    Second M number of island resonance.}
-!>        @item{nres2,    Second N number of island resonance.}
-!>        @item{rad2,     Second radius of island resonance.}
-!>        @item{helpert2, Second size of the helical perturbation.}
 !>  @end_table
 !>
 !>  @table_section{siesta_grid_size_sec, Grid Sizes}
@@ -183,15 +174,15 @@
 !>  Number of cylindrical phi planes.
       INTEGER :: nphis = 2
 !>  Number of radial grid points.
-      INTEGER :: nrs=200
+      INTEGER :: nrs = 200
 !>  Number of vertical grid points.
-      INTEGER :: nzs=200
+      INTEGER :: nzs = 200
 !>  Number of flux space toroidal points.
-      INTEGER :: nvs=150
+      INTEGER :: nvs = 150
 !>  Number of flux space poloidal points.
-      INTEGER :: nus=150
+      INTEGER :: nus = 150
 !>  Number of flux space radial points.
-      INTEGER :: nss=100
+      INTEGER :: nss = 100
 
 !  File Names
 !>  Filename of the VMEC woutfile.
@@ -202,32 +193,6 @@
       CHARACTER(LEN=siesta_namelist_name_length) :: mgrid_file = ''
 !>  Name of the restart file extension.
       CHARACTER(LEN=siesta_namelist_name_length) :: vessel_file = ''
-
-! Deprecated Parameters
-!>  @deprecated
-!>  First M number of island resonance.
-      INTEGER  :: mres1
-!>  @deprecated
-!>  First N number of island resonance.
-      INTEGER  :: nres1
-!>  @deprecated
-!>  First radius of island resonance.
-      REAL(dp) :: rad1
-!>  @deprecated
-!>  First size of the helical perturbation.
-      REAL(dp) :: HelPert1
-!>  @deprecated
-!>  Second M number of island resonance.
-      INTEGER  :: mres2
-!>  @deprecated
-!>  Second N number of island resonance.
-      INTEGER  :: nres2
-!>  @deprecated
-!>  Second radius of island resonance.
-      REAL(dp) :: rad2
-!>  @deprecated
-!>  Second size of the helical perturbation.
-      REAL(dp) :: HelPert2
 
 !  Declare Namelist
       NAMELIST/siesta_info/                                             &
@@ -247,9 +212,7 @@
 !  File names
         wout_file, restart_ext, mgrid_file, vessel_file,                &
 !  Test controls
-        hesspass_test, mupar_test,                                      &
-!  Deprecated Parameters
-        mres1, nres1, rad1, HelPert1, mres2, nres2, rad2, HelPert2
+        hesspass_test, mupar_test
 
       CONTAINS
 
@@ -266,6 +229,9 @@
       SUBROUTINE siesta_namelist_read(namelist_file)
       USE safe_open_mod
       USE v3_utilities
+      USE Hessian, ONLY: levmarq_param, mupar, levmarq_param0, mupar0
+
+      IMPLICIT NONE
 
 !  Declare Arguments
       CHARACTER (len=*), INTENT(in) :: namelist_file
@@ -275,6 +241,14 @@
       INTEGER                       :: status
 
 !  Start of executable code
+      levmarq_param = 1.E-3_dp
+      mupar         = 0
+      niter         = 10
+      mres          = 0
+      HelPert       = 0
+      HelPertA      = 0
+      lcolscale     = .TRUE.
+      mupar_test    = 0
 
 !  Initalize a default value of the I\O unit. SIESTA increments from there.
       iou_mnli = 0
@@ -288,6 +262,9 @@
       CLOSE (iou_mnli, iostat=status)
       CALL assert_eq(0, status, 'siesta_namelist_read' //               &
         ': Error closing ' // TRIM(namelist_file) // ' failed')
+
+      levmarq_param0 = levmarq_param
+      mupar0         = mupar
 
       END SUBROUTINE
 

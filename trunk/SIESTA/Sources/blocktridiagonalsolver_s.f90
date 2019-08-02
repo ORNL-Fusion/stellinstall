@@ -229,7 +229,6 @@ END TYPE PBLASTempArray
 
 !-------------------------------------------------------------------------------
 !PUBLIC METHODS
-#if defined(SKS)
 PUBLIC :: SetMatrixRowColL, SetMatrixRowColD, SetMatrixRowColU,         &
           GetMatrixRowColL, GetMatrixRowColD, GetMatrixRowColU,         &
           GetMatrixRHS, StoreDiagonal, Initialize, ForwardSolve,        &
@@ -238,7 +237,6 @@ PUBLIC :: SetMatrixRowColL, SetMatrixRowColD, SetMatrixRowColU,         &
           RefactorHessian, ParMatvec, Finalize, CheckConditionNumber
 REAL(dp), PUBLIC :: MAXEIGEN_TRI  !<maximum eigenvalue from Gerschgorin theorem
 REAL(dp), PUBLIC :: DMIN_TRI      !<minimum non-zero diagonal element, used to scale Levenberg parameter (SPH 08-31-16)
-#endif
 
 CONTAINS
 
@@ -5305,7 +5303,7 @@ REAL(dp), INTENT(IN)    :: lmp
 REAL(dp), INTENT(INOUT) :: colscale(M,N)
 !-------------------------------------------------------------------------------
 INTEGER               :: icount, istat
-REAL(dp)              :: ton, toff, colcnd, colcnd1, tmp1(2), tmp2(2)
+REAL(dp)              :: ton, toff, colcnd, colcnd1, temp(2)
 REAL(dp), ALLOCATABLE :: colpad(:,:)
 !-------------------------------------------------------------------------------
 CALL second0(ton)
@@ -5329,11 +5327,11 @@ CALL GetColSum(colpad)
 
 icount = icount + 1
 !MAXIMUM COLUMN VARIATIONS (like an inverse "Condition number")
-tmp1(1) = MAXVAL(colpad(:,startglobrow:endglobrow))      
-tmp1(2) = MAXVAL(-colpad(:,startglobrow:endglobrow))
-CALL MPI_ALLREDUCE(tmp1, tmp2, 2, MPI_REAL8, MPI_MAX,  SIESTA_COMM,     &
-                MPI_ERR)
-colcnd1 = tmp2(1); colcnd =-tmp2(2)
+temp(1) = MAXVAL(colpad(:,startglobrow:endglobrow))
+temp(2) = MAXVAL(-colpad(:,startglobrow:endglobrow))
+CALL MPI_ALLREDUCE(MPI_IN_PLACE, temp, 2, MPI_REAL8, MPI_MAX,  SIESTA_COMM,    &
+                   MPI_ERR)
+colcnd1 = temp(1); colcnd =-temp(2)
                 
 IF (colcnd1 .NE. ZERO) THEN
    colcnd = ABS(colcnd/colcnd1)
@@ -5394,7 +5392,7 @@ SUBROUTINE FindMinMax_TRI(lmp)
 REAL(dp), PARAMETER  :: minThreshold=1.E-6_dp
 REAL(dp), INTENT(IN) :: lmp
 INTEGER  :: js, icol, ir, dcnt, imax_diag(1)
-REAL(dp) :: eps, s1(2), r1(2), minDiag, sign_diag = -1
+REAL(dp) :: eps, temp(2), minDiag, sign_diag = -1
 
 dcnt=0
 maxeigen_tri = 0
@@ -5429,10 +5427,10 @@ DO js = startglobrow, endglobrow
   END DO
 END DO
 
-s1(1)=-Dmin_TRI; s1(2)=maxeigen_tri
-CALL MPI_ALLREDUCE(s1,r1,2,MPI_REAL8, MPI_MAX, SIESTA_COMM,MPI_ERR)
-Dmin_TRI=SIGN(-r1(1), eps)
-maxeigen_tri=r1(2)
+temp(1)=-Dmin_TRI; temp(2)=maxeigen_tri
+CALL MPI_ALLREDUCE(MPI_IN_PLACE,temp,2,MPI_REAL8, MPI_MAX, SIESTA_COMM,MPI_ERR)
+Dmin_TRI=SIGN(-temp(1), eps)
+maxeigen_tri=temp(2)
 
 
 !ADD LEVENBERG PARAMETER LM*DMIN TO DIAGONAL [OR D*(1+LM) IF NO COL-SCALING]

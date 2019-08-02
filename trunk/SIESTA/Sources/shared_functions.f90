@@ -40,21 +40,22 @@
       LOGICAL  :: ltype
 !-----------------------------------------------
       CALL second0(ton)
-      nsmin=MAX(1,startglobrow); nsmax=MIN(endglobrow,ns)
+      nsmin = MAX(1, startglobrow)
+      nsmax = MIN(endglobrow, ns)
 
       IF (INHESSIAN) THEN
-         in_hess_nfunct=in_hess_nfunct+1
+         in_hess_nfunct = in_hess_nfunct + 1
       ELSE
-         out_hess_nfunct=out_hess_nfunct+1
+         out_hess_nfunct = out_hess_nfunct + 1
       END IF
 
       l_update_state = .FALSE.
       IF (l_init_state) THEN
-        CALL second0(skston)
-        CALL init_state(.FALSE.)
-        CALL second0(skstoff)
-        time_init_state=time_init_state+(skstoff-skston)
-        l_init_state = .FALSE.
+         CALL second0(skston)
+         CALL init_state(.FALSE.)
+         CALL second0(skstoff)
+         time_init_state = time_init_state + (skstoff - skston)
+         l_init_state = .FALSE.
       END IF
 
       CALL update_upperv
@@ -117,53 +118,50 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      REAL(dp) :: stmp(3), rtmp(3)
+      REAL(dp) :: temp(3)
       INTEGER  :: js
 !-----------------------------------------------
-      stmp(1) = SUM(fsubsmncf(:,:,nsmin:nsmax)**2)
-      stmp(2) = SUM(fsubumnsf(:,:,nsmin:nsmax)**2)
-      stmp(3) = SUM(fsubvmnsf(:,:,nsmin:nsmax)**2)
+      temp(1) = SUM(fsubsmncf(:,:,nsmin:nsmax)**2)
+      temp(2) = SUM(fsubumnsf(:,:,nsmin:nsmax)**2)
+      temp(3) = SUM(fsubvmnsf(:,:,nsmin:nsmax)**2)
       IF (lasym) THEN
-         stmp(1) = stmp(1) + SUM(fsubsmnsf(:,:,nsmin:nsmax)**2)
-         stmp(2) = stmp(2) + SUM(fsubumncf(:,:,nsmin:nsmax)**2)
-         stmp(3) = stmp(3) + SUM(fsubvmncf(:,:,nsmin:nsmax)**2)
+         temp(1) = temp(1) + SUM(fsubsmnsf(:,:,nsmin:nsmax)**2)
+         temp(2) = temp(2) + SUM(fsubumncf(:,:,nsmin:nsmax)**2)
+         temp(3) = temp(3) + SUM(fsubvmncf(:,:,nsmin:nsmax)**2)
       END IF
          
 #if defined(MPI_OPT)         
       IF (PARSOLVER) THEN
-         CALL MPI_ALLREDUCE(stmp,rtmp,3,MPI_REAL8,MPI_SUM,              &
+         CALL MPI_ALLREDUCE(MPI_IN_PLACE,temp,3,MPI_REAL8,MPI_SUM,             &
                             SIESTA_COMM,MPI_ERR)
-         stmp = rtmp
       END IF
 #endif         
-      fsqvs=hs*stmp(1); fsqvu=hs*stmp(2); fsqvv=hs*stmp(3)
+      fsqvs=hs*temp(1); fsqvu=hs*temp(2); fsqvv=hs*temp(3)
 
       CALL toupper_forces
 
 !VOLUME-AVERAGE |F|**2
-      stmp(1) = 0
-      DO js = nsmin,nsmax
-         stmp(1) = stmp(1) + vp_f(js)*SUM(                              &
-                   fsupsmncf(:,:,js)*fsubsmncf(:,:,js)                  & 
-                 + fsupumnsf(:,:,js)*fsubumnsf(:,:,js)                  &
-                 + fsupvmnsf(:,:,js)*fsubvmnsf(:,:,js))
+      temp(1) = 0
+      DO js = nsmin, nsmax
+         temp(1) = temp(1)                                                     &
+                 + vp_f(js)*SUM(fsupsmncf(:,:,js)*fsubsmncf(:,:,js) +          &
+                                fsupumnsf(:,:,js)*fsubumnsf(:,:,js) +          &
+                                fsupvmnsf(:,:,js)*fsubvmnsf(:,:,js))
          IF (lasym) THEN
-         stmp(1) = stmp(1) + vp_f(js)*SUM(                              &
-                   fsupsmnsf(:,:,js)*fsubsmnsf(:,:,js)                  &
-                 + fsupumncf(:,:,js)*fsubumncf(:,:,js)                  &
-                 + fsupvmncf(:,:,js)*fsubvmncf(:,:,js))
+            temp(1) = temp(1)                                                  &
+                    + vp_f(js)*SUM(fsupsmnsf(:,:,js)*fsubsmnsf(:,:,js) +       &
+                                   fsupumncf(:,:,js)*fsubumncf(:,:,js) +       &
+                                   fsupvmncf(:,:,js)*fsubvmncf(:,:,js))
          END IF
       END DO
-      stmp(2) = SUM(vp_f(nsmin:nsmax))
+      temp(2) = SUM(vp_f(nsmin:nsmax))
 #if defined(MPI_OPT)         
       IF (PARSOLVER) THEN
-         CALL MPI_ALLREDUCE(stmp,rtmp,2,MPI_REAL8,MPI_SUM,              &
+         CALL MPI_ALLREDUCE(MPI_IN_PLACE,temp,2,MPI_REAL8,MPI_SUM,             &
                             SIESTA_COMM,MPI_ERR)
-         stmp = rtmp
       END IF
 #endif
-      fsqout = stmp(1)/stmp(2)
-      
+      fsqout = temp(1)/temp(2)
       
       END SUBROUTINE GetFSQ
 

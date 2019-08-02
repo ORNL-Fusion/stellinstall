@@ -8,13 +8,13 @@
 !>  Contains routines for writting the restart file.
 !*******************************************************************************
       MODULE restart_mod
-      USE v3_utilities, ONLY: assert
       USE ezcdf
       USE stel_kinds
       USE utilities, ONLY: GradientFull, to_full_mesh
       USE metrics, ONLY: tolowerh
       USE descriptor_mod, ONLY: iam
       USE shared_data, ONLY: lasym, lrecon, unit_out
+      USE v3_utilities, ONLY: assert_eq
 
       IMPLICIT NONE
 
@@ -127,6 +127,10 @@
       CHARACTER (len=*), PARAMETER :: vn_p_factor = 'p_factor'
 !>  Name for the restart file b_factor.
       CHARACTER (len=*), PARAMETER :: vn_b_factor = 'b_factor'
+!>  Name for the restart file wb.
+      CHARACTER (len=*), PARAMETER :: vn_wb = 'wb'
+!>  Name for the restart file wb.
+      CHARACTER (len=*), PARAMETER :: vn_wp = 'wp'
 
 !>  Name for the restart file p_max.
       CHARACTER (len=*), PARAMETER :: vn_p_max = 'p_max'
@@ -134,6 +138,7 @@
       CHARACTER (len=*), PARAMETER :: vn_p_min = 'p_min'
 
       CONTAINS
+
 !*******************************************************************************
 !  UTILITY SUBROUTINES
 !*******************************************************************************
@@ -142,36 +147,40 @@
 !>
 !>  Reads the restart information and initalizes SIESTA quantities.
 !>
-!>  @param[in]    restart_file_name Name of the restart file.
-!>  @param[in]    mpolin            Namelist number of polodal modes.
-!>  @param[in]    ntorin            Namelist number of toroidal modes.
-!>  @param[in]    nsin              Namelist number of radial grid points.
-!>  @param[inout] wout_file         Name of the wout file.
-!>  @returns Error status of the read.
+!>  @param[in]    restart_ext Restart extention.
+!>  @param[inout] wout_file   Name of the wout file.
+!>  @param[in]    mpolin      Namelist number of polodal modes.
+!>  @param[in]    ntorin      Namelist number of toroidal modes.
+!>  @param[in]    nsin        Namelist number of radial grid points.
+!>  @param[in]    nfpin       Namelist number of field periods.
+!>  @returns Preconditioner control flag.
 !-------------------------------------------------------------------------------
-      FUNCTION restart_read(restart_file_name, wout_file, mpolin, ntorin,      &
-     &                      nfpin, nsin)
+      FUNCTION restart_read(restart_ext, wout_file, mpolin, ntorin, nfpin,     &
+                            nsin)
       USE quantities, ONLY: jbsupsmnsh, jbsupsmnch,                            &
                             jbsupumnsh, jbsupumnch,                            &
                             jbsupvmnsh, jbsupvmnch,                            &
-                            jpmnsh,     jpmnch
-      USE island_params, ONLY: chipf => chipf_i, phipf => phipf_i
+                            jpmnsh,     jpmnch,                                &
+                            b_factor, p_factor, alloc_quantities
+      USE island_params, ONLY: chipf => chipf_i, phipf => phipf_i,             &
+     &                         wb => wb_i, wp => wp_i, nfp_i, gamma,           &
+     &                         gnorm => gnorm_i
       USE vmec_info, ONLY: rmnc => rmnc_i, zmns => zmns_i,                     &
      &                     rmns => rmns_i, zmnc => zmnc_i,                     &
      &                     vmec_info_construct_island
       USE metrics, ONLY: LoadGrid
-      USE fourier, ONLY: orthonorm
+      USE fourier, ONLY: orthonorm, init_fourier
 
       IMPLICIT NONE
 
 !  Declare Arguments
       INTEGER                                  :: restart_read
-      CHARACTER (len=*), INTENT(in)            :: restart_file_name
+      CHARACTER (len=*), INTENT(in)            :: restart_ext
       CHARACTER (len=*), INTENT(inout)         :: wout_file
       INTEGER, INTENT(in)                      :: mpolin
       INTEGER, INTENT(in)                      :: ntorin
-      INTEGER, INTENT(in)                      :: nfpin
       INTEGER, INTENT(in)                      :: nsin
+      INTEGER, INTENT(in)                      :: nfpin
 
 !  local variables
       INTEGER                                  :: flags
@@ -194,10 +203,12 @@
 !  Start of executable code
       restart_read = 1
 
-      filename = TRIM(restart_file_name) // ".nc"
-      CALL cdf_open(ncid, TRIM(filename), 'r', restart_read)
-      CALL assert(restart_read .EQ. 0, 'Failed to read restart file: ' //      &
-     &                                 TRIM(filename))
+      CALL alloc_quantities
+
+      filename = 'siesta_' // TRIM(restart_ext) // '.nc'
+      CALL cdf_open(ncid, TRIM(filename), 'r', status)
+      CALL assert_eq(0, status, 'Failed to read restart file: ' //             &
+     &                          TRIM(filename))
 
       CALL cdf_read(ncid, vn_flags, flags)
 
@@ -208,18 +219,26 @@
       CALL cdf_read(ncid, vn_ntorin, ntor)
       CALL cdf_read(ncid, vn_nfpin, nfp)
 
+      IF (nfpin .lt. 1) THEN
+         nfp_i = nfp
+      ELSE
+         nfp_i = nfpin
+      END IF
+
       nmin = MIN(ntor, ntorin)
 
       CALL cdf_read(ncid, vn_wout, wout_file)
 
 !  The namelist input file may turn the asymmetric terms on and off.
-      ALLOCATE(tempmn_r(0:mpol,-ntor:ntor, ns))
+      ALLOCATE(tempmn_r(0:mpol,-ntor:ntor,ns))
       ALLOCATE(temp_r(ns))
       CALL vmec_info_construct_island(mpolin, ntorin, nsin, lasym)
 
+      ALLOCATE(chipf(nsin))
       CALL cdf_read(ncid, vn_chipf, temp_r)
       CALL interpit_1d(temp_r, chipf, ns, nsin, .false., 1)
 
+      ALLOCATE(phipf(nsin))
       CALL cdf_read(ncid, vn_phipf, temp_r)
       CALL interpit_1d(temp_r, phipf, ns, nsin, .false., 1)
 
@@ -228,30 +247,31 @@
       CALL interpit(tempmn_r, jbsupsmnsh, ns, nsin, mpol, mpolin,              &
      &              ntor, ntorin, nfp, nfpin, .true.)
       jbsupsmnsh(m1,-nmin:nmin,1) = jbsupsmnsh(m1,-nmin:nmin,2)
-      
+
       CALL cdf_read(ncid, vn_jbsupuc, tempmn_r)
+      jbsupumnch(:,:,1) = 0
       CALL interpit(tempmn_r, jbsupumnch, ns, nsin, mpol, mpolin,              &
      &              ntor, ntorin, nfp, nfpin, .true.)
       jbsupumnch(m1,-nmin:nmin,1) = jbsupumnch(m1,-nmin:nmin,2)
 
-      jbsupvmnch(:,:,1) = 0
       CALL cdf_read(ncid, vn_jbsupvc, tempmn_r)
+      jbsupvmnch(:,:,1) = 0
       CALL interpit(tempmn_r, jbsupvmnch, ns, nsin, mpol, mpolin,              &
      &              ntor, ntorin, nfp, nfpin, .true.)
       jbsupvmnch(m0,-nmin:nmin,1) = jbsupvmnch(m0,-nmin:nmin,2)
 
-      jpmnch(:,:,1) = 0
       CALL cdf_read(ncid, vn_jpresc,  tempmn_r)
+      jpmnch(:,:,1) = 0
       CALL interpit(tempmn_r, jpmnch,     ns, nsin, mpol, mpolin,              &
      &              ntor, ntorin, nfp, nfpin, .true.)
       jpmnch(m0,-nmin:nmin,1) = jpmnch(m0,-nmin:nmin,2)
 
       CALL cdf_read(ncid, vn_rmnc, tempmn_r)
-      CALL interpit(tempmn_r, rmnc, ns, nsin, mpol, mpolin,               &
+      CALL interpit(tempmn_r, rmnc, ns, nsin, mpol, mpolin,                    &
                     ntor, ntorin, nfp, nfpin, .false.)
 
       CALL cdf_read(ncid, vn_zmns, tempmn_r)
-      CALL interpit(tempmn_r, zmns, ns, nsin, mpol, mpolin,               &
+      CALL interpit(tempmn_r, zmns, ns, nsin, mpol, mpolin,                    &
                     ntor, ntorin, nfp, nfpin, .false.)
 
       IF (BTEST(flags, restart_lasym) .and. lasym) THEN
@@ -277,11 +297,11 @@
          jpmnsh(m0,-nmin:nmin,1) = jpmnsh(m0,-nmin:nmin,2)
 
          CALL cdf_read(ncid, vn_rmns, tempmn_r)
-         CALL interpit(tempmn_r, rmns, ns, nsin, mpol, mpolin,            &
+         CALL interpit(tempmn_r, rmns, ns, nsin, mpol, mpolin,                 &
                        ntor, ntorin, nfp, nfpin, .false.)
 
          CALL cdf_read(ncid, vn_zmns, tempmn_r)
-         CALL interpit(tempmn_r, zmnc, ns, nsin, mpol, mpolin,            &
+         CALL interpit(tempmn_r, zmnc, ns, nsin, mpol, mpolin,                 &
                        ntor, ntorin, nfp, nfpin, .false.)
 
       ELSE IF (lasym) THEN
@@ -293,7 +313,13 @@
          rmnc = 0
       END IF
 
+!  Read normalization factors.
+      CALL cdf_read(ncid, vn_wb, wb)
+      CALL cdf_read(ncid, vn_wp, wp)
+
       CALL cdf_close(ncid)
+
+      CALL init_fourier
 
       DO s = 1, nsin
          rmnc(:,:,s) = rmnc(:,:,s)/orthonorm
@@ -309,42 +335,52 @@
       DEALLOCATE(tempmn_r)
       DEALLOCATE(temp_r)
 
+!  Init quantities.
+      p_factor = 1.0/ABS(wb)
+      b_factor = SQRT(p_factor)
+      gnorm = ABS(wb)/(wb + wp/(gamma - 1.0))
+
       WRITE (unit_out, 1000) mpol, ntor, ns
+
+      restart_read = 2
+
 1000  FORMAT(/,' RESTARTED FROM RUN PARAMETERS M: ',i3,' N: ',i3,' NS: ', i3,/)
 
-      END FUNCTION restart_read
+      END FUNCTION
 
 !-------------------------------------------------------------------------------
 !>  @brief Write the restart file.
 !>
 !>  Writes the restart information.
 !>
-!>  @param[in] restart_file_name Name of the restart file.
-!>  @param[in] wout_file         Name of the wout file.
-!>  @returns Error status of the write.
+!>  @param[in] restart_ext Restart file extension.
+!>  @param[in] wout_file   Name of the wout file.
 !-------------------------------------------------------------------------------
-      FUNCTION restart_write(restart_file_name, wout_file)
+      SUBROUTINE restart_write(restart_ext, wout_file)
       USE quantities, ONLY: jbsupsmnsh, jbsupsmnch,                            &
                             jbsupumnsh, jbsupumnch,                            &
                             jbsupvmnsh, jbsupvmnch,                            &
                             jpmnsh,     jpmnch,                                &
                             b_factor,   p_factor, jacobh
       USE fourier
-      USE island_params, ONLY: nfp => nfp_i, chipf => chipf_i, phipf => phipf_i
+      USE island_params, ONLY: nfp => nfp_i, chipf => chipf_i,                 &
+                               phipf => phipf_i, wb => wb_i, wp => wp_i
       USE shared_data, ONLY: r1_i, z1_i
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      INTEGER                                  :: restart_write
-      CHARACTER (len=*), INTENT(in)            :: restart_file_name
+      CHARACTER (len=*), INTENT(in)            :: restart_ext
       CHARACTER (len=*), INTENT(in)            :: wout_file
 
 !  local variables
       INTEGER                                  :: flags
       INTEGER                                  :: ncid
       INTEGER                                  :: nblock
-      INTEGER                                  :: s, m, n
+      INTEGER                                  :: s
+      INTEGER                                  :: m
+      INTEGER                                  :: n
+      INTEGER                                  :: status
 
       REAL (dp)                                :: r0
       REAL (dp)                                :: tempscalar
@@ -372,12 +408,10 @@
       INTEGER, PARAMETER                       :: m0=0
       INTEGER, PARAMETER                       :: m1=1
       INTEGER, PARAMETER                       :: m2=2
-      CHARACTER (LEN=256)                      :: filename
 
 !  Start of executable code
-      restart_write = 1
-      filename = TRIM(restart_file_name) // ".nc"
-      CALL cdf_open(ncid, TRIM(filename), 'w', restart_write)
+      CALL cdf_open(ncid, 'siesta_' // TRIM(restart_ext) // '.nc', 'w', status)
+      CALL assert_eq(0, status, 'Failed to write restart file.')
 
       flags = restart_version
       IF (lasym) THEN
@@ -432,6 +466,8 @@
          CALL cdf_define(ncid, vn_pmnc,      jpmnch,     dimname=restart_dims)
          CALL cdf_define(ncid, vn_b_factor,  b_factor)
          CALL cdf_define(ncid, vn_p_factor,  p_factor)
+         CALL cdf_define(ncid, vn_wb,        wb)
+         CALL cdf_define(ncid, vn_wp,        wp)
          CALL cdf_define(ncid, vn_p_max,     b_factor)
          CALL cdf_define(ncid, vn_p_min,     p_factor)
          IF (lasym) THEN
@@ -492,11 +528,12 @@
          CALL cdf_write(ncid, vn_zmnc, tempmn_w)
       END IF
 
+      CALL cdf_write(ncid, vn_p_factor, p_factor)
+      CALL cdf_write(ncid, vn_b_factor, b_factor)
+      CALL cdf_write(ncid, vn_wb, wb)
+      CALL cdf_write(ncid, vn_wp, wp)
+
       RECON1: IF (lrecon) THEN
-
-         CALL cdf_write(ncid, vn_p_factor, p_factor)
-         CALL cdf_write(ncid, vn_b_factor, b_factor)
-
          ALLOCATE(bsupsijh(ntheta,nzeta,ns))
          ALLOCATE(bsupuijh(ntheta,nzeta,ns))
          ALLOCATE(bsupvijh(ntheta,nzeta,ns))
@@ -706,7 +743,7 @@
 
       CALL cdf_close(ncid)
 
-      END FUNCTION restart_write
+      END SUBROUTINE
 
 !-------------------------------------------------------------------------------
 !>  @brief Interpolate fourier quantites from the restart file.
@@ -730,53 +767,61 @@
      &                    ntor_old, ntor_new,                                  &
      &                    nfp_old,  nfp_new, lhalf)
       USE stel_constants, ONLY: one, zero
-      IMPLICIT NONE
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), INTENT(in)  :: aold(0:mpol_old,-ntor_old:ntor_old,ns_old)
-      REAL(dp), INTENT(out) :: anew(0:mpol_new,-ntor_new:ntor_new,ns_new)
-      INTEGER, INTENT(in)   :: ns_old
-      INTEGER, INTENT(in)   :: ns_new
-      INTEGER, INTENT(in)   :: mpol_old
-      INTEGER, INTENT(in)   :: mpol_new
-      INTEGER, INTENT(in)   :: ntor_old
-      INTEGER, INTENT(in)   :: ntor_new
-      INTEGER, INTENT(in)   :: nfp_old
-      INTEGER, INTENT(in)   :: nfp_new
-      LOGICAL, INTENT(in)   :: lhalf
 
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      INTEGER               :: real_ntor_min
-      INTEGER               :: i_n
-      INTEGER               :: i_m
-      REAL(dp)              :: ds
-      INTEGER               :: parity
-      INTEGER               :: mpol_min
-      INTEGER               :: ntor_min
-!-----------------------------------------------
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp), INTENT(in)  :: aold(0:mpol_old,-ntor_old:ntor_old,ns_old)
+      REAL (dp), INTENT(out) :: anew(0:mpol_new,-ntor_new:ntor_new,ns_new)
+      INTEGER, INTENT(in)    :: ns_old
+      INTEGER, INTENT(in)    :: ns_new
+      INTEGER, INTENT(in)    :: mpol_old
+      INTEGER, INTENT(in)    :: mpol_new
+      INTEGER, INTENT(in)    :: ntor_old
+      INTEGER, INTENT(in)    :: ntor_new
+      INTEGER, INTENT(in)    :: nfp_old
+      INTEGER, INTENT(in)    :: nfp_new
+      LOGICAL, INTENT(in)    :: lhalf
+
+!  local variables
+      INTEGER                :: real_ntor_min
+      INTEGER                :: i_n
+      INTEGER                :: i_m
+      REAL (dp)              :: ds
+      INTEGER                :: parity
+      INTEGER                :: mpol_min
+      INTEGER                :: ntor_min
+
+!  Start of executable code
       mpol_min = MIN(mpol_new, mpol_old)
       real_ntor_min = MIN(ntor_new*nfp_new, ntor_old*nfp_old)
 
+!  If the Fourier dimensions of the both arrays are the same just copy them.
+!  Otherwise copy only the matcing modes.
+      IF (ns_old   .eq. ns_new   .and.                                         &
+          mpol_old .eq. mpol_new .and.                                         &
+          ntor_old .eq. ntor_new .and.                                         &
+          nfp_old  .eq. nfp_new) THEN
+         anew = aold
+      ELSE
 !  Only some of the toroidal modes will match if nfp_new and nfp_old are different.
-      DO i_n = -real_ntor_min, real_ntor_min
-         IF (i_n/nfp_new .EQ. 0 .AND. i_n/nfp_old .EQ. 0) THEN
-            DO i_m = 0, mpol_min
-               IF (MOD(i_m, 2) .EQ. 0) THEN
-                  parity = -1
-               ELSE
-                  parity = 1
-               END IF
+         DO i_n = -real_ntor_min, real_ntor_min
+            IF (i_n/nfp_new .eq. i_n/nfp_old) THEN
+               DO i_m = 0, mpol_min
+                  IF (MOD(i_m, 2) .EQ. 0) THEN
+                     parity = -1
+                  ELSE
+                     parity = 1
+                  END IF
 
-               CALL interpit_1d(aold(i_m, i_n, :), anew(i_m, i_n, :),          &
-                                ns_old, ns_new, lhalf, parity)
-            END DO
-         ELSE
-            anew(:, i_n, :) = 0
-         END IF
-      END DO
+                  CALL interpit_1d(aold(i_m, i_n, :), anew(i_m, i_n, :),       &
+                                   ns_old, ns_new, lhalf, parity)
+               END DO
+            ELSE
+               anew(:, i_n, :) = 0
+            END IF
+         END DO
+      END IF
 
       END SUBROUTINE
 
@@ -792,30 +837,30 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE interpit_1d(aold, anew, ns_old, ns_new, lhalf, parity)
       USE stel_constants, ONLY: one, zero
+
       IMPLICIT NONE
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), INTENT(in)  :: aold(ns_old)
-      REAL(dp), INTENT(out) :: anew(ns_new)
-      INTEGER, INTENT(in)   :: ns_old
-      INTEGER, INTENT(in)   :: ns_new
-      LOGICAL, INTENT(in)   :: lhalf
-      INTEGER, INTENT(in)   :: parity
 
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      REAL(dp), ALLOCATABLE, DIMENSION(:) :: temp_y
-      REAL(dp), ALLOCATABLE, DIMENSION(:) :: temp_x
-      REAL(dp), ALLOCATABLE, DIMENSION(:) :: temp_new
-      REAL(dp), ALLOCATABLE, DIMENSION(:) :: temp
-      REAL(dp)                            :: ds
-      INTEGER                             :: i_s
+!  Declare Arguments
+      REAL (dp), INTENT(in)                :: aold(ns_old)
+      REAL (dp), INTENT(out)               :: anew(ns_new)
+      INTEGER, INTENT(in)                  :: ns_old
+      INTEGER, INTENT(in)                  :: ns_new
+      LOGICAL, INTENT(in)                  :: lhalf
+      INTEGER, INTENT(in)                  :: parity
 
-      REAL(dp), PARAMETER                 :: lower_b = -1.e30_dp
-      REAL(dp), PARAMETER                 :: upper_b = -1.e30_dp
-!-----------------------------------------------
+!  local variables
+      REAL (dp), ALLOCATABLE, DIMENSION(:) :: temp_y
+      REAL (dp), ALLOCATABLE, DIMENSION(:) :: temp_x
+      REAL (dp), ALLOCATABLE, DIMENSION(:) :: temp_new
+      REAL (dp), ALLOCATABLE, DIMENSION(:) :: temp
+      REAL (dp)                            :: ds
+      INTEGER                              :: i_s
+
+!  local parameters
+      REAL (dp), PARAMETER                 :: lower_b = -1.e30_dp
+      REAL (dp), PARAMETER                 :: upper_b = -1.e30_dp
+
+!  Start of executable code
       anew = 0
       IF (ns_old .EQ. ns_new) THEN
          anew = aold
@@ -864,6 +909,10 @@
       END IF
 
       CALL splINT(temp_x, temp_y, temp, SIZE(temp_x), temp_new, anew)
+
+      DEALLOCATE(temp_y)
+      DEALLOCATE(temp_x)
+      DEALLOCATE(temp)
 
       END SUBROUTINE
 

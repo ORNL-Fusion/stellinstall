@@ -56,9 +56,10 @@
       USE siesta_state, ONLY: lfirst
       USE siesta_error
       USE diagnostics_mod, ONLY: toroidal_flux0
-#if defined(SKS)
       USE blocktridiagonalsolver_s, ONLY: Initialize, GetRanks
-#endif
+      USE siesta_namelist, ONLY: mpolin, ntorin
+      USE metrics, ONLY: set_grid_sizes
+
       IMPLICIT NONE
 
 !  Declare Arguments
@@ -86,7 +87,7 @@
 #if defined(MPI_OPT)
       LSCALAPACK = .TRUE.
       INHESSIAN = .FALSE.
-#if defined(SKS)
+
       CALL MyEnvVariables
       IF (PARSOLVER) THEN
          LSCALAPACK=.FALSE.
@@ -94,7 +95,7 @@
          CALL GetRanks(iam, nprocs)
          CALL sks_timers
       END IF
-#endif
+
       IF (LSCALAPACK) THEN
          CALL profinit()
 
@@ -133,11 +134,12 @@
       CALL second0(ton)
       siesta_run_construct%time_on = ton
 
-      CALL init_data(nprecon)
+      nprecon = init_data()
+      CALL set_grid_sizes(mpolin, ntorin)
+
       CALL second0(toff)
-#if defined(SKS)      
+
       init_data_time = toff - ton
-#endif      
 
 1000  FORMAT('nprow,npcol ',2(x,i5))
 1001  FORMAT('icontxt_global,icontxt,icontxt_1xp,icontxt_px1 ',4(x,i5))
@@ -158,14 +160,10 @@
 !>  @param[in]    close_wout   Instructs if to finalize the close the wout file.
 !-------------------------------------------------------------------------------
       SUBROUTINE siesta_run_destruct(this, finalize_mpi, close_wout)
-#if defined(SKS)
       USE nscalingtools, ONLY: OUTPUT_TIMINGS, GetTimes, PARSOLVER,     &
                                PARFUNCTISL, PARGMRES, SKSDBG, TOFU,     &
                                finalizeremap
       USE blocktridiagonalsolver_s, ONLY: finalize
-#else
-      USE nscalingtools, ONLY: PARSOLVER, PARFUNCTISL, PARGMRES, SKSDBG, TOFU
-#endif
       USE descriptor_mod, ONLY: iam, icontxt, LSCALAPACK, myrow, mycol, nprocs
       USE shared_data, ONLY: nprecon, xc, gc, fsq_total1, mblk_size,    &
                              niter, col_scale, lverbose, ngmres_type,   &
@@ -195,14 +193,10 @@
 !  Start of executable code
       CALL second0(toff)
       time_total = toff - this%time_on
-#if defined(SKS)
-      total_time = toff - this%time_on
-#endif      
-#if defined(SKS)
+
       IF (OUTPUT_TIMINGS) THEN
          CALL GetTimes
       END IF
-#endif
 
       IF (iam .EQ. 0) THEN
          DO i = 6, unit_out, unit_out-6
@@ -242,9 +236,9 @@
             WRITE (i,*)           'COLUMN SCALING :', lColScale
             WRITE (i,'(1x,a,L2,a,i2)') 'PARGMRES       :', PARGMRES,    &
                                   ' GMRES_TYPE: ', ngmres_type
-#if defined(SKS)
+
             WRITE (i,*)           'OUTPUT_TIMINGS :', OUTPUT_TIMINGS
-#endif
+
             WRITE (i,*)
             WRITE (i,101)' TIME DIVB      : ', time_divb
             WRITE (i,101)' TIME DIVJ      : ', time_divj
@@ -286,7 +280,6 @@
             CALL profstat
          END IF
 
-#if defined(SKS)
       ELSE
          IF (SKSDBG) THEN
             WRITE(TOFU,*) 'Called finalizeRemap and Finalize'
@@ -294,7 +287,7 @@
          END IF
          CALL finalizeRemap
          CALL Finalize(finalize_mpi)
-#endif
+
       END IF
 #endif
 
@@ -343,36 +336,103 @@
 !>  @param[inout] this A @ref siesta_run_class instance.
 !-------------------------------------------------------------------------------
       SUBROUTINE siesta_run_set_vmec(this)
-      USE siesta_namelist, ONLY: nsin, mpolin, ntorin, nfpin, wout_file
-      USE metrics, ONLY: init_metric_elements
-      USE quantities, ONLY: init_quantities
-      USE island_params, ns=>ns_i
+      USE siesta_namelist, ONLY: nsin, mpolin, ntorin, nfpin, wout_file,       &
+                                 l_vessel
+      USE metrics, ONLY: init_metric_elements, LoadGrid, sqrtg
+      USE quantities, ONLY: init_quantities, init_fields
+      USE island_params, ns=>ns_i, mpol=>mpol_i, ntor=>ntor_i
       USE shared_data, ONLY: nsp
-      
+      USE vmec_info
+      USE grid_extension, ONLY: grid_extender, read_vessel_file
+      USE pchelms
+      USE evolution, ONLY: init_evolution
+      USE nscalingtools, ONLY: initRemap
+
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (siesta_run_class), INTENT(inout) :: this
 
 !  local variables.
-      REAL (dp)                           :: ton
-      REAL (dp)                           :: toff
+      INTEGER                                :: istat
 
 !  Start of executable code
-      CALL second0(ton)
-      ! SKS: This calls grid_extender
+      CALL vmec_info_set_wout(wout_file, nsin, mpolin, ntorin, nfpin)
+
+!  CONSTRUCT R, Z, L REAL-SPACE ARRAYS ON SQRT(FLUX) - "POLAR" - MESH AND
+!  COMPUTE METRIC ELEMENTS AND JACOBIAN
+      CALL LoadGrid(istat)
+      CALL assert_eq(0, istat, 'LoadRZL error in siesta_run_set_vmec')
+
+!  If the l_vessel is true try to read a vessel file and extend the grid.
+!  Otherwise proceed with fixed boundary equilibrium.
+      IF (l_vessel .and. read_vessel_file() .eq. 0) THEN
+         CALL grid_extender(wout_file, 'quad', istat)
+      ELSE
+         l_vessel = .false.
+      END IF
+
       CALL init_metric_elements(nsin, mpolin, ntorin, nfpin, wout_file)
-      CALL second0(toff)
-#if defined(SKS)
-      init_metric_elements_time = toff - ton
-#endif
-      CALL second0(ton)
-      !ns=nsp
       CALL init_quantities !Initializes BCYCLIC
-      CALL second0(toff)
-#if defined(SKS)
-      init_quantities_time = toff - ton
-#endif
+      CALL init_evolution !neqs is set here
+      CALL initRemap(mpol, ntor, ns, nprocs, iam)
+      CALL InitHess
+
+      IF (l_vessel) THEN
+         CALL run_pchelms
+      END IF
+      CALL Init_Fields
+
+      DEALLOCATE (sqrtg)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Sets quantities for restarting.
+!>
+!>  This loads and sets variables from a restarted SIESTA equilibrium. The
+!>  restart file constains the metric elements, coordinate system jacobian and
+!>  the
+!>
+!>  @param[inout] this A @ref siesta_run_class instance.
+!-------------------------------------------------------------------------------
+      SUBROUTINE siesta_run_set_restart(this)
+      USE restart_mod, ONLY: restart_read
+      USE siesta_namelist, ONLY: lrestart, mpolin, ntorin, nsin, restart_ext,  &
+                                 wout_file, nfpin, nsin_ext, l_vessel
+      USE shared_data, ONLY: nprecon
+      USE metrics, ONLY: init_metric_elements
+      USE quantities, ONLY: init_quantities
+      USE descriptor_mod, ONLY: iam, nprocs
+      USE evolution, ONLY: init_evolution
+      USE nscalingtools, ONLY: initRemap
+      USE island_params, ONLY: ns=>ns_i, hs=>hs_i, ohs=>ohs_i, nsh
+      USE hessian, ONLY: InitHess
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (siesta_run_class), INTENT(inout) :: this
+
+!  Start of executable code
+      IF (l_vessel) THEN
+         ns = nsin + nsin_ext
+      ELSE
+         ns = nsin
+      END IF
+      nsh = ns - 1
+      ohs = nsin - 1
+      hs = 1.0/ohs
+
+      nprecon = restart_read(restart_ext, wout_file, mpolin, ntorin, nfpin,    &
+                             ns)
+
+      CALL init_metric_elements(ns, mpolin, ntorin, nfpin, wout_file)
+      CALL init_quantities !Initializes BCYCLIC
+      CALL init_evolution !neqs is set here
+      CALL initRemap(mpolin, ntorin, ns, nprocs, iam)
+      CALL InitHess
+
       END SUBROUTINE
 
 !*******************************************************************************
@@ -390,76 +450,24 @@
 !>  @returns True if the convergece was sucessful and false otherwise.
 !-------------------------------------------------------------------------------
       SUBROUTINE siesta_run_converge(this)
-      USE perturbation, ONLY: read_restart_file
-      USE shared_data, ONLY: nprecon, lcolscale, ndims
-      USE evolution, ONLY: init_evolution, converge_diagonal, converge_blocks
-      USE descriptor_mod, ONLY: iam, nprocs, DIAGONALDONE
-      USE island_params, mpol=>mpol_i, ntor=>ntor_i, ns=>ns_i
-      USE siesta_namelist, ONLY: ftol, lrestart, wout_file, l_vessel
-#if defined(SKS)
-      USE nscalingtools, ONLY: initRemap
-#endif
-      USE hessian, ONLY: InitHess, levmarq_param, levmarq_param0
-      USE quantities, ONLY: init_fields
-      USE metrics, ONLY: sqrtg
-      USE pchelms
+      USE evolution, ONLY: converge_diagonal, converge_blocks
+      USE descriptor_mod, ONLY: DIAGONALDONE, iam
+      USE siesta_namelist, ONLY: ftol, wout_file
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (siesta_run_class), INTENT(inout) :: this
 
-!  local variables.
-      REAL (dp)                           :: ton
-      REAL (dp)                           :: toff
-      LOGICAL                             :: l1
-
 !  Start of executable code
-      IF (lrestart) CALL read_restart_file(nprecon)
-      CALL second0(toff)
-      time_init = toff - this%time_on
-      CALL second0(ton)
-      CALL init_evolution !neqs is set here
-      CALL initRemap(mpol, ntor, ns, nprocs, iam)
-
-      CALL InitHess
-      CALL second0(toff)
-#if defined(SKS)
-      init_evolution_time = init_evolution_time + (toff - ton)
-#endif
-      CALL second0(ton)
-      IF (.not.lrestart) THEN
-        IF (l_vessel) THEN
-          l1 = lcolscale; lcolscale=.FALSE.
-          CALL run_pchelms
-          lcolscale = l1
-        END IF
-        CALL Init_Fields
-      END IF
-      DEALLOCATE (sqrtg)
-      CALL second0(toff)
-#if defined(SKS)
-      init_quantities_time = init_quantities_time + (toff - ton)
-#endif
 !  Converge initial residues with diagonal preconditioner
-      DIAGONALDONE = .FALSE.
-      CALL second0(ton)
+      DIAGONALDONE = .false.
       CALL converge_diagonal(wout_file, ftol)
-      CALL second0(toff)
-#if defined(SKS)
-      converge_diagonal_time = converge_diagonal_time + (toff - ton)
-#endif
-      DIAGONALDONE=.TRUE.
-
-!      IF (iam.EQ.0) STOP "CONVERGE_DIAGONAL DONE"
+      DIAGONALDONE = .true.
 
 !  Converge using block preconditioner
-      CALL second0(ton)
       CALL converge_blocks(wout_file, ftol)
-      CALL second0(toff)
-#if defined(SKS)
-      converge_blocks_time = converge_blocks_time + (toff - ton)
-#endif
-      END SUBROUTINE siesta_run_converge
+
+      END SUBROUTINE
 
       END MODULE

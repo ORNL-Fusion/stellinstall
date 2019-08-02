@@ -249,7 +249,7 @@
                              ndims
       USE shared_functions, ONLY: funct_island
       USE quantities, ONLY: fsubsmncf, fsubumnsf, fsubvmnsf,            &
-                            mpol, ntor, ns, wp0, wb0, hs_i
+                            mpol, ntor, ns, wp0, hs_i
       USE hessian, ONLY: l_Compute_Hessian
       USE nscalingtools, ONLY: startglobrow, endglobrow
       USE v3_utilities, ONLY: assert
@@ -276,7 +276,9 @@
       lsave = l_linearize
       lsave2= l_Compute_Hessian
       l_edge = l_push_edge
-      l_s = l_push_s; l_u = l_push_u; l_v = l_push_v
+      l_s = l_push_s
+      l_u = l_push_u
+      l_v = l_push_v
       l_linearize = .FALSE.
       l_Compute_Hessian = .FALSE.
       l_init_state = .FALSE.
