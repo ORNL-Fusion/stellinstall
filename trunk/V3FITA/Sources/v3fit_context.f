@@ -196,7 +196,7 @@
       IF (ASSOCIATED(this%signals)) THEN
          DO i = 1, SIZE(this%signals)
             IF (ASSOCIATED(this%signals(i)%p)) THEN
-               CALL signal_destruct(this%signals(i)%p)
+               DEALLOCATE(this%signals(i)%p)
                this%signals(i)%p => null()
             END IF
          END DO
@@ -469,6 +469,7 @@
       CHARACTER (len=26 + 14*v3fit_max_parameters), POINTER ::                 &
      &   sem_header
       INTEGER, DIMENSION(:), ALLOCATABLE        :: indices
+      CLASS (signal_class), POINTER             :: temp_signal
       REAL (rprec)                              :: start_time
 
 !  local parameters
@@ -561,12 +562,14 @@
             WRITE (sem_header, 1002) SIZE(this%params)
 
             DO i = 1, SIZE(this%signals)
+               temp_signal => this%signals(i)%p
+
                DO j = 1, SIZE(this%params)
                   sem_row(j) = this%params(j)%p%recon%sem(i)
                END DO
 
                WRITE (this%recout_iou, sem_header(1:26))                       &
-     &            i, this%signals(i)%p%s_name, sem_row
+     &            i, temp_signal%s_name, sem_row
             END DO
 
 !  Write out the total for each column. Sum over all the signals for a single
@@ -626,6 +629,8 @@
          WRITE (this%recout_iou, *) ' *** Signals'
 
          DO i = 1, SIZE(this%signals)
+            temp_signal => this%signals(i)%p
+
 !  Check if the index has reached a new signal type
             IF ((1                         .eq. i) .or.                        &
      &          (this%magnetic_index       .eq. i) .or.                        &
@@ -640,19 +645,17 @@
      &          (this%sxrem_ratio_index    .eq. i) .or.                        &
      &          (this%combination_index    .eq. i)) THEN
 
-               CALL signal_write_header(this%signals(i)%p,                     &
-     &                                  this%recout_iou)
+               CALL temp_signal%write_header(this%recout_iou)
             END IF
 
-            CALL signal_write(this%signals(i)%p, this%recout_iou, i,           &
-     &                        this%model)
+            CALL temp_signal%write(this%recout_iou, i, this%model)
          END DO
 
 !  All the signals should be written out before auxiliary information.
          DO i = 1, SIZE(this%signals)
-            CALL signals_write_auxiliary(this%signals(i)%p,                    &
-     &                                   this%recout_iou, i,                   &
-     &                                   this%model)
+            temp_signal => this%signals(i)%p
+            CALL temp_signal%write_auxiliary(this%recout_iou, i,               &
+     &                                       this%model)
          END DO
       END IF
 
@@ -781,7 +784,7 @@
 !>  @end_table
 !>  @table_section{result_file_main_sig_var_sec, Signal Variables}
 !>     @item{signal_name (string_len\, nsignal),       Short name of the signal.,                                signal::signal_class::s_name}
-!>     @item{signal_type (string_len\, nsignal),       Description of the signal.,                               signal::signal_get_signal_type}
+!>     @item{signal_type (string_len\, nsignal),       Description of the signal.,                               signal::signal_get_type}
 !>     @item{signal_weight (nsignal),                  Weight value of the signal.,                              signal::signal_class::weight}
 !>     @item{signal_observed_value (nsignal),          Observed value of the signal.,                            signal::signal_class::observed}
 !>     @item{signal_model_value (nsignal\, maxnsteps), Modeled value of the signal at each reconstruction step., signal::signal_get_modeled_signal}
@@ -839,6 +842,7 @@
       INTEGER :: signal_model_value_id
       INTEGER :: signal_sigma_value_id
 
+      CLASS (signal_class), POINTER             :: temp_signal
       REAL (rprec)                              :: start_time
 
 !  Start of executable code
@@ -1064,6 +1068,8 @@
 
       IF (ASSOCIATED(this%signals)) THEN
          DO i = 1, SIZE(this%signals)
+            temp_signal => this%signals(i)%p
+
             status = nf_put_vara_text(this%result_ncid, signal_name_id,        &
      &                                (/ 1, i /),                              &
      &                                (/ data_name_length, 1 /),               &
@@ -1073,8 +1079,7 @@
             status = nf_put_vara_text(this%result_ncid, signal_type_id,        &
      &                                (/ 1, i /),                              &
      &                                (/ data_name_length, 1 /),               &
-     &                                signal_get_signal_type(                  &
-     &                                   this%signals(i)%p))
+     &                                temp_signal%get_type())
             CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
             status = nf_put_var1_double(this%result_ncid,                      &
@@ -1139,6 +1144,7 @@
       INTEGER :: signal_model_value_id
       INTEGER :: signal_sigma_value_id
 
+      CLASS (signal_class), POINTER             :: temp_signal
       REAL (rprec)                              :: start_time
 
 !  Start of executable code
@@ -1246,11 +1252,13 @@
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
          DO i = 1, SIZE(this%signals)
-            CALL signal_write_step_data(this%signals(i)%p, this%model,         &
-     &                                  this%result_ncid,                      &
-     &                                  current_step, i,                       &
-     &                                  signal_model_value_id,                 &
-     &                                  signal_sigma_value_id)
+            temp_signal => this%signals(i)%p
+
+            CALL temp_signal%write_step_data(this%model,                       &
+     &                                       this%result_ncid,                 &
+     &                                       current_step, i,                  &
+     &                                       signal_model_value_id,            &
+     &                                       signal_sigma_value_id)
          END DO
       END IF
 

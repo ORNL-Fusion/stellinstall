@@ -17,6 +17,7 @@
       USE coordinate_utilities
       USE profiler
       USE mpi_inc
+      USE signal
 
       IMPLICIT NONE
 
@@ -38,7 +39,7 @@
 !>  @par Super Class:
 !>  @ref diagnostic
 !-------------------------------------------------------------------------------
-      TYPE mse_class
+      TYPE, EXTENDS(signal_class) :: mse_class
 !>  Intersection point of the viewing angle and the neutral beam.
          REAL (rprec), DIMENSION(3) :: point
 
@@ -53,6 +54,15 @@
 
 !>  Control flags for the signal output
          INTEGER                    :: flags
+      CONTAINS
+         PROCEDURE                  ::                                         &
+     &      get_modeled_signal_last => mse_get_modeled_signal
+         PROCEDURE                  ::                                         &
+     &      get_type => mse_get_type
+         PROCEDURE                  :: get_header => mse_get_header
+         PROCEDURE, PRIVATE         ::                                         &
+     &      angle_to_bt_proj => mse_angle_to_bt_proj
+         FINAL                      :: mse_destruct
       END TYPE
 
 !*******************************************************************************
@@ -62,7 +72,7 @@
 !>  Interface for the construction of @ref mse_class types using
 !>  @ref mse_construct_vec or @ref mse_construct_rad.
 !-------------------------------------------------------------------------------
-      INTERFACE mse_construct
+      INTERFACE mse_class
 		 MODULE PROCEDURE mse_construct_vec,                                   &
      &                    mse_construct_rad
       END INTERFACE
@@ -96,7 +106,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (mse_class), POINTER  :: mse_construct_vec
+      CLASS (mse_class), POINTER  :: mse_construct_vec
       REAL (rprec), DIMENSION(3), INTENT(in) :: point
       REAL (rprec), DIMENSION(3), INTENT(in) :: view_start
       REAL (rprec), DIMENSION(3), INTENT(in) :: view_end
@@ -130,9 +140,9 @@
 !  and 90 points in the negative radial direction. So this needs to be PI minus
 !  the angle obtained from the dotproduct.
       mse_construct_vec%alpha = PI -                                           &
-     &   mse_angle_to_bt_proj(mse_construct_vec, beam_end - beam_start)
+     &   mse_construct_vec%angle_to_bt_proj(beam_end - beam_start)
       mse_construct_vec%omega =                                                &
-     &   mse_angle_to_bt_proj(mse_construct_vec, view_end - view_start)
+     &   mse_construct_vec%angle_to_bt_proj(view_end - view_start)
 
 !  Get the angles with respect to the horizontal.
 !  The mse delta is defined so that 90 points in the negative z direction. So
@@ -170,7 +180,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (mse_class), POINTER              :: mse_construct_rad
+      CLASS (mse_class), POINTER             :: mse_construct_rad
       REAL (rprec), DIMENSION(3), INTENT(in) :: point
       REAL (rprec), INTENT(in)               :: alpha
       REAL (rprec), INTENT(in)               :: omega
@@ -224,7 +234,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (mse_class), POINTER :: this
+      TYPE (mse_class), INTENT(inout) :: this
 
 !  Start of executable code
       this%point = 0.0
@@ -233,8 +243,6 @@
       this%delta = 0.0
       this%theta = 0.0
       this%flags = 0
-
-	  DEALLOCATE(this)
 
       END SUBROUTINE
 
@@ -273,28 +281,23 @@
 !>  * theta: Angle between the view and the horizontal. Defined such that 90 is
 !>    in the positive z direction.
 !>
-!>  @param[in]  this          A @ref mse_class instance.
-!>  @param[in]  a_model       A @ref model instance.
-!>  @param[out] sigma         The modeled sigma.
-!>  @param[in]  last_value    Last good value in case the signal did not change.
-!>  @param[in]  scale_factor  Factor to scale the modeled signal.
-!>  @param[in]  offset_factor Factor to offset the modeled signal.
+!>  @param[inout]  this       A @ref mse_class instance.
+!>  @param[in]     a_model    A @ref model instance.
+!>  @param[out]    sigma      The modeled sigma.
+!>  @param[in]     last_value Last good value in case the signal did not change.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
-      FUNCTION mse_get_modeled_signal(this, a_model, sigma, last_value,        &
-     &                                scale_factor, offset_factor)
+      FUNCTION mse_get_modeled_signal(this, a_model, sigma, last_value)
       USE model
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4) :: mse_get_modeled_signal
-      TYPE (mse_class), INTENT(in)            :: this
-      TYPE (model_class), INTENT(in)          :: a_model
+      CLASS (mse_class), INTENT(inout)        :: this
+      TYPE (model_class), POINTER             :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
       REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
-      REAL (rprec), INTENT(in)                :: scale_factor
-      REAL (rprec), INTENT(in)                :: offset_factor
 
 !  local variables
       REAL (rprec), DIMENSION(3)              :: b_cyl
@@ -303,7 +306,6 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      mse_get_modeled_signal = last_value
       sigma = 0.0
 
       IF (BTEST(a_model%state_flags, model_state_vmec_flag)   .or.             &
@@ -343,8 +345,9 @@
             END IF
          END IF
 
-         mse_get_modeled_signal(1) =                                           &
-     &     (mse_get_modeled_signal(1) + offset_factor)*scale_factor
+         CALL this%scale_and_offset(a_model, mse_get_modeled_signal(1))
+      ELSE
+         mse_get_modeled_signal = last_value
       END IF
 
       CALL profiler_set_stop_time('mse_get_modeled_signal', start_time)
@@ -359,14 +362,14 @@
 !>  @param[in] this A @ref mse_class instance.
 !>  @returns A string describing the mse type.
 !-------------------------------------------------------------------------------
-      FUNCTION mse_get_signal_type(this)
+      FUNCTION mse_get_type(this)
       USE data_parameters
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=data_name_length) :: mse_get_signal_type
-      TYPE (mse_class), INTENT(in)     :: this
+      CHARACTER (len=data_name_length) :: mse_get_type
+      CLASS (mse_class), INTENT(in)    :: this
 
 !  local variables
       REAL (rprec)                     :: start_time
@@ -374,9 +377,9 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      mse_get_signal_type = 'mse'
+      mse_get_type = 'mse'
 
-      CALL profiler_set_stop_time('mse_get_signal_type', start_time)
+      CALL profiler_set_stop_time('mse_get_type', start_time)
 
       END FUNCTION
 
@@ -386,17 +389,19 @@
 !>  Returns a description of the array indices for use when writting output
 !>  files.
 !>
-!>  @param[in] this A @ref mse_class instance.
+!>  @param[in]    this   A @ref mse_class instance.
+!>  @param[inout] header Buffer arrays to write header strings to.
 !>  @returns A string describing the model and model sigma array indices.
 !-------------------------------------------------------------------------------
-      FUNCTION mse_get_header(this)
+      SUBROUTINE mse_get_header(this, header)
       USE data_parameters
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=data_name_length), DIMENSION(7) :: mse_get_header
-      TYPE (mse_class), INTENT(in)                   :: this
+      CLASS (mse_class), INTENT(in)                  :: this
+      CHARACTER (len=data_name_length), DIMENSION(7), INTENT(inout) ::         &
+     &   header
 
 !  local variables
       REAL (rprec)                                   :: start_time
@@ -404,18 +409,18 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      mse_get_header(1) = 'e_h'
-      mse_get_header(2) = 'e_v'
-      mse_get_header(3) = 'ratio'
+      header(1) = 'e_h'
+      header(2) = 'e_v'
+      header(3) = 'ratio'
 
-      mse_get_header(4) = 'model_sig(1)'
-      mse_get_header(5) = 'model_sig(2)'
-      mse_get_header(6) = 'model_sig(3)'
-      mse_get_header(7) = 'model_sig(4)'
+      header(4) = 'model_sig(1)'
+      header(5) = 'model_sig(2)'
+      header(6) = 'model_sig(3)'
+      header(7) = 'model_sig(4)'
 
       CALL profiler_set_stop_time('mse_get_header', start_time)
 
-      END FUNCTION
+      END SUBROUTINE
 
 !*******************************************************************************
 !  PRIVATE
@@ -443,14 +448,14 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec)                 :: mse_angle_to_bt_proj
-      TYPE (mse_class), INTENT(in) :: this
-      REAL (rprec), DIMENSION(3)   :: vec
+      REAL (rprec)                  :: mse_angle_to_bt_proj
+      CLASS (mse_class), INTENT(in) :: this
+      REAL (rprec), DIMENSION(3)    :: vec
 
 !  local variables
-      REAL (rprec), DIMENSION(2)   :: temp_vec
-      REAL (rprec), DIMENSION(2)   :: norm_vec
-      REAL (rprec)                 :: start_time
+      REAL (rprec), DIMENSION(2)    :: temp_vec
+      REAL (rprec), DIMENSION(2)    :: norm_vec
+      REAL (rprec)                  :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -497,7 +502,7 @@
       mse_angle_to_horizontal = ASIN(vec(3)/h)
       mse_angle_to_horizontal = PI/2.0 - mse_angle_to_horizontal
 
-      CALL profiler_set_stop_time('mse_angle_to_bt_proj', start_time)
+      CALL profiler_set_stop_time('mse_angle_to_horizontal', start_time)
 
 	  END FUNCTION
 

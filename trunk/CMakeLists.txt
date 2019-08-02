@@ -30,11 +30,8 @@ project (v3fit_suite Fortran C CXX)
 
 enable_testing ()
 
-# Activate or Deactivate PARVMEC. PARVMEC maybe activated by setting -DUSE_PARVMEC=ON on the cmake command line.
-OPTION (USE_PARVMEC "Activate code parvmec." OFF)
-if (USE_PARVMEC)
-        add_definitions (-DSKS)
-endif ()
+# Define SKS preprocessor define as required by SIESTA. FIXME: Remove all SKS defines.
+add_definitions (-DSKS)
 
 # Activate or Deactivate code profiling. The profiler maybe activated by setting -DUSE_PROFILER=ON on the cmake command line.
 OPTION (USE_PROFILER "Activate code profiling." OFF)
@@ -63,7 +60,7 @@ get_filename_component (compiler ${CMAKE_Fortran_COMPILER} NAME)
 if (${compiler} STREQUAL mpiifort)
 	add_definitions (-DMPI_OPT)
 else ()
-	find_package (MPI)
+	find_package (MPI REQUIRED)
 endif ()
 
 if (MPI_Fortran_FOUND)
@@ -76,7 +73,7 @@ if (MPI_Fortran_FOUND)
 #  depending on the current platform or implementation of MPI the oversubscribe
 #  flag changes. MPIEXEC may not write to stdout correctly. Add the ability to
 #  set this variable manually.
-	if (NOT ${MPI_OVERSUBSCRIBE_FLAG}) 
+	if (NOT DEFINED ${MPI_OVERSUBSCRIBE_FLAG}) 
 		execute_process(COMMAND ${MPIEXEC} --version OUTPUT_VARIABLE MPI_VERSION)
 		if (${MPI_VERSION} MATCHES "Open MPI" OR
 		    ${MPI_VERSION} MATCHES "OpenRTE"  OR

@@ -84,10 +84,10 @@
 
 !  local variables
 #if defined (MPI_OPT)
-      LOGICAL                                   :: isinit
-      INTEGER                                   :: status
+      LOGICAL                                    :: isinit
+      INTEGER                                    :: status
 #endif
-      REAL (rprec)                              :: start_time
+      REAL (rprec)                               :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -578,4 +578,3 @@
       END FUNCTION
 
       END MODULE
-

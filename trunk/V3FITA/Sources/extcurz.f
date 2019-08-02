@@ -17,6 +17,7 @@
       USE stel_kinds, only: rprec
       USE mpi_inc
       USE profiler
+      USE signal
 
       IMPLICIT NONE
 
@@ -31,12 +32,28 @@
 !>  @par Super Class:
 !>  @ref diagnostic
 !-------------------------------------------------------------------------------
-      TYPE extcurz_class
+      TYPE, EXTENDS(signal_class) :: extcurz_class
 !>  Radial surface to compute external current from.
          REAL (rprec) :: r
 !>  Poloidal angle to compute current from.
          REAL (rprec) :: theta
+      CONTAINS
+         PROCEDURE    ::                                                       &
+     &      get_modeled_signal_last => extcurz_get_modeled_signal
+         PROCEDURE    :: get_type => extcurz_get_type
+         FINAL        :: extcurz_destruct
       END TYPE extcurz_class
+
+!*******************************************************************************
+!  INTERFACE BLOCKS
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Interface for the construction of @ref extcurz_class types using
+!>  @ref extcurz_construct.
+!-------------------------------------------------------------------------------
+      INTERFACE extcurz_class
+         MODULE PROCEDURE extcurz_construct
+      END INTERFACE
 
       CONTAINS
 !*******************************************************************************
@@ -56,7 +73,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (extcurz_class), POINTER  :: extcurz_construct
+      CLASS (extcurz_class), POINTER :: extcurz_construct
       REAL(rprec), INTENT(in)        :: r
       REAL(rprec), INTENT(in)        :: theta
 
@@ -89,13 +106,11 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (extcurz_class), POINTER :: this
+      TYPE (extcurz_class), INTENT(inout) :: this
 
 !  Start of executable code
       this%r = 0.0
       this%theta = 0.0
-
-      DEALLOCATE(this)
 
       END SUBROUTINE
 
@@ -109,17 +124,14 @@
 !>  of the magnetic field. The loop integrated magnetic field is provided by
 !>  @ref equilibrium::equilibrium_get_Int_B_dphi
 !>
-!>  @param[in]  this          A @ref extcurz_class instance.
-!>  @param[in]  a_model       A @ref model instance.
-!>  @param[out] sigma         The modeled sigma.
-!>  @param[in]  last_value    Last good value in case the signal did not change.
-!>  @param[in]  scale_factor  Factor to scale the modeled signal.
-!>  @param[in]  offset_factor Factor to offset the modeled signal.
+!>  @param[inout] this       A @ref extcurz_class instance.
+!>  @param[in]    a_model    A @ref model instance.
+!>  @param[out]   sigma      The modeled sigma.
+!>  @param[in]    last_value Last good value in case the signal did not change.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION extcurz_get_modeled_signal(this, a_model, sigma,                &
-     &                                    last_value, scale_factor,            &
-     &                                    offset_factor)
+     &                                    last_value)
       USE model
       USE stel_constants, only: mu0
 
@@ -127,12 +139,10 @@
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4) :: extcurz_get_modeled_signal
-      TYPE (extcurz_class), INTENT(in)        :: this
-      TYPE (model_class), INTENT(in)          :: a_model
+      CLASS (extcurz_class), INTENT(inout)    :: this
+      TYPE (model_class), POINTER             :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
       REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
-      REAL (rprec), INTENT(in)                :: scale_factor
-      REAL (rprec), INTENT(in)                :: offset_factor
 
 !  local variables
       REAL (rprec)                            :: start_time
@@ -140,17 +150,19 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      extcurz_get_modeled_signal = last_value
       sigma = 0
 
       IF (BTEST(a_model%state_flags, model_state_vmec_flag)   .or.             &
      &    BTEST(a_model%state_flags, model_state_siesta_flag) .or.             &
      &    BTEST(a_model%state_flags, model_state_signal_flag)) THEN
-
          extcurz_get_modeled_signal(1) =                                       &
-     &      (equilibrium_get_Int_B_dphi(a_model%equilibrium, this%r,           &
-     &                                  this%theta)/mu0 +                      &
-     &       offset_factor)*scale_factor
+     &      equilibrium_get_Int_B_dphi(a_model%equilibrium, this%r,            &
+     &                                 this%theta)/mu0
+
+         CALL this%scale_and_offset(a_model,                                   &
+     &                              extcurz_get_modeled_signal(1))
+      ELSE
+         extcurz_get_modeled_signal = last_value
       END IF
 
       CALL profiler_set_stop_time('extcurz_get_modeled_signal',                &
@@ -166,14 +178,14 @@
 !>  @param[in] this A @ref extcurz_class instance.
 !>  @returns A string describing the extcurz type.
 !-------------------------------------------------------------------------------
-      FUNCTION extcurz_get_signal_type(this)
+      FUNCTION extcurz_get_type(this)
       USE data_parameters
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=data_name_length) :: extcurz_get_signal_type
-      TYPE (extcurz_class), INTENT(in) :: this
+      CHARACTER (len=data_name_length)  :: extcurz_get_type
+      CLASS (extcurz_class), INTENT(in) :: this
 
 !  local variables
       REAL (rprec)                     :: start_time
@@ -181,9 +193,9 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      extcurz_get_signal_type = 'extcur'
+      extcurz_get_type = 'extcur'
 
-      CALL profiler_set_stop_time('extcurz_get_signal_type', start_time)
+      CALL profiler_set_stop_time('extcurz_get_type', start_time)
 
       END FUNCTION
 

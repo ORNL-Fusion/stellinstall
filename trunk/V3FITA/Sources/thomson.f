@@ -17,53 +17,98 @@
       USE mpi_inc
       USE profiler
       USE model
+      USE signal
 
       IMPLICIT NONE
 
 !*******************************************************************************
 !  thomson module parameters
 !*******************************************************************************
-!>  Type descriptor for thomson no type.
-      INTEGER, PARAMETER :: thomson_no_type = -1
-!>  Type descriptor for thomson type measureing temperature.
-      INTEGER, PARAMETER :: thomson_temperature_type = 0
-!>  Type descriptor for thomson type measureing denisty.
-      INTEGER, PARAMETER :: thomson_density_type = 1
-!>  Type descriptor for thomson type measureing pressure.
-      INTEGER, PARAMETER :: thomson_pressure_type = 2
+!>  Assert message for pressure methods
+      CHARACTER (len=*), PARAMETER ::                                          &
+     &   thomson_p_error = 'Guassian processes are not supported ' //          &
+     &                     'for thomson pressure measurements.'
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) thomson base class
+!  2) thomson te class
+!  3) thomson ne class
+!  4) thomson p class
 !
 !*******************************************************************************
 !-------------------------------------------------------------------------------
 !>  Base class representing a thomson scattering signal.
 !>  @par Super Class:
-!>  @ref diagnostic
+!>  @ref signal
 !-------------------------------------------------------------------------------
-      TYPE thomson_class
-!>  Type descirptor of the thomson type.
-!>  @par Possible values are:
-!>  * @ref thomson_no_type
-!>  * @ref thomson_temperature_type
-!>  * @ref thomson_density_type
-!>  * @ref thomson_pressure_type
-         INTEGER                    :: type
+      TYPE, EXTENDS(signal_class) :: thomson_class
 !>  Position of the thomson scattering point.
          REAL (rprec), DIMENSION(3) :: xcart
-      END TYPE thomson_class
+      CONTAINS
+         PROCEDURE                  :: get_type => thomson_get_type
+         FINAL                      :: thomson_destruct
+      END TYPE
+
+!-------------------------------------------------------------------------------
+!>  Base class representing a thomson scattering te signal.
+!>  @par Super Class:
+!>  @ref thomson_class
+!-------------------------------------------------------------------------------
+      TYPE, EXTENDS (thomson_class) :: thomson_te_class
+      CONTAINS
+         PROCEDURE ::                                                          &
+     &      get_modeled_signal_last => thomson_te_get_modeled_signal
+         PROCEDURE :: get_gp_i => thomson_te_get_gp_i
+         PROCEDURE :: get_gp_x => thomson_te_get_gp_x
+      END TYPE
+
+!-------------------------------------------------------------------------------
+!>  Base class representing a thomson scattering te signal.
+!>  @par Super Class:
+!>  @ref thomson_class
+!-------------------------------------------------------------------------------
+      TYPE, EXTENDS (thomson_class) :: thomson_ne_class
+      CONTAINS
+         PROCEDURE ::                                                          &
+     &      get_modeled_signal_last => thomson_ne_get_modeled_signal
+         PROCEDURE :: get_gp_i => thomson_ne_get_gp_i
+         PROCEDURE :: get_gp_x => thomson_ne_get_gp_x
+      END TYPE
+
+!-------------------------------------------------------------------------------
+!>  Base class representing a thomson scattering te signal.
+!>  @par Super Class:
+!>  @ref thomson_class
+!-------------------------------------------------------------------------------
+      TYPE, EXTENDS (thomson_class) :: thomson_p_class
+      CONTAINS
+         PROCEDURE ::                                                          &
+     &      get_modeled_signal_last => thomson_p_get_modeled_signal
+      END TYPE
 
 !*******************************************************************************
 !  INTERFACE BLOCKS
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  Interface to get the guassian process kernel values.
+!>  Interface for thomson te constructor.
 !-------------------------------------------------------------------------------
-      INTERFACE thomson_get_gp
-         MODULE PROCEDURE thomson_get_gp_i,                                    &
-     &                    thomson_get_gp_s,                                    &
-     &                    thomson_get_gp_x
+      INTERFACE thomson_te_class
+         MODULE PROCEDURE thomson_te_construct
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
+!>  Interface for thomson te constructor.
+!-------------------------------------------------------------------------------
+      INTERFACE thomson_ne_class
+         MODULE PROCEDURE thomson_ne_construct
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
+!>  Interface for thomson te constructor.
+!-------------------------------------------------------------------------------
+      INTERFACE thomson_p_class
+         MODULE PROCEDURE thomson_p_construct
       END INTERFACE
 
       CONTAINS
@@ -76,12 +121,12 @@
 !>  @param[in] xcart The measurement point.
 !>  @returns A pointer to a constructed @ref thomson_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION thomson_construct_te(xcart)
+      FUNCTION thomson_te_construct(xcart)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (thomson_class), POINTER          :: thomson_construct_te
+      CLASS (thomson_te_class), POINTER      :: thomson_te_construct
       REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
 
 !  local variables
@@ -90,10 +135,10 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      thomson_construct_te =>                                                  &
-     &   thomson_construct(thomson_temperature_type, xcart)
+      ALLOCATE(thomson_te_construct)
+      thomson_te_construct%xcart = xcart
 
-      CALL profiler_set_stop_time('thomson_construct_te', start_time)
+      CALL profiler_set_stop_time('thomson_te_construct', start_time)
 
       END FUNCTION
 
@@ -103,12 +148,12 @@
 !>  @param[in] xcart The measurement point.
 !>  @returns A pointer to a constructed @ref thomson_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION thomson_construct_ne(xcart)
+      FUNCTION thomson_ne_construct(xcart)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (thomson_class), POINTER          :: thomson_construct_ne
+      CLASS (thomson_ne_class), POINTER      :: thomson_ne_construct
       REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
 
 !  local variables
@@ -117,10 +162,10 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      thomson_construct_ne => thomson_construct(thomson_density_type,          &
-     &                                          xcart)
+      ALLOCATE(thomson_ne_construct)
+      thomson_ne_construct%xcart = xcart
 
-      CALL profiler_set_stop_time('thomson_construct_ne', start_time)
+      CALL profiler_set_stop_time('thomson_ne_construct', start_time)
 
       END FUNCTION
 
@@ -130,12 +175,12 @@
 !>  @param[in] xcart The measurement point.
 !>  @returns A pointer to a constructed @ref thomson_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION thomson_construct_p(xcart)
+      FUNCTION thomson_p_construct(xcart)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (thomson_class), POINTER          :: thomson_construct_p
+      CLASS (thomson_p_class), POINTER       :: thomson_p_construct
       REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
 
 !  local variables
@@ -144,45 +189,10 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      thomson_construct_p => thomson_construct(thomson_pressure_type,          &
-     &                                         xcart)
+      ALLOCATE(thomson_p_construct)
+      thomson_p_construct%xcart = xcart
 
-      CALL profiler_set_stop_time('thomson_construct_p', start_time)
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!>  @brief Construct a @ref thomson_class object.
-!>
-!>  Allocates memory and initializes a @ref thomson_class object.
-!>
-!>  @param[in] type  The measurement type. Possible value are
-!>                   @ref thomson_no_type, @ref thomson_temperature_type,
-!>                   @ref thomson_density_type and @ref thomson_pressure_type.
-!>  @param[in] xcart The measurement point.
-!>  @returns A pointer to a constructed @ref thomson_class object.
-!-------------------------------------------------------------------------------
-      FUNCTION thomson_construct(type, xcart)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (thomson_class), POINTER          :: thomson_construct
-      INTEGER, INTENT(in)                    :: type
-      REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
-
-!  local variables
-      REAL (rprec)                           :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      ALLOCATE(thomson_construct)
-
-      thomson_construct%type = type
-      thomson_construct%xcart = xcart
-
-      CALL profiler_set_stop_time('thomson_construct', start_time)
+      CALL profiler_set_stop_time('thomson_p_construct', start_time)
 
       END FUNCTION
 
@@ -192,7 +202,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Deconstruct a @ref thomson_class object.
 !>
-!>  Deallocates memory and uninitializes a @ref thomson_class object.
+!>  Uninitializes a @ref thomson_class object.
 !>
 !>  @param[inout] this A @ref thomson_class instance.
 !-------------------------------------------------------------------------------
@@ -201,13 +211,10 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (thomson_class), POINTER :: this
+      TYPE (thomson_class), INTENT(inout) :: this
 
 !  Start of executable code
-      this%type = thomson_no_type
       this%xcart = 0.0
-
-      DEALLOCATE(this)
 
       END SUBROUTINE
 
@@ -215,36 +222,29 @@
 !  GETTER SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  @brief Calculates the modeled signal.
+!>  @brief Calculates the modeled te signal.
 !>
 !>  Calculates the modeled signal at a point. Temperature is provided by
-!>  @ref model::model_get_te. Denisty is provided by @ref model::model_get_ne.
-!>  Pressure is provided by @ref equilibrium::equilibrium_get_p.
+!>  @ref model::model_get_te.
 !>
-!>  @param[in]  this          A @ref thomson_class instance.
-!>  @param[in]  a_model       A @ref model instance.
-!>  @param[out] sigma         The modeled sigma.
-!>  @param[in]  last_value    Last good value in case the signal did not change.
-!>  @param[in]  scale_factor  Factor to scale the modeled signal.
-!>  @param[in]  offset_factor Factor to offset the modeled signal.
+!>  @param[inout] this       A @ref thomson_te_class instance.
+!>  @param[in]    a_model    A @ref model instance.
+!>  @param[out]   sigma      The modeled sigma.
+!>  @param[in]    last_value Last good value in case the signal did not change.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
-      FUNCTION thomson_get_modeled_signal(this, a_model, sigma,                &
-     &                                    last_value, scale_factor,            &
-     &                                    offset_factor)
+      FUNCTION thomson_te_get_modeled_signal(this, a_model, sigma,             &
+     &                                       last_value)
       USE model
-      USE coordinate_utilities
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(4) :: thomson_get_modeled_signal
-      TYPE (thomson_class), INTENT(in)        :: this
-      TYPE (model_class), INTENT(in)          :: a_model
+      REAL (rprec), DIMENSION(4) :: thomson_te_get_modeled_signal
+      CLASS (thomson_te_class), INTENT(inout) :: this
+      TYPE (model_class), POINTER             :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
       REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
-      REAL (rprec), INTENT(in)                :: scale_factor
-      REAL (rprec), INTENT(in)                :: offset_factor
 
 !  local variables
       REAL (rprec)                            :: start_time
@@ -252,51 +252,126 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      thomson_get_modeled_signal = last_value
       sigma = 0.0
 
-      SELECT CASE(this%type)
+      IF (BTEST(a_model%state_flags, model_state_vmec_flag)   .or.             &
+     &    BTEST(a_model%state_flags, model_state_siesta_flag) .or.             &
+     &    BTEST(a_model%state_flags, model_state_te_flag)     .or.             &
+     &    BTEST(a_model%state_flags, model_state_shift_flag)  .or.             &
+     &    BTEST(a_model%state_flags, model_state_signal_flag)) THEN
+         thomson_te_get_modeled_signal(1) = model_get_te(a_model,              &
+     &                                                   this%xcart)
 
-         CASE (thomson_temperature_type)
-            IF (BTEST(a_model%state_flags, model_state_vmec_flag)   .or.       &
-     &          BTEST(a_model%state_flags, model_state_siesta_flag) .or.       &
-     &          BTEST(a_model%state_flags, model_state_te_flag)     .or.       &
-     &          BTEST(a_model%state_flags, model_state_shift_flag)  .or.       &
-     &          BTEST(a_model%state_flags,                                     &
-     &                model_state_signal_flag)) THEN
-               thomson_get_modeled_signal(1) =                                 &
-     &            (model_get_te(a_model, this%xcart) +                         &
-     &             offset_factor)*scale_factor
-            END IF
+         CALL this%scale_and_offset(a_model,                                   &
+     &                              thomson_te_get_modeled_signal(1))
+      ELSE
+         thomson_te_get_modeled_signal = last_value
+      END IF
 
-         CASE (thomson_density_type)
-            IF (BTEST(a_model%state_flags, model_state_vmec_flag)   .or.       &
-     &          BTEST(a_model%state_flags, model_state_siesta_flag) .or.       &
-     &          BTEST(a_model%state_flags, model_state_ne_flag)     .or.       &
-     &          BTEST(a_model%state_flags, model_state_shift_flag)  .or.       &
-     &          BTEST(a_model%state_flags,                                     &
-     &                model_state_signal_flag)) THEN
-               thomson_get_modeled_signal(1) =                                 &
-     &            (model_get_ne(a_model, this%xcart) +                         &
-     &             offset_factor)*scale_factor
-            END IF
+      CALL profiler_set_stop_time('thomson_te_get_modeled_signal',             &
+     &                            start_time)
 
-         CASE (thomson_pressure_type)
-            IF (BTEST(a_model%state_flags, model_state_vmec_flag)   .or.       &
-     &          BTEST(a_model%state_flags, model_state_siesta_flag) .or.       &
-     &          BTEST(a_model%state_flags, model_state_shift_flag)  .or.       &
-     &          BTEST(a_model%state_flags,                                     &
-     &                model_state_signal_flag)) THEN
-               thomson_get_modeled_signal(1) =                                 &
-     &            (equilibrium_get_p(a_model%equilibrium, this%xcart) +        &
-     &             offset_factor)*scale_factor
-            END IF
+      END FUNCTION
 
-      END SELECT
+!-------------------------------------------------------------------------------
+!>  @brief Calculates the modeled ne signal.
+!>
+!>  Calculates the modeled signal at a point. Density is provided by
+!>  @ref model::model_get_ne.
+!>
+!>  @param[inout]  this       A @ref thomson_ne_class instance.
+!>  @param[in]     a_model    A @ref model instance.
+!>  @param[out]    sigma      The modeled sigma.
+!>  @param[in]     last_value Last good value in case the signal did not change.
+!>  @returns The model value.
+!-------------------------------------------------------------------------------
+      FUNCTION thomson_ne_get_modeled_signal(this, a_model, sigma,             &
+     &                                       last_value)
+      USE model
 
+      IMPLICIT NONE
 
+!  Declare Arguments
+      REAL (rprec), DIMENSION(4) :: thomson_ne_get_modeled_signal
+      CLASS (thomson_ne_class), INTENT(inout) :: this
+      TYPE (model_class), POINTER             :: a_model
+      REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
+      REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
 
-      CALL profiler_set_stop_time('thomson_get_modeled_signal',                &
+!  local variables
+      REAL (rprec)                            :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      sigma = 0.0
+
+      IF (BTEST(a_model%state_flags, model_state_vmec_flag)   .or.             &
+     &    BTEST(a_model%state_flags, model_state_siesta_flag) .or.             &
+     &    BTEST(a_model%state_flags, model_state_ne_flag)     .or.             &
+     &    BTEST(a_model%state_flags, model_state_shift_flag)  .or.             &
+     &    BTEST(a_model%state_flags, model_state_signal_flag)) THEN
+         thomson_ne_get_modeled_signal(1) = model_get_ne(a_model,              &
+     &                                                   this%xcart)
+
+         CALL this%scale_and_offset(a_model,                                   &
+     &                              thomson_ne_get_modeled_signal(1))
+      ELSE
+         thomson_ne_get_modeled_signal = last_value
+      END IF
+
+      CALL profiler_set_stop_time('thomson_ne_get_modeled_signal',             &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Calculates the modeled pressure signal.
+!>
+!>  Calculates the modeled signal at a point. Pressure is provided by
+!>  @ref model::model_get_p.
+!>
+!>  @param[inout] this       A @ref thomson_p_class instance.
+!>  @param[in]    a_model    A @ref model instance.
+!>  @param[out]   sigma      The modeled sigma.
+!>  @param[in]    last_value Last good value in case the signal did not change.
+!>  @returns The model value.
+!-------------------------------------------------------------------------------
+      FUNCTION thomson_p_get_modeled_signal(this, a_model, sigma,              &
+     &                                      last_value)
+      USE model
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(4) :: thomson_p_get_modeled_signal
+      CLASS (thomson_p_class), INTENT(inout)  :: this
+      TYPE (model_class), POINTER             :: a_model
+      REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
+      REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
+
+!  local variables
+      REAL (rprec)                            :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      sigma = 0.0
+
+      IF (BTEST(a_model%state_flags, model_state_vmec_flag)   .or.             &
+     &    BTEST(a_model%state_flags, model_state_siesta_flag) .or.             &
+     &    BTEST(a_model%state_flags, model_state_shift_flag)  .or.             &
+     &    BTEST(a_model%state_flags, model_state_signal_flag)) THEN
+         thomson_p_get_modeled_signal(1) =                                     &
+     &      equilibrium_get_p(a_model%equilibrium, this%xcart)
+
+         CALL this%scale_and_offset(a_model,                                   &
+     &                              thomson_p_get_modeled_signal(1))
+      ELSE
+         thomson_p_get_modeled_signal = last_value
+      END IF
+
+      CALL profiler_set_stop_time('thomson_p_get_modeled_signal',              &
      &                            start_time)
 
       END FUNCTION
@@ -310,72 +385,24 @@
 !>  @param[in] this A @ref thomson_class instance.
 !>  @returns A string describing the thomson type.
 !-------------------------------------------------------------------------------
-      FUNCTION thomson_get_signal_type(this)
+      FUNCTION thomson_get_type(this)
       USE data_parameters
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=data_name_length) :: thomson_get_signal_type
-      TYPE (thomson_class), INTENT(in) :: this
+      CHARACTER (len=data_name_length)  :: thomson_get_type
+      CLASS (thomson_class), INTENT(in) :: this
 
 !  local variables
-      REAL (rprec)                     :: start_time
+      REAL (rprec)                      :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      thomson_get_signal_type = 'thscte'
+      thomson_get_type = 'thscte'
 
-      CALL profiler_set_stop_time('thomson_get_signal_type', start_time)
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!>  @brief Gets the guassian process kernel for a thomson signal and a position.
-!>
-!>  Calculates the guassian process kernel between the signal and the position.
-!>  Temperature kernels are provided by @ref model::model_get_gp_te. Denisty
-!>  kernels are provided by @ref model::model_get_gp_ne. This does not support
-!>  pressure measurements.
-!>
-!>  @param[in] this         A @ref thomson_class instance.
-!>  @param[in] a_model      A @ref model instance.
-!>  @param[in] i            Index of the position for the kernel.
-!>  @param[in] flags        State flags to send to the kernel.
-!>  @returns Kernel value for the position and the signal.
-!-------------------------------------------------------------------------------
-      FUNCTION thomson_get_gp_i(this, a_model, i, flags)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      REAL (rprec)                     :: thomson_get_gp_i
-      TYPE (thomson_class), INTENT(in) :: this
-      TYPE (model_class), INTENT(in)   :: a_model
-      INTEGER, INTENT(in)              :: i
-      INTEGER, INTENT(in)              :: flags
-
-!  local variables
-      REAL (rprec)                     :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      SELECT CASE(this%type)
-
-         CASE (thomson_temperature_type)
-            thomson_get_gp_i = model_get_gp_te(a_model, this%xcart, i)
-
-         CASE (thomson_density_type)
-            thomson_get_gp_i = model_get_gp_ne(a_model, this%xcart, i)
-
-         CASE DEFAULT
-            thomson_get_gp_i = 0.0
-
-      END SELECT
-
-      CALL profiler_set_stop_time('thomson_get_gp', start_time)
+      CALL profiler_set_stop_time('thomson_get_type', start_time)
 
       END FUNCTION
 
@@ -386,79 +413,96 @@
 !>  Calls back to the @ref signal module to call the other signal. This does not
 !>  support pressure measurements.
 !>
-!>  @param[in] this         A @ref thomson_class instance.
-!>  @param[in] context      A @ref signal_class instance.
-!>  @param     callback     Function pointer to call back to signal module.
+!>  @param[in] this     A @ref thomson_class instance.
+!>  @param[in] context  A @ref signal_class instance.
+!>  @param     callback Function pointer to call back to signal module.
 !>  @returns Kernel value for the signal and the signal.
 !-------------------------------------------------------------------------------
-      FUNCTION thomson_get_gp_s(this, context, callback)
+      FUNCTION thomson_get_gp_s(this, a_model, signal, flags)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec)                     :: thomson_get_gp_s
-      TYPE (thomson_class), INTENT(in) :: this
-      CHARACTER (len=1), INTENT(in)    :: context(:)
-      INTERFACE
-         FUNCTION callback(context, xcart, dxcart, length, dx)
-         USE stel_kinds
-         REAL (rprec)                           :: callback
-         CHARACTER (len=1), INTENT(in)          :: context(:)
-         REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
-         REAL (rprec), DIMENSION(3), INTENT(in) :: dxcart
-         REAL (rprec), INTENT(in)               :: length
-         REAL (rprec), INTENT(in)               :: dx
-         END FUNCTION
-      END INTERFACE
+      REAL (rprec)                      :: thomson_get_gp_s
+      CLASS (thomson_class), INTENT(in) :: this
+      TYPE (model_class), POINTER       :: a_model
+      CLASS (signal_class), INTENT(in)  :: signal
+      INTEGER, INTENT(in)               :: flags
 
 !  local variables
-      REAL (rprec)                     :: start_time
+      REAL (rprec)                      :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      SELECT CASE(this%type)
-
-         CASE (thomson_temperature_type, thomson_density_type)
-!  The call back is an integation kernel. Since we are not integrating here pass
-!  a dx of 1.
-            thomson_get_gp_s = callback(context, this%xcart,                   &
-     &                                  this%xcart, 1.0_rprec,                 &
-     &                                  1.0_rprec)
-
-         CASE DEFAULT
-            thomson_get_gp_s = 0.0
-
-      END SELECT
+      thomson_get_gp_s = signal%get_gp(a_model, this%xcart, flags)
+      CALL this%scale_and_offset(a_model, thomson_get_gp_s)
 
       CALL profiler_set_stop_time('thomson_get_gp_s', start_time)
 
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Gets the guassian process kernel for a thomson signal and a cartesian
+!>  @brief Gets the guassian process kernel for a thomson te signal and a
 !>  position.
 !>
 !>  Calculates the guassian process kernel between the signal and the position.
-!>  Temperature kernels are provided by @ref model::model_get_gp_te. Denisty
-!>  kernels are provided by @ref model::model_get_gp_ne. This does not support
-!>  pressure measurements. This is the second signal so x_cart goes in the
-!>  second position and this signal in the first.
+!>  Temperature kernels are provided by @ref model::model_get_gp_te.
 !>
-!>  @param[in] this         A @ref thomson_class instance.
-!>  @param[in] a_model      A @ref model instance.
-!>  @param[in] x_cart       The cartesian position of to get the kernel at.
-!>  @param[in] flags        State flags to send to the kernel.
-!>  @returns Kernel value for the signal and the signal.
+!>  @param[in] this    A @ref thomson_te_class instance.
+!>  @param[in] a_model A @ref model instance.
+!>  @param[in] i       Index of the position for the kernel.
+!>  @param[in] flags   State flags to send to the kernel.
+!>  @returns Kernel value for the position and the signal.
 !-------------------------------------------------------------------------------
-      FUNCTION thomson_get_gp_x(this, a_model, x_cart, flags)
+      FUNCTION thomson_te_get_gp_i(this, a_model, i, flags)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec)                           :: thomson_get_gp_x
-      TYPE (thomson_class), INTENT(in)       :: this
-      TYPE (model_class), INTENT(in)         :: a_model
+      REAL (rprec)                         :: thomson_te_get_gp_i
+      CLASS (thomson_te_class), INTENT(in) :: this
+      TYPE (model_class), POINTER          :: a_model
+      INTEGER, INTENT(in)                  :: i
+      INTEGER, INTENT(in)                  :: flags
+
+!  local variables
+      REAL (rprec)                         :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      thomson_te_get_gp_i = model_get_gp_te(a_model, this%xcart, i)
+
+      CALL this%scale_and_offset(a_model, thomson_te_get_gp_i)
+
+      CALL profiler_set_stop_time('thomson_te_get_gp_i', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the guassian process kernel for a thomson te signal and a
+!>  cartesian position.
+!>
+!>  Calculates the guassian process kernel between the signal and the position.
+!>  Temperature kernels are provided by @ref model::model_get_gp_te. This is the
+!>  second signal so x_cart goes in the second position and this signal in the
+!>  first.
+!>
+!>  @param[in] this    A @ref thomson_te_class instance.
+!>  @param[in] a_model A @ref model instance.
+!>  @param[in] x_cart  The cartesian position of to get the kernel at.
+!>  @param[in] flags   State flags to send to the kernel.
+!>  @returns Kernel value for the signal and the signal.
+!-------------------------------------------------------------------------------
+      FUNCTION thomson_te_get_gp_x(this, a_model, x_cart, flags)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: thomson_te_get_gp_x
+      CLASS (thomson_te_class), INTENT(in)   :: this
+      TYPE (model_class), POINTER            :: a_model
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
       INTEGER, INTENT(in)                    :: flags
 
@@ -468,22 +512,87 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      SELECT CASE(this%type)
+      thomson_te_get_gp_x = model_get_gp_te(a_model, this%xcart, x_cart)
+      CALL this%scale_and_offset(a_model, thomson_te_get_gp_x)
 
-         CASE (thomson_temperature_type)
-            thomson_get_gp_x = model_get_gp_te(a_model, this%xcart,            &
-     &                                         x_cart)
+      CALL profiler_set_stop_time('thomson_te_get_gp_x', start_time)
 
-         CASE (thomson_density_type)
-            thomson_get_gp_x = model_get_gp_ne(a_model, this%xcart,            &
-     &                                         x_cart)
+      END FUNCTION
 
-         CASE DEFAULT
-            thomson_get_gp_x = 0.0
+!-------------------------------------------------------------------------------
+!>  @brief Gets the guassian process kernel for a thomson ne signal and a
+!>  position.
+!>
+!>  Calculates the guassian process kernel between the signal and the position.
+!>  Denisty kernels are provided by @ref model::model_get_gp_ne. This does not
+!>  support pressure measurements.
+!>
+!>  @param[in] this    A @ref thomson_ne_class instance.
+!>  @param[in] a_model A @ref model instance.
+!>  @param[in] i       Index of the position for the kernel.
+!>  @param[in] flags   State flags to send to the kernel.
+!>  @returns Kernel value for the position and the signal.
+!-------------------------------------------------------------------------------
+      FUNCTION thomson_ne_get_gp_i(this, a_model, i, flags)
 
-      END SELECT
+      IMPLICIT NONE
 
-      CALL profiler_set_stop_time('thomson_get_gp_s', start_time)
+!  Declare Arguments
+      REAL (rprec)                         :: thomson_ne_get_gp_i
+      CLASS (thomson_ne_class), INTENT(in) :: this
+      TYPE (model_class), POINTER          :: a_model
+      INTEGER, INTENT(in)                  :: i
+      INTEGER, INTENT(in)                  :: flags
+
+!  local variables
+      REAL (rprec)                         :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      thomson_ne_get_gp_i = model_get_gp_ne(a_model, this%xcart, i)
+      CALL this%scale_and_offset(a_model, thomson_ne_get_gp_i)
+
+      CALL profiler_set_stop_time('thomson_ne_get_gp_i', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the guassian process kernel for a thomson ne signal and a
+!>  cartesian position.
+!>
+!>  Calculates the guassian process kernel between the signal and the position.
+!>  Denisty kernels are provided by @ref model::model_get_gp_ne. This is the
+!>  second signal so x_cart goes in the second position and this signal in the
+!>  first.
+!>
+!>  @param[in] this    A @ref thomson_p_class instance.
+!>  @param[in] a_model A @ref model instance.
+!>  @param[in] x_cart  The cartesian position of to get the kernel at.
+!>  @param[in] flags   State flags to send to the kernel.
+!>  @returns Kernel value for the signal and the signal.
+!-------------------------------------------------------------------------------
+      FUNCTION thomson_ne_get_gp_x(this, a_model, x_cart, flags)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: thomson_ne_get_gp_x
+      CLASS (thomson_ne_class), INTENT(in)   :: this
+      TYPE (model_class), POINTER            :: a_model
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      INTEGER, INTENT(in)                    :: flags
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      thomson_ne_get_gp_x = model_get_gp_ne(a_model, this%xcart, x_cart)
+      CALL this%scale_and_offset(a_model, thomson_ne_get_gp_x)
+
+      CALL profiler_set_stop_time('thomson_ne_get_gp_x', start_time)
 
       END FUNCTION
 

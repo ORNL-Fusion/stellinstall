@@ -376,7 +376,7 @@
 
       IF (ASSOCIATED(this%last_values)) THEN
          DEALLOCATE(this%last_values)
-         this%lm_ratio => null()
+         this%last_values => null()
       END IF
 
       DEALLOCATE(this)
@@ -408,7 +408,6 @@
       REAL (rprec), DIMENSION(:), ALLOCATABLE    :: dg2exp
       REAL (rprec), DIMENSION(:), ALLOCATABLE    :: exp_eff
       REAL (rprec), DIMENSION(:), ALLOCATABLE    :: marg_exp_eff
-      LOGICAL, DIMENSION(:), ALLOCATABLE         :: l_all
       INTEGER                                    :: k
       REAL (rprec)                               :: denom
       REAL (rprec)                               :: largest_w
@@ -458,20 +457,15 @@
          largest_w = this%j_svd_w(1)
       END IF
 
-      ALLOCATE(l_all(num_sv))
-
-      l_all = (this%j_svd_w/largest_w .ge. this%cut_svd) .and.                 &
-     &        (exp_eff(1:num_sv) .ge. this%cut_eff) .and.                      &
-     &        (marg_exp_eff(1:num_sv) .ge. this%cut_marg_eff) .and.            &
-     &        (this%delta_a_len(1:num_sv) .ge. this%cut_delta_a) .and.         &
-     &        (ABS(dg2exp(1:num_sv)) .ge. this%cut_dg2)
-
-
 !  Find the largest number of singular values to use. All the selection criteria
 !  could fail so initalize it to use no sigular values.
       reconstruction_get_k_use = 0
       DO k = num_sv, 1, -1
-         IF (l_all(k)) THEN
+         IF ((this%j_svd_w(k)/largest_w .ge. this%cut_svd)      .and.          &
+     &       (exp_eff(k)                .ge. this%cut_eff)      .and.          &
+     &       (marg_exp_eff(k)           .ge. this%cut_marg_eff) .and.          &
+     &       (this%delta_a_len(k)       .ge. this%cut_delta_a)  .and.          &
+     &       (ABS(dg2exp(k))            .ge. this%cut_dg2)) THEN
             reconstruction_get_k_use = k
             EXIT
          END IF
@@ -480,7 +474,6 @@
       DEALLOCATE(dg2exp)
       DEALLOCATE(exp_eff)
       DEALLOCATE(marg_exp_eff)
-      DEALLOCATE(l_all)
 
       CALL profiler_set_stop_time('reconstruction_get_k_use',                  &
      &                            start_time)
@@ -681,7 +674,7 @@
       LOGICAL :: reconstruction_eval_e
       TYPE (reconstruction_class), INTENT(inout)         :: this
       TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
-      TYPE (model_class), INTENT(inout)                  :: a_model
+      TYPE (model_class), POINTER                        :: a_model
       TYPE (gaussp_class_pointer), DIMENSION(:), INTENT(inout) ::              &
      &   gaussp
       INTEGER, INTENT(inout)                             :: eq_steps
@@ -707,15 +700,15 @@
 !$OMP& PRIVATE(i)
          DO i = 1, this%last_para_signal
             this%e(i,this%current_step) =                                      &
-     &         signal_get_e(signals(i)%p, a_model, .false.,                    &
-     &                      this%last_values(:,i))
+     &         signals(i)%p%get_e(a_model, .false.,                            &
+     &                            this%last_values(:,i))
          END DO
 !$OMP END PARALLEL DO
 
          DO i = this%last_para_signal + 1, SIZE(signals)
             this%e(i,this%current_step) =                                      &
-     &         signal_get_e(signals(i)%p, a_model, .false.,                    &
-     &                      this%last_values(:,i))
+     &         signals(i)%p%get_e(a_model, .false.,                            &
+     &                            this%last_values(:,i))
          END DO
 
 !  All signals are computed reset the model state.
@@ -799,7 +792,7 @@
       TYPE (param_pointer), DIMENSION(:), INTENT(in)     ::                    &
      &   derived_params
       TYPE (param_pointer), DIMENSION(:), INTENT(in)     :: locks
-      TYPE (model_class), INTENT(inout)                  :: a_model
+      TYPE (model_class), POINTER                        :: a_model
       TYPE (gaussp_class_pointer), DIMENSION(:), INTENT(inout) ::              &
      &   gaussp
       TYPE (param_pointer), DIMENSION(:), INTENT(inout)  :: params
@@ -936,14 +929,14 @@
 !$OMP& PRIVATE(i)
                DO i = 1, this%last_para_signal
                   this%jacobian(i,j) =                                         &
-     &               signal_get_e(signals(i)%p, a_model, .false.,              &
-     &                            this%last_values(:,i))
+     &               signals(i)%p%get_e(a_model, .false.,                      &
+     &                                  this%last_values(:,i))
                END DO
 !$OMP END PARALLEL DO
                DO i = this%last_para_signal + 1, SIZE(signals)
                   this%jacobian(i,j) =                                         &
-     &               signal_get_e(signals(i)%p, a_model, .false.,              &
-     &                            this%last_values(:,i))
+     &               signals(i)%p%get_e(a_model, .false.,                      &
+     &                                  this%last_values(:,i))
                END DO
 
 !  Derived Jacobian.
@@ -981,15 +974,15 @@
                   DO i = 1, this%last_para_signal
                      this%jacobian(i,j) =                                      &
      &                  -this%jacobian(i,j) +                                  &
-     &                   signal_get_e(signals(i)%p, a_model, .false.,          &
-     &                                this%last_values(:,i))
+     &                   signals(i)%p%get_e(a_model, .false.,                  &
+     &                                      this%last_values(:,i))
                   END DO
 !$OMP END PARALLEL DO
                   DO i = this%last_para_signal + 1, SIZE(signals)
                      this%jacobian(i,j) =                                      &
      &                  -this%jacobian(i,j) +                                  &
-     &                   signal_get_e(signals(i)%p, a_model, .false.,          &
-     &                                this%last_values(:,i))
+     &                   signals(i)%p%get_e(a_model, .false.,                  &
+     &                                      this%last_values(:,i))
                   END DO
 
 !  Derived Jacobian.
@@ -1018,15 +1011,15 @@
 !$OMP& PRIVATE(i)
                DO i = 1, this%last_para_signal
                   this%jacobian(i,j) =                                         &
-     &               -(signal_get_e(signals(i)%p, a_model, .false.,            &
-     &                              this%last_values(:,i)) -                   &
+     &               -(signals(i)%p%get_e(a_model, .false.,                    &
+     &                                    this%last_values(:,i)) -             &
      &                this%e(i,this%current_step))
                END DO
 !$OMP END PARALLEL DO
                DO i = this%last_para_signal + 1, SIZE(signals)
                   this%jacobian(i,j) =                                         &
-     &               -(signal_get_e(signals(i)%p, a_model, .false.,            &
-     &                              this%last_values(:,i)) -                   &
+     &               -(signals(i)%p%get_e(a_model, .false.,                    &
+     &                                    this%last_values(:,i)) -             &
      &                this%e(i,this%current_step))
                END DO
                this%jacobian(:,j) = this%jacobian(:,j)                         &
@@ -1112,7 +1105,7 @@
       TYPE (param_pointer), DIMENSION(:), INTENT(in)     ::                    &
      &   derived_params
       TYPE (param_pointer), DIMENSION(:), INTENT(in)     :: locks
-      TYPE (model_class), INTENT(inout)                  :: a_model
+      TYPE (model_class), POINTER                        :: a_model
       TYPE (gaussp_class_pointer), DIMENSION(:), INTENT(inout) ::              &
      &   gaussp
       TYPE (param_pointer), DIMENSION(:), INTENT(inout)  :: params
@@ -1208,10 +1201,10 @@
       temp_work2 = MATMUL(TRANSPOSE(this%j_svd_u),                             &
      &                    this%e(:,this%current_step))
 
-!  Peform pseudo-inversion for successive numbers of singular values retained
+!  Perform pseudo-inversion for successive numbers of singular values retained.
+      temp_work3 = 0.0
       DO i = 1, SIZE(this%j_svd_w)
-         temp_work3(1:i) = temp_work(1:i)*temp_work2(1:i)
-         temp_work3(i + 1:SIZE(params)) = 0.0
+         temp_work3(i) = temp_work(i)*temp_work2(i)
          this%delta_a(:,i) = MATMUL(TRANSPOSE(this%j_svd_vt),                  &
      &                              temp_work3)
       END DO
@@ -1458,8 +1451,10 @@
       INTEGER                                    :: i
       REAL (rprec), DIMENSION(:), ALLOCATABLE    :: f_sqrd
       REAL (rprec)                               :: step_size_sqrd
-      REAL (rprec)                               :: f_0, f_2
-      REAL (rprec)                               :: lambda_0, lambda_2
+      REAL (rprec)                               :: f_0
+      REAL (rprec)                               :: f_2
+      REAL (rprec)                               :: lambda_0
+      REAL (rprec)                               :: lambda_2
       REAL (rprec)                               :: lambda_try
       REAL (rprec)                               :: lambda_new
       REAL (rprec)                               :: f_try, f_new
@@ -1484,8 +1479,9 @@
 !  Find the bracketing values of lambda. Look for a small value of lambda, to
 !  give a positive function value. f_0 should be greater than zero, as the step
 !  size at k_use is larger than step_size.
+      lambda_0 = 0.0
       f_0 = reconstruction_lm_function(this, f_sqrd, step_size_sqrd,           &
-     &                                 0.0_rprec)
+     &                                 lambda_0)
       IF (f_0 .lt. 0.0) THEN
          CALL err_warn('reconstruction_lm_rootfind: f_0 < 0.0')
          DEALLOCATE(f_sqrd)
@@ -1493,7 +1489,6 @@
      &                               start_time)
          RETURN
       END IF
-      lambda_0 = 0.0
 
 !  Look for a large value of lambda, to give a negative function value.
       lambda_2 = this%j_svd_w(1)**2.0
@@ -1659,7 +1654,7 @@
       TYPE (param_pointer), DIMENSION(:), INTENT(in)     ::                    &
      &   derived_params
       TYPE (param_pointer), DIMENSION(:), INTENT(in)     :: locks
-      TYPE (model_class), INTENT(inout)                  :: a_model
+      TYPE (model_class), POINTER                        :: a_model
       TYPE (gaussp_class_pointer), DIMENSION(:), INTENT(inout) ::              &
      &   gaussp
       TYPE (param_pointer), DIMENSION(:), INTENT(inout)  :: params
@@ -1822,7 +1817,7 @@
       TYPE (param_pointer), DIMENSION(:), INTENT(in)     ::                    &
      &   derived_params
       TYPE (param_pointer), DIMENSION(:), INTENT(in)     :: locks
-      TYPE (model_class), INTENT(inout)                  :: a_model
+      TYPE (model_class), POINTER                        :: a_model
       TYPE (gaussp_class_pointer), DIMENSION(:), INTENT(inout) ::              &
      &   gaussp
       TYPE (param_pointer), DIMENSION(:), INTENT(inout)  :: params
@@ -2027,8 +2022,7 @@
 !  For some reason, this needs to be before the model is synced or it can dead
 !  lock.
             DO i = 1, SIZE(signals)
-               CALL signal_sync_child(signals(i)%p, best_index,                &
-     &                                recon_comm)
+               CALL signals(i)%p%sync_child(best_index, recon_comm)
             END DO
 
 !  FIXME: Not sure if the model needs to be updated before the lock values are
@@ -2084,8 +2078,7 @@
 !  For some reason, this needs to be before the model is synced or it can dead
 !  lock.
             DO i = 1, SIZE(signals)
-               CALL signal_sync_child(signals(i)%p, best_index,                &
-     &                                recon_comm)
+               CALL signals(i)%p%sync_child(best_index, recon_comm)
             END DO
 
 !  Sync the model from the best index. The barrier ensures that child's wout
@@ -2152,7 +2145,8 @@
      &   derived_params
 
 !  local variables
-      INTEGER                                            :: j, i
+      INTEGER                                            :: j
+      INTEGER                                            :: i
       REAL (rprec), DIMENSION(:,:), POINTER              :: cp, cd
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE          :: j_dot_cp
       REAL (rprec)                                       :: delta_norm
@@ -2568,7 +2562,7 @@
       INTEGER, INTENT(in)                             :: current_step
       TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
       TYPE (param_pointer), DIMENSION(:), INTENT(in)  :: derived_params
-      TYPE (model_class), INTENT(inout)               :: a_model
+      TYPE (model_class), POINTER                     :: a_model
 
 !  Local variables
       REAL (rprec), DIMENSION(:), ALLOCATABLE         :: temp_model
@@ -2595,14 +2589,12 @@
 !$OMP& PRIVATE(i)
       DO i = 1, this%last_para_signal
          this%e(i,this%current_step) =                                         &
-     &      signal_get_e(signals(i)%p, a_model, .false.,                       &
-     &                   this%last_values(:,i))
+     &      signals(i)%p%get_e(a_model, .false., this%last_values(:,i))
       END DO
 !$OMP END PARALLEL DO
       DO i = this%last_para_signal + 1, SIZE(signals)
          this%e(i,this%current_step) =                                         &
-     &      signal_get_e(signals(i)%p, a_model, .false.,                       &
-     &                      this%last_values(:,i))
+     &      signals(i)%p%get_e(a_model, .false., this%last_values(:,i))
       END DO
 
       CALL reconstruction_eval_f(this, derived_params, a_model)

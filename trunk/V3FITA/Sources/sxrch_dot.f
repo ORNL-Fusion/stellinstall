@@ -292,7 +292,7 @@
      &                                 observed, sigma, weight,                &
      &                                 current_profile, first_index,           &
      &                                 use_geo, is_ti)
-      USE signal
+      USE sxrem
       USE v3fit_input, only: v3fit_max_diagnostics,                            &
      &                       v3fit_input_find_scale_index,                     &
      &                       v3fit_input_find_offset_index
@@ -317,6 +317,7 @@
       REAL(rprec), DIMENSION(3)              :: xcart_i, xcart_f
       CHARACTER (len=data_short_name_length) :: chord_name
       REAL (rprec)                           :: geo
+      CLASS (sxrem_class), POINTER           :: sxrem_obj
       REAL (rprec)                           :: start_time
 
 !  Start of executable code
@@ -342,22 +343,26 @@
       END IF
 
       IF (is_ti) THEN
-         signals(signals_created + 1)%p => signal_construct(                   &
-     &      sxrem_construct(xcart_i, xcart_f, current_profile),                &
-     &      chord_name, chord_name, 'eVm',                                     &
-     &      observed(signals_created + 1), sigma(signals_created + 1),         &
-     &      weight(signals_created + 1),                                       &
-     &      v3fit_input_find_scale_index(signals_created + 1),                 &
-     &      v3fit_input_find_offset_index(signals_created + 1))
+         sxrem_obj => sxrem_ti_class(xcart_i, xcart_f, current_profile)
+         CALL signal_construct(sxrem_obj, chord_name, chord_name, 'eVm',       &
+     &           observed(signals_created + 1),                                &
+     &           sigma(signals_created + 1),                                   &
+     &           weight(signals_created + 1),                                  &
+     &           v3fit_input_find_scale_index(signals_created + 1),            &
+     &           v3fit_input_find_offset_index(signals_created + 1))
       ELSE
-         signals(signals_created + 1)%p => signal_construct(                   &
-     &      sxrem_construct(xcart_i, xcart_f, geo, current_profile),           &
-     &      chord_name, chord_name, 'arb',                                     &
-     &      observed(signals_created + 1), sigma(signals_created + 1),         &
-     &      weight(signals_created + 1),                                       &
-     &      v3fit_input_find_scale_index(signals_created + 1),                 &
-     &      v3fit_input_find_offset_index(signals_created + 1))
+         sxrem_obj => sxrem_emiss_class(xcart_i, xcart_f, geo,                 &
+     &                                  current_profile)
+         CALL signal_construct(sxrem_obj, chord_name, chord_name, 'arb',       &
+     &           observed(signals_created + 1),                                &
+     &           sigma(signals_created + 1),                                   &
+     &           weight(signals_created + 1),                                  &
+     &           v3fit_input_find_scale_index(signals_created + 1),            &
+     &           v3fit_input_find_offset_index(signals_created + 1))
       END IF
+
+      signals(signals_created + 1)%p => sxrem_obj
+
       signals_created = signals_created + 1
 
 !  At lease one sxrem signal was made. Set the first index. This should only be

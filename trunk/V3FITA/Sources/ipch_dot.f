@@ -289,7 +289,7 @@
      &                                signals_created,                         &
      &                                observed, sigma, weight,                 &
      &                                first_index)
-      USE signal
+      USE intpol
       USE v3fit_input, only: v3fit_max_diagnostics,                            &
      &                       v3fit_input_find_scale_index,                     &
      &                       v3fit_input_find_offset_index
@@ -314,6 +314,8 @@
       CHARACTER (len=data_name_length)       :: chord_name
       REAL (rprec)                           :: wavelength = 0.0
       REAL (rprec)                           :: start_time
+      CHARACTER (len=6)                      :: units
+      CLASS (intpol_class), POINTER          :: intpol_obj
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -333,19 +335,32 @@
       IF (chord_type .eq. 'p') THEN
          wavelength = signal_dot_parse_real(ipch_dot_file_ref,                 &
      &                   'Expected wavelength for polarimetry chord')
-         signals(signals_created + 1)%p => signal_construct(                   &
-     &      intpol_construct(wavelength, inDegrees, xcart), chord_name,        &
-     &      chord_name, 'm^-2', observed(signals_created + 1),                 &
-     &      sigma(signals_created + 1), weight(signals_created + 1),           &
-     &      v3fit_input_find_scale_index(signals_created + 1),                 &
-     &      v3fit_input_find_offset_index(signals_created + 1))
+         intpol_obj => intpol_pol_class(wavelength, inDegrees, xcart)
+
+         IF (inDegrees) THEN
+            units = 'degree'
+         ELSE
+            units = 'radian'
+         END IF
+
+         CALL signal_construct(intpol_obj, chord_name, chord_name,             &
+     &           units, observed(signals_created + 1),                         &
+     &           sigma(signals_created + 1),                                   &
+     &           weight(signals_created + 1),                                  &
+     &           v3fit_input_find_scale_index(signals_created + 1),            &
+     &           v3fit_input_find_offset_index(signals_created + 1))
+
+         signals(signals_created + 1)%p => intpol_obj
       ELSE
-         signals(signals_created + 1)%p => signal_construct(                   &
-     &      intpol_construct(xcart), chord_name, chord_name, 'm^-2',           &
-     &      observed(signals_created + 1), sigma(signals_created + 1),         &
-     &      weight(signals_created + 1),                                       &
-     &      v3fit_input_find_scale_index(signals_created + 1),                 &
-     &      v3fit_input_find_offset_index(signals_created + 1))
+         intpol_obj => intpol_class(xcart)
+         CALL signal_construct(intpol_obj, chord_name, chord_name,             &
+     &           'm^-2', observed(signals_created + 1),                        &
+     &           sigma(signals_created + 1),                                   &
+     &           weight(signals_created + 1),                                  &
+     &           v3fit_input_find_scale_index(signals_created + 1),            &
+     &           v3fit_input_find_offset_index(signals_created + 1))
+
+         signals(signals_created + 1)%p => intpol_obj
       END IF
 
       signals_created = signals_created + 1
