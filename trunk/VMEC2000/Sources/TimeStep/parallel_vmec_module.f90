@@ -893,6 +893,7 @@ INTEGER, INTENT(IN) :: ns, nzeta, ntheta3
     END DO
 #endif
     DEALLOCATE(sendbuf, recvbuf)
+    DEALLOCATE(counts, disps)
     CALL second0(allgvtoff)
     allgather_time = allgather_time + (allgvtoff-allgvton)
     END SUBROUTINE Gather4XArray
@@ -909,8 +910,6 @@ INTEGER, INTENT(IN) :: ns, nzeta, ntheta3
     INTEGER                                   :: i
     INTEGER                                   :: blksize, numjs
     INTEGER, ALLOCATABLE, DIMENSION(:)        :: counts, disps
-    REAL(dp), ALLOCATABLE, DIMENSION(:,:,:,:) :: sendbuf
-    REAL(dp), ALLOCATABLE, DIMENSION(:)       :: recvbuf
     REAL(dp)                                  :: allgvton, allgvtoff
     !-----------------------------------------------
     IF (nranks.EQ.1 .OR. .NOT.lactive) THEN
@@ -920,9 +919,7 @@ INTEGER, INTENT(IN) :: ns, nzeta, ntheta3
     CALL second0(allgvton)
 
     blksize = (par_ntor + 1)*(par_mpol1 + 1)*3*par_ntmax
-    numjs = trglob - tlglob+1
-    ALLOCATE(sendbuf(0:par_ntor,0:par_mpol1,1:3*par_ntmax,numjs))
-    ALLOCATE(recvbuf(par_ns*blksize))
+    numjs = trglob - tlglob + 1
     ALLOCATE(counts(nranks),disps(nranks))
 
     DO i = 1, nranks
@@ -934,18 +931,10 @@ INTEGER, INTENT(IN) :: ns, nzeta, ntheta3
        disps(i) = disps(i - 1) + counts(i - 1)
     END DO
 #if defined(MPI_OPT)
-    sendbuf(0:par_ntor,0:par_mpol1,1:3*par_ntmax,1:numjs)=                     &
-       arr(0:par_ntor,0:par_mpol1,1:3*par_ntmax,tlglob:trglob)
-    CALL MPI_Allgatherv(sendbuf, numjs*blksize, MPI_REAL8, recvbuf,            &
+    CALL MPI_Allgatherv(MPI_IN_PLACE, numjs*blksize, MPI_REAL8, arr,           &
                         counts, disps, MPI_REAL8, NS_COMM, MPI_ERR)
-    DO i = 1, nranks
-      numjs = trglob_arr(i) - tlglob_arr(i) + 1
-      arr(0:par_ntor,0:par_mpol1,1:3*par_ntmax,tlglob_arr(i):trglob_arr(i)) =  &
-         RESHAPE(recvbuf(disps(i)+1:disps(i)+counts(i)),&
-                 (/par_ntor+1,par_mpol1+1,3*par_ntmax,numjs/))
-    END DO
 #endif
-    DEALLOCATE(sendbuf, recvbuf)
+    DEALLOCATE(counts, disps)
     CALL second0(allgvtoff)
     allgather_time = allgather_time + (allgvtoff-allgvton)
     END SUBROUTINE GatherReordered4XArray
@@ -959,8 +948,6 @@ INTEGER, INTENT(IN) :: ns, nzeta, ntheta3
     INTEGER :: i
     INTEGER :: par_nsmin, par_nsmax, blksize, numjs
     INTEGER, ALLOCATABLE, DIMENSION(:) :: counts, disps
-    REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: sendbuf
-    REAL(dp), ALLOCATABLE, DIMENSION(:) :: recvbuf
     REAL(dp) :: allgvton, allgvtoff
     !-----------------------------------------------
     IF (nranks.EQ.1 .OR. .NOT.lactive) THEN
@@ -969,33 +956,24 @@ INTEGER, INTENT(IN) :: ns, nzeta, ntheta3
 
     CALL second0(allgvton)
 
-    blksize=par_nznt
-    numjs=trglob-tlglob+1
-    ALLOCATE(sendbuf(par_nznt,numjs))
-    ALLOCATE(recvbuf(par_ns*blksize))
+    blksize = par_nznt
+    numjs = trglob - tlglob+1
     ALLOCATE(counts(nranks),disps(nranks))
 
-    DO i=1,nranks
-      counts(i)=(trglob_arr(i)-tlglob_arr(i)+1)*blksize
+    DO i = 1, nranks
+       counts(i) =(trglob_arr(i) - tlglob_arr(i) + 1)*blksize
     END DO
 
     disps(1) = 0
     DO i = 2, nranks
-       disps(i) = disps(i - 1) + counts(i - 1)
+        disps(i) = disps(i - 1) + counts(i - 1)
     END DO
 
 #if defined(MPI_OPT)
-    sendbuf(1:par_nznt,1:numjs) = arr(1:par_nznt,tlglob:trglob)
-    CALL MPI_Allgatherv(sendbuf, numjs*blksize, MPI_REAL8, recvbuf,            &
+    CALL MPI_Allgatherv(MPI_IN_PLACE, numjs*blksize, MPI_REAL8, arr,           &
                         counts, disps, MPI_REAL8, NS_COMM, MPI_ERR)
-    DO i = 1, nranks
-       numjs = trglob_arr(i) - tlglob_arr(i) + 1
-       arr(1:par_nznt,tlglob_arr(i):trglob_arr(i)) =                           &
-          RESHAPE(recvbuf(disps(i)+1:disps(i)+counts(i)),&
-                  (/par_nznt,numjs/))
-    END DO
 #endif
-    DEALLOCATE(sendbuf, recvbuf)
+    DEALLOCATE(counts, disps)
     CALL second0(allgvtoff)
     allgather_time = allgather_time + (allgvtoff-allgvton)
     END SUBROUTINE Gather2XArray
@@ -1005,7 +983,6 @@ INTEGER, INTENT(IN) :: ns, nzeta, ntheta3
     SUBROUTINE Gather1XArray(arr)
     !-----------------------------------------------
     REAL(dp), DIMENSION(par_ns), INTENT(INOUT) :: arr
-    REAL(dp), ALLOCATABLE, DIMENSION(:) :: sendbuf, recvbuf
 
     INTEGER :: i, numjs
     INTEGER, ALLOCATABLE, DIMENSION(:) :: counts, disps
@@ -1017,27 +994,23 @@ INTEGER, INTENT(IN) :: ns, nzeta, ntheta3
 
     CALL second0(allgvton)
 
-    numjs=trglob-tlglob+1
-    ALLOCATE (sendbuf(numjs),recvbuf(par_ns))
+    numjs = trglob - tlglob + 1
     ALLOCATE(counts(nranks),disps(nranks))
 
     DO i=1,nranks
-      counts(i)=(trglob_arr(i)-tlglob_arr(i)+1)
+      counts(i) = (trglob_arr(i) - tlglob_arr(i) + 1)
     END DO
 
     disps(1)=0
-    DO i=2,nranks
-      disps(i)=disps(i-1)+counts(i-1)
+    DO i = 2,nranks
+      disps(i)= disps(i - 1) +counts(i - 1)
     END DO
 
 #if defined(MPI_OPT)
-    sendbuf(1:numjs) = arr(tlglob:trglob)
-    CALL MPI_Allgatherv(sendbuf, numjs, MPI_REAL8, recvbuf, counts,            &
+    CALL MPI_Allgatherv(MPI_IN_PLACE, numjs, MPI_REAL8, arr, counts,           &
                         disps, MPI_REAL8, NS_COMM, MPI_ERR)
 #endif
-    arr = recvbuf
-
-    DEALLOCATE(sendbuf, recvbuf)
+    DEALLOCATE(counts, disps)
     CALL second0(allgvtoff)
     allgather_time = allgather_time + (allgvtoff - allgvton)
     END SUBROUTINE Gather1XArray

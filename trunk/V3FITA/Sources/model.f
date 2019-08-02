@@ -1235,10 +1235,8 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      model_get_gp_ne_ij = this%ne_unit                                        &
-     &                   * equilibrium_get_gp_ne_ij(this%equilibrium,          &
+      model_get_gp_ne_ij = equilibrium_get_gp_ne_ij(this%equilibrium,          &
      &                                              i, j)
-      model_get_gp_ne_ij = MAX(model_get_gp_ne_ij, this%ne_min)
 
       CALL profiler_set_stop_time('model_get_gp_ne_ij', start_time)
 
@@ -1271,10 +1269,8 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      model_get_gp_ne_pi = this%ne_unit                                        &
-     &                   * equilibrium_get_gp_ne_pi(this%equilibrium,          &
+      model_get_gp_ne_pi = equilibrium_get_gp_ne_pi(this%equilibrium,          &
      &                                              x_cart, i)
-      model_get_gp_ne_pi = MAX(model_get_gp_ne_pi, this%ne_min)
 
       CALL profiler_set_stop_time('model_get_gp_ne_pi', start_time)
 
@@ -1308,10 +1304,8 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      model_get_gp_ne_pp = this%ne_unit                                        &
-     &                   * equilibrium_get_gp_ne_pp(this%equilibrium,          &
+      model_get_gp_ne_pp = equilibrium_get_gp_ne_pp(this%equilibrium,          &
      &                                              x_cart, y_cart)
-      model_get_gp_ne_pp = MAX(model_get_gp_ne_pp, this%ne_min)
 
       CALL profiler_set_stop_time('model_get_gp_ne_pp', start_time)
 
@@ -1511,7 +1505,6 @@
 
       model_get_gp_te_ij = equilibrium_get_gp_te_ij(this%equilibrium,          &
      &                                              i, j)
-      model_get_gp_te_ij = MAX(model_get_gp_te_ij, this%te_min)
 
       CALL profiler_set_stop_time('model_get_gp_te_ij', start_time)
 
@@ -1547,7 +1540,6 @@
 
       model_get_gp_te_pi = equilibrium_get_gp_te_pi(this%equilibrium,          &
      &                                              x_cart, i)
-      model_get_gp_te_pi = MAX(model_get_gp_te_pi, this%te_min)
 
       CALL profiler_set_stop_time('model_get_gp_te_pi', start_time)
 
@@ -1582,7 +1574,6 @@
 
       model_get_gp_te_pp = equilibrium_get_gp_te_pp(this%equilibrium,          &
      &                                              x_cart, y_cart)
-      model_get_gp_te_pp = MAX(model_get_gp_te_pp, this%te_min)
 
       CALL profiler_set_stop_time('model_get_gp_te_pp', start_time)
 
@@ -1780,7 +1771,6 @@
 
       model_get_gp_ti_ij = equilibrium_get_gp_ti_ij(this%equilibrium,          &
      &                                              i, j)
-      model_get_gp_ti_ij = MAX(model_get_gp_ti_ij, this%ti_min)
 
       CALL profiler_set_stop_time('model_get_gp_ti_ij', start_time)
 
@@ -1815,7 +1805,6 @@
 
       model_get_gp_ti_pi = equilibrium_get_gp_ti_pi(this%equilibrium,          &
      &                                              x_cart, i)
-      model_get_gp_ti_pi = MAX(model_get_gp_ti_pi, this%ti_min)
 
       CALL profiler_set_stop_time('model_get_gp_ti_pi', start_time)
 
@@ -1850,7 +1839,6 @@
 
       model_get_gp_ti_pp = equilibrium_get_gp_ti_pp(this%equilibrium,          &
      &                                              x_cart, y_cart)
-      model_get_gp_ti_pp = MAX(model_get_gp_ti_pp, this%ti_min)
 
       CALL profiler_set_stop_time('model_get_gp_ti_pp', start_time)
 
@@ -2116,8 +2104,6 @@
 
       model_get_gp_sxrem_ij =                                                  &
      &   equilibrium_get_gp_sxrem_ij(this%equilibrium, i, j, index)
-      model_get_gp_sxrem_ij = MAX(model_get_gp_sxrem_ij,                       &
-     &                            this%sxrem_min(index))
 
       CALL profiler_set_stop_time('model_get_gp_sxrem_ij', start_time)
 
@@ -2155,8 +2141,6 @@
 
       model_get_gp_sxrem_pi =                                                  &
      &   equilibrium_get_gp_sxrem_pi(this%equilibrium, x_cart, i, index)
-      model_get_gp_sxrem_pi = MAX(model_get_gp_sxrem_pi,                       &
-     &                            this%sxrem_min(index))
 
       CALL profiler_set_stop_time('model_get_gp_sxrem_pi', start_time)
 
@@ -2195,8 +2179,6 @@
       model_get_gp_sxrem_pp =                                                  &
      &   equilibrium_get_gp_sxrem_pp(this%equilibrium, x_cart, y_cart,         &
      &                               index)
-      model_get_gp_sxrem_pp = MAX(model_get_gp_sxrem_pp,                       &
-     &                            this%sxrem_min(index))
 
       CALL profiler_set_stop_time('model_get_gp_sxrem_pp', start_time)
 
