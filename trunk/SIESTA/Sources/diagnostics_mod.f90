@@ -499,10 +499,11 @@
  
       
       SUBROUTINE TFLUX
+      USE fourier, ONLY: m0, n0
+
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER, PARAMETER :: m0=0, n0=0
       REAL(dp)           :: part_sum
 !-----------------------------------------------
       nsmin=MAX(2,startglobrow); nsmax=MIN(endglobrow,ns)

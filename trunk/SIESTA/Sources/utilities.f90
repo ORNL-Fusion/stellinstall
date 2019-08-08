@@ -254,10 +254,10 @@
                                 +      vech(:,:,nsmin:nsmax - 1))
       vecf(:,:,nsmax) = 0                              
       IF (nsmin .eq. 1)  THEN
-         vecf(:,:,1) = vech(:,:,2)
+         vecf(:,:,1) = 1.5*vech(:,:,2) - 0.5*vech(:,:,3)
       END IF
       IF (nsmax .eq. ns) THEN
-         vecf(:,:,ns)= vech(:,:,ns)
+         vecf(:,:,ns)= 1.5*vech(:,:,ns) - 0.5*vech(:,:,ns - 1)
       END IF
 
       END SUBROUTINE

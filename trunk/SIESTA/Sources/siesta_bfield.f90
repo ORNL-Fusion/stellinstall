@@ -11,7 +11,6 @@
        IMPLICIT NONE
        
        PRIVATE
-       INTEGER, PARAMETER :: m0=0, m1=1, m2=2, isym=0, iasym=1
        INTEGER            :: nsmin, nsmax
 
        REAL(dp), DIMENSION(:,:,:), ALLOCATABLE ::                       &

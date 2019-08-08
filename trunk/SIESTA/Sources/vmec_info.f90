@@ -320,6 +320,11 @@
       presf_vmec = mu0*presf_vmec
       CALL vmec_info_spline_oned_array(presf_vmec, presf_i, istat)
 
+!  Pessure should never be negative.
+      WHERE (presf_i .lt. 0)
+         presf_i = 0
+      END WHERE
+
 !  Scale phipf_i and convert to sqrt(flux) mesh by multiplying by 2*s
       phipf_i = phipf_i/twopi
       chipf_i = chipf_i/twopi

@@ -24,23 +24,6 @@
 
       IMPLICIT NONE
 
-      PRIVATE
-
-!*******************************************************************************
-!  siesta_currents module parameters
-!*******************************************************************************
-!  FIXME move these to a central location
-      INTEGER, PARAMETER                       :: isym = 0
-      INTEGER, PARAMETER                       :: iasym = 1
-      INTEGER, PARAMETER                       :: m0 = 0
-      INTEGER, PARAMETER                       :: m1 = 1
-      INTEGER, PARAMETER                       :: m2 = 2
-
-!*******************************************************************************
-!  INTERFACE BLOCKS
-!*******************************************************************************
-      PUBLIC   :: cv_currents
-
       CONTAINS
 
 !*******************************************************************************

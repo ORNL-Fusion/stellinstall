@@ -110,7 +110,7 @@
       SUBROUTINE init_quantities
       USE descriptor_mod, ONLY: LSCALAPACK
       USE fourier, ONLY: getorigin, tomnsp, toijsp, f_none, f_cos,    &
-                           f_sin, f_sum, Test_Fourier
+                           f_sin, f_sum, Test_Fourier, m0
       USE metrics, ONLY: sqrtg
       USE shared_data, ONLY: mblk_size, ndims, lasym
 #if defined(MPI_OPT)        
@@ -122,9 +122,9 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER, PARAMETER :: m0=0
       INTEGER :: istat, l
       REAL(dp) :: sum1
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: tempmn
 !-----------------------------------------------
       IF (PARSOLVER) THEN
          CALL Initialize(ns, mblk_size)
@@ -160,14 +160,16 @@
       signjac = jacobh(1,1,2)/ABS(jacobh(1,1,2))
 
 !  Filter jacobian ro preserve the unperturbed (constant in s) part of the
-!  pressure use jacobf as a temp buffer.
-      CALL tomnsp(jacobh, jacobf, f_cos)
-      CALL toijsp(jacobf, jacobh, f_none, f_cos)
+!  pressure.
+      ALLOCATE(tempmn(0:mpol,-ntor:ntor,SIZE(jacobh,3)))
+      CALL tomnsp(jacobh, tempmn, f_cos)
+      CALL toijsp(tempmn, jacobh, f_none, f_cos)
       IF (lasym) THEN
-         CALL tomnsp(jacobh, jacobf, f_sin)
-         CALL toijsp(jacobf, jacobh, f_sum, f_sin)
+         CALL tomnsp(jacobh, tempmn, f_sin)
+         CALL toijsp(tempmn, jacobh, f_sum, f_sin)
       END IF
-        
+      DEALLOCATE(tempmn)
+
       CALL assert(ALL(jacobh*signjac .gt. 0), 'FILTERED JACOBIAN CHANGED SIGN!')
 
       IF (iam .eq. 0 .and. lverbose) THEN
@@ -199,7 +201,7 @@
       END IF
 
 1000  FORMAT(' JACOBIAN SPECTRAL TRUNCATION ERROR: ',1pe8.2)
-1001  FORMAT(' VMEC VOLUME: ', 1pe8.2, 'SIESTA VOLUME: ',1pe8.2)
+1001  FORMAT(' VMEC VOLUME: ', 1pe8.2, ' SIESTA VOLUME: ',1pe8.2)
 
       END SUBROUTINE init_quantities
 
@@ -209,14 +211,13 @@
 !>   Only called if lrestart=F (otherwise data read in from restart file)    
 !*******************************************************************************
         SUBROUTINE Init_Fields
-        USE fourier, ONLY: orthonorm, tomnsp_par, f_sin, f_cos
+        USE fourier, ONLY: orthonorm, tomnsp_par, f_sin, f_cos, m0, m1
         USE vmec_info, ONLY: lmns_i, lmnc_i, iflipj
         USE metrics, ONLY: sqrtg
         USE mpi_inc
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-        INTEGER, PARAMETER :: m0=0, m1=1
         INTEGER  :: istat, nsmin, nsmax, nloc, js
         REAL(dp), DIMENSION(:), ALLOCATABLE :: phiph, chiph
         REAL(dp), DIMENSION(:,:), ALLOCATABLE :: pmnf
@@ -291,7 +292,7 @@
 
         SUBROUTINE Init_Bfield(jbsupsmnh, jbsupumnh, jbsupvmnh,         &
                                lmn, phiph, chiph, nsmin, nsmax, ipar)
-        USE fourier, ONLY: orthonorm
+        USE fourier, ONLY: orthonorm, m0, m1
         USE siesta_namelist, ONLY: l_vessel
 #if defined(MPI_OPT)        
         USE mpi_inc
@@ -303,7 +304,6 @@
 		REAL(dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(INOUT) ::       &
 		                        jbsupsmnh, jbsupumnh, jbsupvmnh
 !-----------------------------------------------
-        INTEGER, PARAMETER :: m0=0, m1=1
         INTEGER  :: m, n, sparity, mp, np
 !-----------------------------------------------
 

@@ -22,7 +22,7 @@
 !  restart module parameters
 !*******************************************************************************
 !>  Version number.
-      INTEGER, PARAMETER :: restart_version = 0
+      INTEGER, PARAMETER           :: restart_version = 0
 
 !  Flag will be placed in the last bits. This way the version number and flags 
 !  can fit in the same memory.
@@ -169,7 +169,7 @@
      &                     rmns => rmns_i, zmnc => zmnc_i,                     &
      &                     vmec_info_construct_island
       USE metrics, ONLY: LoadGrid
-      USE fourier, ONLY: orthonorm, init_fourier
+      USE fourier, ONLY: orthonorm, init_fourier, m0, m1
 
       IMPLICIT NONE
 
@@ -195,10 +195,6 @@
       INTEGER                                  :: status
       CHARACTER (LEN=256)                      :: filename
       INTEGER                                  :: s
-
-!  local parameters
-      INTEGER, PARAMETER                       :: m0=0
-      INTEGER, PARAMETER                       :: m1=1
 
 !  Start of executable code
       restart_read = 1
@@ -403,11 +399,6 @@
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: dbvds
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: tempmn_w
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: pijh
-
-!  local parameters
-      INTEGER, PARAMETER                       :: m0=0
-      INTEGER, PARAMETER                       :: m1=1
-      INTEGER, PARAMETER                       :: m2=2
 
 !  Start of executable code
       CALL cdf_open(ncid, 'siesta_' // TRIM(restart_ext) // '.nc', 'w', status)

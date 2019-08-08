@@ -54,8 +54,7 @@
       IMPLICIT NONE
 
       PRIVATE
-      
-      INTEGER, PARAMETER :: isym=0, iasym=1, m0=0, m1=1, m2=2, n0=0
+
       INTEGER  :: nsmin, nsmax
       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)  ::                       &
          bsupsijh, bsupuijh, bsupvijh, pijh, KxBsij, KxBuij, KxBvij

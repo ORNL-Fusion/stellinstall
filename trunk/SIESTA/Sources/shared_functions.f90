@@ -59,7 +59,7 @@
       END IF
 
       CALL update_upperv
-      CALL update_bfield (.FALSE.)
+      CALL update_bfield(.FALSE.)
       CALL update_pres
       CALL update_force
 

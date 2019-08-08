@@ -45,22 +45,15 @@
 !>    * True  Evolve the edge Asubs values
 !>    * False Fix edge Asubs values.
       LOGICAL, PARAMETER, PRIVATE :: l_AsEdge = .TRUE.
-!>  Stellator symmetric flag.
-      INTEGER, PARAMETER, PRIVATE :: isym = 0
-!>  Stellator asymmetric flag.
-      INTEGER, PARAMETER, PRIVATE :: iasym = 1
 
 !  FIXME Remove these. They should either be passed in as arguments.
-      INTEGER, PRIVATE :: nsmin
+      INTEGER, PRIVATE            :: nsmin
       INTEGER, PRIVATE            :: nsmax
       INTEGER, PRIVATE            :: ns_match
 
     !Added SKS
       LOGICAL, PRIVATE            :: linit
       LOGICAL, PRIVATE            :: lHessian
-      INTEGER, PARAMETER, PRIVATE :: m0 = 0
-      INTEGER, PARAMETER, PRIVATE :: m1 = 1
-      INTEGER, PARAMETER, PRIVATE :: n0 = 0
       REAL (dp), PRIVATE          :: bnorm = -1
       REAL (dp), PRIVATE          :: line_Bu
 
@@ -133,13 +126,11 @@
 !  Update solution (initial guess + perturbation) and check final forces
       CALL BACKSLV
 
-#if !defined(NDEBUG)
 !  Dump output: MUST call backslv to get updated B's before dumping
       DO js = 1, ns
          CALL DUMP_A(js, 333)
          CALL DUMP_B(js, 666)
       END DO
-#endif
 
       CALL divb(nsmin, nsmax)
     
@@ -678,8 +669,8 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      INTEGER, INTENT(IN) :: js
-      INTEGER, INTENT(IN) :: iunit
+      INTEGER, INTENT(in) :: js
+      INTEGER, INTENT(in) :: iunit
 
 !  Local variables
       INTEGER             :: m
@@ -970,9 +961,11 @@
 
 !  Start of executable code
       DEALLOCATE(xc0, gc0)
-      DEALLOCATE(jacobmnch)
 
-      IF (lasym) THEN
+      IF (ALLOCATED(jacobmnch)) THEN
+         DEALLOCATE(jacobmnch)
+      END IF
+      IF (lasym .and. ALLOCATED(jacobmnsh)) THEN
          DEALLOCATE(jacobmnsh)
       END IF
 

@@ -1,9 +1,14 @@
-!>  \brief Module contained subroutines for initializing the unperturbed
-!>  parts of the magnetic fields, pressure and currents in real space
-!>  \author S. P. Hirshman and R. Sanchez as part of the ORNL SIESTA (c) PROJECT
-!>  \date Jan 12, 2007
+!*******************************************************************************
+!>  @file siesta_init.f90
+!>  @brief Contains module @ref siesta_init
+!
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
+!
+!>  Initializes unperturbed siesta fields and pressure in real space.
+!*******************************************************************************
        MODULE siesta_init
-       USE v3_utilities, ONLY: assert
+       USE v3_utilities, ONLY: assert, assert_eq
        USE stel_kinds
        USE descriptor_mod, ONLY: SIESTA_COMM, iam
        USE fourier, ONLY: toijsp_par, tomnsp_par, f_none, f_sin, f_cos, &
@@ -16,14 +21,25 @@
        IMPLICIT NONE
 
        PRIVATE
-       INTEGER, PARAMETER :: isym=0, iasym=1
-       INTEGER, PARAMETER :: m0=0, m1=1
-       INTEGER            :: nsmin, nsmax
-       REAL(dp), ALLOCATABLE :: pfilter(:,:,:)
-       REAL(dp)           :: pedge
+!*******************************************************************************
+!  utilities module variables
+!*******************************************************************************
+! FIXME: Remove these if possible.
+       INTEGER                                  :: nsmin
+       INTEGER                                  :: nsmax
+       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: pfilter
+       REAL (dp)                                :: pedge
+
+!*******************************************************************************
+!  utilities module parameters
+!*******************************************************************************
+! FIXME: Reference these from a single location
+       INTEGER, PARAMETER                       :: isym = 0
+       INTEGER, PARAMETER                       :: iasym = 1
+       INTEGER, PARAMETER                       :: m0 = 0
+       INTEGER, PARAMETER                       :: m1 = 1
        
        PUBLIC  :: init_state
-       
 
        CONTAINS
 
@@ -84,40 +100,40 @@
        
 !Unnecessary to recompute magnetic fields or currents: already stored at this point!
       ladd_pert0 = ALLOCATED(buv_res)
-      IF (ladd_pert0) GOTO 100
-
-      CALL Init_Allocate_Arrays(lpar)
+      IF (.not.ladd_pert0) THEN
+         CALL Init_Allocate_Arrays(lpar)
 
 !  Calculate unperturbed half mesh jac*bsupX and jac*pressure from nsmin to
 !  nsmax. Sum symmetric and (for lasym) asymmetric parts. Returning from
 !  update_state, jbsupXmn, jpmn have been gathered onto all processors.
-      CALL GetFields(jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch, isym)
-      IF (lasym) THEN
-         CALL GetFields(jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh, iasym)
-      END IF
+         CALL GetFields(jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch, isym)
+         IF (lasym) THEN
+            CALL GetFields(jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh, iasym)
+         END IF
 
 !  Convert jac*bsubXh to bsupXh and jac*pres to presh in real space. On exit,
 !  bsupXf and pf0 ae valid on [nsmin, nsmax - 1]
-      CALL bhalftobfull(bsupsijh0, bsupuijh0, bsupvijh0,                       &
-                        bsupsijf0, bsupuijf0, bsupvijf0,                       &
-                        pijh0, pijf0)
+         CALL bhalftobfull(bsupsijh0, bsupuijh0, bsupvijh0,                    &
+                           bsupsijf0, bsupuijf0, bsupvijf0,                    &
+                           pijh0, pijf0)
 
 !  Compute and store unperturbed current components on full mesh,
 !  KsupX = sqrt(g)*JsupX
-      CALL cv_currents(bsupsijh0, bsupuijh0, bsupvijh0,                       &
-                       ksupsijf0, ksupuijf0, ksupvijf0,                       &
-                       l_getfsq, .TRUE.)
+         CALL cv_currents(bsupsijh0, bsupuijh0, bsupvijh0,                     &
+                          ksupsijf0, ksupuijf0, ksupvijf0,                     &
+                          l_getfsq, .TRUE.)
 
-      IF (lcurrent_only) RETURN
+         IF (lcurrent_only) THEN
+            RETURN
+         END IF
+      END IF
 
 !  Need this for resistive diffusion (|| resistivity) and mupar damping
- 100  CONTINUE
- 
-      IF (ladd_pert0 .OR. muPar.NE.zero) THEN
-         nmax = MIN(endglobrow + 1,ns)
+      IF (ladd_pert0 .or. muPar .ne. zero) THEN
+         nmax = MIN(endglobrow + 1, ns)
 !  Calculate K || B
-         CALL tolowerf(bsupsijf0,bsupuijf0,bsupvijf0,                         &
-                       bsubsijf, bsubuijf, bsubvijf,                          &
+         CALL tolowerf(bsupsijf0,bsupuijf0,bsupvijf0,                          &
+                       bsubsijf, bsubuijf, bsubvijf,                           &
                        nsmin, nmax)
 !  IN UPDATE-BFIELD, KSUB = jacob*JSUB: PARALLEL CURRENT
          IF (ladd_pert0) THEN
@@ -128,7 +144,7 @@
          END IF
       END IF
      
-!Compute spectrally filtered dp/du and dp/dv on half radial grid [nsmin:nsmax]
+!  Compute spectrally filtered dp/du and dp/dv on half radial grid [nsmin:nsmax]
       IF (l_update_state) THEN
          ALLOCATE(pfilter(ntheta, nzeta, nsmin:nsmax))
       END IF
@@ -137,32 +153,41 @@
          CALL FilterPressure(iasym)
       END IF
 
-!Compute radial pressure derivative pijf0_ds at full mesh points [nsmin:nsmax-1]
+!  Compute radial pressure derivative pijf0_ds at full mesh points
+!  [nsmin:nsmax-1]
       CALL GradientFull(pijf0_ds, pijh0)
 
-!SPH: one-sided (m=1) derivative at origin yields factor of 2 (1/(hs/2))
+!  SPH: one-sided (m=1) derivative at origin yields factor of 2 (1/(hs/2))
       IF (nsmin .EQ. 1) THEN
-         pijf0_ds(:,:,1) = 2*(pijh0(:,:,2)-pijh0(:,:,1))*ohs
+         pijf0_ds(:,:,1) = 2*(pijh0(:,:,2) - pijh0(:,:,1))*ohs
       END IF
       
-!SPH11-3-16 preserve s=1 as iso-pressure contour
-      IF (nsmax.EQ.ns .AND. l_pedge) THEN
+!  SPH11-3-16 preserve s=1 as iso-pressure contour
+      IF (nsmax .eq. ns .and. l_pedge) THEN
          pijf0(:,:,ns) = pedge
          pijf0_ds(:,:,ns) = 0
       END IF
 
-!Fourier filter (Nyquist) check
-      IF (.NOT.l_update_state) RETURN
-!pijh is unfiltered
-      n1=MAX(1,startglobrow); n2=MIN(ns,endglobrow)
-      IF (n1 .EQ. 1) pfilter(:,:,1) = 0
-      temp(1) = SUM((pijh0(:,:,n1:n2)-pfilter(:,:,n1:n2))**2)
-      temp(2) = SUM((pijh0(:,:,n1:n2)+pfilter(:,:,n1:n2))**2)
+!   Fourier filter (Nyquist) check
+      IF (.not. l_update_state) THEN
+         RETURN
+      END IF
+
+!  pijh is unfiltered
+      n1 = MAX(1, startglobrow)
+      n2 = MIN(ns, endglobrow)
+      IF (n1 .EQ. 1) THEN
+         pfilter(:,:,1) = 0
+      END IF
+      temp(1) = SUM((pijh0(:,:,n1:n2) - pfilter(:,:,n1:n2))**2)
+      temp(2) = SUM((pijh0(:,:,n1:n2) + pfilter(:,:,n1:n2))**2)
 #if defined(MPI_OPT)
       CALL MPI_ALLREDUCE(MPI_IN_PLACE, temp, 2, MPI_REAL8, MPI_SUM,            &
                          SIESTA_COMM, MPI_ERR)
 #endif
-      IF (temp(2) .ne. zero) ste(1) = SQRT(temp(1)/temp(2))
+      IF (temp(2) .ne. zero) THEN
+         ste(1) = SQRT(temp(1)/temp(2))
+      END IF
       DEALLOCATE(pfilter)
 
       CALL CheckFFT(jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch, isym)
@@ -175,7 +200,7 @@
          endglobrow = endr
       END IF
 
-      END SUBROUTINE init_state
+      END SUBROUTINE
 
 !>  \brief subroutine for allocating unperturbed array
        SUBROUTINE Init_Allocate_Arrays(lpar)
@@ -219,7 +244,8 @@
                       ksubsijf,  ksubuijf,  ksubvijf,                   &
                       pijf0, pijh0, pijf0_ds,                           &
                       pijh0_du, pijh0_dv,  stat=istat)
-          CALL ASSERT(istat.EQ.0,'Deallocation error #1 in INIT_ALLOCATE_ARRAYS')
+          CALL assert_eq(0, istat,                                             &
+                         'Deallocation error #1 in INIT_ALLOCATE_ARRAYS')
           END IF
        END IF
 
@@ -273,7 +299,8 @@
                     bsupuijh0(n1,n2,n3),bsupvijh0(n1,n2,n3),            &
                     stat=istat)
           END IF
-          CALL ASSERT(istat.EQ.0, 'Allocation error #1 in Init_Allocate_Arrays')
+          CALL assert_eq(0, istat,                                             &
+                         'Allocation error #1 in Init_Allocate_Arrays')
           jvsupsijf = 0; jvsupuijf = 0; jvsupvijf = 0                     !Need in add_resistivity loop
        END IF
 
@@ -295,12 +322,14 @@
              DEALLOCATE(ksupsmnsf, ksupumncf, ksupvmncf,                    &
                         djpmnch, djbsupsmnsh, djbsupumnch, djbsupvmnch,     &
                         stat=istat)
-             CALL ASSERT(istat.EQ.0,'Deallocation error #2 in Init_Allocate_Arrays')
+             CALL assert_eq(0, istat,                                          &
+                            'Deallocation error #2 in Init_Allocate_Arrays')
              IF (lasym) THEN
                 DEALLOCATE(ksupsmncf, ksupumnsf, ksupvmnsf,                 &
                            djpmnsh, djbsupsmnch, djbsupumnsh, djbsupvmnsh,  &
                            stat=istat)
-                CALL ASSERT(istat.EQ.0,'Deallocation error #3 in Init_Allocate_Arrays')
+                CALL assert_eq(0, istat,                                       &
+                               'Deallocation error #3 in Init_Allocate_Arrays')
              END IF
           END IF
        END IF
@@ -345,7 +374,8 @@
                          stat=istat)
              END IF
           END IF
-          CALL ASSERT(istat.EQ.0, 'Allocation error #2 in Init_Allocate_Arrays')
+          CALL assert_eq(0, istat,                                             &
+                         'Allocation error #2 in Init_Allocate_Arrays')
           djpmnch = 0
           djbsupsmnsh = 0
           djbsupumnch = 0
@@ -422,45 +452,58 @@
 
       END SUBROUTINE
 
+!-------------------------------------------------------------------------------
+!>  @brief Compute angular derivatives of the pressure.
+!>
+!>  Pressure is filtered by Fourier tranforming to mn space then back to ij
+!>  space. Angles derivatives with respect to u and v are also compute here.
+!>
+!>  @param[in] iparity Fourier parity of the pressure.
+!-------------------------------------------------------------------------------
+       SUBROUTINE FilterPressure(iparity)
 
-!>  \brief Subroutine for getting angular derivatives of the pressure
-       SUBROUTINE FilterPressure(ipar)
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-       INTEGER, INTENT(IN) :: ipar
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-       INTEGER  :: four, fcomb, mfour, nfour, istat
-       REAL(dp), DIMENSION(:,:,:), ALLOCATABLE :: pmnh
-!-----------------------------------------------
-       IF (ipar .EQ. isym) THEN
-          four = f_cos; fcomb = f_none
+       IMPLICIT NONE
+
+!  Declare Arguments
+       INTEGER, INTENT(IN)                      :: iparity
+
+!  local variables
+       INTEGER                                  :: four
+       INTEGER                                  :: fcomb
+       INTEGER                                  :: istat
+       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: pmnh
+
+!  Start of executable code
+       IF (iparity .EQ. isym) THEN
+          four = f_cos
+          fcomb = f_none
        ELSE
-          four = f_sin; fcomb = f_sum
+          four = f_sin
+          fcomb = f_sum
        END IF
 
-       mfour = IOR(f_du, fcomb);  nfour = IOR(f_dv, fcomb)
-
-!pmnh contains Nyquist-filtered (to MPOL, NTOR) Fourier harmonics of p on half mesh
-       ALLOCATE (pmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
-       CALL ASSERT(istat.EQ.0,'Allocation error in FilterPressure')
+!  pmnh contains Nyquist-filtered (to MPOL, NTOR) Fourier harmonics of p on
+!  half mesh
+       ALLOCATE(pmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
+       CALL assert_eq(0, istat, 'Allocation error in FilterPressure')
 
        CALL tomnsp_par(pijh0, pmnh, four)
        
-       IF (ipar.EQ.isym .AND. nsmax.EQ.ns) pedge = pmnh(m0, 0,ns)*orthonorm(0,0)
-       
-!spectrally filtered angle derivatives of p in real space (half mesh)
-       CALL toijsp_par(pmnh, pijh0_du, mfour, four)
-       CALL toijsp_par(pmnh, pijh0_dv, nfour, four)
-       
-       IF (l_update_state)                                              &
-       CALL toijsp_par(pmnh, pfilter, fcomb, four)                       ! p (fourier filtered)
+       IF (iparity .eq. isym .and. nsmax .eq. ns) THEN
+          pedge = pmnh(m0, 0,ns)*orthonorm(0,0)
+       END IF
 
-       DEALLOCATE (pmnh)
+!  Spectrally filtered angle derivatives of p in real space (half mesh).
+       CALL toijsp_par(pmnh, pijh0_du, IOR(f_du, fcomb), four)
+       CALL toijsp_par(pmnh, pijh0_dv, IOR(f_dv, fcomb), four)
+       
+       IF (l_update_state) THEN
+          CALL toijsp_par(pmnh, pfilter, fcomb, four)
+       END IF
 
-       END SUBROUTINE FilterPressure
+       DEALLOCATE(pmnh)
+
+       END SUBROUTINE
        
        
        SUBROUTINE CheckFFT(jbsupsmnh, jbsupumnh, jbsupvmnh,             &
@@ -495,37 +538,37 @@
        ALLOCATE (fft_test(0:mpol,-ntor:ntor,nsmin:nsmax),               &
                  temp(ntheta,nzeta,nsmin:nsmax),                        &
                  pmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=m)
-       CALL ASSERT(m.EQ.0,' Allocation failed in CheckFFT')
+       CALL assert(m.EQ.0,' Allocation failed in CheckFFT')
        temp = bsupsijh0*jacobh(:,:,nsmin:nsmax)
        CALL tomnsp_par(temp, fft_test, fours)
        rTest = MAXVAL(ABS(fft_test - jbsupsmnh(:,:,nsmin:nsmax)))
-       CALL ASSERT(rtest.LT.rtol, ' jbsupsmnh FFT error in siesta_init')
+       CALL assert(rtest.LT.rtol, ' jbsupsmnh FFT error in siesta_init')
        temp = bsupuijh0*jacobh(:,:,nsmin:nsmax)
        CALL tomnsp_par(temp, fft_test, fouru)
        rTest = MAXVAL(ABS(fft_test - jbsupumnh(:,:,nsmin:nsmax)))
-       CALL ASSERT(rTest.LT.rtol,' jbsupumnh FFT error in siesta_init')
+       CALL assert(rTest.LT.rtol,' jbsupumnh FFT error in siesta_init')
        temp = bsupvijh0*jacobh(:,:,nsmin:nsmax)
        CALL tomnsp_par(temp, fft_test, fourv)
        rTest = MAXVAL(ABS(fft_test - jbsupvmnh(:,:,nsmin:nsmax)))
-       CALL ASSERT(rTest.LT.rtol,' jbsupvmnh FFT error in siesta_init')
+       CALL assert(rTest.LT.rtol,' jbsupvmnh FFT error in siesta_init')
        temp = pijh0*jacobh(:,:,nsmin:nsmax)
        CALL tomnsp_par(temp, fft_test, fourv)
        rTest = MAXVAL(ABS(fft_test - jpmnh(:,:,nsmin:nsmax)))
-       CALL ASSERT(rTest.LT.rtol,' jpmnh FFT error in siesta_init')
+       CALL assert(rTest.LT.rtol,' jpmnh FFT error in siesta_init')
             
 ! check angle derivatives of pressure            
        CALL tomnsp_par(pijh0, pmnh, fouru)
        CALL tomnsp_par(pijh0_du, fft_test, fouru1)
        DO m = 0, mpol
           mp = -sparity*m
-          CALL ASSERT(MAXVAL(ABS(fft_test(m,:,:) - mp*pmnh(m,:,:))) .LE. rtol,   &
+          CALL assert(MAXVAL(ABS(fft_test(m,:,:) - mp*pmnh(m,:,:))) .LE. rtol,   &
                      ' pijh0_du FFT error in siesta_init')
        END DO
        
        CALL tomnsp_par(pijh0_dv, fft_test, fourv1)
        DO n = -ntor, ntor
           np = -sparity*n*nfp
-          CALL ASSERT(MAXVAL(ABS(fft_test(:,n,:) - np*pmnh(:,n,:))) .LE. rtol,   &
+          CALL assert(MAXVAL(ABS(fft_test(:,n,:) - np*pmnh(:,n,:))) .LE. rtol,   &
                      ' pijh0_dv FFT error in siesta_init')
        END DO
             
