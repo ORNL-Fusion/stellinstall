@@ -253,8 +253,8 @@
 !>  @param[out] rphiz_at_max R, Phi, Z position of the maximum function.
 !>  @returns The maximum value of the iso function.
 !-------------------------------------------------------------------------------
-      FUNCTION limiter_get_max_fval(this, num_theta, phi_index,            &
-     &                                  r, z, rphiz_at_max)
+      FUNCTION limiter_get_max_fval(this, num_theta, phi_index,                &
+     &                              r, z, rphiz_at_max)
       USE v3_utilities
 
       IMPLICIT NONE
@@ -271,6 +271,9 @@
 !  Start of executable code
       CALL assert(.false., 'limiter_get_max_fval not over written' //          &
      &                     ' for ' // this%get_type())
+
+      rphiz_at_max = 0.0
+      limiter_get_max_fval = 0.0
 
       END FUNCTION
 

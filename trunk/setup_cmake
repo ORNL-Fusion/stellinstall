@@ -238,19 +238,7 @@ then
 	      -DUSE_PARVMEC=ON                                                   \
 	      -DUSE_FAST_COPY=ON
 
-elif [ $MACHINE_ID == "edison01" ] || \
-     [ $MACHINE_ID == "edison02" ] || \
-     [ $MACHINE_ID == "edison03" ] || \
-     [ $MACHINE_ID == "edison04" ] || \
-     [ $MACHINE_ID == "edison05" ] || \
-     [ $MACHINE_ID == "edison06" ] || \
-     [ $MACHINE_ID == "edison07" ] || \
-     [ $MACHINE_ID == "edison08" ] || \
-     [ $MACHINE_ID == "edison09" ] || \
-     [ $MACHINE_ID == "edison10" ] || \
-     [ $MACHINE_ID == "edison11" ] || \
-     [ $MACHINE_ID == "edison12" ] || \
-     [ $MACHINE_ID == "cori01"   ] || \
+elif [ $MACHINE_ID == "cori01"   ] || \
      [ $MACHINE_ID == "cori02"   ] || \
      [ $MACHINE_ID == "cori03"   ] || \
      [ $MACHINE_ID == "cori04"   ] || \
@@ -264,22 +252,15 @@ elif [ $MACHINE_ID == "edison01" ] || \
      [ $MACHINE_ID == "cori12"   ]
 then
 
-	# Config for NERSC Edison Machine. OLCF systems use a module system. Load the cmake
-	# module to get a compatable version first.
-	module load cmake
-	module load python
-	module load cray-netcdf
-	cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE                                  \
-	      -DCMAKE_C_COMPILER=icc                                          \
-	      -DCMAKE_CXX_COMPILER=icpc                                       \
-	      -DCMAKE_Fortran_COMPILER=ifort                                  \
-	      -DNETCDF_INC_PATH=$NETCDF_DIR/include                           \
-	      -DNETCDF_LIB_PATH=$NETCDF_DIR/lib                               \
-	      -DSCALAPACK_LIB=$CRAY_LIBSCI_PREFIX_DIR/lib/libsci_intel_mpi.so \
-	      -DCMAKE_PREFIX_PATH:FILEPATH=$MPICH_DIR                         \
-	      -DEXTRA_FLAGS="-mkl"                                            \
-	      -DUSE_PARVMEC=ON                                                \
-	      -DUSE_FAST_COPY=ON
+    # Config for NERSC Cori Machine. Note: CRAYPE_LINK_TYPE=dynamic must
+    # be set.
+	cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE                                 \
+	      -DNETCDF_INC_PATH=$NETCDF_DIR/include                          \
+	      -DNETCDF_LIB_PATH=$NETCDF_DIR/lib                              \
+	      -DEXTRA_FLAGS="-qopenmp -axMIC-AVX512,AVX"                     \
+	      -DSCALAPACK_LIB=$CRAY_LIBSCI_PREFIX_DIR/lib/libsci_intel_mpi.a \
+	      -DUSE_FAST_COPY=ON                                             \
+	      -DBLA_VENDOR=Intel10_64lp
 
 elif [ $MACHINE_ID == "clus45" ]
 then
