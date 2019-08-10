@@ -10,9 +10,7 @@
       MODULE limiter_iso_T
 
       USE stel_kinds, only : rprec, cprec
-      USE stel_constants, only : pi, twopi, one, zero
       USE v3_utilities
-!      USE mpi_inc
       USE limiter
 
       IMPLICIT NONE
@@ -44,11 +42,11 @@
 !-------------------------------------------------------------------------------
       TYPE, EXTENDS(limiter_class) :: limiter_iso_class
 !>  Coefficients for the iso function.
-         REAL(rprec), DIMENSION(0:4,0:4)    :: arz
+         REAL (rprec), DIMENSION(0:4,0:4)   :: arz
 !>  R offset for function.
-         REAL(rprec)                        :: rc
+         REAL (rprec)                       :: rc
 !>  Z offset for function.
-         REAL(rprec)                        :: zc
+         REAL (rprec)                       :: zc
 !>  Minimum number of poloidal angles for s=1 surface.
          INTEGER                            :: numin
       CONTAINS
@@ -92,19 +90,20 @@
 !>  @returns A pointer to a constructed @ref limiter_iso object.
 !-------------------------------------------------------------------------------
       FUNCTION limiter_iso_construct(arz, rc, zc, numin, vgrid, on_edge)
+
       IMPLICIT NONE
 
 !  Declare Arguments 
       CLASS (limiter_iso_class), POINTER :: limiter_iso_construct
-      REAL(rprec), DIMENSION(0:4,0:4), INTENT(in) :: arz
-      REAL(rprec), INTENT(in)                     :: rc
-      REAL(rprec), INTENT(in)                     :: zc
-      INTEGER, INTENT(in)                         :: numin
-      REAL(rprec), DIMENSION(:), INTENT(in)       :: vgrid
-      LOGICAL, INTENT(in)                         :: on_edge
+      REAL (rprec), DIMENSION(0:4,0:4), INTENT(in) :: arz
+      REAL (rprec), INTENT(in)                     :: rc
+      REAL (rprec), INTENT(in)                     :: zc
+      INTEGER, INTENT(in)                          :: numin
+      REAL (rprec), DIMENSION(:), INTENT(in)       :: vgrid
+      LOGICAL, INTENT(in)                          :: on_edge
 
 !  local variables
-      REAL (rprec)                                :: start_time
+      REAL (rprec)                                 :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -136,6 +135,7 @@
 !>  @param[inout] this A @ref limiter_iso instance.
 !-------------------------------------------------------------------------------
       SUBROUTINE limiter_iso_destruct(this)
+
       IMPLICIT NONE
 
 !  Declare Arguments 
@@ -222,6 +222,7 @@
 !>  @returns The value of iso function at the r, phi, z point.
 !-------------------------------------------------------------------------------
       FUNCTION limiter_iso_get_value(this, r, z)
+
       IMPLICIT NONE
 
 !  Declare Arguments
@@ -231,10 +232,10 @@
       REAL (rprec), INTENT(in)               :: z
 
 !  local variables
-      REAL(rprec)                            :: e
-      REAL(rprec)                            :: er
-      REAL(rprec)                            :: ez
-      REAL(rprec)                            :: grad_e
+      REAL (rprec)                           :: e
+      REAL (rprec)                           :: er
+      REAL (rprec)                           :: ez
+      REAL (rprec)                           :: grad_e
       INTEGER                                :: i
       INTEGER                                :: j
       REAL (rprec)                           :: start_time
