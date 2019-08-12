@@ -390,7 +390,7 @@
       nmin = MAX(2, startglobrow)
       CALL assert(nmin .ge. LBOUND(jbsupsmnh,3), 'LBOUND wrong in curl_ftoh')
 
-! (sqrt(g)*B^X)mn
+!  (sqrt(g)*B^X)mn
       DO m = 0, mpol
          mp = sparity*m
          DO n = -ntor, ntor

@@ -76,6 +76,8 @@
 !  Toroidal modes.
 !>  n = 0 mode.
       INTEGER, PARAMETER   :: n0 = 0
+!>  n = 1 mode.
+      INTEGER, PARAMETER   :: n1 = 1
 
 !  Parity flags.
 !>  Stellarator parity.
@@ -360,7 +362,7 @@
          END DO
 
 ! Redundant: To avoid counting (0,-n) for non-zero n.
-         xmn1(0,-ntor:-1) = zero
+         xmn1(m0,-ntor:-n1) = zero
          xmn(:,:,js) = orthonorm(0:mpol,-ntor:ntor)*xmn1(:,:)
       END DO NS_LOOP
 
