@@ -12,7 +12,7 @@
        USE stel_kinds
        USE descriptor_mod, ONLY: SIESTA_COMM, iam
        USE fourier, ONLY: toijsp_par, tomnsp_par, f_none, f_sin, f_cos, &
-                          f_du, f_dv, f_sum, orthonorm
+                          f_du, f_dv, f_sum, orthonorm, m0, m1, isym, iasym
        USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
        USE quantities
        USE shared_data, ONLY: l_update_state, l_pedge
@@ -29,15 +29,6 @@
        INTEGER                                  :: nsmax
        REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: pfilter
        REAL (dp)                                :: pedge
-
-!*******************************************************************************
-!  utilities module parameters
-!*******************************************************************************
-! FIXME: Reference these from a single location
-       INTEGER, PARAMETER                       :: isym = 0
-       INTEGER, PARAMETER                       :: iasym = 1
-       INTEGER, PARAMETER                       :: m0 = 0
-       INTEGER, PARAMETER                       :: m1 = 1
        
        PUBLIC  :: init_state
 

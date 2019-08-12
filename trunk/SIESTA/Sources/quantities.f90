@@ -44,7 +44,6 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-       INTEGER, PRIVATE :: isym=0, iasym=1
        REAL(dp) :: b_factor, p_factor                                      ! Scale internal energy <wb+wp/(gam-1)> to 1
        REAL(dp) :: signjac
        REAL(dp) :: wp, wb, wp0                                             ! summed (over procs) energies/local energies
@@ -211,7 +210,8 @@
 !>   Only called if lrestart=F (otherwise data read in from restart file)    
 !*******************************************************************************
         SUBROUTINE Init_Fields
-        USE fourier, ONLY: orthonorm, tomnsp_par, f_sin, f_cos, m0, m1
+        USE fourier, ONLY: orthonorm, tomnsp_par, f_sin, f_cos, m0, m1,        &
+                           isym, iasym
         USE vmec_info, ONLY: lmns_i, lmnc_i, iflipj
         USE metrics, ONLY: sqrtg
         USE mpi_inc
@@ -292,7 +292,7 @@
 
         SUBROUTINE Init_Bfield(jbsupsmnh, jbsupumnh, jbsupvmnh,         &
                                lmn, phiph, chiph, nsmin, nsmax, ipar)
-        USE fourier, ONLY: orthonorm, m0, m1
+        USE fourier, ONLY: orthonorm, m0, m1, isym
         USE siesta_namelist, ONLY: l_vessel
 #if defined(MPI_OPT)        
         USE mpi_inc

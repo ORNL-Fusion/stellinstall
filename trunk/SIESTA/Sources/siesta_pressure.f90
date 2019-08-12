@@ -15,30 +15,17 @@
       USE quantities
       USE nscalingtools, ONLY: startglobrow, endglobrow
       USE utilities, ONLY: GradientHalf, to_half_mesh
+      USE fourier, ONLY: m0, m1, n0, isym, iasym
 
       IMPLICIT NONE
 
 !*******************************************************************************
 !  utilities module variables
 !*******************************************************************************
+!  FIXME: These should be taken out of the global scope.
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: workmn4
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: workmn5
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: workmn6
-
-!*******************************************************************************
-!  utilities module parameters
-!*******************************************************************************
-      PRIVATE !  Fix me refernce these from a central location.
-      INTEGER, PARAMETER                       :: m0 = 0
-      INTEGER, PARAMETER                       :: m1 = 1
-      INTEGER, PARAMETER                       :: n0 = 0
-      INTEGER, PARAMETER                       :: isym = 0
-      INTEGER, PARAMETER                       :: iasym = 1
-
-!*******************************************************************************
-!  INTERFACE BLOCKS
-!*******************************************************************************
-      PUBLIC :: update_pres
 
       CONTAINS
 

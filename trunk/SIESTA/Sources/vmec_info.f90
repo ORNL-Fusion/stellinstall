@@ -17,6 +17,7 @@
                          wb_vmec=>wb, wp_vmec=>wp, gamma_vmec=>gamma,          &
                          volume_vmec=>volume, raxis_vmec=>raxis,               &
                          lasym_vmec=>lasym, iasym_vmec=>iasym
+      USE fourier, ONLY: isym, iasym
 
       IMPLICIT NONE
 
@@ -68,10 +69,6 @@
 !*******************************************************************************
 !  vmec_info module parameters
 !*******************************************************************************
-!>  Symmetric parity flag.
-      INTEGER, PARAMETER                       :: isym = 0
-!>  Asymmetric parity flag.
-      INTEGER, PARAMETER                       :: iasym = 1
 !>     SET iflipj -> -1 FOR POSITIVE JACOBIAN SYSTEM
       INTEGER, PARAMETER                       :: iflipj = 1
 !>  Spline lower boundary condition. Uses last four points.

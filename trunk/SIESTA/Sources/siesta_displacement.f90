@@ -19,7 +19,7 @@
       USE nscalingtools, ONLY: startglobrow, endglobrow
       USE timer_mod, ONLY: time_update_upperv
       IMPLICIT NONE
-      INTEGER, PARAMETER, PRIVATE :: isym=0, iasym=1
+
       INTEGER, PRIVATE ::  nsmin, nsmax
 
       CONTAINS
@@ -31,7 +31,7 @@
       USE quantities, ONLY: gvsupsmncf => fsupsmncf, gvsupumnsf => fsupumnsf,  &
              gvsupvmnsf => fsupvmnsf, gvsupsmnsf => fsupsmnsf,          &
              gvsupumncf => fsupumncf, gvsupvmncf => fsupvmncf
-
+      USE fourier, ONLY: isym, iasym
       USE descriptor_mod, ONLY: iam
 
 !-----------------------------------------------
@@ -72,7 +72,7 @@
 !>  @param[in]    Fourier iparity   Parity of the displacements.
 !-------------------------------------------------------------------------------
       SUBROUTINE InitDisplacement(gvsupsmnf, gvsupumnf, gvsupvmnf, iparity)
-      USE fourier, ONLY: toijsp_par, f_cos, f_sin, f_none, f_sum
+      USE fourier, ONLY: toijsp_par, f_cos, f_sin, f_none, f_sum, isym, iasym
       USE quantities, ONLY: jvsupsijf, jvsupuijf, jvsupvijf, mpol, ntor
       USE shared_data, ONLY: l_push_s, l_push_u, l_push_v, l_pedge,     &
                              l_push_edge, col_scale

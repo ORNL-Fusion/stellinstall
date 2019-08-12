@@ -12,16 +12,9 @@
       USE island_params, ONLY: ohs=>ohs_i, ns=>ns_i, mpol=>mpol_i,             &
                                ntor=>ntor_i, nfp=>nfp_i
       USE v3_utilities, ONLY: assert, assert_eq
+      USE fourier, ONLY: isym, iasym
 
       IMPLICIT NONE
-
-!*******************************************************************************
-!  utilities module parameters
-!*******************************************************************************
-!>  Flag for stellarator symmetry.
-      INTEGER, PARAMETER, PRIVATE :: isym = 0
-!>  Flag for non-stellarator symmetry.
-      INTEGER, PARAMETER, PRIVATE :: iasym = 1
 
 !*******************************************************************************
 !  INTERFACE BLOCKS

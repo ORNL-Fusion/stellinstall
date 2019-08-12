@@ -15,10 +15,11 @@
       USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR,       &
                                PARSOLVER
       USE mpi_inc
+      USE fourier, ONLY: isym, iasym
+
       IMPLICIT NONE
 
       LOGICAL, PUBLIC :: lfirst=.TRUE.
-      INTEGER, PARAMETER, PRIVATE :: isym=0, iasym=1
 
       CONTAINS
 
