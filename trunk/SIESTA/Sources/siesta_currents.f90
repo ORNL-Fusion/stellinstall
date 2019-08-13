@@ -195,8 +195,10 @@
       IF (lcurr) THEN
          CALL tolowerf(ksupsijf, ksupuijf, ksupvijf,                           &
                        ksubsijf, ksubuijf, ksubvijf, nsmin, nsmax)
-         IF (nsmin .EQ. 1) ksubuijf(:,:,1) = 0 
-      ENDIF
+         IF (nsmin .EQ. 1) THEN
+            ksubuijf(:,:,1) = 0
+         END IF
+      END IF
 
 !  Diagnostic output (only compute when state is updated)
       DIAGNO: IF (l_update_state) THEN
@@ -204,8 +206,8 @@
 !  Compute spectral truncation error measure (Use ksupsijf for temporary
 !  filtered bsubXijh values)
          IF (nsmax .eq. ns) THEN
-            tmp = SUM(wint(:,:,ns)*(bsubvijh(:,:,ns)*bsubvijh(:,:,ns)          &
-                +                   bsubuijh(:,:,ns)*bsubuijh(:,:,ns)))
+            tmp = SUM(wint(:,:,ns)*(bsubvijh(:,:,ns)*bsubvijh(:,:,ns) +        &
+                                    bsubuijh(:,:,ns)*bsubuijh(:,:,ns)))
             IF (tmp .ne. zero) THEN
                tmp = SQRT(edge_cur/tmp)
             END IF
@@ -251,7 +253,7 @@
 
       CALL second0(toff)
       cv_current_time = cv_current_time + (toff - ton)
-      time_current = time_current + (toff-ton)
+      time_current = time_current + (toff - ton)
 
 1000  FORMAT(' Rmajor_i = ',1p,e12.3)
 1001  FORMAT(' RMS EDGE CURRENT ||KSUPS(NS)|| = ',1p,e10.3)
@@ -341,9 +343,9 @@
       CALL assert_eq(0, istat, 'Allocation1 failed in CURLB')
 
 !  Compute bsubxmnh
-      CALL tomnsp_par(bsubsijh, bsubsmnh, fours)
-      CALL tomnsp_par(bsubuijh, bsubumnh, fouruv)
-      CALL tomnsp_par(bsubvijh, bsubvmnh, fouruv)
+      CALL tomnsp(bsubsijh, bsubsmnh, fours)
+      CALL tomnsp(bsubuijh, bsubumnh, fouruv)
+      CALL tomnsp(bsubvijh, bsubvmnh, fouruv)
       
       CALL CURL_HtoF(bsubsmnh, bsubumnh, bsubvmnh,                             &
                      ksupsmnf, ksupumnf, ksupvmnf, iparity, nsmin, nsmax)
@@ -354,9 +356,9 @@
             edge_cur = edge_cur + SUM(ksupsmnf(:,:,ns)*ksupsmnf(:,:,ns))
          END IF
 
-         CALL toijsp_par(bsubsmnh(:,:,nmin:nmax), bs_filter, fcomb, fours)
-         CALL toijsp_par(bsubumnh(:,:,nmin:nmax), bu_filter, fcomb, fouruv)
-         CALL toijsp_par(bsubvmnh(:,:,nmin:nmax), bv_filter, fcomb, fouruv)
+         CALL toijsp(bsubsmnh(:,:,nmin:nmax), bs_filter, fcomb, fours)
+         CALL toijsp(bsubumnh(:,:,nmin:nmax), bu_filter, fcomb, fouruv)
+         CALL toijsp(bsubvmnh(:,:,nmin:nmax), bv_filter, fcomb, fouruv)
 	     IF (nmin .EQ. 1) THEN
             bv_filter(:,:,1) = bv_filter(:,:,2)
             bsubvijh(:,:,1) = bsubvijh(:,:,2)
@@ -384,7 +386,7 @@
           ksupvmnf(m1:,:,1) = 0
       END IF
 
-      END SUBROUTINE CURLB
+      END SUBROUTINE
 
 !-------------------------------------------------------------------------------
 !>  @brief Transform full grid contravariant currents to real space.
@@ -428,10 +430,10 @@
          fouruv = f_sin
       END IF
 
-      CALL toijsp_par(ksupsmnf(:,:,nsmin:nsmax), ksupsijf, fcomb, fours)
-      CALL toijsp_par(ksupumnf(:,:,nsmin:nsmax), ksupuijf, fcomb, fouruv)
-      CALL toijsp_par(ksupvmnf(:,:,nsmin:nsmax), ksupvijf, fcomb, fouruv)
+      CALL toijsp(ksupsmnf(:,:,nsmin:nsmax), ksupsijf, fcomb, fours)
+      CALL toijsp(ksupumnf(:,:,nsmin:nsmax), ksupuijf, fcomb, fouruv)
+      CALL toijsp(ksupvmnf(:,:,nsmin:nsmax), ksupvijf, fcomb, fouruv)
 
-      END SUBROUTINE GETCV
+      END SUBROUTINE
 
       END MODULE

@@ -579,8 +579,7 @@
       SUBROUTINE toupper_forces
       USE island_params, ONLY: ntheta=>nu_i, nzeta=>nv_i,               &
                          mpol=>mpol_i, ntor=>ntor_i
-      USE fourier, ONLY: toijsp_par, tomnsp_par, f_none, f_cos, f_sin,  &
-                         f_sum
+      USE fourier, ONLY: toijsp, tomnsp, f_none, f_cos, f_sin, f_sum
       USE metrics, ONLY: toupper
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
@@ -591,7 +590,8 @@
 !-----------------------------------------------
       INTEGER :: nsmin, nsmax, istat
 !-----------------------------------------------
-      nsmin=MAX(1,startglobrow); nsmax=MIN(ns,endglobrow)
+      nsmin = MAX(1, startglobrow)
+      nsmax = MIN(ns, endglobrow)
 
       ALLOCATE(fsubsijf(ntheta,nzeta,nsmin:nsmax),                      &
                fsubuijf(ntheta,nzeta,nsmin:nsmax),                      &
@@ -601,16 +601,14 @@
                fsupvijf(ntheta,nzeta,nsmin:nsmax), stat=istat)
       CALL ASSERT(istat.eq.0,' Allocation error in toupper_forces')
 
-      CALL toijsp_par(fsubsmncf(:,:,nsmin:nsmax), fsubsijf, f_none, f_cos)
-      CALL toijsp_par(fsubumnsf(:,:,nsmin:nsmax), fsubuijf, f_none, f_sin)
-      CALL toijsp_par(fsubvmnsf(:,:,nsmin:nsmax), fsubvijf, f_none, f_sin)
+      CALL toijsp(fsubsmncf(:,:,nsmin:nsmax), fsubsijf, f_none, f_cos)
+      CALL toijsp(fsubumnsf(:,:,nsmin:nsmax), fsubuijf, f_none, f_sin)
+      CALL toijsp(fsubvmnsf(:,:,nsmin:nsmax), fsubvijf, f_none, f_sin)
  
       IF (lasym) THEN
-
-      CALL toijsp_par(fsubsmnsf(:,:,nsmin:nsmax), fsubsijf, f_sum, f_sin)
-      CALL toijsp_par(fsubumncf(:,:,nsmin:nsmax), fsubuijf, f_sum, f_cos)
-      CALL toijsp_par(fsubvmncf(:,:,nsmin:nsmax), fsubvijf, f_sum, f_cos)
- 
+         CALL toijsp(fsubsmnsf(:,:,nsmin:nsmax), fsubsijf, f_sum, f_sin)
+         CALL toijsp(fsubumncf(:,:,nsmin:nsmax), fsubuijf, f_sum, f_cos)
+         CALL toijsp(fsubvmncf(:,:,nsmin:nsmax), fsubvijf, f_sum, f_cos)
       END IF
 
 !      
@@ -621,16 +619,14 @@
                    fsupsijf, fsupuijf, fsupvijf, nsmin, nsmax) 
       DEALLOCATE(fsubsijf, fsubuijf, fsubvijf)
 
-      CALL tomnsp_par(fsupsijf, fsupsmncf(:,:,nsmin:nsmax), f_cos)
-      CALL tomnsp_par(fsupuijf, fsupumnsf(:,:,nsmin:nsmax), f_sin)
-      CALL tomnsp_par(fsupvijf, fsupvmnsf(:,:,nsmin:nsmax), f_sin)
+      CALL tomnsp(fsupsijf, fsupsmncf(:,:,nsmin:nsmax), f_cos)
+      CALL tomnsp(fsupuijf, fsupumnsf(:,:,nsmin:nsmax), f_sin)
+      CALL tomnsp(fsupvijf, fsupvmnsf(:,:,nsmin:nsmax), f_sin)
 
       IF (lasym) THEN
-
-      CALL tomnsp_par(fsupsijf, fsupsmnsf(:,:,nsmin:nsmax), f_sin)
-      CALL tomnsp_par(fsupuijf, fsupumncf(:,:,nsmin:nsmax), f_cos)
-      CALL tomnsp_par(fsupvijf, fsupvmncf(:,:,nsmin:nsmax), f_cos)
-
+         CALL tomnsp(fsupsijf, fsupsmnsf(:,:,nsmin:nsmax), f_sin)
+         CALL tomnsp(fsupuijf, fsupumncf(:,:,nsmin:nsmax), f_cos)
+         CALL tomnsp(fsupvijf, fsupvmncf(:,:,nsmin:nsmax), f_cos)
       END IF
 
       DEALLOCATE(fsupsijf, fsupuijf, fsupvijf, stat=istat)

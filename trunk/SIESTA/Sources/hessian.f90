@@ -200,20 +200,29 @@
 
       END SUBROUTINE InitHess
 
+!-------------------------------------------------------------------------------
+!>  @brief Scale displacements.
+!>
+!>  @param[inout] gc       Scratch buffer to scale columns in. FIXME: Why is
+!>                         this marked out? What reads it?
+!>  @param[in]    colscale Column scaling factors.
+!>  @param[in]    nsmin    Minimum radial index.
+!>  @param[in]    nsmax    Maximum radial index.
+!-------------------------------------------------------------------------------
+      SUBROUTINE Apply_ColScale(gc, colscale, nsmin, nsmax)
 
-      SUBROUTINE Apply_ColScale(gc, colscale, n1, n2)
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      INTEGER, INTENT(IN)     :: n1, n2
-      REAL(dp), INTENT(INOUT) :: gc(mblk_size, ns)
-      REAL(dp), INTENT(IN)    :: colscale(mblk_size, ns)
-!-----------------------------------------------
-      
-      gc(:,n1:n2) = gc(:,n1:n2)*colscale(:,n1:n2)
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp), DIMENSION(mblk_size,ns), INTENT(inout) :: gc
+      REAL (dp), DIMENSION(mblk_size,ns), INTENT(in)    :: colscale
+      INTEGER, INTENT(in)                               :: nsmin
+      INTEGER, INTENT(in)                               :: nsmax
+
+!  Start of executable code
+      gc(:,nsmin:nsmax) = gc(:,nsmin:nsmax)*colscale(:,nsmin:nsmax)
             
-      END SUBROUTINE Apply_ColScale
-
+      END SUBROUTINE
 
       SUBROUTINE Compute_Hessian_Blocks (func, ldiagonal)
       USE shared_data, ONLY: xc, gc, l_linearize

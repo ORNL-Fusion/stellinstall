@@ -1,10 +1,13 @@
-!>  \brief Module contained subroutines for computing the real-space
-!>  contravariant (full mesh) "displacements" as part of the SIESTA project.
-!>  \author S. P. Hirshman and R. Sanchez
-!>  \date Aug 18, 2006
-!>  added lasym=T Dec, 2016 M. R. Cianciosa
-!>
-!>  Displacements are defined by
+!*******************************************************************************
+!>  @file siesta_displacement.f90
+!>  @brief Contains module @ref siesta_displacement
+!
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
+!
+!>  Module contains subroutines for computing the real-space contravariant (full
+!>  mesh) displacements as part of the SIESTA project. Displacements are defined
+!>  by:
 !>
 !>     J*v*dt                                                                (1)
 !>
@@ -12,52 +15,62 @@
 !>  velocity. The velocity harmonics are obtained from solving the Fourier
 !>  components of the MHD force. Fourier harmonics of the displacement velocity
 !>  are converted to real space.
+!*******************************************************************************
       MODULE siesta_displacement
       USE island_params, ONLY: hs_i, ns=>ns_i
       USE stel_kinds
       USE stel_constants        
       USE nscalingtools, ONLY: startglobrow, endglobrow
       USE timer_mod, ONLY: time_update_upperv
-      IMPLICIT NONE
 
-      INTEGER, PRIVATE ::  nsmin, nsmax
+      IMPLICIT NONE
 
       CONTAINS
 
-!>    \brief Parallel/Serial subroutine for initializing updated displacement components in real space
+!*******************************************************************************
+!  UTILITY SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Initialize updated displacements in real space.
+!>
+!>  Although sqrt(g) = 0 at origin, jvsups and jvsupv are defined with jacobf
+!>  which is finite (=jacobh(2)) at the origin to allow asymptotically correct
+!>  variations in the s and v components.
+!-------------------------------------------------------------------------------
       SUBROUTINE update_upperv
       USE shared_data, ONLY: lasym, gc_sup, xc, col_scale
       USE siesta_state, ONLY: clear_field_perts
       USE quantities, ONLY: gvsupsmncf => fsupsmncf, gvsupumnsf => fsupumnsf,  &
-             gvsupvmnsf => fsupvmnsf, gvsupsmnsf => fsupsmnsf,          &
-             gvsupumncf => fsupumncf, gvsupvmncf => fsupvmncf
+                            gvsupvmnsf => fsupvmnsf, gvsupsmnsf => fsupsmnsf,  &
+                            gvsupumncf => fsupumncf, gvsupvmncf => fsupvmncf
       USE fourier, ONLY: isym, iasym
       USE descriptor_mod, ONLY: iam
 
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      INTEGER ::  istat
-      REAL(dp) :: ton, toff
-!-----------------------------------------------
+      IMPLICIT NONE
+
+!  local variables
+      INTEGER   :: istat
+      REAL (dp) :: ton
+      REAL (dp) :: toff
+
+!  Start of executable code
       CALL second0(ton)
-      nsmin=MAX(1,startglobrow-1); nsmax=MIN(endglobrow+1,ns)
 
       CALL Clear_Field_Perts
 
-!NOTE: although sqrt(g) = 0 at origin, jvsups and jvsupv are defined with
-!      jacobf which is finite (=jacobh(2)) at the origin to allow asymptotically
-!      correct variations in the s and v components
-
-!Use components of gc_sup as scratch array
+!  Use components of gc_sup as scratch array. gvsup*mn*f componets point to
+!  fsup*mn*f values which in turn point to parts of the gc_sup array.
+!  @ref ScaleDisplacement sets gc_sup to the xc array then applies the column
+!  factors so the gc_sup array is treated as the xc here.
       CALL ScaleDisplacement(gc_sup, xc, col_scale)
 
       CALL InitDisplacement(gvsupsmncf, gvsupumnsf, gvsupvmnsf, isym)
-      IF (lasym)                                                        &
-      CALL InitDisplacement(gvsupsmnsf, gvsupumncf, gvsupvmncf, iasym)
+      IF (lasym) THEN
+         CALL InitDisplacement(gvsupsmnsf, gvsupumncf, gvsupvmncf, iasym)
+      END IF
 
       CALL second0(toff)
-      time_update_upperv = time_update_upperv + (toff-ton)
+      time_update_upperv = time_update_upperv + (toff - ton)
 
       END SUBROUTINE update_upperv
 
@@ -72,7 +85,8 @@
 !>  @param[in]    Fourier iparity   Parity of the displacements.
 !-------------------------------------------------------------------------------
       SUBROUTINE InitDisplacement(gvsupsmnf, gvsupumnf, gvsupvmnf, iparity)
-      USE fourier, ONLY: toijsp_par, f_cos, f_sin, f_none, f_sum, isym, iasym
+      USE fourier, ONLY: toijsp, f_cos, f_sin, f_none, f_sum, isym, iasym,     &
+                         m0, m1, m2
       USE quantities, ONLY: jvsupsijf, jvsupuijf, jvsupvijf, mpol, ntor
       USE shared_data, ONLY: l_push_s, l_push_u, l_push_v, l_pedge,     &
                              l_push_edge, col_scale
@@ -92,13 +106,13 @@
       INTEGER                                                   :: fours
       INTEGER                                                   :: fouruv
       INTEGER                                                   :: fcomb
-
-!  local parameters
-      INTEGER, PARAMETER                                        :: m0 = 0
-      INTEGER, PARAMETER                                        :: m1 = 1
-      INTEGER, PARAMETER                                        :: m2 = 2
+      INTEGER                                                   :: nsmin
+      INTEGER                                                   :: nsmax
 
 !  Start of executable code
+      nsmin = MAX(1, startglobrow - 1)
+      nsmax = MIN(endglobrow + 1, ns)
+
       IF (iparity .eq. isym) THEN
          fours = f_cos
          fouruv = f_sin
@@ -156,28 +170,47 @@
       END IF EDGE
 
 !  Calculate contravariant (SUP) velocities in real space on full mesh
-      CALL toijsp_par(gvsupsmnf(:,:,nsmin:nsmax),                              &
-                      jvsupsijf(:,:,nsmin:nsmax), fcomb, fours)
-      CALL toijsp_par(gvsupumnf(:,:,nsmin:nsmax),                              &
-                      jvsupuijf(:,:,nsmin:nsmax), fcomb, fouruv)
-      CALL toijsp_par(gvsupvmnf(:,:,nsmin:nsmax),                              &
-                      jvsupvijf(:,:,nsmin:nsmax), fcomb, fouruv)
+      CALL toijsp(gvsupsmnf(:,:,nsmin:nsmax),                                  &
+                  jvsupsijf(:,:,nsmin:nsmax), fcomb, fours)
+      CALL toijsp(gvsupumnf(:,:,nsmin:nsmax),                                  &
+                  jvsupuijf(:,:,nsmin:nsmax), fcomb, fouruv)
+      CALL toijsp(gvsupvmnf(:,:,nsmin:nsmax),                                  &
+                  jvsupvijf(:,:,nsmin:nsmax), fcomb, fouruv)
 
       END SUBROUTINE
       
-
+!-------------------------------------------------------------------------------
+!>  @brief Remove columns scaling to get the correct displacements.
+!>
+!>  @ref update_upperv has the gvsup*mn*f pointing to the quantities pointed to
+!>  by the xc_scratch array.
+!>
+!>  @param[out] xc_scratch Scratch buffer to scale columns in.
+!>  @param[in]  xc         Current displacements.
+!>  @param[in]  colscale   Column scaling factors.
+!-------------------------------------------------------------------------------
       SUBROUTINE ScaleDisplacement(xc_scratch, xc, colscale)
       USE hessian, ONLY: apply_colscale
       USE shared_data, ONLY: mblk_size
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), INTENT(IN), DIMENSION(mblk_size,ns)  :: xc, colscale
-      REAL(dp), INTENT(OUT)  :: xc_scratch(mblk_size, ns)
-      
-      xc_scratch(:, nsmin:nsmax) = xc(:, nsmin:nsmax)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp), DIMENSION(mblk_size,ns), INTENT(out) :: xc_scratch
+      REAL (dp), DIMENSION(mblk_size,ns), INTENT(in)  :: xc
+      REAL (dp), DIMENSION(mblk_size,ns), INTENT(in)  :: colscale
+
+!  local variables
+      INTEGER                                         :: nsmin
+      INTEGER                                         :: nsmax
+
+!  Start of executable code
+      nsmin = MAX(1, startglobrow - 1)
+      nsmax = MIN(endglobrow + 1, ns)
+
+      xc_scratch(:,nsmin:nsmax) = xc(:,nsmin:nsmax)
       CALL Apply_ColScale(xc_scratch, colscale, nsmin, nsmax)
 
-      END SUBROUTINE ScaleDisplacement
+      END SUBROUTINE
 
-      END MODULE siesta_displacement
+      END MODULE
