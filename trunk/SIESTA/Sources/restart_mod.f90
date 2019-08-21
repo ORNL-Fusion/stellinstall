@@ -436,6 +436,9 @@
       CALL cdf_define(ncid, vn_chipf, chipf, dimname=radial_dim)
       CALL cdf_define(ncid, vn_phipf, phipf, dimname=radial_dim)
 
+      CALL cdf_define(ncid, vn_wb, wb)
+      CALL cdf_define(ncid, vn_wp, wp)
+
       IF (lasym) THEN
          CALL cdf_define(ncid, vn_jbsupsc, jbsupsmnch, dimname=restart_dims)
          CALL cdf_define(ncid, vn_jbsupus, jbsupumnsh, dimname=restart_dims)
@@ -461,8 +464,6 @@
          CALL cdf_define(ncid, vn_pmnc,      jpmnch,     dimname=restart_dims)
          CALL cdf_define(ncid, vn_b_factor,  b_factor)
          CALL cdf_define(ncid, vn_p_factor,  p_factor)
-         CALL cdf_define(ncid, vn_wb,        wb)
-         CALL cdf_define(ncid, vn_wp,        wp)
          CALL cdf_define(ncid, vn_rmajor,    rmajor)
          CALL cdf_define(ncid, vn_p_max,     b_factor)
          CALL cdf_define(ncid, vn_p_min,     p_factor)
@@ -524,8 +525,6 @@
          CALL cdf_write(ncid, vn_zmnc, tempmn_w)
       END IF
 
-      CALL cdf_write(ncid, vn_p_factor, p_factor)
-      CALL cdf_write(ncid, vn_b_factor, b_factor)
       CALL cdf_write(ncid, vn_wb, wb)
       CALL cdf_write(ncid, vn_wp, wp)
       CALL cdf_write(ncid, vn_rmajor, rmajor)
@@ -545,6 +544,9 @@
          CALL toijsp(jbsupumnch, bsupuijh, f_none, f_cos)
          CALL toijsp(jbsupvmnch, bsupvijh, f_none, f_cos)
          CALL toijsp(jpmnch, pijh, f_none, f_cos)
+
+         CALL cdf_write(ncid, vn_p_factor, p_factor)
+         CALL cdf_write(ncid, vn_b_factor, b_factor)
 
          IF (lasym) THEN
             CALL toijsp(jbsupsmnch, bsupsijh, f_sum, f_cos)
