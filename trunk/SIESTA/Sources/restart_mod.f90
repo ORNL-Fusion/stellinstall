@@ -131,6 +131,8 @@
       CHARACTER (len=*), PARAMETER :: vn_wb = 'wb'
 !>  Name for the restart file wb.
       CHARACTER (len=*), PARAMETER :: vn_wp = 'wp'
+!>  Name for the restart file rmajor.
+      CHARACTER (len=*), PARAMETER :: vn_rmajor = 'rmajor'
 
 !>  Name for the restart file p_max.
       CHARACTER (len=*), PARAMETER :: vn_p_max = 'p_max'
@@ -164,7 +166,7 @@
                             b_factor, p_factor, alloc_quantities
       USE island_params, ONLY: chipf => chipf_i, phipf => phipf_i,             &
      &                         wb => wb_i, wp => wp_i, nfp_i, gamma,           &
-     &                         gnorm => gnorm_i
+     &                         gnorm => gnorm_i, rmajor => rmajor_i
       USE vmec_info, ONLY: rmnc => rmnc_i, zmns => zmns_i,                     &
      &                     rmns => rmns_i, zmnc => zmnc_i,                     &
      &                     vmec_info_construct_island
@@ -312,6 +314,7 @@
 !  Read normalization factors.
       CALL cdf_read(ncid, vn_wb, wb)
       CALL cdf_read(ncid, vn_wp, wp)
+      CALL cdf_read(ncid, vn_rmajor, rmajor)
 
       CALL cdf_close(ncid)
 
@@ -360,7 +363,8 @@
                             b_factor,   p_factor, jacobh
       USE fourier
       USE island_params, ONLY: nfp => nfp_i, chipf => chipf_i,                 &
-                               phipf => phipf_i, wb => wb_i, wp => wp_i
+                               phipf => phipf_i, wb => wb_i, wp => wp_i,       &
+                               rmajor => rmajor_i
       USE shared_data, ONLY: r1_i, z1_i
 
       IMPLICIT NONE
@@ -459,6 +463,7 @@
          CALL cdf_define(ncid, vn_p_factor,  p_factor)
          CALL cdf_define(ncid, vn_wb,        wb)
          CALL cdf_define(ncid, vn_wp,        wp)
+         CALL cdf_define(ncid, vn_rmajor,    rmajor)
          CALL cdf_define(ncid, vn_p_max,     b_factor)
          CALL cdf_define(ncid, vn_p_min,     p_factor)
          IF (lasym) THEN
@@ -523,6 +528,7 @@
       CALL cdf_write(ncid, vn_b_factor, b_factor)
       CALL cdf_write(ncid, vn_wb, wb)
       CALL cdf_write(ncid, vn_wp, wp)
+      CALL cdf_write(ncid, vn_rmajor, rmajor)
 
       RECON1: IF (lrecon) THEN
          ALLOCATE(bsupsijh(ntheta,nzeta,ns))

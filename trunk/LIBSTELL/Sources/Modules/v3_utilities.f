@@ -97,11 +97,11 @@
 #endif
 !  Start of executable code
       IF (.not.n1) THEN
-         IF (myrank .eq. 0) THEN
+!         IF (myrank .eq. 0) THEN
          WRITE (*,fmt) 'error: an assertion failed with this tag:',     &
      &      string
          WRITE(*,*) ' n1 = ',n1
-         END IF
+!         END IF
 !  Is error Fatal or Warning?
          lfatal = .TRUE.
          IF (PRESENT(err_class)) THEN

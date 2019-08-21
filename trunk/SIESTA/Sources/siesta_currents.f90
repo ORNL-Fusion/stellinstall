@@ -138,9 +138,9 @@
             bsq(:,:,1) = 0
          END IF
 
-         CALL assert(nmin                   .eq. 1 .OR.                        &
+         CALL assert(nmin                   .eq. 1 .or.                        &
                      ALL(bsq(:,:,nmin:nmax) .gt. zero),                        &
-                     'BSQ <= 0 in cv_currents!') !  FIXME:  This is failing on restart.
+                     'BSQ <= 0 in cv_currents!')
 
          wb = SUM(bsq(:,:,nmin:nmax)*jacobh(:,:,nmin:nmax)*wint(:,:,nmin:nmax))
 
