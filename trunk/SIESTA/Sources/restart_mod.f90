@@ -468,16 +468,19 @@
          CALL cdf_define(ncid, vn_p_max,     b_factor)
          CALL cdf_define(ncid, vn_p_min,     p_factor)
          IF (lasym) THEN
-            CALL cdf_define(ncid, vn_bsupsmnc,  jbsupsmnch, dimname=restart_dims)
-            CALL cdf_define(ncid, vn_bsupumns,  jbsupumnsh, dimname=restart_dims)
-            CALL cdf_define(ncid, vn_bsupvmns,  jbsupvmnsh, dimname=restart_dims)
-            CALL cdf_define(ncid, vn_bsubsmnc,  jbsupsmnch, dimname=restart_dims)
-            CALL cdf_define(ncid, vn_bsubumns,  jbsupumnsh, dimname=restart_dims)
-            CALL cdf_define(ncid, vn_bsubvmns,  jbsupvmnsh, dimname=restart_dims)
-            CALL cdf_define(ncid, vn_jksupsmnc, jbsupsmnch, dimname=restart_dims)
-            CALL cdf_define(ncid, vn_jksupumns, jbsupumnsh, dimname=restart_dims)
-            CALL cdf_define(ncid, vn_jksupvmns, jbsupvmnsh, dimname=restart_dims)
-            CALL cdf_define(ncid, vn_pmns,      jpmnsh,     dimname=restart_dims)
+            CALL cdf_define(ncid, vn_bsupsmnc, jbsupsmnch, dimname=restart_dims)
+            CALL cdf_define(ncid, vn_bsupumns, jbsupumnsh, dimname=restart_dims)
+            CALL cdf_define(ncid, vn_bsupvmns, jbsupvmnsh, dimname=restart_dims)
+            CALL cdf_define(ncid, vn_bsubsmnc, jbsupsmnch, dimname=restart_dims)
+            CALL cdf_define(ncid, vn_bsubumns, jbsupumnsh, dimname=restart_dims)
+            CALL cdf_define(ncid, vn_bsubvmns, jbsupvmnsh, dimname=restart_dims)
+            CALL cdf_define(ncid, vn_jksupsmnc, jbsupsmnch,                    &
+                            dimname=restart_dims)
+            CALL cdf_define(ncid, vn_jksupumns, jbsupumnsh,                    &
+                            dimname=restart_dims)
+            CALL cdf_define(ncid, vn_jksupvmns, jbsupvmnsh,                    &
+                            dimname=restart_dims)
+            CALL cdf_define(ncid, vn_pmns, jpmnsh, dimname=restart_dims)
          END IF
       END IF RECON0
 
@@ -598,7 +601,7 @@
          ALLOCATE(bsubuijh(ntheta,nzeta,ns))
          ALLOCATE(bsubvijh(ntheta,nzeta,ns))
 
-         CALL tolowerh(bsupsijh, bsupuijh, bsupvijh,                    &
+         CALL tolowerh(bsupsijh, bsupuijh, bsupvijh,                           &
                        bsubsijh, bsubuijh, bsubvijh, 1, ns)
 
 !  Need these to compute the currents later.
@@ -703,12 +706,12 @@
 
             DO n = -ntor, ntor
                DO m = 0, mpol
-                  jksupsmnf(m,n,:) =  m*    bsubvmnf(m,n,:) - n*nfp*bsubumnf(m,n,:)
+                  jksupsmnf(m,n,:) = m*bsubvmnf(m,n,:) - n*nfp*bsubumnf(m,n,:)
                   jksupumnf(m,n,:) = -n*nfp*bsubsmnf(m,n,:) - dbvds(m,n,:)
-                  jksupvmnf(m,n,:) =  dbuds(m,n,:)          + m*    bsubsmnf(m,n,:)
-                  jksupsmnf(m,n,:) =  orthonorm(m,n)*jksupsmnf(m,n,:)
-                  jksupumnf(m,n,:) =  orthonorm(m,n)*jksupumnf(m,n,:)
-                  jksupvmnf(m,n,:) =  orthonorm(m,n)*jksupvmnf(m,n,:)
+                  jksupvmnf(m,n,:) = dbuds(m,n,:) + m*bsubsmnf(m,n,:)
+                  jksupsmnf(m,n,:) = orthonorm(m,n)*jksupsmnf(m,n,:)
+                  jksupumnf(m,n,:) = orthonorm(m,n)*jksupumnf(m,n,:)
+                  jksupvmnf(m,n,:) = orthonorm(m,n)*jksupvmnf(m,n,:)
                END DO
             END DO
 
@@ -803,7 +806,8 @@
           nfp_old  .eq. nfp_new) THEN
          anew = aold
       ELSE
-!  Only some of the toroidal modes will match if nfp_new and nfp_old are different.
+!  Only some of the toroidal modes will match if nfp_new and nfp_old are
+!  different.
          DO i_n = -real_ntor_min, real_ntor_min
             IF (i_n/nfp_new .eq. i_n/nfp_old) THEN
                DO i_m = 0, mpol_min
