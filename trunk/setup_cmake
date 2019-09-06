@@ -86,7 +86,7 @@ then
 	      -DBLACS_CINIT_NAME=blacsCinit_MPI-LINUX-0.a     \
 	      -DBLACS_F77INIT_NAME=blacsF77init_MPI-LINUX-0.a \
 	      -DSCALAPACK_LIB_NAME=/Users/lazerson/Sims_Work/scalapack-2.0.2/libscalapack.a    \
-	      -DBLAS_blas_LIBRARY_NAME:FILEPATH=/opt/local/lib/libopenblas.a \
+	      -DBLAS_LIBRARIES=/opt/local/lib/libopenblas.a \
 	      -DCMAKE_PREFIX_PATH:FILEPATH="/Users/lazerson/Sims_Work/scalapack-2.0.2/;/Users/lazerson/BLACS/LIB/" \
 	      -DUSE_PARVMEC=ON                                  \
 	      -DEXTRA_FLAGS="-fexternal-blas"               \
