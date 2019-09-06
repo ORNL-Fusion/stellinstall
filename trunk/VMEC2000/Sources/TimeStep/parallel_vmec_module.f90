@@ -414,9 +414,16 @@ INTEGER, INTENT(IN) :: ns, nzeta, ntheta3
 #if defined(MPI_OPT)
     CALL MPI_Comm_free(INCOMM, MPI_ERR)
     IF(LIFFREEB) CALL MPI_Comm_free(VAC_COMM,MPI_ERR)
-    INCOMM=0; VAC_COMM = 0
-    rank = 0; par_ns = 0; nranks = 1 !SAL
-    grank = 0; gnranks = 1; vrank = 0; vnranks = 1; last_ns = -1; !SAL
+    INCOMM=0
+    VAC_COMM = 0
+    rank = 0
+    IF (.not.LV3FITCALL) par_ns = 0
+    nranks = 1
+    grank = 0
+    gnranks = 1
+    vrank = 0
+    vnranks = 1
+    last_ns = -1
     NS_RESLTN=0
     vlactive = .FALSE.
 #endif
