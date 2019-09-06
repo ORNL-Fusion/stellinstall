@@ -102,7 +102,7 @@ C-----------------------------------------------
 C-----------------------------------------------
       INTERFACE
          SUBROUTINE initialize_radial(nsval, ns_old, delt0,
-     &                               lscreen, reset_file_name)
+     &                                lscreen, reset_file_name)
          USE vmec_main
          IMPLICIT NONE
          INTEGER, INTENT(in) :: nsval
@@ -118,7 +118,7 @@ C-----------------------------------------------
       CALL MyEnvVariables
       CALL InitRunVmec(COMM_WORLD,lfreeb)
       LV3FITCALL = l_v3fit
-      IF(LV3FITCALL) THEN
+      IF (LV3FITCALL) THEN
          IF (RUNVMEC_PASS.GT.1) THEN
             CALL Serial2Parallel4X(xc,pxc)
             CALL Serial2Parallel4X(xcdot,pxcdot)

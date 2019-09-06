@@ -325,11 +325,11 @@
 
 !  Declare Arguments
       TYPE (gaussp_class), INTENT(inout) :: this
-      TYPE (signal_class), POINTER        :: signal
-      INTEGER, INTENT(in)                 :: index
+      CLASS (signal_class), POINTER      :: signal
+      INTEGER, INTENT(in)                :: index
 
 !  local Variables
-      REAL (rprec)                        :: start_time
+      REAL (rprec)                       :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -356,21 +356,22 @@
 
 !  Declare Arguments
       TYPE (gaussp_class), INTENT(inout)        :: this
-      TYPE (model_class), INTENT(inout)         :: a_model
+      TYPE (model_class), POINTER               :: a_model
 
 !  Local Variables
       INTEGER                                   :: i
       INTEGER                                   :: j
       REAL (rprec)                              :: start_time
-      INTEGER                                   :: ierr
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: cached_value
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: gradient
       REAL (rprec)                              :: evidence
       REAL (rprec)                              :: new_evidence
       REAL (rprec)                              :: gamma
+      REAL (rprec)                              :: temp_param
+      INTEGER                                   :: status
 
 !  local parameters
-      REAL (rprec), PARAMETER                   :: gamma_init = 1.0
+      REAL (rprec), PARAMETER                   :: gamma_init = 0.01
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -401,24 +402,23 @@
          WRITE (this%iou,1000)
          WRITE (this%iou,1001) new_evidence
 
-         gamma = gamma_init
-
          DO
             evidence = new_evidence
+            gamma = gamma_init
 
 !  Compute gradient.
             DO i = 1, SIZE(this%params)
                CALL param_increment(this%params(i)%p, a_model,                 &
      &                              MPI_COMM_NULL, .false.)
-               gradient(i) = gaussp_get_evidence(this, a_model)                &
-     &                     - evidence
-
-               CALL param_increment(this%params(i)%p, a_model,                 &
-     &                              MPI_COMM_NULL, .false.)
+               gradient(i) = (gaussp_get_evidence(this, a_model) -             &
+     &                        evidence)/this%params(i)%p%recon%delta
+               CALL param_decrement(this%params(i)%p, a_model,                 &
+     &                              MPI_COMM_NULL)
             END DO
 
 !  Step towards the maximum.
             cached_value = cached_value + gamma*gradient
+
             DO i = 1, SIZE(this%params)
                CALL param_set_value(this%params(i)%p, a_model,                 &
      &                              cached_value(i), MPI_COMM_NULL,            &
@@ -426,23 +426,33 @@
             END DO
             new_evidence = gaussp_get_evidence(this, a_model)
 
-            IF (new_evidence - evidence < 0.0) THEN
+            DO WHILE (new_evidence - evidence .lt. 0.0)
                gamma = 0.5*gamma
-            END IF
+               cached_value = cached_value - gamma*gradient
 
-            WRITE (this%iou,1002) new_evidence, new_evidence - evidence,       &
-     &                            gamma
+               DO i = 1, SIZE(this%params)
+                  CALL param_set_value(this%params(i)%p, a_model,              &
+     &                                 cached_value(i), MPI_COMM_NULL,         &
+     &                                 .false.)
+               END DO
+               new_evidence = gaussp_get_evidence(this, a_model)
+            END DO
+
+            WRITE (this%iou,1002) new_evidence,                                &
+     &                            new_evidence - evidence, gamma
             FLUSH(this%iou)
 
-            IF (ABS(new_evidence - evidence) < this%tolerance) EXIT
+            IF (ABS(new_evidence - evidence) .lt. this%tolerance) THEN
+               EXIT
+            END IF
          END DO
+
+         WRITE (this%iou,*) 'Final Parameters', cached_value
+         FLUSH(this%iou)
+
+         DEALLOCATE(cached_value)
+         DEALLOCATE(gradient)
       END IF
-
-      WRITE (this%iou,*) 'Final Parameters', cached_value
-      FLUSH(this%iou)
-
-      DEALLOCATE(cached_value)
-      DEALLOCATE(gradient)
 
 !  Found the maximum now set the profile. The profile is determined by sampling
 !  the distribution.
@@ -458,8 +468,7 @@
 !$OMP END DO
 !$OMP END PARALLEL
 
-      CALL profiler_set_stop_time('gaussp_get_modeled_signal',                 &
-     &                            start_time)
+      CALL profiler_set_stop_time('gaussp_set_profile', start_time)
 
 1000  FORMAT('New Process')
 1001  FORMAT('Log Evidence : ',es12.5)
@@ -489,9 +498,10 @@
 !  Declare Arguments
       REAL (rprec)                       :: gaussp_get_evidence
       TYPE (gaussp_class), INTENT(inout) :: this
-      TYPE (model_class), INTENT(inout)  :: a_model
+      TYPE (model_class), POINTER        :: a_model
 
 !  Local Variables
+      CLASS (signal_class), POINTER      :: signal_obj
       INTEGER                            :: i
       INTEGER                            :: j
       REAL (rprec)                       :: start_time
@@ -505,16 +515,16 @@
 
 !$OMP PARALLEL
 !$OMP& DEFAULT(SHARED)
-!$OMP& PRIVATE(i,j)
+!$OMP& PRIVATE(i,j,signal_obj)
 
 !$OMP DO
 !$OMP& SCHEDULE(DYNAMIC)
       DO j = 1, SIZE(this%fpoints)
          DO i = 1, SIZE(this%signals)
-            this%kls(i,j) = signal_get_gp(this%signals(i)%p, a_model, j,       &
-     &                                    this%flags)
-            this%work(i,j + 1) = this%kls(i,j)
+            signal_obj => this%signals(i)%p
+            this%kls(i,j) = signal_obj%get_gp(a_model, j, this%flags)
          END DO
+         this%work(:,j + 1) = this%kls(:,j)
       END DO
 !$OMP END DO
 
@@ -522,16 +532,18 @@
 !$OMP& SCHEDULE(DYNAMIC)
       DO j = 1, SIZE(this%signals)
          DO i = j + 1, SIZE(this%signals)
-            this%kll(i,j) = signal_get_gp(this%signals(i)%p, a_model,          &
-     &                                    this%signals(j)%p, this%flags)
+            signal_obj => this%signals(i)%p
+            this%kll(i,j) = signal_obj%get_gp(a_model,                         &
+     &                                        this%signals(j)%p,               &
+     &                                        this%flags)
             this%kll(j,i) = this%kll(i,j)
          END DO
-         this%kll(j,j) = signal_get_gp(this%signals(j)%p, a_model,             &
-     &                                 this%signals(j)%p, this%flags)          &
-     &                 + signal_get_sigma2(this%signals(j)%p)                  &
+         signal_obj => this%signals(j)%p
+         this%kll(j,j) = signal_obj%get_gp(a_model, signal_obj,                &
+     &                                     this%flags)                         &
+     &                 + signal_obj%get_sigma2()                               &
      &                 + this%cholesky_fac
-         this%work(j,1) = signal_get_observed_signal(this%signals(j)%p,        &
-     &                                               a_model)
+         this%work(j,1) = signal_obj%get_observed_signal(a_model)
       END DO
 !$OMP END DO
 !$OMP END PARALLEL
@@ -542,12 +554,12 @@
 
 !  The elements in the cholesky matrix for j > i are meaning less.
       IF (ierr .lt. 0) THEN
-         CALL err_fatal('gaussp_get_modeled_signal: DROTRF ' //                &
-     &                  'cannot factor matrix. ierr is negative')
+         CALL err_fatal('gaussp_get_evidence: DROTRF cannot ' //               &
+     &                  'factor matrix. ierr is negative')
       ELSE IF (ierr .gt. 0) THEN
-         CALL err_fatal('gaussp_get_modeled_signal: DROTRF ' //                &
-     &                  'cannot factor matrix. ierr is '     //                &
-     &                  'positive. Try increasing gp_cholesky_fact')
+         CALL err_fatal('gaussp_get_evidence: DROTRF cannot ' //               &
+     &                  'factor matrix. ierr is positive. ' //                 &
+     &                  'Try increasing gp_cholesky_fact')
       END IF
 
 !  IF statement correctly throws an error if I cannot factor the matrix!

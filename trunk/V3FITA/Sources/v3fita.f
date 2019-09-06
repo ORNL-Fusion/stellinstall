@@ -302,8 +302,8 @@
 !$OMP END PARALLEL DO
 
       DO i = last_para_signal + 1, SIZE(context%signals)
-         g2 = g2 + signal_get_g2(context%signals(i)%p,                         &
-     &                           context%model, .false., dummy_value)
+         g2 = g2 + context%signals(i)%p%get_g2(context%model, .false.,         &
+     &                                         dummy_value)
       END DO
 
       WRITE (*,1000) g2
@@ -812,6 +812,7 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE init_vmec_equilibrium(context, force_solve)
       USE v3fit_context
+      USE integration_path
 
       IMPLICIT NONE
 
@@ -893,6 +894,7 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE init_vacuum_equilibrium(context, force_solve)
       USE v3fit_context
+      USE integration_path
 
       IMPLICIT NONE
 
@@ -941,6 +943,7 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE init_siesta_equilibrium(context, force_solve)
       USE v3fit_context
+      USE integration_path
 
       IMPLICIT NONE
 
@@ -1128,6 +1131,7 @@
       USE v3_utilities
       USE ezcdf
       USE file_opts
+      USE magnetic
 
       IMPLICIT NONE
 
@@ -1145,7 +1149,7 @@
       CHARACTER (len=path_length)               :: mdsig_path
       CHARACTER (len=path_length)               :: mdsig_filename
       INTEGER                                   :: mpi_rank
-      TYPE (magnetic_class), POINTER            :: magnetic_object
+      CLASS (magnetic_class), POINTER           :: magnetic_object
       REAL (rprec)                              :: start_time
 
 !  Start of executable code
@@ -1193,6 +1197,8 @@
          READ(mdsig_list_iou, *, iostat=status)                                &
      &      mdsig_index, mdsig_filename
 
+!  When the end of the file is reached, the read will return an error. Break out
+!  of the loop.
          IF (status .ne. 0) EXIT
 
 !  Check if there are two many signals.
@@ -1212,17 +1218,20 @@
 !  Construct a magnetic diagnostic signal using from the mdsig netcdf file.
          signals_created = signals_created + 1
          magnetic_object =>                                                    &
-     &      magnetic_construct(mdsig_iou, mag_a(signals_created),              &
-     &                         mag_force_coil,                                 &
-     &                         mag_3D_a(signals_created), cut_comp_svd)
+     &      magnetic_class(mdsig_iou, mag_a(signals_created),                  &
+     &                     mag_force_coil, mag_3D_a(signals_created),          &
+     &                     cut_comp_svd)
 
-         context%signals(signals_created)%p => signal_construct(               &
-     &      magnetic_object, mdsig_iou, sdo_data_a(signals_created),           &
-     &      sdo_sigma_a(signals_created), sdo_weight_a(signals_created),       &
-     &      v3fit_input_find_scale_index(signals_created),                     &
-     &      v3fit_input_find_offset_index(signals_created))
+         CALL signal_construct(magnetic_object, mdsig_iou,                     &
+     &           sdo_data_a(signals_created),                                  &
+     &           sdo_sigma_a(signals_created),                                 &
+     &           sdo_weight_a(signals_created),                                &
+     &           v3fit_input_find_scale_index(signals_created),                &
+     &           v3fit_input_find_offset_index(signals_created))
 
          CALL cdf_close(mdsig_iou)
+
+         context%signals(signals_created)%p => magnetic_object
 
          IF (plasma_index .eq. 0 .and.                                         &
      &       magnetic_response_use_plasma(                                     &
@@ -1442,6 +1451,7 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE init_extcurz_signals(context, signals_created)
       USE v3fit_context
+      USE extcurz
 
       IMPLICIT NONE
 
@@ -1452,6 +1462,7 @@
 !  local variables
       INTEGER                                   :: mpi_rank
       INTEGER                                   :: error
+      CLASS (signal_class), POINTER             :: extcurz_object
       REAL (rprec)                              :: start_time
 
 !  Start of executable code
@@ -1466,14 +1477,17 @@
      &                  ' exceeds v3fit_max_diagnostics')
       END IF
 
-      context%signals(signals_created + 1)%p => signal_construct(              &
-     &   extcurz_construct(extcurz_s0, extcurz_u0), 'extcurz',                 &
-     &   'EXTernal CURrent along Z', 'A',                                      &
-     &   sdo_data_a(signals_created + 1),                                      &
-     &   sdo_sigma_a(signals_created + 1),                                     &
-     &   sdo_weight_a(signals_created + 1),                                    &
-     &   v3fit_input_find_scale_index(signals_created + 1),                    &
-     &   v3fit_input_find_offset_index(signals_created + 1))
+      extcurz_object => extcurz_class(extcurz_s0, extcurz_u0)
+
+      CALL signal_construct(extcurz_object, 'extcurz',                         &
+     &       'EXTernal CURrent along Z', 'A',                                  &
+     &       sdo_data_a(signals_created + 1),                                  &
+     &       sdo_sigma_a(signals_created + 1),                                 &
+     &       sdo_weight_a(signals_created + 1),                                &
+     &       v3fit_input_find_scale_index(signals_created + 1),                &
+     &       v3fit_input_find_offset_index(signals_created + 1))
+
+      context%signals(signals_created + 1)%p => extcurz_object
 
       signals_created = signals_created + 1
 
@@ -1625,6 +1639,8 @@
       SUBROUTINE init_limiter_signals(context, signals_created)
       USE v3fit_context
       USE stel_constants, only: degree
+      USE limiter_iso_T
+      USE limiter_grid
 
       IMPLICIT NONE
 
@@ -1637,6 +1653,7 @@
       CHARACTER (len=data_short_name_length)    :: s_name = ''
       CHARACTER (len=data_name_length)          :: l_name = ''
       INTEGER                                   :: num_phi
+      CLASS (signal_class), POINTER             :: limiter_obj
       REAL (rprec)                              :: start_time
 
 !  Start of executable code
@@ -1669,16 +1686,19 @@
             sdo_sigma_a(signals_created + 1) = lif_sigma(i)
          END IF
 
-         context%signals(signals_created + 1)%p => signal_construct(           &
-     &      limiter_construct(                                                 &
-     &         limiter_iso_construct(lif_arz(i,:,:), lif_rc(i),                &
-     &            lif_zc(i), 20, lif_phi_degree(i,1:num_phi)*degree),          &
-     &         lif_on_edge(i)),                                                &
-     &      s_name, l_name, 'm', sdo_data_a(signals_created + 1),              &
-     &      sdo_sigma_a(signals_created + 1),                                  &
-     &      sdo_weight_a(signals_created + 1),                                 &
-     &      v3fit_input_find_scale_index(signals_created + 1),                 &
-     &      v3fit_input_find_offset_index(signals_created + 1))
+         limiter_obj =>                                                        &
+     &      limiter_iso_class(lif_arz(i,:,:), lif_rc(i), lif_zc(i), 20,        &
+     &                        lif_phi_degree(i,1:num_phi)*degree,              &
+     &                        lif_on_edge(i))
+
+         CALL signal_construct(limiter_obj, s_name, l_name, 'm',              &
+     &           sdo_data_a(signals_created + 1),                              &
+     &           sdo_sigma_a(signals_created + 1),                             &
+     &           sdo_weight_a(signals_created + 1),                            &
+     &           v3fit_input_find_scale_index(signals_created + 1),            &
+     &           v3fit_input_find_offset_index(signals_created + 1))
+
+         context%signals(signals_created + 1)%p => limiter_obj
 
          signals_created = signals_created + 1
 
@@ -1694,14 +1714,18 @@
       IF (limiter_grid_file .ne. '') THEN
          s_name = TRIM(signal_make_short_name('edge_lim_', i))
          WRITE (l_name,'(a,i4)') 'edge limiter polygon ', i
-         context%signals(signals_created + 1)%p => signal_construct(           &
-     &      limiter_construct(limiter_grid_construct(limiter_grid_file),       &
-     &                        lif_on_edge(n_lif + 1)),                         &
-     &      s_name, l_name, 'm', sdo_data_a(signals_created + 1),              &
-     &      sdo_sigma_a(signals_created + 1),                                  &
-     &      sdo_weight_a(signals_created + 1),                                 &
-     &      v3fit_input_find_scale_index(signals_created + 1),                 &
-     &      v3fit_input_find_offset_index(signals_created + 1))
+
+         limiter_obj => limiter_grid_class(limiter_grid_file,                  &
+     &                                     lif_on_edge(n_lif + 1))
+
+         CALL signal_construct( limiter_obj, s_name, l_name, 'm',              &
+     &           sdo_data_a(signals_created + 1),                              &
+     &           sdo_sigma_a(signals_created + 1),                             &
+     &           sdo_weight_a(signals_created + 1),                            &
+     &           v3fit_input_find_scale_index(signals_created + 1),            &
+     &           v3fit_input_find_offset_index(signals_created + 1))
+
+         context%signals(signals_created + 1)%p => limiter_obj
 
          signals_created = signals_created + 1
 
@@ -1728,6 +1752,7 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE init_prior_signals(context, signals_created)
       USE v3fit_context
+      USE prior_gaussian
 
       IMPLICIT NONE
 
@@ -1736,6 +1761,7 @@
       INTEGER, INTENT(inout)                    :: signals_created
 
 !  local variables
+      CLASS (signal_class), POINTER             :: prior_obj
       INTEGER                                   :: i
       REAL (rprec)                              :: start_time
 
@@ -1759,16 +1785,20 @@
      &                     ' exceeds v3fit_max_priors')
          END IF
 
-         context%signals(signals_created + 1)%p => signal_construct(           &
-     &      prior_gaussian_construct(context%model,                            &
-     &                               prior_param_name(i),                      &
-     &                               prior_indices(i,:)),                      &
-     &      TRIM(signal_make_short_name('prior_', i)), prior_name(i),          &
-     &      prior_units(i), sdo_data_a(signals_created + 1),                   &
-     &      sdo_sigma_a(signals_created + 1),                                  &
-     &      sdo_weight_a(signals_created + 1),                                 &
-     &      v3fit_input_find_scale_index(signals_created + 1),                 &
-     &      v3fit_input_find_offset_index(signals_created + 1))
+         prior_obj => prior_gaussian_class(context%model,                      &
+     &                                     prior_param_name(i),                &
+     &                                     prior_indices(i,:))
+
+         CALL signal_construct(prior_obj,                                      &
+     &           TRIM(signal_make_short_name('prior_', i)),                    &
+     &           prior_name(i), prior_units(i),                                &
+     &           sdo_data_a(signals_created + 1),                              &
+     &           sdo_sigma_a(signals_created + 1),                             &
+     &           sdo_weight_a(signals_created + 1),                            &
+     &           v3fit_input_find_scale_index(signals_created + 1),            &
+     &           v3fit_input_find_offset_index(signals_created + 1))
+
+         context%signals(signals_created + 1)%p => prior_obj
 
          signals_created = signals_created + 1
 
@@ -1861,7 +1891,7 @@
 !  local variables
       INTEGER                                   :: i
       INTEGER                                   :: j
-      TYPE (combination_class), POINTER         :: combination_signal
+      CLASS (combination_class), POINTER        :: combination_signal
       REAL (rprec)                              :: start_time
 
 !  Start of executable code
@@ -1900,13 +1930,15 @@
      &              coosig_coeff(i,j), j)
          END DO
 
-         context%signals(signals_created + 1)%p => signal_construct(           &
-     &      combination_signal, coosig_name(i), coosig_name(i),                &
-     &      coosig_units(i), sdo_data_a(signals_created + 1),                  &
-     &      sdo_sigma_a(signals_created + 1),                                  &
-     &      sdo_weight_a(signals_created + 1),                                 &
-     &      v3fit_input_find_scale_index(signals_created + 1),                 &
-     &      v3fit_input_find_offset_index(signals_created + 1))
+         CALL signal_construct(combination_signal, coosig_name(i),             &
+     &           coosig_name(i), coosig_units(i),                              &
+     &           sdo_data_a(signals_created + 1),                              &
+     &           sdo_sigma_a(signals_created + 1),                             &
+     &           sdo_weight_a(signals_created + 1),                            &
+     &           v3fit_input_find_scale_index(signals_created + 1),            &
+     &           v3fit_input_find_offset_index(signals_created + 1))
+
+         context%signals(signals_created + 1)%p => combination_signal
 
          signals_created = signals_created + 1
 

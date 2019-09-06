@@ -14,6 +14,7 @@
       USE stel_kinds, only: rprec
       USE magnetic_response
       USE profiler
+      USE signal
 
       IMPLICIT NONE
 
@@ -35,11 +36,19 @@
 !>  @par Super Class:
 !>  @ref diagnostic
 !-------------------------------------------------------------------------------
-      TYPE magnetic_class
+      TYPE, EXTENDS(signal_class) :: magnetic_class
 !>  Setting to force the computing of the coil constribution.
          INTEGER                                 :: control_flags
 !>  Magnetic response function object.
          TYPE (magnetic_response_class), POINTER :: response => null()
+      CONTAINS
+         PROCEDURE                               ::                            &
+     &      get_modeled_signal_last => magnetic_get_modeled_signal
+         PROCEDURE                               ::                            &
+     &      get_type => magnetic_get_type
+         PROCEDURE                               ::                            &
+     &      get_header => magnetic_get_header
+         FINAL                                   :: magnetic_destruct
       END TYPE
 
 !*******************************************************************************
@@ -49,7 +58,7 @@
 !>  Interface for the construction of @ref magnetic_class types using
 !>  @ref magnetic_construct_netcdf
 !-------------------------------------------------------------------------------
-      INTERFACE magnetic_construct
+      INTERFACE magnetic_class
          MODULE PROCEDURE magnetic_construct_netcdf
       END INTERFACE
 
@@ -85,17 +94,17 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (magnetic_class), POINTER :: magnetic_construct_netcdf
-      INTEGER, INTENT(in)            :: mdsig_iou
-      LOGICAL, INTENT(in)            :: use_coil_response
-      LOGICAL, INTENT(in)            :: force_coil_reponse
-      LOGICAL, INTENT(in)            :: use_3D_only
-      REAL (rprec), INTENT(in)       :: svd_cut_off
+      CLASS (magnetic_class), POINTER :: magnetic_construct_netcdf
+      INTEGER, INTENT(in)             :: mdsig_iou
+      LOGICAL, INTENT(in)             :: use_coil_response
+      LOGICAL, INTENT(in)             :: force_coil_reponse
+      LOGICAL, INTENT(in)             :: use_3D_only
+      REAL (rprec), INTENT(in)        :: svd_cut_off
 
 !  local variables
-      INTEGER, DIMENSION(3)          :: dim_lengths
-      LOGICAL                        :: temp_flag
-      REAL (rprec)                   :: start_time
+      INTEGER, DIMENSION(3)           :: dim_lengths
+      LOGICAL                         :: temp_flag
+      REAL (rprec)                    :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -150,15 +159,13 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (magnetic_class), POINTER :: this
+      TYPE (magnetic_class), INTENT(inout) :: this
 
 !  Start of executable code
       IF (ASSOCIATED(this%response)) THEN
          CALL magnetic_response_destruct(this%response)
          this%response => null()
       END IF
-
-      DEALLOCATE(this)
 
       END SUBROUTINE
 
@@ -171,29 +178,24 @@
 !>  The modeled signal can be computed in one of two ways. Modeled as a full
 !>  coil or as a point measurement.
 !>
-!>  @param[in]  this          A @ref magnetic_class instance.
+!>  @param[inout]  this          A @ref magnetic_class instance.
 !>  @param[in]  a_model       A @ref model instance.
 !>  @param[out] sigma         The modeled sigma.
 !>  @param[in]  last_value    Last good value in case the signal did not change.
-!>  @param[in]  scale_factor  Factor to scale the modeled signal.
-!>  @param[in]  offset_factor Factor to offset the modeled signal.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION magnetic_get_modeled_signal(this, a_model, sigma,               &
-     &                                     last_value, scale_factor,           &
-     &                                     offset_factor)
+     &                                     last_value)
       USE model
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4) :: magnetic_get_modeled_signal
-      TYPE (magnetic_class), INTENT(in)       :: this
-      TYPE (model_class), INTENT(in)          :: a_model
+      CLASS (magnetic_class), INTENT(inout)   :: this
+      TYPE (model_class), POINTER             :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
       REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
-      REAL (rprec), INTENT(in)                :: scale_factor
-      REAL (rprec), INTENT(in)                :: offset_factor
 
 !  local variables
       REAL (rprec)                            :: start_time
@@ -201,7 +203,6 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      magnetic_get_modeled_signal = last_value
       sigma = 0.0
 
       IF (BTEST(a_model%state_flags, model_state_vmec_flag)   .or.             &
@@ -217,8 +218,10 @@
      &         magnetic_get_modeled_signal_coil(this, a_model, sigma)
          END IF
 
-         magnetic_get_modeled_signal =                                         &
-     &      (magnetic_get_modeled_signal + offset_factor)*scale_factor
+         CALL this%scale_and_offset(a_model,                                   &
+     &                              magnetic_get_modeled_signal(1))
+      ELSE
+         magnetic_get_modeled_signal = last_value
       END IF
 
       CALL profiler_set_stop_time('magnetic_get_modeled_signal',               &
@@ -660,25 +663,24 @@
 !>  @param[in] this A @ref magnetic_class instance.
 !>  @returns A string describing the magnetic type.
 !-------------------------------------------------------------------------------
-      FUNCTION magnetic_get_signal_type(this)
+      FUNCTION magnetic_get_type(this)
       USE data_parameters
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=data_name_length) :: magnetic_get_signal_type
-      TYPE (magnetic_class), INTENT(in) :: this
+      CHARACTER (len=data_name_length)   :: magnetic_get_type
+      CLASS (magnetic_class), INTENT(in) :: this
 
 !  local variables
-      REAL (rprec)                      :: start_time
+      REAL (rprec)                       :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      magnetic_get_signal_type = 'mddc'
+      magnetic_get_type = 'mddc'
 
-      CALL profiler_set_stop_time('magnetic_get_signal_type',                  &
-     &                            start_time)
+      CALL profiler_set_stop_time('magnetic_get_type', start_time)
 
       END FUNCTION
 
@@ -688,18 +690,19 @@
 !>  Returns a description of the array indices for use when writting output
 !>  files.
 !>
-!>  @param[in] this A @ref magnetic_class instance.
+!>  @param[in]    this   A @ref magnetic_class instance.
+!>  @param[inout] header Buffer arrays to write header strings to.
 !>  @returns A string describing the model and model sigma array indices.
 !-------------------------------------------------------------------------------
-      FUNCTION magnetic_get_header(this)
+      SUBROUTINE magnetic_get_header(this, header)
       USE data_parameters
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=data_name_length), DIMENSION(7) ::                        &
-     &   magnetic_get_header
-      TYPE (magnetic_class), INTENT(in)              :: this
+      CLASS (magnetic_class), INTENT(in)             :: this
+      CHARACTER (len=data_name_length), DIMENSION(7), INTENT(inout) ::         &
+     &   header
 
 !  local variables
       REAL (rprec)                                   :: start_time
@@ -707,23 +710,23 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      magnetic_get_header(1) = 'plasma only'
-      magnetic_get_header(2) = 'eq currents'
+      header(1) = 'plasma only'
+      header(2) = 'eq currents'
 
 !  Default to the 4th label as the axi symmtric only signal.
       IF (magnetic_response_use_shell(this%response)) THEN
-         magnetic_get_header(3) = 'shell currents'
+         header(3) = 'shell currents'
       ELSE
-         magnetic_get_header(3) = 'Axi signal'
+         header(3) = 'Axi signal'
       END IF
 
-      magnetic_get_header(4) = 'model_sig(1)'
-      magnetic_get_header(5) = 'model_sig(2)'
-      magnetic_get_header(6) = 'model_sig(3)'
-      magnetic_get_header(7) = 'model_sig(4)'
+      header(4) = 'model_sig(1)'
+      header(5) = 'model_sig(2)'
+      header(6) = 'model_sig(3)'
+      header(7) = 'model_sig(4)'
 
       CALL profiler_set_stop_time('magnetic_get_header', start_time)
 
-      END FUNCTION
+      END SUBROUTINE
 
       END MODULE

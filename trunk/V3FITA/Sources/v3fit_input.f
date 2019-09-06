@@ -570,7 +570,7 @@
       MODULE v3fit_input
       USE stel_kinds
       USE data_parameters
-      USE signal
+      USE combination
       USE pprofile_T
 
       IMPLICIT NONE

@@ -17,6 +17,7 @@
 
       USE stel_kinds, only: rprec, dp
       USE model
+      USE signal
 
       IMPLICIT NONE
 
@@ -30,12 +31,28 @@
 !>  @par Super Class:
 !>  @ref feedback
 !-------------------------------------------------------------------------------
-      TYPE sxrem_ratio_class
+      TYPE, EXTENDS(signal_class) :: sxrem_ratio_class
 !>  Radial position to feedback the soft x-ray emission from.
          REAL (rprec), DIMENSION(3) :: x_cart
 !>  Indicies of soft x-ray emissivity profiles to take the ratios of.
          INTEGER, DIMENSION(2)      :: indices
+      CONTAINS
+         PROCEDURE                  ::                                         &
+     &      get_modeled_signal_last => sxrem_ratio_get_modeled_signal
+         PROCEDURE                  ::                                         &
+     &      get_observed_signal => sxrem_ratio_get_observed_signal
+         PROCEDURE                  :: get_type => sxrem_ratio_get_type
+         PROCEDURE                  ::                                         &
+     &      write_auxiliary => sxrem_ratio_write_auxiliary
+         FINAL                      :: sxrem_ratio_destruct
       END TYPE sxrem_ratio_class
+
+!-------------------------------------------------------------------------------
+!>  Interface for Soft X-ray ratio constructor.
+!-------------------------------------------------------------------------------
+      INTERFACE sxrem_ratio_class
+         MODULE PROCEDURE sxrem_ratio_construct
+      END INTERFACE
 
       CONTAINS
 !*******************************************************************************
@@ -55,12 +72,12 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (sxrem_ratio_class), POINTER :: sxrem_ratio_construct
+      CLASS (sxrem_ratio_class), POINTER     :: sxrem_ratio_construct
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
       INTEGER, DIMENSION(2), INTENT(in)      :: indices
 
 !  local variables
-      REAL (rprec)                      :: start_time
+      REAL (rprec)                           :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -89,13 +106,11 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (sxrem_ratio_class), POINTER :: this
+      TYPE (sxrem_ratio_class), INTENT(inout) :: this
 
 !  Start of executable code
       this%x_cart = 0.0
       this%indices = 0
-
-      DEALLOCATE(this)
 
       END SUBROUTINE
 
@@ -107,37 +122,31 @@
 !>
 !>  The modeled signal is the ratio of the soft x-ray emissivity profiles.
 !>
-!>  @param[in]  this          A @ref sxrem_ratio_class instance.
-!>  @param[in]  a_model       A @ref model instance.
-!>  @param[out] sigma         The modeled sigma.
-!>  @param[in]  last_value    Last good value in case the signal did not change.
-!>  @param[in]  scale_factor  Factor to scale the modeled signal.
-!>  @param[in]  offset_factor Factor to offset the modeled signal.
+!>  @param[inout] this       A @ref sxrem_ratio_class instance.
+!>  @param[in]    a_model    A @ref model instance.
+!>  @param[out]   sigma      The modeled sigma.
+!>  @param[in]    last_value Last good value in case the signal did not change.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION sxrem_ratio_get_modeled_signal(this, a_model, sigma,            &
-     &                                        last_value, scale_factor,        &
-     &                                        offset_factor)
+     &                                        last_value)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4) :: sxrem_ratio_get_modeled_signal
-      TYPE (sxrem_ratio_class), INTENT(in)    :: this
-      TYPE (model_class), INTENT(in)          :: a_model
-      REAL (rprec), DIMENSION(:), INTENT(out) :: sigma
-      REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
-      REAL (rprec), INTENT(in)                :: scale_factor
-      REAL (rprec), INTENT(in)                :: offset_factor
+      CLASS (sxrem_ratio_class), INTENT(inout) :: this
+      TYPE (model_class), POINTER              :: a_model
+      REAL (rprec), DIMENSION(4), INTENT(out)  :: sigma
+      REAL (rprec), DIMENSION(4), INTENT(in)   :: last_value
 
 !  local variables
-      REAL (rprec)                            :: emissivity
-      REAL (rprec)                            :: start_time
+      REAL (rprec)                             :: emissivity
+      REAL (rprec)                             :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      sxrem_ratio_get_modeled_signal = last_value
       sigma = 0.0
 
       IF (BTEST(a_model%state_flags, model_state_vmec_flag)   .or.             &
@@ -160,9 +169,10 @@
      &                              this%indices(1))/emissivity
          END IF
 
-         sxrem_ratio_get_modeled_signal(1) =                                   &
-     &      (sxrem_ratio_get_modeled_signal(1) +                               &
-     &       offset_factor)*scale_factor
+         CALL this%scale_and_offset(a_model,                                   &
+     &                              sxrem_ratio_get_modeled_signal(1))
+      ELSE
+         sxrem_ratio_get_modeled_signal = last_value
       END IF
 
       CALL profiler_set_stop_time('sxrem_ratio_get_modeled_signal',            &
@@ -186,11 +196,11 @@
 
 !  Declare Arguments
       REAL (rprec) :: sxrem_ratio_get_observed_signal
-      TYPE (sxrem_ratio_class), INTENT(in) :: this
-      TYPE (model_class), INTENT(in)       :: a_model
+      CLASS (sxrem_ratio_class), INTENT(in) :: this
+      TYPE (model_class), INTENT(in)        :: a_model
 
 !  local variables
-      REAL (rprec)                         :: start_time
+      REAL (rprec)                          :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -213,24 +223,23 @@
 !>  @param[in] this A @ref sxrem_ratio_class instance.
 !>  @returns A string describing the feedback type.
 !-------------------------------------------------------------------------------
-      FUNCTION sxrem_ratio_get_signal_type(this)
+      FUNCTION sxrem_ratio_get_type(this)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=data_name_length) :: sxrem_ratio_get_signal_type
-      TYPE (sxrem_ratio_class), INTENT(in) :: this
+      CHARACTER (len=data_name_length)      :: sxrem_ratio_get_type
+      CLASS (sxrem_ratio_class), INTENT(in) :: this
 
 !  local variables
-      REAL (rprec)                         :: start_time
+      REAL (rprec)                          :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      sxrem_ratio_get_signal_type = 'sxrem ratio'
+      sxrem_ratio_get_type = 'sxrem ratio'
 
-      CALL profiler_set_stop_time('sxrem_ratio_get_signal_type',               &
-     &                            start_time)
+      CALL profiler_set_stop_time('sxrem_ratio_get_type', start_time)
 
       END FUNCTION
 
@@ -244,17 +253,21 @@
 !>
 !>  @param[in] this    A @ref sxrem_ratio_class instance.
 !>  @param[in] iou     A input/output representing the file to write to.
+!>  @param[in] index   A index of a signal.
+!>  @param[in] a_model The equilibrium model.
 !-------------------------------------------------------------------------------
-      SUBROUTINE sxrem_ratio_write_auxiliary(this, iou)
+      SUBROUTINE sxrem_ratio_write_auxiliary(this, iou, index, a_model)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (sxrem_ratio_class), INTENT(in) :: this
-      INTEGER, INTENT(in)                  :: iou
+      CLASS (sxrem_ratio_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                   :: iou
+      INTEGER, INTENT(in)                   :: index
+      TYPE (model_class), INTENT(in)        :: a_model
 
 !  local variables
-      REAL (rprec)                         :: start_time
+      REAL (rprec)                          :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()

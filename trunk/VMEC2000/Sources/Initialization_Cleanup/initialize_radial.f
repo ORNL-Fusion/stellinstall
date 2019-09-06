@@ -96,7 +96,7 @@ C-----------------------------------------------
          CALL getrz(xstore)
          ns = ns1 + 1
 #endif
-         IF(PARVMEC) THEN
+         IF (PARVMEC) THEN
 #if defined(MPI_OPT)
             pgc(1:neqs2_old) = pscalxc(1:neqs2_old)*pxstore(1:neqs2_old)
             IF (lfreeb) THEN

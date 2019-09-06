@@ -14,17 +14,9 @@
 
       MODULE feedback
 
-      USE sxrem_ratio
+      USE signal
 
       IMPLICIT NONE
-
-!*******************************************************************************
-!  feedback module parameters
-!*******************************************************************************
-!>  Type descriptor for the @ref feedback_class no sub class.
-      INTEGER, PARAMETER :: feedback_no_type          = -1
-!>  Type descriptor for the @ref feedback_class subclass @ref sxrem_ratio
-      INTEGER, PARAMETER :: feedback_sxrem_ratio_type = 0
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
@@ -38,14 +30,11 @@
 !>  @par Sub Classes:
 !>  @ref sxrem_ratio
 !-------------------------------------------------------------------------------
-      TYPE feedback_class
-!>  Type descirptor of the feedback subclass type.
-!>  @par Possible values are:
-!>  * @ref feedback_no_type
-!>  * @ref feedback_sxrem_ratio_type
-         INTEGER                          :: type = feedback_no_type
+      TYPE, EXTENDS(signal_class) :: feedback_class
 !>  An instance of a @ref sxrem object.
-         TYPE(sxrem_ratio_class), POINTER :: ratio => null()
+         CLASS (signal_class), POINTER :: signal => null()
+      CONTAINS
+         FINAL                         :: feedback_destruct
       END TYPE feedback_class
 
 !*******************************************************************************
@@ -55,8 +44,8 @@
 !>  Interface for the construction of @ref feedback_class types using
 !>  @ref feedback_construct_ratio.
 !-------------------------------------------------------------------------------
-      INTERFACE feedback_construct
-         MODULE PROCEDURE feedback_construct_ratio
+      INTERFACE feedback_class
+         MODULE PROCEDURE feedback_construct
       END INTERFACE
 
       CONTAINS
@@ -71,27 +60,25 @@
 !>  @param[in] ratio_object An instance of a @ref sxrem_ratio subclass.
 !>  @returns A pointer to a constructed @ref feedback_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION feedback_construct_ratio(ratio_object)
+      FUNCTION feedback_construct(signal)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (feedback_class), POINTER    :: feedback_construct_ratio
-      TYPE (sxrem_ratio_class), POINTER :: ratio_object
+      CLASS (feedback_class), POINTER :: feedback_construct_ratio
+      CLASS (signal_class), POINTER   :: signal
 
 !  local variables
-      REAL (rprec)                      :: start_time
+      REAL (rprec)                    :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
       ALLOCATE(feedback_construct_ratio)
 
-      feedback_construct_ratio%type = feedback_sxrem_ratio_type
-      feedback_construct_ratio%ratio => ratio_object
+      feedback_construct_ratio%signal => signal
 
-      CALL profiler_set_stop_time('feedback_construct_ratio',                  &
-     &                            start_time)
+      CALL profiler_set_stop_time('feedback_construct', start_time)
 
       END FUNCTION
 
@@ -113,12 +100,9 @@
       TYPE (feedback_class), POINTER :: this
 
 !  Start of executable code
-      IF (ASSOCIATED(this%ratio)) THEN
-         CALL sxrem_ratio_destruct(this%ratio)
-         this%ratio => null()
+      IF (ASSOCIATED(this%signal)) THEN
+         this%signal => null()
       END IF
-
-      this%type = feedback_no_type
 
       DEALLOCATE(this)
 
@@ -136,28 +120,23 @@
 !>
 !>  @see sxrem_ratio::sxrem_ratio_get_modeled_signal
 !>
-!>  @param[in]  this          A @ref feedback_class instance.
-!>  @param[in]  a_model       A @ref model instance.
-!>  @param[out] sigma         The modeled sigma.
-!>  @param[in]  last_value    Last good value in case the signal did not change.
-!>  @param[in]  scale_factor  Factor to scale the modeled signal.
-!>  @param[in]  offset_factor Factor to offset the modeled signal.
+!>  @param[inout] this       A @ref feedback_class instance.
+!>  @param[in]    a_model    A @ref model instance.
+!>  @param[out]   sigma      The modeled sigma.
+!>  @param[in]    last_value Last good value in case the signal did not change.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION feedback_get_modeled_signal(this, a_model, sigma,               &
-     &                                     last_value, scale_factor,           &
-     &                                     offset_factor)
+     &                                     last_value)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL(rprec), DIMENSION(4) :: feedback_get_modeled_signal
-      TYPE(feedback_class), INTENT(in)        :: this
-      TYPE (model_class), INTENT(in)          :: a_model
-      REAL (rprec), DIMENSION(:), INTENT(out) :: sigma
+      REAL (rprec), DIMENSION(4) :: feedback_get_modeled_signal
+      CLASS (feedback_class), INTENT(in)      :: this
+      TYPE (model_class), POINTER             :: a_model
+      REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
       REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
-      REAL (rprec), INTENT(in)                :: scale_factor
-      REAL (rprec), INTENT(in)                :: offset_factor
 
 !  local variables
       REAL (rprec)                            :: start_time

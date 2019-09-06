@@ -19,6 +19,7 @@
       USE data_parameters
       USE model
       USE stel_kinds, only : rprec, dp
+      USE signal
 
       IMPLICIT NONE
 
@@ -34,23 +35,32 @@
 !>  @par Sub Classes:
 !>  @ref prior_guassian
 !-------------------------------------------------------------------------------
-      TYPE prior_gaussian_class
+      TYPE, EXTENDS(signal_class) :: prior_gaussian_class
 !>  Parameter id to check the guassian against.
          INTEGER               :: param_id = data_no_id
 !>  Indices of the parameter.
          INTEGER, DIMENSION(2) :: indices = 0
+      CONTAINS
+         PROCEDURE             ::                                              &
+     &      get_modeled_signal_last => prior_gaussian_get_modeled_signal
+         PROCEDURE             ::                                              &
+     &      get_type => prior_gaussian_get_type
+         PROCEDURE             :: get_gp_i => prior_gaussian_get_gp_i
+         PROCEDURE             :: get_gp_s => prior_gaussian_get_gp_s
+         PROCEDURE             :: get_gp_x => prior_gaussian_get_gp_x
+         PROCEDURE             ::                                              &
+     &      write_auxiliary => prior_gaussian_write_auxiliary
+         FINAL                 :: prior_gaussian_destruct
       END TYPE prior_gaussian_class
 
 !*******************************************************************************
 !  INTERFACE BLOCKS
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  Interface to get the guassian process kernel values.
+!>  Interface for thomson te constructor.
 !-------------------------------------------------------------------------------
-      INTERFACE prior_gaussian_get_gp
-         MODULE PROCEDURE prior_gaussian_get_gp_i,                             &
-     &                    prior_gaussian_get_gp_s,                             &
-     &                    prior_gaussian_get_gp_x
+      INTERFACE prior_gaussian_class
+         MODULE PROCEDURE prior_gaussian_construct
       END INTERFACE
 
       CONTAINS
@@ -72,14 +82,14 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (prior_gaussian_class), POINTER ::                                  &
+      CLASS (prior_gaussian_class), POINTER ::                                 &
      &   prior_gaussian_construct
-      TYPE (model_class), INTENT(in)       :: a_model
-      CHARACTER (len=*), INTENT(in)        :: param_name
-      INTEGER, DIMENSION(2), INTENT(in)    :: indices
+      TYPE (model_class), INTENT(in)        :: a_model
+      CHARACTER (len=*), INTENT(in)         :: param_name
+      INTEGER, DIMENSION(2), INTENT(in)     :: indices
 
 !  local variables
-      REAL (rprec)                         :: start_time
+      REAL (rprec)                          :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -110,13 +120,11 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (prior_gaussian_class), POINTER :: this
+      TYPE (prior_gaussian_class), INTENT(inout) :: this
 
 !  Start of executable code
       this%param_id = data_no_id
       this%indices = 0
-
-      DEALLOCATE(this)
 
       END SUBROUTINE
 
@@ -128,23 +136,26 @@
 !>
 !>  The modeled signal is just the value of the parameter.
 !>
-!>  @param[in]  this    A @ref prior_gaussian_class instance.
-!>  @param[in]  a_model A @ref model instance.
-!>  @param[out] sigma   The modeled sigma.
+!>  @param[in]  this       A @ref prior_gaussian_class instance.
+!>  @param[in]  a_model    A @ref model instance.
+!>  @param[out] sigma      The modeled sigma.
+!>  @param[in]  last_value Last good value in case the signal did not change.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
-      FUNCTION prior_gaussian_get_modeled_signal(this, a_model, sigma)
+      FUNCTION prior_gaussian_get_modeled_signal(this, a_model, sigma,         &
+     &                                           last_value)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4) :: prior_gaussian_get_modeled_signal
-      TYPE (prior_gaussian_class), INTENT(in) :: this
-      TYPE (model_class), INTENT(in)          :: a_model
-      REAL (rprec), DIMENSION(:), INTENT(out) :: sigma
+      CLASS (prior_gaussian_class), INTENT(inout) :: this
+      TYPE (model_class), POINTER                 :: a_model
+      REAL (rprec), DIMENSION(4), INTENT(out)     :: sigma
+      REAL (rprec), DIMENSION(4), INTENT(in)      :: last_value
 
 !  local variables
-      REAL (rprec)                            :: start_time
+      REAL (rprec)                             :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -152,8 +163,11 @@
       prior_gaussian_get_modeled_signal = 0.0
       prior_gaussian_get_modeled_signal(1) =                                   &
      &   model_get_param_value(a_model, this%param_id,                         &
-     &                         this%indices(1), this%indices(2))
+     &                         this%indices(1), this%indices(2))               &
       sigma = 0.0
+
+      CALL this%scale_and_offset(a_model,                                      &
+     &                           prior_gaussian_get_modeled_signal(1))
 
       CALL profiler_set_stop_time('prior_gaussian_get_modeled_signal',         &
      &                            start_time)
@@ -163,32 +177,26 @@
 !-------------------------------------------------------------------------------
 !>  @brief Gets a discription of the prior type.
 !>
-!>  This method is meant to be overwritten by a subclass method. As a result,
-!>  returns the get_signal_type method of the subclass instance
-!>  @ref prior_class was constructed with.
-!>
-!>  @see prior_gaussian::prior_gaussia_get_signal_type
-!>
 !>  @param[in] this A @ref prior_gaussian_class instance.
 !>  @returns A string describing the prior type.
 !-------------------------------------------------------------------------------
-      FUNCTION prior_gaussian_get_signal_type(this)
+      FUNCTION prior_gaussian_get_type(this)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=data_name_length) :: prior_gaussian_get_signal_type
-      TYPE (prior_gaussian_class), INTENT(in) :: this
+      CHARACTER (len=data_name_length) :: prior_gaussian_get_type
+      CLASS (prior_gaussian_class), INTENT(in) :: this
 
 !  local variables
-      REAL (rprec)                            :: start_time
+      REAL (rprec)                             :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      prior_gaussian_get_signal_type = 'guassian'
+      prior_gaussian_get_type = 'guassian'
 
-      CALL profiler_set_stop_time('prior_gaussian_get_signal_type',            &
+      CALL profiler_set_stop_time('prior_gaussian_get_type',                   &
      &                            start_time)
 
       END FUNCTION
@@ -212,14 +220,14 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec)                            :: prior_gaussian_get_gp_i
-      TYPE (prior_gaussian_class), INTENT(in) :: this
-      TYPE (model_class), INTENT(in)          :: a_model
-      INTEGER, INTENT(in)                     :: i
-      INTEGER, INTENT(in)                     :: flags
+      REAL (rprec) :: prior_gaussian_get_gp_i
+      CLASS (prior_gaussian_class), INTENT(in) :: this
+      TYPE (model_class), POINTER              :: a_model
+      INTEGER, INTENT(in)                      :: i
+      INTEGER, INTENT(in)                      :: flags
 
 !  local variables
-      REAL (rprec)                            :: start_time
+      REAL (rprec)                             :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -242,6 +250,8 @@
          prior_gaussian_get_gp_i = 0.0
       END IF
 
+      CALL this%scale_and_offset(a_model, prior_gaussian_get_gp_i)
+
       CALL profiler_set_stop_time('prior_gaussian_get_gp_i', start_time)
 
       END FUNCTION
@@ -253,32 +263,25 @@
 !>  Calls back to the @ref signal module to call the other signal. This does not
 !>  support pressure measurements.
 !>
-!>  @param[in] this         A @ref prior_gaussian_class instance.
-!>  @param[in] context      A @ref signal_class instance.
-!>  @param     callback     Function pointer to call back to signal module.
-!>  @param[in] flags        State flags to send to the kernel.
+!>  @param[in] this    A @ref prior_gaussian_class instance.
+!>  @param[in] a_model A @ref model_class instance.
+!>  @param[in] signal  A @ref signal_class instance for the second signal.
+!>  @param[in] flags   State flags to send to the kernel.
 !>  @returns Kernel value for the signal and the signal.
 !-------------------------------------------------------------------------------
-      FUNCTION prior_gaussian_get_gp_s(this, context, callback, flags)
+      FUNCTION prior_gaussian_get_gp_s(this, a_model, signal, flags)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec)                            :: prior_gaussian_get_gp_s
-      TYPE (prior_gaussian_class), INTENT(in) :: this
-      CHARACTER (len=1), INTENT(in)           :: context(:)
-      INTERFACE
-         FUNCTION callback(context, index)
-         USE stel_kinds
-         REAL (rprec)                         :: callback
-         CHARACTER (len=1), INTENT(in)        :: context(:)
-         INTEGER, INTENT(in)                  :: index
-         END FUNCTION
-      END INTERFACE
-      INTEGER, INTENT(in)                     :: flags
+      REAL (rprec) :: prior_gaussian_get_gp_s
+      CLASS (prior_gaussian_class), INTENT(in) :: this
+      TYPE (model_class), POINTER              :: a_model
+      CLASS (signal_class), POINTER            :: signal
+      INTEGER, INTENT(in)                      :: flags
 
 !  local variables
-      REAL (rprec)                            :: start_time
+      REAL (rprec)                             :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -286,13 +289,17 @@
       IF (BTEST(flags, model_state_ne_flag) .or.                               &
      &    BTEST(flags, model_state_te_flag) .or.                               &
      &    BTEST(flags, model_state_ti_flag)) THEN
-         prior_gaussian_get_gp_s = callback(context, this%indices(1))
+         prior_gaussian_get_gp_s =                                             &
+     &      signal%get_gp(a_model, this%indices(1), flags)
       ELSE IF (BTEST(flags, model_state_sxrem_flag +                           &
      &                      (this%indices(1) - 1))) THEN
-         prior_gaussian_get_gp_s = callback(context, this%indices(2))
+         prior_gaussian_get_gp_s =                                             &
+     &      signal%get_gp(a_model, this%indices(2), flags)
       ELSE
          prior_gaussian_get_gp_s = 0.0
       END IF
+
+      CALL this%scale_and_offset(a_model, prior_gaussian_get_gp_s)
 
       CALL profiler_set_stop_time('prior_gaussian_get_gp_s', start_time)
 
@@ -319,14 +326,14 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec)                            :: prior_gaussian_get_gp_x
-      TYPE (prior_gaussian_class), INTENT(in) :: this
-      TYPE (model_class), INTENT(in)          :: a_model
-      REAL (rprec), DIMENSION(3), INTENT(in)  :: x_cart
-      INTEGER, INTENT(in)                     :: flags
+      REAL (rprec) :: prior_gaussian_get_gp_x
+      CLASS (prior_gaussian_class), INTENT(in) :: this
+      TYPE (model_class), POINTER              :: a_model
+      REAL (rprec), DIMENSION(3), INTENT(in)   :: x_cart
+      INTEGER, INTENT(in)                      :: flags
 
 !  local variables
-      REAL (rprec)                            :: start_time
+      REAL (rprec)                             :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -349,6 +356,8 @@
          prior_gaussian_get_gp_x = 0.0
       END IF
 
+      CALL this%scale_and_offset(a_model, prior_gaussian_get_gp_x)
+
       CALL profiler_set_stop_time('prior_gaussian_get_gp_x', start_time)
 
       END FUNCTION
@@ -363,32 +372,38 @@
 !>
 !>  @param[in] this    A @ref prior_gaussian_class instance.
 !>  @param[in] iou     A input/output representing the file to write to.
+!>  @param[in] index   A index of a signal.
 !>  @param[in] a_model The equilibrium model.
 !-------------------------------------------------------------------------------
-      SUBROUTINE prior_gaussian_write_auxiliary(this, iou, a_model)
+      SUBROUTINE prior_gaussian_write_auxiliary(this, iou, index,              &
+     &                                          a_model)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (prior_gaussian_class), INTENT(in) :: this
-      INTEGER, INTENT(in)                     :: iou
-      TYPE (model_class), INTENT(in)          :: a_model
+      CLASS (prior_gaussian_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                      :: iou
+      INTEGER, INTENT(in)                      :: index
+      TYPE (model_class), INTENT(in)           :: a_model
 
 !  local variables
-      REAL (rprec)                            :: start_time
+      REAL (rprec)                             :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      WRITE (iou,1000)
-      WRITE (iou,1001) model_get_param_name(a_model, this%param_id),           &
+      WRITE (iou,*)
+      WRITE (iou,1000) index, this%get_type()
+      WRITE (iou,1001)
+      WRITE (iou,1002) model_get_param_name(a_model, this%param_id),           &
      &                 this%indices
 
       CALL profiler_set_stop_time('prior_gaussian_write_auxiliary',            &
      &                            start_time)
 
-1000  FORMAT('parameter name',8x,'inx1',2x,'inx2')
-1001  FORMAT(a20,2(2x,i4))
+1000  FORMAT('Signal',1x,i4,1x,'is a prior signal, type: ',a)
+1001  FORMAT('parameter name',8x,'inx1',2x,'inx2')
+1002  FORMAT(a20,2(2x,i4))
 
       END SUBROUTINE
 

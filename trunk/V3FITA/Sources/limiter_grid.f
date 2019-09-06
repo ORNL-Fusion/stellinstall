@@ -14,6 +14,7 @@
       USE stel_kinds
       USE mpi_inc
       USE profiler
+      USE limiter
 
       IMPLICIT NONE
 
@@ -43,20 +44,29 @@
 !>  @par Super class:
 !>  @ref geometric
 !-------------------------------------------------------------------------------
-      TYPE limiter_grid_class
-!>  Limiter grid starting r.
-         REAL (rprec)                            :: r0
-!>  Limiter grid r grid spacing.
-         REAL (rprec)                            :: dr
-!>  Limiter grid starting z.
-         REAL (rprec)                            :: z0
-!>  Limiter grid z grid spacing.
-         REAL (rprec)                            :: dz
-!>  Limiter phi planes the limiters are defined at.
-         REAL (rprec), DIMENSION(:), POINTER     :: phi => null()
+      TYPE, EXTENDS(limiter_class) :: limiter_grid_class
 !>  Limiter iso grid.
          REAL (rprec), DIMENSION(:,:,:), POINTER :: grid => null()
-      END TYPE limiter_grid_class
+!>  Limiter iso rgird.
+         REAL (rprec), DIMENSION(:), POINTER     :: rgrid => null()
+!>  Limiter iso zgrid.
+         REAL (rprec), DIMENSION(:), POINTER     :: zgrid => null()
+      CONTAINS
+         PROCEDURE                          ::                                 &
+     &      get_max_fval => limiter_grid_get_max_fval
+         PROCEDURE                          ::                                 &
+     &      get_type => limiter_grid_get_type
+      END TYPE
+
+!*******************************************************************************
+!  INTERFACE BLOCKS
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Interface for grid limiter constructor.
+!-------------------------------------------------------------------------------
+      INTERFACE limiter_grid_class
+         MODULE PROCEDURE limiter_grid_construct
+      END INTERFACE
 
       CONTAINS
 !*******************************************************************************
@@ -68,24 +78,34 @@
 !>  Allocates memory and initializes a @ref limiter_grid_class object from a
 !>  netcdf file.
 !>
-!>  @param[in] lgrid_file
+!>  @param[in] lgrid_file Filename for the limiter grid netcdf file.
+!>  @param[in] on_edge    Specifies if the edge should touch the limiter or
+!>                        not. If true, the reconstruction tries to have the
+!>                        limiter touch the limiter. If false, the edge will
+!>                        only just fall inside the limiter.
 !>  @returns A pointer to a constructed @ref limiter_grid_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION limiter_grid_construct(lgrid_file)
+      FUNCTION limiter_grid_construct(lgrid_file, on_edge)
       USE ezcdf
       USE v3_utilities
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (limiter_grid_class), POINTER :: limiter_grid_construct
-      CHARACTER (len=*), INTENT(in)      :: lgrid_file
+      CLASS (limiter_grid_class), POINTER :: limiter_grid_construct
+      CHARACTER (len=*), INTENT(in)       :: lgrid_file
+      LOGICAL, INTENT(in)                 :: on_edge
 
 !  local variables
-      INTEGER                            :: lgrid_iou
-      INTEGER                            :: status
-      INTEGER, DIMENSION(3)              :: dim_lengths
-      REAL (rprec)                       :: start_time
+      REAL (rprec)                        :: r0
+      REAL (rprec)                        :: dr
+      REAL (rprec)                        :: z0
+      REAL (rprec)                        :: dz
+      INTEGER                             :: lgrid_iou
+      INTEGER                             :: status
+      INTEGER, DIMENSION(3)               :: dim_lengths
+      INTEGER                             :: i
+      REAL (rprec)                        :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -96,10 +116,10 @@
       CALL assert_eq(0, status, 'limiter_grid_construct: ' //                  &
      &               'failed to open ', TRIM(lgrid_file))
 
-      CALL cdf_read(lgrid_iou, nc_r0, limiter_grid_construct%r0)
-      CALL cdf_read(lgrid_iou, nc_dr, limiter_grid_construct%dr)
-      CALL cdf_read(lgrid_iou, nc_z0, limiter_grid_construct%z0)
-      CALL cdf_read(lgrid_iou, nc_dz, limiter_grid_construct%dz)
+      CALL cdf_read(lgrid_iou, nc_r0, r0)
+      CALL cdf_read(lgrid_iou, nc_dr, dr)
+      CALL cdf_read(lgrid_iou, nc_z0, z0)
+      CALL cdf_read(lgrid_iou, nc_dz, dz)
 
       CALL cdf_inquire(lgrid_iou, nc_phi_angles, dim_lengths)
       ALLOCATE(limiter_grid_construct%phi(dim_lengths(1)))
@@ -114,6 +134,15 @@
      &              limiter_grid_construct%grid)
 
       CALL cdf_close(lgrid_iou)
+
+      ALLOCATE(limiter_grid_construct%rgrid(dim_lengths(1)))
+      DO i = 1, dim_lengths(1)
+         limiter_grid_construct%rgrid(i) = (i - 1)*dr + r0
+      END DO
+      ALLOCATE(limiter_grid_construct%zgrid(dim_lengths(2)))
+      DO i = 1, dim_lengths(2)
+         limiter_grid_construct%zgrid(i) = (i - 1)*dz + z0
+      END DO
 
       CALL profiler_set_stop_time('limiter_grid_construct', start_time)
 
@@ -145,67 +174,110 @@
          this%grid => null()
       END IF
 
+      IF (ASSOCIATED(this%rgrid)) THEN
+         DEALLOCATE(this%rgrid)
+         this%rgrid => null()
+      END IF
+
+      IF (ASSOCIATED(this%zgrid)) THEN
+         DEALLOCATE(this%zgrid)
+         this%zgrid => null()
+      END IF
+
       END SUBROUTINE
 
 !*******************************************************************************
 !  GETTER SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  @brief Find the number of radial points in the grid.
+!>  @brief Calculates the maximum value of the grid function.
 !>
-!>  Find the number of radial points in the grid by measuing the size of the
-!>  appropiate dimension.
-!>
-!>  @param[in] this A @ref limiter_grid_class instance.
-!>  @returns Number of radial grid points.
+!>  @param[in]  this      A @ref limiter_class instance.
+!>  @param[in]  num_theta Number of points in the theta direction.
+!>  @param[in]  phi_index Current phi index.
+!>  @param[in]  r         R positions of the last closed flux surface.
+!>  @param[in]  z         Z positions of the last closed flux surface.
+!>  @param[out] rphiz_at_max R, Phi, Z position of the maximum function.
+!>  @returns The maximum value of the iso function.
 !-------------------------------------------------------------------------------
-       FUNCTION limiter_grid_get_num_r(this)
+      FUNCTION limiter_grid_get_max_fval(this, num_theta,  phi_index,          &
+     &                                   r, z, rphiz_at_max)
+      USE bivariate
 
-       IMPLICIT NONE
+      IMPLICIT NONE
 
 !  Declare Arguments
-       INTEGER                               :: limiter_grid_get_num_r
-       TYPE (limiter_grid_class), INTENT(in) :: this
+      REAL (rprec) :: limiter_grid_get_max_fval
+      CLASS (limiter_grid_class), INTENT(in)  :: this
+      INTEGER, INTENT(in)                     :: num_theta
+      INTEGER, INTENT(in)                     :: phi_index
+      REAL (rprec), DIMENSION(:), INTENT(in)  :: r
+      REAL (rprec), DIMENSION(:), INTENT(in)  :: z
+      REAL (rprec), DIMENSION(3), INTENT(out) :: rphiz_at_max
 
 !  local variables
-       REAL (rprec)                          :: start_time
+      TYPE (bivariate_type), POINTER          :: bivariate_object
+      INTEGER                                 :: index
+      REAL (rprec), DIMENSION(:), ALLOCATABLE :: fval
+      REAL (rprec)                            :: start_time
 
 !  Start of executable code
-       start_time = profiler_get_start_time()
+      start_time = profiler_get_start_time()
 
-       limiter_grid_get_num_r = SIZE(this%grid, 1)
+      limiter_grid_get_max_fval = -1.0E10
+      rphiz_at_max = 0.0
 
-       CALL profiler_set_stop_time('limiter_grid_get_num_r', start_time)
+      ALLOCATE(fval(num_theta))
+      bivariate_object => bivariate_construct(1, num_theta)
 
-       END FUNCTION
+      CALL bivariate_set_grids(bivariate_object, r, z, this%rgrid,             &
+     &                         this%zgrid)
+      CALL bivariate_get_4pt(bivariate_object,                                 &
+     &                       this%grid(:,:,phi_index), fval)
+
+      index = MAXLOC(fval, 1)
+      IF (fval(index) .gt. limiter_grid_get_max_fval) THEN
+         limiter_grid_get_max_fval = fval(index)
+          rphiz_at_max = (/ r(index), this%phi(phi_index),  z(index) /)
+      END IF
+
+      CALL bivariate_destruct(bivariate_object)
+      DEALLOCATE(fval)
+
+      CALL profiler_set_stop_time('limiter_grid_get_max_fval',                 &
+     &                            start_time)
+
+      END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Find the number of vertical points in the grid.
+!>  @brief Gets a discription of the limiter grid type.
 !>
-!>  Find the number of vertical points in the grid by measuing the size of the
-!>  appropiate dimension.
+!>  Returns a description of the limiter type for use when writting output files.
 !>
 !>  @param[in] this A @ref limiter_grid_class instance.
-!>  @returns Number of radial grid points.
+!>  @returns A string describing the limiter type.
 !-------------------------------------------------------------------------------
-       FUNCTION limiter_grid_get_num_z(this)
+      FUNCTION limiter_grid_get_type(this)
+      USE data_parameters
 
-       IMPLICIT NONE
+      IMPLICIT NONE
 
 !  Declare Arguments
-       INTEGER                               :: limiter_grid_get_num_z
-       TYPE (limiter_grid_class), INTENT(in) :: this
+      CHARACTER (len=data_name_length) :: limiter_grid_get_type
+      CLASS (limiter_grid_class), INTENT(in) :: this
 
 !  local variables
-       REAL (rprec)                          :: start_time
+      REAL (rprec)                           :: start_time
 
 !  Start of executable code
-       start_time = profiler_get_start_time()
+      start_time = profiler_get_start_time()
 
-       limiter_grid_get_num_z = SIZE(this%grid, 2)
+      limiter_grid_get_type =                                                  &
+     &   TRIM(this%limiter_class%get_type()) // 'grid'
 
-       CALL profiler_set_stop_time('limiter_grid_get_num_z', start_time)
+      CALL profiler_set_stop_time('limiter_grid_get_type',                     &
+     &                            start_time)
 
-       END FUNCTION
+      END FUNCTION
 
-       END MODULE
+      END MODULE
