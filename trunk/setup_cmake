@@ -72,6 +72,26 @@ then
 	      -DEXTRA_FLAGS="-fopenmp -DNEW_CODE"               \
 	      -DEXTRA_RELEASE_FLAGS:String="-m64 -mfpmath=sse -march=native -msse4a -msse3"
 
+elif [ "$MACHINE_ID" == "lazersons-air.ipp-hgw.mpg.de" ]
+then
+	# Lazerson's Macbook Air (MacPorts).
+
+	cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE             \
+	      -DCMAKE_Fortran_COMPILER=mpifort                  \
+	      -DNETCDF_INC_PATH=/opt/local/include              \
+	      -DNETCDF_LIB_PATH=/opt/local/lib                  \
+	      -DNETCDF_F_LIB_NAME=libnetcdff.a                  \
+	      -DNETCDF_C_LIB_NAME=libnetcdf.a                   \
+	      -DBLACS_LIB_NAME=blacs_MPI-LINUX-0.a           \
+	      -DBLACS_CINIT_NAME=blacsCinit_MPI-LINUX-0.a     \
+	      -DBLACS_F77INIT_NAME=blacsF77init_MPI-LINUX-0.a \
+	      -DSCALAPACK_LIB_NAME=/Users/lazerson/Sims_Work/scalapack-2.0.2/libscalapack.a    \
+	      -DBLAS_LIBRARIES=/opt/local/lib/libopenblas.a \
+	      -DCMAKE_PREFIX_PATH:FILEPATH="/Users/lazerson/Sims_Work/scalapack-2.0.2/;/Users/lazerson/BLACS/LIB/" \
+	      -DUSE_PARVMEC=ON                                  \
+	      -DEXTRA_FLAGS="-fexternal-blas"               \
+	      -DEXTRA_RELEASE_FLAGS:String="-fexternal-blas"
+
 elif [ "${MACHINE_ID#*.}" == "igi.cnr.it" ]; then
 
 	# the machine is hosted on RFX's network:
