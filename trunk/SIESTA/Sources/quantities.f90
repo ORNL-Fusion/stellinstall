@@ -210,7 +210,7 @@
 !>   Only called if lrestart=F (otherwise data read in from restart file)    
 !*******************************************************************************
         SUBROUTINE Init_Fields
-        USE fourier, ONLY: orthonorm, tomnsp_par, f_sin, f_cos, m0, m1,        &
+        USE fourier, ONLY: orthonorm, tomnsp, f_sin, f_cos, m0, m1,        &
                            isym, iasym
         USE vmec_info, ONLY: lmns_i, lmnc_i, iflipj
         USE metrics, ONLY: sqrtg
@@ -267,14 +267,12 @@
         presih(:,:,nsmin:nsmax) = presih(:,:,nsmin:nsmax)*jacobh(:,:,nsmin:nsmax)
 
 ! Initialize internal pressure harmonics (half mesh)        
-        CALL tomnsp_par(presih(:,:,nsmin:nsmax), jpmnch(:,:,nsmin:nsmax), &
-                        f_cos)
+        CALL tomnsp(presih(:,:,nsmin:nsmax), jpmnch(:,:,nsmin:nsmax), f_cos)
         jpmnch(:,:,1) = 0
         jpmnch(m0,:,1) = jpmnch(m0,:,2)
 
         IF (lasym) THEN
-           CALL tomnsp_par(presih(:,:,nsmin:nsmax), jpmnsh(:,:,nsmin:nsmax), &
-                           f_sin)
+           CALL tomnsp(presih(:,:,nsmin:nsmax), jpmnsh(:,:,nsmin:nsmax), f_sin)
            jpmnsh(:,:,1) = 0
            jpmnsh(m0,:,1) = jpmnsh(m0,:,2)
         END IF

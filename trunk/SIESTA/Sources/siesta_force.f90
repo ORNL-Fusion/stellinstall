@@ -420,6 +420,9 @@
       SUBROUTINE GetMHDForce(fsubsmnf, fsubumnf, fsubvmnf, pijh,               &
                              KxBsij, KxBuij, KxBvij, pardamp, iparity)
       USE island_params, ONLY: ohs=>ohs_i
+      USE utilities, ONLY: set_bndy_half_to_full, set_bndy_half_to_full_ds
+
+      IMPLICIT NONE
 
 !  Declare Arguments
       REAL (dp), DIMENSION(:,:,:), INTENT(inout)            :: fsubsmnf
@@ -476,21 +479,12 @@
 !  Harmonics of true pressure. The jacobian factor has been divided out of pijh.
       CALL tomnsp(pijh, pmnh, fours)
       CALL to_full_mesh(pmnh, pmnf)
+      CALL set_bndy_half_to_full(pmnh, pmnf, nsmin, fouruv)
 
 !  Radial derivative of pressure.
       CALL GradientFull(pmnf_ds, pmnh)
-      pmnf_ds(m0,-ntor:-1,:) = 0
+      CALL set_bndy_half_to_full_ds(pmnh, pmnf_ds, nsmin, fouruv)
 
-!  Apply 1/2 factor in get 
-!  Needed for grad(p) ao
-!SPH041408 : NEED FOR grad-p - apply 1/2 factor in get_force_harmonics to pmnf_ds(1)
-!            NEED pmn(m1,:,1) so limit at r12=hs_i/2 for dp/du, dp/dv is numerically correct
-      IF (nsmin .EQ. 1) THEN
-         pmnf(:,:,1) = 0
-         pmnf_ds(:,:,1) = 0
-         pmnf(m0:m1,:,1) = pmnh(m0:m1,:,2)
-         pmnf_ds(m1,:,1) = 2*ohs*pmnh(m1,:,2)
-      END IF
       IF (nsmax.EQ.ns .AND. l_pedge) THEN
          pmnf(:,:,ns) = 0
          pmnf(m0,0,ns) = pmnh(m0,0,ns)

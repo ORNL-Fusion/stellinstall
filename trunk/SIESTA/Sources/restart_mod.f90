@@ -366,6 +366,7 @@
                                phipf => phipf_i, wb => wb_i, wp => wp_i,       &
                                rmajor => rmajor_i
       USE shared_data, ONLY: r1_i, z1_i
+      USE utilities, ONLY: set_bndy_half_to_full, set_bndy_half_to_full_ds
 
       IMPLICIT NONE
 
@@ -634,6 +635,10 @@
          CALL to_full_mesh(bsubumnh, bsubumnf)
          CALL to_full_mesh(bsubvmnh, bsubvmnf)
 
+         CALL set_bndy_half_to_full(bsubsmnh, bsubsmnh, 1, f_sin)
+         CALL set_bndy_half_to_full(bsubumnh, bsubumnh, 1, f_cos)
+         CALL set_bndy_half_to_full(bsubvmnh, bsubvmnh, 1, f_cos)
+
          ALLOCATE(jksupsmnf(0:mpol,-ntor:ntor,ns))
          ALLOCATE(jksupumnf(0:mpol,-ntor:ntor,ns))
          ALLOCATE(jksupvmnf(0:mpol,-ntor:ntor,ns))
@@ -643,6 +648,9 @@
 !  Half grid radial derivatives become full grid.
          CALL GradientFull(dbuds, bsubumnh)
          CALL GradientFull(dbvds, bsubvmnh)
+
+         CALL set_bndy_half_to_full_ds(bsubumnh, dbuds, 1, f_cos)
+         CALL set_bndy_half_to_full_ds(bsubvmnh, dbuds, 1, f_cos)
 
          DO n = -ntor, ntor
             DO m = 0, mpol
@@ -701,8 +709,15 @@
             CALL to_full_mesh(bsubumnh, bsubumnf)
             CALL to_full_mesh(bsubvmnh, bsubvmnf)
 
+            CALL set_bndy_half_to_full(bsubsmnh, bsubsmnh, 1, f_cos)
+            CALL set_bndy_half_to_full(bsubumnh, bsubumnh, 1, f_sin)
+            CALL set_bndy_half_to_full(bsubvmnh, bsubvmnh, 1, f_sin)
+
             CALL GradientFull(dbuds, bsubumnh)
             CALL GradientFull(dbvds, bsubvmnh)
+
+            CALL set_bndy_half_to_full_ds(bsubumnh, dbuds, 1, f_sin)
+            CALL set_bndy_half_to_full_ds(bsubvmnh, dbuds, 1, f_sin)
 
             DO n = -ntor, ntor
                DO m = 0, mpol

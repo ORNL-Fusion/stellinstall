@@ -90,7 +90,7 @@
       pijh = pijh/jacobh(:,:,nsmin:nsmax)
       CALL to_full_mesh(pijh, pijf)
       IF (nsmin .EQ. 1) THEN
-         pijf(:,:,1) = pijh(:,:,1)
+         pijf(:,:,1) = pijh(:,:,1) !  FIXME: This doesn't seem right.
       END IF
 !      pijf = pijf/jacobf(:,:,nsmin:nsmax)
 !      pijh = pijh/jacobh(:,:,nsmin:nsmax)

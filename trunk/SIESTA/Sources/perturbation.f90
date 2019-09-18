@@ -146,7 +146,7 @@
 
       SUBROUTINE add_perturb (xc, getwmhd)
       USE siesta_error
-      USE fourier, ONLY: tomnsp_par, f_cos, f_sin, f_none
+      USE fourier, ONLY: tomnsp, f_cos, f_sin, f_none
       USE siesta_namelist, ONLY: HelPert, HelPertA, eta_factor, lresistive, mres
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -209,8 +209,8 @@
       CALL ASSERT(istat.eq.0,'ISTAT != 0 IN ADD_PERT')
       
       bmns_res = 0
-      CALL tomnsp_par(jdotb, bmnc_res, f_cos)
-      IF (lasym) CALL tomnsp_par(jdotb, bmns_res, f_sin)
+      CALL tomnsp(jdotb, bmnc_res, f_cos)
+      IF (lasym) CALL tomnsp(jdotb, bmns_res, f_sin)
 #endif      
 
 !     Compute responses to resonant resistitive perturbations
@@ -369,7 +369,7 @@
 
       SUBROUTINE GetResPert(irscale, isign1, mres0, nres0, rad,                &
                             HelPert0, HelPert0A, chip0, phip0, p_width)
-      USE fourier, ONLY: toijsp_par, toijsp2, f_cos, f_sin, f_sum, f_none
+      USE fourier, ONLY: toijsp, toijsp2, f_cos, f_sin, f_sum, f_none
       USE siesta_namelist, ONLY: mpolin, ntorin
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -424,11 +424,11 @@
       resc = 0; ress = 0
       resc(mres0,nres0,:) = HelP_local*bmnc_res(mres0,nres0,:)
       
-      CALL toijsp_par(resc, buv_res, f_none, f_cos)
+      CALL toijsp(resc, buv_res, f_none, f_cos)
       
       IF (lasym) THEN
          ress(mres0,nres0,:) = HelPA_local*bmns_res(mres0,nres0,:)
-         CALL toijsp_par(ress, buv_res, f_sum, f_sin)
+         CALL toijsp(ress, buv_res, f_sum, f_sin)
       END IF
       
       IF (rho .NE. zero) buv_res = buv_res/rho

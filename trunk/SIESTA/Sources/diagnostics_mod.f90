@@ -1,6 +1,6 @@
       MODULE diagnostics_mod
       USE v3_utilities, ONLY: assert
-      USE fourier, ONLY: tomnsp, toijsp, tomnsp_par, toijsp_par,        &
+      USE fourier, ONLY: tomnsp, toijsp, tomnsp, toijsp,        &
                    f_sum, f_cos, f_sin, f_none, f_du, f_dv
       USE descriptor_mod, ONLY: iam, nprocs, SIESTA_COMM
       USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
@@ -705,13 +705,13 @@
                  bsupvijh(ntheta,nzeta,nsmin:nsmax), stat=istat)
         CALL ASSERT(istat.EQ.0,'Allocation #1 failed in BDOTJ_PAR')
 
-        CALL toijsp_par(jbsupsmnsh(:,:,nsmin:nsmax), bsupsijh, f_none, f_sin)
-        CALL toijsp_par(jbsupumnch(:,:,nsmin:nsmax), bsupuijh, f_none, f_cos)
-        CALL toijsp_par(jbsupvmnch(:,:,nsmin:nsmax), bsupvijh, f_none, f_cos)
+        CALL toijsp(jbsupsmnsh(:,:,nsmin:nsmax), bsupsijh, f_none, f_sin)
+        CALL toijsp(jbsupumnch(:,:,nsmin:nsmax), bsupuijh, f_none, f_cos)
+        CALL toijsp(jbsupvmnch(:,:,nsmin:nsmax), bsupvijh, f_none, f_cos)
         IF (lasym) THEN
-        CALL toijsp_par(jbsupsmnch(:,:,nsmin:nsmax), bsupsijh, f_sum, f_cos)
-        CALL toijsp_par(jbsupumnsh(:,:,nsmin:nsmax), bsupuijh, f_sum, f_sin)
-        CALL toijsp_par(jbsupvmnsh(:,:,nsmin:nsmax), bsupvijh, f_sum, f_sin)
+        CALL toijsp(jbsupsmnch(:,:,nsmin:nsmax), bsupsijh, f_sum, f_cos)
+        CALL toijsp(jbsupumnsh(:,:,nsmin:nsmax), bsupuijh, f_sum, f_sin)
+        CALL toijsp(jbsupvmnsh(:,:,nsmin:nsmax), bsupvijh, f_sum, f_sin)
         END IF
 
         bsupsijh = bsupsijh/jacobh(:,:,nsmin:nsmax)
@@ -858,9 +858,9 @@
 
         bdotjijh = bdotjijh/tnorm
         
-        CALL tomnsp_par(bdotjijh, bdotjmnch, f_cos)                       ! Keep harmonics of BDOTJ for output
+        CALL tomnsp(bdotjijh, bdotjmnch, f_cos)                       ! Keep harmonics of BDOTJ for output
         IF (lasym) THEN
-        CALL tomnsp_par(bdotjijh, bdotjmnsh, f_sin)                       ! Keep harmonics of BDOTJ for output
+        CALL tomnsp(bdotjijh, bdotjmnsh, f_sin)                       ! Keep harmonics of BDOTJ for output
         END IF
 
         DEALLOCATE (bdotjijh)

@@ -18,7 +18,6 @@
                              jsju_ratio_s, jsju_ratio_a 
       USE fourier
       USE nscalingtools, ONLY: nranks, startglobrow, endglobrow, MPI_ERR
-      USE utilities, ONLY: GradientFull, to_full_mesh
       USE metrics, ONLY: tolowerf, tolowerh
       USE quantities
 

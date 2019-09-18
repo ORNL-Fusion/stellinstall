@@ -55,7 +55,7 @@ CONTAINS
 
   SUBROUTINE grid_extender(wout_file, itype, istat)
     USE fourier, ONLY: toijsp, f_cos, f_sin,                            &
-      f_none, f_sum, f_du, f_dv, tomnsp_par
+      f_none, f_sum, f_du, f_dv, tomnsp
     USE v3_utilities, ONLY: assert
     USE vmec_info, ONLY: rmnc_i, rmns_i, zmns_i, zmnc_i,                &
                          jcurrumnc, jcurrvmnc, jcurrumns, jcurrvmns
@@ -248,8 +248,8 @@ CONTAINS
        ALLOCATE(rmnc_i(0:mpol,-ntor:ntor,ns),                           &
                 zmns_i(0:mpol,-ntor:ntor,ns), stat=istat)
        rmnc_i(:,:,1:nsp) = tmp(:,:,1:nsp); zmns_i(:,:,1:nsp) = tmp2(:,:,1:nsp)
-       CALL tomnsp_par(r1_i(:,:,nsp1:ns), rmnc_i(:,:,nsp1:ns), f_cos)
-       CALL tomnsp_par(z1_i(:,:,nsp1:ns), zmns_i(:,:,nsp1:ns), f_sin)
+       CALL tomnsp(r1_i(:,:,nsp1:ns), rmnc_i(:,:,nsp1:ns), f_cos)
+       CALL tomnsp(z1_i(:,:,nsp1:ns), zmns_i(:,:,nsp1:ns), f_sin)
        DO js = nsp1, ns
           rmnc_i(:,:,js) = rmnc_i(:,:,js)/orthonorm(0:mpol,-ntor:ntor)
           zmns_i(:,:,js) = zmns_i(:,:,js)/orthonorm(0:mpol,-ntor:ntor)
@@ -296,8 +296,8 @@ CONTAINS
           ALLOCATE(rmns_i(0:mpol,-ntor:ntor,ns),                        &
                    zmnc_i(0:mpol,-ntor:ntor,ns), stat=istat)
           rmns_i(:,:,1:nsp) = tmp(:,:,1:nsp); zmnc_i(:,:,1:nsp) = tmp2(:,:,1:nsp)
-          CALL tomnsp_par(r1_i(:,:,nsp1:ns), rmns_i(:,:,nsp1:ns), f_sin)
-          CALL tomnsp_par(z1_i(:,:,nsp1:ns), zmnc_i(:,:,nsp1:ns), f_cos)
+          CALL tomnsp(r1_i(:,:,nsp1:ns), rmns_i(:,:,nsp1:ns), f_sin)
+          CALL tomnsp(z1_i(:,:,nsp1:ns), zmnc_i(:,:,nsp1:ns), f_cos)
           DO js = nsp1, ns
              rmns_i(:,:,js) = rmns_i(:,:,js)/orthonorm(0:mpol,-ntor:ntor)
              zmnc_i(:,:,js) = zmnc_i(:,:,js)/orthonorm(0:mpol,-ntor:ntor)

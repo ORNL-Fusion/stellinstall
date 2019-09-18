@@ -11,7 +11,7 @@
        USE v3_utilities, ONLY: assert, assert_eq
        USE stel_kinds
        USE descriptor_mod, ONLY: SIESTA_COMM, iam
-       USE fourier, ONLY: toijsp_par, tomnsp_par, f_none, f_sin, f_cos, &
+       USE fourier, ONLY: toijsp, tomnsp, f_none, f_sin, f_cos, &
                           f_du, f_dv, f_sum, orthonorm, m0, m1, isym, iasym
        USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
        USE quantities
@@ -148,9 +148,10 @@
 !  [nsmin:nsmax-1]
       CALL GradientFull(pijf0_ds, pijh0)
 
-!  SPH: one-sided (m=1) derivative at origin yields factor of 2 (1/(hs/2))
+!  SPH: one-sided (m=1) derivative at origin yields factor of 2 (1/(hs/2)).
+!  pijh(:,:,1) should contain the value of jpmnch(m0,:,2) from Init_Fields.
       IF (nsmin .EQ. 1) THEN
-         pijf0_ds(:,:,1) = 2*(pijh0(:,:,2) - pijh0(:,:,1))*ohs
+         pijf0_ds(:,:,1) = 2.0*(pijh0(:,:,2) - pijh0(:,:,1))*ohs
       END IF
       
 !  SPH11-3-16 preserve s=1 as iso-pressure contour
@@ -436,10 +437,10 @@
          fouruvp = f_sin
       END IF
 
-      CALL toijsp_par(jbsupsmnh(:,:,nsmin:nsmax), bsupsijh0, fcomb, fours)
-      CALL toijsp_par(jbsupumnh(:,:,nsmin:nsmax), bsupuijh0, fcomb, fouruvp)
-      CALL toijsp_par(jbsupvmnh(:,:,nsmin:nsmax), bsupvijh0, fcomb, fouruvp)
-      CALL toijsp_par(jpmnh(:,:,nsmin:nsmax), pijh0, fcomb, fouruvp)
+      CALL toijsp(jbsupsmnh(:,:,nsmin:nsmax), bsupsijh0, fcomb, fours)
+      CALL toijsp(jbsupumnh(:,:,nsmin:nsmax), bsupuijh0, fcomb, fouruvp)
+      CALL toijsp(jbsupvmnh(:,:,nsmin:nsmax), bsupvijh0, fcomb, fouruvp)
+      CALL toijsp(jpmnh(:,:,nsmin:nsmax), pijh0, fcomb, fouruvp)
 
       END SUBROUTINE
 
@@ -478,18 +479,18 @@
        ALLOCATE(pmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
        CALL assert_eq(0, istat, 'Allocation error in FilterPressure')
 
-       CALL tomnsp_par(pijh0, pmnh, four)
+       CALL tomnsp(pijh0, pmnh, four)
        
        IF (iparity .eq. isym .and. nsmax .eq. ns) THEN
           pedge = pmnh(m0, 0,ns)*orthonorm(0,0)
        END IF
 
 !  Spectrally filtered angle derivatives of p in real space (half mesh).
-       CALL toijsp_par(pmnh, pijh0_du, IOR(f_du, fcomb), four)
-       CALL toijsp_par(pmnh, pijh0_dv, IOR(f_dv, fcomb), four)
+       CALL toijsp(pmnh, pijh0_du, IOR(f_du, fcomb), four)
+       CALL toijsp(pmnh, pijh0_dv, IOR(f_dv, fcomb), four)
        
        IF (l_update_state) THEN
-          CALL toijsp_par(pmnh, pfilter, fcomb, four)
+          CALL toijsp(pmnh, pfilter, fcomb, four)
        END IF
 
        DEALLOCATE(pmnh)
@@ -531,32 +532,32 @@
                  pmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=m)
        CALL assert(m.EQ.0,' Allocation failed in CheckFFT')
        temp = bsupsijh0*jacobh(:,:,nsmin:nsmax)
-       CALL tomnsp_par(temp, fft_test, fours)
+       CALL tomnsp(temp, fft_test, fours)
        rTest = MAXVAL(ABS(fft_test - jbsupsmnh(:,:,nsmin:nsmax)))
        CALL assert(rtest.LT.rtol, ' jbsupsmnh FFT error in siesta_init')
        temp = bsupuijh0*jacobh(:,:,nsmin:nsmax)
-       CALL tomnsp_par(temp, fft_test, fouru)
+       CALL tomnsp(temp, fft_test, fouru)
        rTest = MAXVAL(ABS(fft_test - jbsupumnh(:,:,nsmin:nsmax)))
        CALL assert(rTest.LT.rtol,' jbsupumnh FFT error in siesta_init')
        temp = bsupvijh0*jacobh(:,:,nsmin:nsmax)
-       CALL tomnsp_par(temp, fft_test, fourv)
+       CALL tomnsp(temp, fft_test, fourv)
        rTest = MAXVAL(ABS(fft_test - jbsupvmnh(:,:,nsmin:nsmax)))
        CALL assert(rTest.LT.rtol,' jbsupvmnh FFT error in siesta_init')
        temp = pijh0*jacobh(:,:,nsmin:nsmax)
-       CALL tomnsp_par(temp, fft_test, fourv)
+       CALL tomnsp(temp, fft_test, fourv)
        rTest = MAXVAL(ABS(fft_test - jpmnh(:,:,nsmin:nsmax)))
        CALL assert(rTest.LT.rtol,' jpmnh FFT error in siesta_init')
             
 ! check angle derivatives of pressure            
-       CALL tomnsp_par(pijh0, pmnh, fouru)
-       CALL tomnsp_par(pijh0_du, fft_test, fouru1)
+       CALL tomnsp(pijh0, pmnh, fouru)
+       CALL tomnsp(pijh0_du, fft_test, fouru1)
        DO m = 0, mpol
           mp = -sparity*m
           CALL assert(MAXVAL(ABS(fft_test(m,:,:) - mp*pmnh(m,:,:))) .LE. rtol,   &
                      ' pijh0_du FFT error in siesta_init')
        END DO
        
-       CALL tomnsp_par(pijh0_dv, fft_test, fourv1)
+       CALL tomnsp(pijh0_dv, fft_test, fourv1)
        DO n = -ntor, ntor
           np = -sparity*n*nfp
           CALL assert(MAXVAL(ABS(fft_test(:,n,:) - np*pmnh(:,n,:))) .LE. rtol,   &

@@ -675,7 +675,7 @@
      
         SUBROUTINE prepare_quantities
         USE stel_kinds
-        USE fourier, ONLY: tomnsp, toijsp, orthonorm, tomnsp_par
+        USE fourier, ONLY: tomnsp, toijsp, orthonorm, tomnsp
         USE diagnostics_mod, ONLY: divj, divb, bdotj, lcurr_init,       &
                                    bdotjijh
         USE siesta_namelist, ONLY: lresistive

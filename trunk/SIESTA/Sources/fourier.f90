@@ -85,14 +85,6 @@
 !>  Non-stellarator parity.
       INTEGER, PARAMETER   :: iasym = 1
 
-!>  FIXME Remove all to**sp_par calls and replace with direct to**sp.
-      INTERFACE toijsp_par
-         MODULE PROCEDURE toijsp
-      END INTERFACE
-      INTERFACE tomnsp_par
-         MODULE PROCEDURE tomnsp
-      END INTERFACE
-
       CONTAINS
 
 !*******************************************************************************
@@ -146,7 +138,7 @@
 	  xmn_3 = RESHAPE(xmn, SHAPE(xmn_3))
 	  xuv_3 = RESHAPE(xuv, SHAPE(xuv_3))
 
-	  CALL toijsp_par(xmn_3, xuv_3, dflag, iparity)
+	  CALL toijsp(xmn_3, xuv_3, dflag, iparity)
 
 	  xuv = RESHAPE(xuv_3, SHAPE(xuv))
 
@@ -200,7 +192,7 @@
       ALLOCATE(work0(0:mpol,-ntor:ntor), xuv1(ntheta,nzeta),                   &
                work1(ntheta,-ntor:ntor), work2(ntheta,-ntor:ntor),             &
                stat=lk)
-      CALL assert_eq(0, lk, 'Allocation error in TOIJSP_PAR')
+      CALL assert_eq(0, lk, 'Allocation error in TOIJSP')
 
       NS_LOOP: DO js = 1, MIN(SIZE(xmn,3), SIZE(xuv,3))
          work0(:,:) = orthonorm(0:mpol,-ntor:ntor)*xmn(:,:,js)
@@ -323,7 +315,7 @@
       ALLOCATE(work1(0:mpol,nzeta), work2(0:mpol,nzeta),                       &
                work3(0:mpol), work4(0:mpol),                                   &
                xuv1(ntheta,nzeta), xmn1(0:mpol,-ntor:ntor), stat=istat)
-      CALL assert_eq(0, istat, 'Allocation error in tomnsp_par')
+      CALL assert_eq(0, istat, 'Allocation error in tomnsp')
 
       NS_LOOP: DO js = 1, MIN(UBOUND(xmn,3), UBOUND(xuv,3))
          xuv1(:,:) = xuv(:,:,js)
@@ -420,64 +412,6 @@
 
        END SUBROUTINE
 
-#if 0
-!-------------------------------------------------------------------------------
-!>  @brief Convert a quantity from fourier to real space serially.
-!>
-!>  This subroutine moves a quantity to real space by summing over its Fourier
-!>  harmonics. If the @ref f_du flag is set take the poloidal derivative. If the
-!>  @ref f_dv flag is set take the toroidal derivative. If the f_sum flag is set
-!>  add the real quanity to the previous value.
-!>
-!>  @param[in]    xmn     Fourier space quantity.
-!>  @param[inout] xuv     Real space quantity.
-!>  @param[in]    dflag   Derivative and sum control flags.
-!>  @param[in]    iparity Fourier parity flag.
-!>
-!>  FIXME: This could probably be removec.
-!-------------------------------------------------------------------------------
-       SUBROUTINE toijsp(xmn, xuv, dflag, iparity)
-        USE stel_kinds
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-        REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns),                      &
-          INTENT(IN) :: xmn
-        REAL(dp), DIMENSION(ntheta,nzeta,ns),                           &
-          INTENT(INOUT) :: xuv
-        INTEGER, INTENT(IN) :: dflag                                       ! DFLAG = order of poloidal/toroidal derivative
-        INTEGER, INTENT(IN) :: ipar                                        ! = 0, cosine (EVEN); = 1, sine (ODD)
-
-        CALL TOIJSP_PAR(XMN, XUV, DFLAG, IPAR)
-
-        END SUBROUTINE TOIJSP
-
-
-        SUBROUTINE TOMNSP(XUV, XMN, IPAR)
-!
-!       Description: This subroutine moves a quantity X to Fourier space producing its harmonics X_MN by
-!         summing over all the presribed (toroidal and poloidal) collocation points:
-!           theta_j = j*pi/M, (j=0,...,M);   zeta_k = k*2*pi/(2N+1), k = 0,...., 2N
-!         where M = mpol - 1 and N = ntor.
-!       IPARITY = 0, means the quantity X (NOT any of its derivatives) is even in mu+nv; = 1, X is odd
-!       IHALF = 0, means quantity is on the radial full mesh; =1, on the half radial mesh
-!
-        USE stel_kinds
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-!        INTEGER, INTENT(IN):: ihalf                                        ! IHALF = 0, FULL (radial) MESH); = 1, HALF MESH
-        REAL(dp), DIMENSION(ntheta,nzeta,ns),                           &
-          INTENT(IN):: xuv
-        REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns),                      &
-          INTENT(OUT):: xmn
-        INTEGER, INTENT(IN):: ipar                                         ! = 0, cosine (EVEN); = 1; sine (ODD)
-!-----------------------------------------------
-
-        CALL TOMNSP_PAR(XUV, XMN, IPAR)
-
-        END SUBROUTINE TOMNSP
-#endif
 !SPH 10/15/14
 !-------------------------------------------------------------------------------
 !>  @brief  Convert to Fourier pest coordinates.
@@ -753,7 +687,7 @@
         ALLOCATE(xmns(0:mpol,-ntor:ntor,1))
         xmns(:,:,1) = xmn
         
-        CALL toijsp_par(xmns, xuv(:,:,js:js), fcomb, ipar)
+        CALL toijsp(xmns, xuv(:,:,js:js), fcomb, ipar)
         
         DEALLOCATE(xmns)
         

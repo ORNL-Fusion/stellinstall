@@ -12,7 +12,7 @@
       USE island_params, ONLY: ohs=>ohs_i, ns=>ns_i, mpol=>mpol_i,             &
                                ntor=>ntor_i, nfp=>nfp_i
       USE v3_utilities, ONLY: assert, assert_eq
-      USE fourier, ONLY: isym, iasym
+      USE fourier, ONLY: isym, iasym, m0, m1
 
       IMPLICIT NONE
 
@@ -145,11 +145,11 @@
                                      -      vech(:,:,nsmin:nsmax - 1))
 
       IF (nsmin .eq. 1) THEN
-         gradientf(:,:,nsmin) = 0
+         gradientf(:,:,1) = 0
       END IF
 
-      IF (nsmax .eq. ns .and. nsmax .ne. nsmin) THEN
-         gradientf(:,:,nsmax) = gradientf(:,:,nsmax - 1)
+      IF (nsmax .eq. ns) THEN
+         gradientf(:,:,ns) = gradientf(:,:,ns - 1)
       END IF
 
       END SUBROUTINE
@@ -247,10 +247,10 @@
                                 +      vech(:,:,nsmin:nsmax - 1))
       vecf(:,:,nsmax) = 0                              
       IF (nsmin .eq. 1)  THEN
-         vecf(:,:,1) = 1.5*vech(:,:,2) - 0.5*vech(:,:,3)
+         vecf(:,:,1) = vech(:,:,2)
       END IF
       IF (nsmax .eq. ns) THEN
-         vecf(:,:,ns)= 1.5*vech(:,:,ns) - 0.5*vech(:,:,ns - 1)
+         vecf(:,:,ns) = vech(:,:,ns)
       END IF
 
       END SUBROUTINE
@@ -441,6 +441,8 @@
                            jbsupsmnf, jbsupumnf, jbsupvmnf, ipar, nsmin, nsmax)
       USE nscalingtools, ONLY: endglobrow
       USE descriptor_mod, ONLY: iam
+      USE fourier, ONLY: f_cos, f_sin
+
       IMPLICIT NONE
 
 !  Declare Arguments
@@ -471,14 +473,20 @@
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE             :: asubvmnf
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE             :: da_uds
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE             :: da_vds
+      INTEGER                                              :: fours
+      INTEGER                                              :: fouruv
 
 !  Start of executable code
       CALL assert(nsmin .ge. LBOUND(jbsupsmnf,3), 'LBOUND wrong in curl_htof')
 
       IF (ipar .eq. isym) THEN
          sparity = 1
+         fours = f_sin
+         fouruv = f_cos
       ELSE
          sparity = -1
+         fours = f_cos
+         fouruv = f_sin
       END IF
 
       moff = LBOUND(jbsupsmnf,1)
@@ -493,6 +501,10 @@
       CALL to_full_mesh(asubumnh, asubumnf)
       CALL to_full_mesh(asubvmnh, asubvmnf)
 
+      CALL set_bndy_half_to_full(asubsmnh, asubsmnf, nsmin, fours)
+      CALL set_bndy_half_to_full(asubumnh, asubumnf, nsmin, fouruv)
+      CALL set_bndy_half_to_full(asubvmnh, asubvmnf, nsmin, fouruv)
+
 !  Compute sqrt(g)B^X == A^X contravariant current components in Fourier space.
       ALLOCATE(da_uds(0:mpol,-ntor:ntor,nsmin:nsmax),                          &
                da_vds(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
@@ -503,17 +515,8 @@
       CALL GradientFull(da_uds, asubumnh)
       CALL GradientFull(da_vds, asubvmnh)
 
-!  Approximate end values...(factor of 2 at origin due to 1/2*hs interval)
-      IF (nsmin .eq. 1) THEN
-         asubsmnf(2:,:,1) = 0
-         asubumnf(:,:,1) = 0
-         asubumnf(1,:,1) = asubumnh(1,:,2)
-         da_uds(:,:,1) = 0
-         da_uds(0:1,:,1) = 2*ohs*asubumnh(0:1,:,2)
-         da_vds(:,:,1) = 0
-         da_vds(1,:,1) = 2*ohs*asubvmnh(1,:,2)
-         asubvmnf(2:,:,1) = 0
-      END IF
+      CALL set_bndy_half_to_full_ds(asubumnh, da_uds, nsmin, fouruv)
+      CALL set_bndy_half_to_full_ds(asubvmnh, da_vds, nsmin, fouruv)
 
       nmax = endglobrow
       CALL assert(nmax .le. UBOUND(jbsupsmnf,3), 'UBOUND wrong in curl_htof')
@@ -596,6 +599,82 @@
       jbvp => jbsupvmnf
       CALL curl_htof(asubsmnh, asubumnh, asubvmnh,                      &
                      jbsp, jbup, jbvp, ipar, nsmin, nsmax)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Set fouier boundary conditions for full grid quantity converted from
+!>         half grid.
+!>
+!>  At the center of the grid, the quantity should not be a function of u so all
+!>  m > 0 modes should be zero. For the m = 0 terms, use the value from the half
+!>  grid.
+!>
+!>  @param[in]    amnh    Half grid fourier quantity.
+!>  @param[inout] amnf    Full grid fourier quantity.
+!>  @param[in]    nsmin   Minimum radial index.
+!>  @param[in]    iparity Parity flag.
+!-------------------------------------------------------------------------------
+      PURE SUBROUTINE set_bndy_half_to_full(amnh, amnf, nsmin, iparity)
+      USE fourier, ONLY: f_cos, n0, n1
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(in)    :: amnh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: amnf
+      INTEGER, INTENT(IN)                                     :: nsmin
+      INTEGER, INTENT(in)                                     :: iparity
+
+!  Start of executable code
+      IF (nsmin .eq. 1) THEN
+         amnf(:,:,1) = 0.0
+         amnf(m0,:,1) = amnh(m0,:,2)
+      END IF
+
+      IF (iparity .eq. f_cos) THEN
+         amnf(m0,-ntor:-n1,:) = 0.0
+      ELSE
+         amnf(m0,-ntor:n0,:) = 0.0
+      END IF
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Set fouier boundary conditions for full grid radial derivative
+!>         quantity converted from half grid.
+!>
+!>  At the center of the grid, the quantity should not be a function of u so all
+!>  m > 0 modes should be zero. For the m = 0 terms, 2*x/ds to preserve
+!>  divergence free values.
+!>
+!>  @param[in]    amnh    Half grid fourier quantity.
+!>  @param[inout] amnf    Full grid fourier quantity.
+!>  @param[in]    nsmin   Minimum radial index.
+!>  @param[in]    iparity Parity flag.
+!-------------------------------------------------------------------------------
+      PURE SUBROUTINE set_bndy_half_to_full_ds(amnh, amnf_ds, nsmin, iparity)
+      USE fourier, ONLY: f_cos, n0, n1
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(in)    :: amnh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: amnf_ds
+      INTEGER, INTENT(IN)                                     :: nsmin
+      INTEGER, INTENT(in)                                     :: iparity
+
+!  Start of executable code
+      IF (nsmin .eq. 1) THEN
+         amnf_ds(:,:,1) = 0.0
+         amnf_ds(m0,:,1) = 2.0*ohs*amnh(m0,:,2)
+      END IF
+
+      IF (iparity .eq. f_cos) THEN
+         amnf_ds(m0,-ntor:-n1,:) = 0.0
+      ELSE
+         amnf_ds(m0,-ntor:n0,:) = 0.0
+      END IF
 
       END SUBROUTINE
 

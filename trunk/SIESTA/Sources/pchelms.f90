@@ -244,9 +244,9 @@
 !      END IF
 
 !  Convert to real space.
-      CALL toijsp_par(jbsupsmnh(:,:,nmin:nsmax), Bsupsijh, fcomb, fours)
-      CALL toijsp_par(jbsupumnh(:,:,nmin:nsmax), Bsupuijh, fcomb, fouruv)
-      CALL toijsp_par(jbsupvmnh(:,:,nmin:nsmax), Bsupvijh, fcomb, fouruv)
+      CALL toijsp(jbsupsmnh(:,:,nmin:nsmax), Bsupsijh, fcomb, fours)
+      CALL toijsp(jbsupumnh(:,:,nmin:nsmax), Bsupuijh, fcomb, fouruv)
+      CALL toijsp(jbsupvmnh(:,:,nmin:nsmax), Bsupvijh, fcomb, fouruv)
       
       END SUBROUTINE
       
@@ -320,9 +320,9 @@
                bsubvmnh(0:mpol,-ntor:ntor,nmin:nmax), stat=istat)   
       CALL ASSERT(istat.EQ.0,'Allocation1 failed in CURLB_PCHELMS')
       
-      CALL tomnsp_par(bsubsijh, bsubsmnh(:,:,nmin:nmax), fours)          ! Compute BSUBXMNH    
-      CALL tomnsp_par(bsubuijh, bsubumnh(:,:,nmin:nmax), fouruv)
-      CALL tomnsp_par(bsubvijh, bsubvmnh(:,:,nmin:nmax), fouruv)
+      CALL tomnsp(bsubsijh, bsubsmnh(:,:,nmin:nmax), fours)          ! Compute BSUBXMNH
+      CALL tomnsp(bsubuijh, bsubumnh(:,:,nmin:nmax), fouruv)
+      CALL tomnsp(bsubvijh, bsubvmnh(:,:,nmin:nmax), fouruv)
       
       IF (nmax .eq. ns .and. iparity .eq. isym) THEN
          line_Bu = bsubumnh(0,0,ns)
@@ -506,9 +506,9 @@
          fouruv = f_sin
       END IF
 
-      CALL tomnsp_par(cA_s, A_s(:,:,ns:ns), fours)
-      CALL tomnsp_par(cA_u, A_u(:,:,ns:ns), fouruv)
-      CALL tomnsp_par(cA_v, A_v(:,:,ns:ns), fouruv)
+      CALL tomnsp(cA_s, A_s(:,:,ns:ns), fours)
+      CALL tomnsp(cA_u, A_u(:,:,ns:ns), fouruv)
+      CALL tomnsp(cA_v, A_v(:,:,ns:ns), fouruv)
 
 !  Extapolate the vector potential from the edge to the center.
       nmatch = 0
@@ -782,10 +782,10 @@
 
       IF (js .EQ. 1) THEN
          ALLOCATE(jacobmnch(0:mpol,-ntor:ntor,ns))
-         CALL tomnsp_par(jacobh, jacobmnch, f_cos)
+         CALL tomnsp(jacobh, jacobmnch, f_cos)
          IF (lasym) THEN
             ALLOCATE(jacobmnsh(0:mpol,-ntor:ntor,ns))
-            CALL tomnsp_par(jacobh, jacobmnsh, f_sin)
+            CALL tomnsp(jacobh, jacobmnsh, f_sin)
          END IF
  
          CALL Gather_Array(jbsupsmnsh)
