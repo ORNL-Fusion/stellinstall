@@ -408,6 +408,23 @@ then
               -DUSE_PARVMEC=ON                                       \
               -DUSE_FAST_COPY=ON
 
+elif [ $MACHINE_ID == "fusiont5" ]
+then
+
+	# Machines hosted on the ORNL network.
+	module load openmpi-4.0.0-gcc-7.3.0-md3r4mm
+	module load netcdf-4.7.0-gcc-7.3.0-cryif4b
+	module load netcdf-fortran-4.4.5-gcc-7.3.0-ps57ubg
+	module load netlib-scalapack-2.0.2-gcc-7.3.0-a3nyvns
+	cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE                                                                                                        \
+	      -DCMAKE_Fortran_COMPILER=gfortran                                                                                                            \
+	      -DEXTRA_FLAGS="-fopenmp -DNEW_CODE"                                                                                                          \
+	      -DEXTRA_RELEASE_FLAGS:String="-m64 -mfpmath=sse -march=native -msse4a -msse3"                                                                \
+	      -DNETCDF_INC_PATH=/home/dg6/spack/opt/spack/linux-ubuntu18.04-x86_64/gcc-7.3.0/netcdf-fortran-4.4.5-ps57ubgmf6kvkuelijh3ghc5k7ljw3bh/include \
+	      -DNETCDF_LIB_PATH=/home/dg6/spack/opt/spack/linux-ubuntu18.04-x86_64/gcc-7.3.0/netcdf-fortran-4.4.5-ps57ubgmf6kvkuelijh3ghc5k7ljw3bh/lib     \
+	      -DNETCDF_C_LIB_PATH=/home/dg6/spack/opt/spack/linux-ubuntu18.04-x86_64/gcc-7.3.0/netcdf-4.7.0-cryif4blmrhr2i43pif2scmlwv3yu3nq/lib           \
+	      -DUSE_FAST_COPY=ON
+
 else
 # MACHINE_ID is new and unknown. Inform the user how to add support for this new machine.
 	echo $MACHINE_ID not suported by this script.
