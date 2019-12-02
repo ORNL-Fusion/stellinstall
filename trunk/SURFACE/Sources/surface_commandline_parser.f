@@ -501,8 +501,8 @@
       WRITE(*,*) '                                                     '
       WRITE(*,*) '  -logf    Y Write screen output to a log file.      '
 !$    WRITE(*,*) '                                                     '
-!$    WRITE(*,*) '  -para    Y Determines number of threads threads to '
-!$    WRITE(*,*) '             run with. A value of -1 means use the   '
+!$    WRITE(*,*) '  -para    Y Determines number of threads to run     '
+!$    WRITE(*,*) '             with. A value of -1 means use the       '
 !$    WRITE(*,*) '             default number of threads.              '
 !$    WRITE(*,*) '                                                     '
 

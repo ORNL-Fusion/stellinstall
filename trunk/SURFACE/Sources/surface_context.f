@@ -12,8 +12,6 @@
 
       MODULE surface_context
       USE stel_kinds, ONLY: rprec
-!$    USE omp_lib
-      USE primed_grid
 
       IMPLICIT NONE
 
@@ -231,9 +229,9 @@
 !>  @brief Set the virtual current on the surface.
 !>
 !>  This uses the biot-savart to set a vitual current on an arbitrary
-!>  surface. The vitual current is taking from the jump condition assuming the
-!>  surface is a perfect conductor. At each point in the surface, the virtual
-!>  edge currents at the plasma last closed flux surface are area integrated.
+!>  surface. The vitual current is taken from the jump condition assuming the
+!>  surface is a perfect conductor. At each point in the surface, the plasma
+!>  current in volumn integrated.
 !>
 !>    b = mu0/4pi Int Int Int (Jsupu*esubu + Jsupv*esubv) X
 !>                            (x - xp)/(x - xp)*signJ*J*da*du*dv             (1)
@@ -256,6 +254,8 @@
       USE bmw_state_flags, ONLY: clear_screen, progress,                       &
      &                           bmw_state_flags_off
       USE, INTRINSIC :: iso_fortran_env, Only : output_unit
+      USE primed_grid
+!$    USE omp_lib
 
 !  Declare Arguments
       TYPE (surface_context_class), INTENT(inout)   :: this
@@ -410,20 +410,20 @@
          status = NF_INQ_VARID(ncid, 'k_x', kxid)
          IF (status .ne. NF_NOERR) THEN
             status = NF_REDEF(ncid)
-            status = NF_DEF_VAR(ncid, 'k_x', NF_DOUBLE, 1,                     &
-     &                          (/ size_dim /), kxid)
+            status = NF_DEF_VAR(ncid, 'k_x', NF_DOUBLE, 1, size_dim,           &
+     &                          kxid)
          END IF
          status = NF_INQ_VARID(ncid, 'k_y', kyid)
          IF (status .ne. NF_NOERR) THEN
             status = NF_REDEF(ncid)
-            status = NF_DEF_VAR(ncid, 'k_y', NF_DOUBLE, 1,                     &
-     &                          (/ size_dim /), kyid)
+            status = NF_DEF_VAR(ncid, 'k_y', NF_DOUBLE, 1, size_dim,           &
+     &                          kyid)
          END IF
          status = NF_INQ_VARID(ncid, 'k_z', kzid)
          IF (status .ne. NF_NOERR) THEN
             status = NF_REDEF(ncid)
-            status = NF_DEF_VAR(ncid, 'k_z', NF_DOUBLE, 1,                     &
-     &                          (/ size_dim /), kzid)
+            status = NF_DEF_VAR(ncid, 'k_z', NF_DOUBLE, 1, size_dim,           &
+     &                          kzid)
          END IF
 
          status = NF_ENDDEF(ncid)
