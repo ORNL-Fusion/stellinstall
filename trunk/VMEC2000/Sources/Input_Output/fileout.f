@@ -157,18 +157,23 @@ C-----------------------------------------------
       INTEGER :: js, istat1=0, irst0, OFU
       REAL(dp), DIMENSION(:), POINTER :: lu, lv
       REAL(dp), ALLOCATABLE :: br_out(:), bz_out(:)
-      CHARACTER(LEN=*), PARAMETER, DIMENSION(0:10) :: werror = (/
-     &   'EXECUTION TERMINATED NORMALLY                            ',
-     &   'INITIAL JACOBIAN CHANGED SIGN (IMPROVE INITIAL GUESS)    ',
-     &   'FORCE RESIDUALS EXCEED FTOL: MORE ITERATIONS REQUIRED    ',
-     &   'VMEC INDATA ERROR: NCURR.ne.1 but BLOAT.ne.1.            ',
-     &   'MORE THAN 75 JACOBIAN ITERATIONS (DECREASE DELT)         ',
-     &   'ERROR READING INPUT FILE OR NAMELIST                     ',
-     &   'NEW AXIS GUESS STILL FAILED TO GIVE GOOD JACOBIAN        ',
-     &   'PHIEDGE HAS WRONG SIGN IN VACUUM SUBROUTINE              ',
-     &   'NS ARRAY MUST NOT BE ALL ZEROES                          ',
-     &   'ERROR READING MGRID FILE                                 ',
-     &   'VAC-VMEC I_TOR MISMATCH : BOUNDARY MAY ENCLOSE EXT. COIL ' /)
+      CHARACTER(LEN=*), PARAMETER, DIMENSION(0:14) :: werror = (/
+     &   'EXECUTION TERMINATED NORMALLY                            ', ! norm_term_flag
+     &   'INITIAL JACOBIAN CHANGED SIGN (IMPROVE INITIAL GUESS)    ', ! bad_jacobian_flag
+     &   'FORCE RESIDUALS EXCEED FTOL: MORE ITERATIONS REQUIRED    ', ! more_iter_flag
+     &   'VMEC INDATA ERROR: NCURR.ne.1 but BLOAT.ne.1.            ', !
+     &   'MORE THAN 75 JACOBIAN ITERATIONS (DECREASE DELT)         ', ! jac75_flag
+     &   'ERROR READING INPUT FILE OR NAMELIST                     ', ! input_error_flag
+     &   'NEW AXIS GUESS STILL FAILED TO GIVE GOOD JACOBIAN        ', !
+     &   'PHIEDGE HAS WRONG SIGN IN VACUUM SUBROUTINE              ', ! phiedge_error_flag
+     &   'NS ARRAY MUST NOT BE ALL ZEROES                          ', ! ns_error_flag
+     &   'ERROR READING MGRID FILE                                 ', ! misc_error_flag
+     &   'VAC-VMEC I_TOR MISMATCH : BOUNDARY MAY ENCLOSE EXT. COIL ', !
+     &   'SUCCESSFUL VMEC CONVERGENCE                              ', ! successful_term_flag
+     &   'BSUBU OR BSUBV JS=1 COMPONENT NON-ZERO                   ', ! bsub_bad_js1_flag
+     &   'RMNC N=0, M=1 IS ZERO                                    ', ! r01_bad_value_flag
+     &   'ARNORM OR AZNORM EQUAL ZERO IN BCOVAR                    '  ! arz_bad_value_flag
+     &   /)
       CHARACTER(LEN=*), PARAMETER ::
      &    Warning = " Error deallocating global memory FILEOUT"
       LOGICAL :: log_open, lwrite, loutput, lterm
