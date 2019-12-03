@@ -125,9 +125,9 @@ C-----------------------------------------------
          END IF
 
 #ifdef _ANIMEC
-      w0 = wb + wpar/(gamma-one)
+         w0 = wb + wpar/(gamma-one)
 #else
-      w0 = wb + wp/(gamma - one)
+         w0 = wb + wp/(gamma - one)
 #endif
 
 !
@@ -204,7 +204,7 @@ C-----------------------------------------------
 
 !SPH (021711): V3FITA - SAVE STATE FOR RESTART IF PRECONDITIONER IS ON
 
-       IF (l_v3fit) THEN
+      IF (l_v3fit) THEN
 
 !JDH 2011-09-14. Correct logic error.
 
@@ -220,8 +220,8 @@ C-----------------------------------------------
 
       IF (grank .EQ. 0) THEN
 	     WRITE (nthreed, 60) w0*twopi**2, wdota, r0dot
-            IF (lrecon) WRITE (nthreed, 70) r00*fsqsum0/wb
-            IF (nfcn .GT. 0) WRITE (nthreed, 80) nfcn
+         IF (lrecon) WRITE (nthreed, 70) r00*fsqsum0/wb
+         IF (nfcn .GT. 0) WRITE (nthreed, 80) nfcn
       END IF
 
       CALL second0(teqsoloff)
