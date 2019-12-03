@@ -2,10 +2,10 @@
       USE vmec_main, p5 => cp5
       USE realspace
       USE vforces, ru12 => pazmn_e, zu12 => parmn_e, 
-     1             pazmn_e => pazmn_e, parmn_e => parmn_e,
-     2             lv_e => pcrmn_e, lu_e => pczmn_e, lu_o => pczmn_o,
-     3             pcrmn_e => pcrmn_e, pczmn_e => pczmn_e, 
-     4             pczmn_o => pczmn_o
+     &             pazmn_e => pazmn_e, parmn_e => parmn_e,
+     &             lv_e => pcrmn_e, lu_e => pczmn_e, lu_o => pczmn_o,
+     &             pcrmn_e => pcrmn_e, pczmn_e => pczmn_e,
+     &             pczmn_o => pczmn_o
       USE parallel_include_module
       USE timer_sub
       IMPLICIT NONE
@@ -19,7 +19,7 @@ C-----------------------------------------------
       INTEGER :: l, ndim
       INTEGER :: i, j, k, nsmin, nsmax
       REAL(dp), DIMENSION(:,:), POINTER :: 
-     1    bsqr, gvvs, guvs, guus
+     &    bsqr, gvvs, guvs, guus
       REAL(dp), ALLOCATABLE, DIMENSION(:) :: bcastbuf
 C-----------------------------------------------
       IF (.NOT.lactive .AND. .NOT.lfreeb) RETURN
@@ -80,7 +80,7 @@ C-----------------------------------------------
       nsmin=tlglob; nsmax=MIN(ns-1,trglob)
       DO l = nsmin, nsmax
          parmn_e(:,l) = parmn_e(:,l+1) - parmn_e(:,l)
-     1                + p5*(lv_e(:,l) + lv_e(:,l+1))
+     &                + p5*(lv_e(:,l) + lv_e(:,l+1))
          pazmn_e(:,l) = pazmn_e(:,l+1) - pazmn_e(:,l)
          pbrmn_e(:,l) = p5*(pbrmn_e(:,l) + pbrmn_e(:,l+1))
          pbzmn_e(:,l) = p5*(pbzmn_e(:,l) + pbzmn_e(:,l+1))
@@ -94,11 +94,11 @@ C-----------------------------------------------
       nsmin=tlglob; nsmax=t1rglob
       DO l = nsmin, nsmax
          parmn_e(:,l) = parmn_e(:,l)
-     1                - (gvvs(:,l)*pr1(:,l,1) + pgvv(:,l)*pr1(:,l,0))
+     &                - (gvvs(:,l)*pr1(:,l,1) + pgvv(:,l)*pr1(:,l,0))
          pbrmn_e(:,l) = pbrmn_e(:,l) + bsqr(:,l)*pz1(:,l,1)
-     1                - (guus(:,l)*pru(:,l,1) + pguu(:,l)*pru(:,l,0))
+     &                - (guus(:,l)*pru(:,l,1) + pguu(:,l)*pru(:,l,0))
          pbzmn_e(:,l) = pbzmn_e(:,l) - (bsqr(:,l)*pr1(:,l,1)
-     2                +  guus(:,l)*pzu(:,l,1) + pguu(:,l)*pzu(:,l,0))
+     &                +  guus(:,l)*pzu(:,l,1) + pguu(:,l)*pzu(:,l,0))
          lv_e(:,l) = lv_e(:,l)*pshalf(:,l)
          lu_o(:,l) = dshalfds*lu_e(:,l)
       END DO
@@ -107,16 +107,17 @@ C-----------------------------------------------
 !DIR$ IVDEP
       DO l = nsmin, nsmax
          parmn_o(:,l) = parmn_o(:,l+1) - parmn_o(:,l)
-     1                - pzu(:,l,0)*bsqr(:,l) + p5*(lv_e(:,l)+lv_e(:,l+1))
+     &                - pzu(:,l,0)*bsqr(:,l)
+     &                + p5*(lv_e(:,l)+lv_e(:,l+1))
          pazmn_o(:,l) = pazmn_o(:,l+1) - pazmn_o(:,l)
-     1                + pru(:,l,0)*bsqr(:,l)
+     &                + pru(:,l,0)*bsqr(:,l)
          pbrmn_o(:,l) = p5*(pbrmn_o(:,l) +  pbrmn_o(:,l+1))
          pbzmn_o(:,l) = p5*(pbzmn_o(:,l) +  pbzmn_o(:,l+1))
          lu_o(:,l)    = lu_o(:,l) + lu_o(:,l+1)
       END DO
 
       parmn_o(:,ns) = - parmn_o(:,ns) - pzu(:,ns,0)*bsqr(:,ns)
-     1                + p5*lv_e(:,ns)
+     &                + p5*lv_e(:,ns)
       pazmn_o(:,ns) = - pazmn_o(:,ns) + pru(:,ns,0)*bsqr(:,ns)
       pbrmn_o(:,ns) = p5*pbrmn_o(:,ns)
       pbzmn_o(:,ns) = p5*pbzmn_o(:,ns) 
@@ -130,12 +131,12 @@ C-----------------------------------------------
 
       DO l = nsmin, nsmax
          parmn_o(:,l) = parmn_o(:,l) - (pzu(:,l,1)*lu_o(:,l)
-     1                + bsqr(:,l)*pr1(:,l,1) + gvvs(:,l)*pr1(:,l,0))
+     &                + bsqr(:,l)*pr1(:,l,1) + gvvs(:,l)*pr1(:,l,0))
          pazmn_o(:,l) = pazmn_o(:,l) +  pru(:,l,1)*lu_o(:,l)
          pbrmn_o(:,l) = pbrmn_o(:,l) +  pz1(:,l,1)*lu_o(:,l)
-     1                -(pguu(:,l)*pru(:,l,1) + guus(:,l)*pru(:,l,0))
+     &                -(pguu(:,l)*pru(:,l,1) + guus(:,l)*pru(:,l,0))
          pbzmn_o(:,l) = pbzmn_o(:,l) - (pr1(:,l,1)*lu_o(:,l)
-     1                + pguu(:,l)*pzu(:,l,1) + guus(:,l)*pzu(:,l,0))
+     &                + pguu(:,l)*pzu(:,l,1) + guus(:,l)*pzu(:,l,0))
       END DO
 
       IF (lthreed) THEN
@@ -151,22 +152,22 @@ C-----------------------------------------------
          nsmin=tlglob; nsmax=trglob
          DO l = nsmin, nsmax
             pbrmn_e(:,l) = pbrmn_e(:,l)
-     1                   - (pguv(:,l)*prv(:,l,0) + guvs(:,l)*prv(:,l,1))
+     &                   - (pguv(:,l)*prv(:,l,0) + guvs(:,l)*prv(:,l,1))
             pbzmn_e(:,l) = pbzmn_e(:,l)
-     1                   - (pguv(:,l)*pzv(:,l,0) + guvs(:,l)*pzv(:,l,1))
+     &                   - (pguv(:,l)*pzv(:,l,0) + guvs(:,l)*pzv(:,l,1))
             pcrmn_e(:,l) = pguv(:,l)*pru(:,l,0) + pgvv(:,l)*prv(:,l,0)
-     1                   + gvvs(:,l)*prv(:,l,1) + guvs(:,l)*pru(:,l,1)
+     &                   + gvvs(:,l)*prv(:,l,1) + guvs(:,l)*pru(:,l,1)
             pczmn_e(:,l) = pguv(:,l)*pzu(:,l,0) + pgvv(:,l)*pzv(:,l,0)
-     1                   + gvvs(:,l)*pzv(:,l,1) + guvs(:,l)*pzu(:,l,1)
+     &                   + gvvs(:,l)*pzv(:,l,1) + guvs(:,l)*pzu(:,l,1)
             pguv(:,l) = pguv(:,l)*psqrts(:,l)*psqrts(:,l)
             pbrmn_o(:,l) = pbrmn_o(:,l)
-     1                   - (guvs(:,l)*prv(:,l,0) + pguv(:,l)*prv(:,l,1))
+     &                   - (guvs(:,l)*prv(:,l,0) + pguv(:,l)*prv(:,l,1))
             pbzmn_o(:,l) = pbzmn_o(:,l)
-     1                   - (guvs(:,l)*pzv(:,l,0) + pguv(:,l)*pzv(:,l,1))
+     &                   - (guvs(:,l)*pzv(:,l,0) + pguv(:,l)*pzv(:,l,1))
             pcrmn_o(:,l) = guvs(:,l)*pru(:,l,0) + gvvs(:,l)*prv(:,l,0)
-     1                   + bsqr(:,l)*prv(:,l,1) + pguv(:,l)*pru(:,l,1)
+     &                   + bsqr(:,l)*prv(:,l,1) + pguv(:,l)*pru(:,l,1)
              pczmn_o(:,l) = guvs(:,l)*pzu(:,l,0) + gvvs(:,l)*pzv(:,l,0)
-     1                    + bsqr(:,l)*pzv(:,l,1) + pguv(:,l)*pzu(:,l,1)
+     &                    + bsqr(:,l)*pzv(:,l,1) + pguv(:,l)*pzu(:,l,1)
          END DO
       ENDIF
 
@@ -216,9 +217,9 @@ C-----------------------------------------------
       USE vmec_main, p5 => cp5
       USE realspace
       USE vforces, ru12 => azmn_e, zu12 => armn_e, 
-     1             azmn_e => azmn_e, armn_e => armn_e,
-     2             lv_e => crmn_e, lu_e => czmn_e, lu_o => czmn_o,
-     3             crmn_e => crmn_e, czmn_e => czmn_e, czmn_o => czmn_o
+     &             azmn_e => azmn_e, armn_e => armn_e,
+     &             lv_e => crmn_e, lu_e => czmn_e, lu_o => czmn_o,
+     &             crmn_e => crmn_e, czmn_e => czmn_e, czmn_o => czmn_o
       USE timer_sub
 
       IMPLICIT NONE
@@ -231,7 +232,7 @@ C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER :: l, ndim
       REAL(dp), DIMENSION(:), POINTER :: 
-     1    bsqr, gvvs, guvs, guus
+     &    bsqr, gvvs, guvs, guus
 
 C-----------------------------------------------
       ndim = 1+nrzt
@@ -304,18 +305,18 @@ C-----------------------------------------------
       END DO
 
       armn_e(:nrzt) = armn_e(:nrzt) - (gvvs(:nrzt)*r1(:nrzt,1)
-     1              + gvv(:nrzt)*r1(:nrzt,0))
+     &              + gvv(:nrzt)*r1(:nrzt,0))
       brmn_e(:nrzt) = brmn_e(:nrzt) + bsqr(:nrzt)*z1(:nrzt,1)
-     1              -(guus(:nrzt)*ru(:nrzt,1) + guu(:nrzt)*ru(:nrzt,0))
+     &              -(guus(:nrzt)*ru(:nrzt,1) + guu(:nrzt)*ru(:nrzt,0))
       bzmn_e(:nrzt) = bzmn_e(:nrzt) - (bsqr(:nrzt)*r1(:nrzt,1)
-     1              + guus(:nrzt)*zu(:nrzt,1) + guu(:nrzt)*zu(:nrzt,0))
+     &              + guus(:nrzt)*zu(:nrzt,1) + guu(:nrzt)*zu(:nrzt,0))
       lv_e(1:ndim) = lv_e(1:ndim)*shalf(1:ndim)
       lu_o(1:ndim) = dshalfds*lu_e(1:ndim)
 
 !DIR$ IVDEP
       DO l = 1, nrzt
          armn_o(l) = armn_o(l+1) - armn_o(l) - zu(l,0)*bsqr(l)
-     1             + p5*(lv_e(l) + lv_e(l+1))
+     &             + p5*(lv_e(l) + lv_e(l+1))
          azmn_o(l) = azmn_o(l+1) - azmn_o(l) + ru(l,0)*bsqr(l)
          brmn_o(l) = p5*(brmn_o(l) + brmn_o(l+1))
          bzmn_o(l) = p5*(bzmn_o(l) + bzmn_o(l+1))
@@ -326,12 +327,12 @@ C-----------------------------------------------
       bsqr(1:nrzt) = gvv(1:nrzt) * sqrts(1:nrzt)**2
 
       armn_o(:nrzt) = armn_o(:nrzt) - (zu(:nrzt,1)*lu_o(:nrzt)
-     1             + bsqr(:nrzt)*r1(:nrzt,1) + gvvs(:nrzt)*r1(:nrzt,0))
+     &             + bsqr(:nrzt)*r1(:nrzt,1) + gvvs(:nrzt)*r1(:nrzt,0))
       azmn_o(:nrzt) = azmn_o(:nrzt) + ru(:nrzt,1)*lu_o(:nrzt)
       brmn_o(:nrzt) = brmn_o(:nrzt) + z1(:nrzt,1)*lu_o(:nrzt)
-     1             -(guu(:nrzt)*ru(:nrzt,1) + guus(:nrzt)*ru(:nrzt,0))
+     &             -(guu(:nrzt)*ru(:nrzt,1) + guus(:nrzt)*ru(:nrzt,0))
       bzmn_o(:nrzt) = bzmn_o(:nrzt) - (r1(:nrzt,1)*lu_o(:nrzt)
-     1             + guu(:nrzt)*zu(:nrzt,1) + guus(:nrzt)*zu(:nrzt,0))
+     &             + guu(:nrzt)*zu(:nrzt,1) + guus(:nrzt)*zu(:nrzt,0))
 
       IF (lthreed) THEN
 !DIR$ IVDEP
@@ -341,26 +342,26 @@ C-----------------------------------------------
          END DO
 
          brmn_e(:nrzt) = brmn_e(:nrzt) 
-     1          - (guv(:nrzt)*rv(:nrzt,0) + guvs(:nrzt)*rv(:nrzt,1))
+     &          - (guv(:nrzt)*rv(:nrzt,0) + guvs(:nrzt)*rv(:nrzt,1))
          bzmn_e(:nrzt) = bzmn_e(:nrzt) 
-     1          - (guv(:nrzt)*zv(:nrzt,0) + guvs(:nrzt)*zv(:nrzt,1))
+     &          - (guv(:nrzt)*zv(:nrzt,0) + guvs(:nrzt)*zv(:nrzt,1))
          crmn_e(:nrzt) = guv(:nrzt) *ru(:nrzt,0) 
-     1                 + gvv(:nrzt) *rv(:nrzt,0)
-     2          + gvvs(:nrzt)*rv(:nrzt,1) + guvs(:nrzt)*ru(:nrzt,1)
+     &                 + gvv(:nrzt) *rv(:nrzt,0)
+     &          + gvvs(:nrzt)*rv(:nrzt,1) + guvs(:nrzt)*ru(:nrzt,1)
          czmn_e(:nrzt) = guv(:nrzt) *zu(:nrzt,0) 
-     1                 + gvv(:nrzt) *zv(:nrzt,0)
-     2          + gvvs(:nrzt)*zv(:nrzt,1) + guvs(:nrzt)*zu(:nrzt,1)
+     &                 + gvv(:nrzt) *zv(:nrzt,0)
+     &          + gvvs(:nrzt)*zv(:nrzt,1) + guvs(:nrzt)*zu(:nrzt,1)
          guv(:nrzt) = guv(:nrzt) *sqrts(:nrzt)*sqrts(:nrzt)
          brmn_o(:nrzt) = brmn_o(:nrzt) 
-     1          - (guvs(:nrzt)*rv(:nrzt,0) + guv(:nrzt)*rv(:nrzt,1))
+     &          - (guvs(:nrzt)*rv(:nrzt,0) + guv(:nrzt)*rv(:nrzt,1))
          bzmn_o(:nrzt) = bzmn_o(:nrzt) 
-     1          - (guvs(:nrzt)*zv(:nrzt,0) + guv(:nrzt)*zv(:nrzt,1))
+     &          - (guvs(:nrzt)*zv(:nrzt,0) + guv(:nrzt)*zv(:nrzt,1))
          crmn_o(:nrzt) = guvs(:nrzt)*ru(:nrzt,0) 
-     1                 + gvvs(:nrzt)*rv(:nrzt,0)
-     2          + bsqr(:nrzt)*rv(:nrzt,1) + guv(:nrzt) *ru(:nrzt,1)
+     &                 + gvvs(:nrzt)*rv(:nrzt,0)
+     &          + bsqr(:nrzt)*rv(:nrzt,1) + guv(:nrzt) *ru(:nrzt,1)
          czmn_o(:nrzt) = guvs(:nrzt)*zu(:nrzt,0) 
-     1                 + gvvs(:nrzt)*zv(:nrzt,0)
-     2          + bsqr(:nrzt)*zv(:nrzt,1) + guv(:nrzt) *zu(:nrzt,1)
+     &                 + gvvs(:nrzt)*zv(:nrzt,0)
+     &          + bsqr(:nrzt)*zv(:nrzt,1) + guv(:nrzt) *zu(:nrzt,1)
       ENDIF
 
 !
@@ -368,13 +369,13 @@ C-----------------------------------------------
 !
       IF (ivac .ge. 1) THEN
          armn_e(ns:nrzt:ns) = armn_e(ns:nrzt:ns) 
-     1                      + zu0(ns:nrzt:ns)*rbsq(1:nznt)
+     &                      + zu0(ns:nrzt:ns)*rbsq(1:nznt)
          armn_o(ns:nrzt:ns) = armn_o(ns:nrzt:ns) 
-     1                      + zu0(ns:nrzt:ns)*rbsq(1:nznt)
+     &                      + zu0(ns:nrzt:ns)*rbsq(1:nznt)
          azmn_e(ns:nrzt:ns) = azmn_e(ns:nrzt:ns) 
-     1                      - ru0(ns:nrzt:ns)*rbsq(1:nznt)
+     &                      - ru0(ns:nrzt:ns)*rbsq(1:nznt)
          azmn_o(ns:nrzt:ns) = azmn_o(ns:nrzt:ns) 
-     1                      - ru0(ns:nrzt:ns)*rbsq(1:nznt)
+     &                      - ru0(ns:nrzt:ns)*rbsq(1:nznt)
 !         fz00_edge = SUM(wint(ns:nrzt:ns)*ru0(ns:nrzt:ns)*rbsq(1:nznt))
       ENDIF
 
