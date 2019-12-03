@@ -272,8 +272,8 @@ elif [ $MACHINE_ID == "cori01"   ] || \
      [ $MACHINE_ID == "cori12"   ]
 then
 
-    # Config for NERSC Cori Machine. Note: CRAYPE_LINK_TYPE=dynamic must
-    # be set.
+	# Config for NERSC Cori Machine. Note: CRAYPE_LINK_TYPE=dynamic must
+	# be set.
 	cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE                                 \
 	      -DNETCDF_INC_PATH=$NETCDF_DIR/include                          \
 	      -DNETCDF_LIB_PATH=$NETCDF_DIR/lib                              \
