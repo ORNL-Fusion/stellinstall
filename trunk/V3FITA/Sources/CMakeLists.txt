@@ -20,7 +20,7 @@ list (APPEND v3fit_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/sxrch_dot.f
 	${CMAKE_CURRENT_SOURCE_DIR}/thomson.f
 	${CMAKE_CURRENT_SOURCE_DIR}/thscte_dot.f
-	${CMAKE_CURRENT_SOURCE_DIR}/feedback.f
+#	${CMAKE_CURRENT_SOURCE_DIR}/feedback.f
 	${CMAKE_CURRENT_SOURCE_DIR}/sxrem_ratio.f
 	${CMAKE_CURRENT_SOURCE_DIR}/sxrem_ratio_dot.f
 	${CMAKE_CURRENT_SOURCE_DIR}/v3fita.f
@@ -41,5 +41,6 @@ list (APPEND v3fit_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/siesta_context.f
 	${CMAKE_CURRENT_SOURCE_DIR}/siesta_equilibrium.f
 	${CMAKE_CURRENT_SOURCE_DIR}/guassian_process.f
+	${CMAKE_CURRENT_SOURCE_DIR}/combination.f
 )
 set (v3fit_sources "${v3fit_sources}" PARENT_SCOPE)

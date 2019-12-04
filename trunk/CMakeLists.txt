@@ -30,11 +30,8 @@ project (v3fit_suite Fortran C CXX)
 
 enable_testing ()
 
-# Activate or Deactivate PARVMEC. PARVMEC maybe activated by setting -DUSE_PARVMEC=ON on the cmake command line.
-OPTION (USE_PARVMEC "Activate code parvmec." OFF)
-if (USE_PARVMEC)
-        add_definitions (-DSKS)
-endif ()
+# Define SKS preprocessor define as required by SIESTA. FIXME: Remove all SKS defines.
+add_definitions (-DSKS)
 
 # Activate or Deactivate code profiling. The profiler maybe activated by setting -DUSE_PROFILER=ON on the cmake command line.
 OPTION (USE_PROFILER "Activate code profiling." OFF)
@@ -63,7 +60,7 @@ get_filename_component (compiler ${CMAKE_Fortran_COMPILER} NAME)
 if (${compiler} STREQUAL mpiifort)
 	add_definitions (-DMPI_OPT)
 else ()
-	find_package (MPI)
+	find_package (MPI REQUIRED)
 endif ()
 
 if (MPI_Fortran_FOUND)
@@ -123,6 +120,9 @@ if (NETCDF_LIB_PATH)
 	file (TO_NATIVE_PATH ${NETCDF_LIB_PATH} NETCDF_LIB_PATH)
         find_library (NETCDF_F NAMES netcdff ${NETCDF_F_LIB_NAME} PATHS ${NETCDF_LIB_PATH} NO_DEFAULT_PATH)
         find_library (NETCDF_C NAMES netcdf ${NETCDF_C_LIB_NAME} PATHS ${NETCDF_LIB_PATH} NO_DEFAULT_PATH)
+endif ()
+if (NETCDF_C_LIB_PATH)
+        find_library (NETCDF_C NAMES netcdf ${NETCDF_C_LIB_NAME} PATHS ${NETCDF_C_LIB_PATH} NO_DEFAULT_PATH)
 endif ()
 
 if (NETCDF_I AND (NETCDF_F OR NETCDF_C))

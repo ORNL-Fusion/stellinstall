@@ -204,7 +204,7 @@
       SUBROUTINE ece_dot_parse_chord(ece_dot_file_ref, coordinate_type,        &
      &                               signals, signals_created, observed,       &
      &                               sigma, weight, first_index)
-      USE signal
+      USE ece
       USE v3fit_input, only: v3fit_max_diagnostics,                            &
      &                       v3fit_input_find_scale_index,                     &
      &                       v3fit_input_find_offset_index
@@ -223,7 +223,9 @@
       INTEGER, INTENT(inout)                 :: first_index
 
 !  local variables
-      REAL(rprec), DIMENSION(3)              :: xcart_i, xcart_f
+      CLASS (ece_class), POINTER             :: ece_obj
+      REAL(rprec), DIMENSION(3)              :: xcart_i
+      REAL(rprec), DIMENSION(3)              :: xcart_f
       CHARACTER (len=data_short_name_length) :: chord_name
       REAL (rprec)                           :: resonance
       REAL (rprec)                           :: start_time
@@ -245,12 +247,14 @@
       resonance = signal_dot_parse_real(ece_dot_file_ref,                      &
      &               'Expected resonance for ECE chord')
 
-      signals(signals_created + 1)%p => signal_construct(                      &
-     &   ece_construct(xcart_i, xcart_f, resonance), chord_name,               &
-     &   chord_name, 'arb', observed(signals_created + 1),                     &
-     &   sigma(signals_created + 1), weight(signals_created + 1),              &
-     &   v3fit_input_find_scale_index(signals_created + 1),                    &
-     &   v3fit_input_find_offset_index(signals_created + 1))
+      ece_obj => ece_class(xcart_i, xcart_f, resonance)
+      CALL signal_construct_new(ece_obj, chord_name, chord_name, 'arb',        &
+     &        observed(signals_created + 1),                                   &
+     &        sigma(signals_created + 1), weight(signals_created + 1),         &
+     &        v3fit_input_find_scale_index(signals_created + 1),               &
+     &        v3fit_input_find_offset_index(signals_created + 1))
+
+      signals(signals_created + 1)%p => ece_obj
       signals_created = signals_created + 1
 
 !  At lease one ece signal was made. Set the first index. This should only be

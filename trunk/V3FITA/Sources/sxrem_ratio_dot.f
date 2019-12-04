@@ -203,7 +203,7 @@
      &                                       signals, signals_created,         &
      &                                       observed, sigma, weight,          &
      &                                       first_index)
-      USE signal
+      USE sxrem_ratio
       USE v3fit_input, only: v3fit_max_diagnostics,                            &
      &                       v3fit_input_find_scale_index,                     &
      &                       v3fit_input_find_offset_index
@@ -224,7 +224,7 @@
       REAL (rprec), DIMENSION(3)             :: xcart
       INTEGER, DIMENSION(2)                  :: indices
       CHARACTER (len=data_short_name_length) :: point_name
-      TYPE (sxrem_ratio_class), POINTER      :: ratio_obj => null()
+      CLASS (sxrem_ratio_class), POINTER      :: ratio_obj => null()
       CHARACTER (len=data_short_name_length) :: units = ''
       REAL (rprec)                           :: start_time
 
@@ -246,14 +246,15 @@
       indices = signal_dot_parse_2_int(sxrem_ratio_dot_file_ref,               &
      &             'Expected sxrem profile indices')
 
-      ratio_obj => sxrem_ratio_construct(xcart, indices)
+      ratio_obj => sxrem_ratio_class(xcart, indices)
 
-      signals(signals_created + 1)%p =>                                        &
-     &   signal_construct(feedback_construct(ratio_obj), point_name,           &
-     &      point_name, units, observed(signals_created + 1),                  &
-     &      sigma(signals_created + 1), weight(signals_created + 1),           &
-     &      v3fit_input_find_scale_index(signals_created + 1),                 &
-     &      v3fit_input_find_offset_index(signals_created + 1))
+      CALL signal_construct(ratio_obj, point_name, point_name, units,          &
+     &        observed(signals_created + 1),                                   &
+     &        sigma(signals_created + 1), weight(signals_created + 1),         &
+     &        v3fit_input_find_scale_index(signals_created + 1),               &
+     &        v3fit_input_find_offset_index(signals_created + 1))
+
+      signals(signals_created + 1)%p => ratio_obj
 
       signals_created = signals_created + 1
 

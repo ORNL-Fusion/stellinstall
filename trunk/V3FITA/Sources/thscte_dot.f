@@ -243,7 +243,7 @@
      &                                  signals_created,                       &
      &                                  observed, sigma, weight,               &
      &                                  first_index)
-      USE signal
+      USE thomson
       USE v3fit_input, only: v3fit_max_diagnostics,                            &
      &                       v3fit_input_find_scale_index,                     &
      &                       v3fit_input_find_offset_index
@@ -264,7 +264,7 @@
 !  local variables
       REAL (rprec), DIMENSION(3)             :: xcart
       CHARACTER (len=data_short_name_length) :: point_name
-      TYPE (thomson_class), POINTER          :: thomson_obj => null()
+      CLASS (thomson_class), POINTER         :: thomson_obj => null()
       CHARACTER (len=data_short_name_length) :: units = ''
       REAL (rprec)                           :: start_time
 
@@ -286,25 +286,26 @@
       SELECT CASE (point_type)
 
          CASE ('t')
-            thomson_obj => thomson_construct_te(xcart)
+            thomson_obj => thomson_te_class(xcart)
             units = 'ev'
 
          CASE ('d')
-            thomson_obj => thomson_construct_ne(xcart)
+            thomson_obj => thomson_ne_class(xcart)
             units = 'm^-3'
 
          CASE ('p')
-            thomson_obj => thomson_construct_p(xcart)
+            thomson_obj => thomson_p_class(xcart)
             units = 'Pa'
 
       END SELECT
 
-      signals(signals_created + 1)%p => signal_construct(                      &
-     &   thomson_obj, point_name, point_name, units,                           &
-     &   observed(signals_created + 1), sigma(signals_created + 1),            &
-     &   weight(signals_created + 1),                                          &
-     &   v3fit_input_find_scale_index(signals_created + 1),                    &
-     &   v3fit_input_find_offset_index(signals_created + 1))
+      CALL signal_construct( thomson_obj, point_name, point_name,              &
+     &        units, observed(signals_created + 1),                            &
+     &        sigma(signals_created + 1), weight(signals_created + 1),         &
+     &        v3fit_input_find_scale_index(signals_created + 1),               &
+     &        v3fit_input_find_offset_index(signals_created + 1))
+
+      signals(signals_created + 1)%p => thomson_obj
 
       signals_created = signals_created + 1
 

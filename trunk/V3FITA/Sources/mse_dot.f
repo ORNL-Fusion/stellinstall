@@ -379,7 +379,7 @@
      &                             signals, signals_created,                   &
      &                             observed, sigma, weight,                    &
      &                             first_index, in_degrees, is_ratio)
-      USE signal
+      USE mse
       USE v3fit_input, only: v3fit_max_diagnostics,                            &
      &                       v3fit_input_find_scale_index,                     &
      &                       v3fit_input_find_offset_index
@@ -401,6 +401,7 @@
       LOGICAL, INTENT(in)                    :: is_ratio
 
 !  local variables
+      CLASS (mse_class), POINTER             :: mse_obj
       REAL (rprec), DIMENSION(3)             :: xcart
       REAL (rprec), DIMENSION(3)             :: view_start
       REAL (rprec), DIMENSION(3)             :: view_end
@@ -446,13 +447,17 @@
          view_end = cyl_to_cart(beam_end)
       END IF
 
-      signals(signals_created + 1)%p => signal_construct(                      &
-     &   mse_construct(xcart, view_start, view_end, beam_start,                &
-     &                 beam_end, in_degrees, is_ratio),                        &
-     &   point_name, point_name, 'arb', observed(signals_created + 1),         &
-     &   sigma(signals_created + 1), weight(signals_created + 1),              &
+      mse_obj => mse_class(xcart, view_start, view_end, beam_start,            &
+     &                     beam_end, in_degrees, is_ratio)
+
+      CALL signal_construct(mse_obj, point_name, point_name, 'arb',            &                                &
+     &   observed(signals_created + 1), sigma(signals_created + 1),            &
+     &   weight(signals_created + 1),                                          &
      &   v3fit_input_find_scale_index(signals_created + 1),                    &
      &   v3fit_input_find_offset_index(signals_created + 1))
+
+      signals(signals_created + 1)%p => mse_obj
+
       signals_created = signals_created + 1
 
 !  At lease one mse signal was made. Set the first index. This should only be
@@ -495,7 +500,7 @@
      &                             observed, sigma, weight,                    &
      &                             first_index, in_degrees1,                   &
      &                             in_degrees2, is_ratio)
-      USE signal
+      USE mse
       USE v3fit_input, only: v3fit_max_diagnostics,                            &
      &                       v3fit_input_find_scale_index,                     &
      &                       v3fit_input_find_offset_index
@@ -518,6 +523,7 @@
       LOGICAL, INTENT(in)                    :: is_ratio
 
 !  local variables
+      CLASS (mse_class), POINTER             :: mse_obj
       REAL (rprec), DIMENSION(3)             :: xcart
       REAL (rprec), DIMENSION(2)             :: t_angles
       REAL (rprec), DIMENSION(2)             :: h_angles
@@ -548,13 +554,17 @@
          h_angles = h_angles*degree
       END IF
 
-      signals(signals_created + 1)%p => signal_construct(                      &
-     &   mse_construct(xcart, t_angles(1), t_angles(2), h_angles(1),           &
-     &                 h_angles(2), in_degrees2, is_ratio),                    &
-     &   point_name, point_name, 'arb', observed(signals_created + 1),         &
+      mse_obj => mse_class(xcart, t_angles(1), t_angles(2), h_angles(1),       &
+     &             h_angles(2), in_degrees2, is_ratio)
+
+      CALL signal_construct(mse_obj, point_name, point_name, 'arb',            &
+     &   observed(signals_created + 1),                                        &
      &   sigma(signals_created + 1), weight(signals_created + 1),              &
      &   v3fit_input_find_scale_index(signals_created + 1),                    &
      &   v3fit_input_find_offset_index(signals_created + 1))
+
+      signals(signals_created + 1)%p => mse_obj
+
       signals_created = signals_created + 1
 
 !  At lease one mse signal was made. Set the first index. This should only be

@@ -1,5 +1,5 @@
 !*******************************************************************************
-!>  @file magnetic.f
+!>  @file integration_path.f
 !>  @brief Contains module @ref integration_path
 !
 !  Note separating the Doxygen comment block here so detailed decription is

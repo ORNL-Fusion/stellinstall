@@ -18,18 +18,12 @@
       USE coordinate_utilities
       USE profiler
       USE model
+      USE signal
 
       IMPLICIT NONE
 !*******************************************************************************
 !  intpol module parameters
 !*******************************************************************************
-!>  Type descriptor for intpol no type.
-      INTEGER, PARAMETER :: intpol_no_type             = -1
-!>  Type descriptor for intpol type represented a interferometer diagnostic.
-      INTEGER, PARAMETER :: intpol_interferometry_type = 0
-!>  Type descriptor for intpol type represented a polarmetry diagnostic.
-      INTEGER, PARAMETER :: intpol_polarimetry_type    = 1
-
 !>  Constant term for the polarimety.
       REAL(rprec), PARAMETER :: intpol_polar_constant = 2.62E-13_dp
 
@@ -39,39 +33,72 @@
 !
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  Base class representing a intpol signal.
+!>  Base class representing a interferometer signal.
 !>  @par Super Class:
-!>  @ref diagnostic
+!>  @ref signal
 !-------------------------------------------------------------------------------
-      TYPE intpol_class
-!>  Type descirptor of the intpol type.
-!>  @par Possible values are:
-!>  * @ref intpol_no_type
-!>  * @ref intpol_interferometry_type
-!>  * @ref intpol_polarimetry_type
-         INTEGER                :: type
-!>  Wavelength if the beam.
-         REAL (rprec)           :: wavelength
-!>  Controls if the results is computed in degrees or radians.
-         LOGICAL                :: in_degrees
+      TYPE, EXTENDS(signal_class) :: intpol_class
 !>  The complete path of the chord.
          TYPE (vertex), POINTER :: chord_path => null()
+      CONTAINS
+         PROCEDURE              ::                                             &
+     &      get_modeled_signal_last => intpol_get_modeled_signal
+         PROCEDURE              ::                                             &
+     &      get_type=> intpol_get_type
+         PROCEDURE              :: get_gp_i => intpol_get_gp_i
+         PROCEDURE              :: get_gp_s => intpol_get_gp_s
+         PROCEDURE              :: get_gp_x => intpol_get_gp_x
+         FINAL                  :: intpol_destruct
+      END TYPE
+
+!-------------------------------------------------------------------------------
+!>  Base class representing a polarimetry signal.
+!>  @par Super Class:
+!>  @ref intpol_class
+!-------------------------------------------------------------------------------
+      TYPE, EXTENDS(intpol_class) :: intpol_pol_class
+!>  Wavelength if the beam.
+         REAL (rprec) :: wavelength
+!>  Controls if the results is computed in degrees or radians.
+         LOGICAL      :: in_degrees
+      CONTAINS
+         PROCEDURE    ::                                                       &
+     &      get_modeled_signal_last => intpol_pol_get_modeled_signal
+         PROCEDURE    :: get_gp_i => intpol_pol_get_gp_i
+         PROCEDURE    :: get_gp_s => intpol_pol_get_gp_s
+         PROCEDURE    :: get_gp_x => intpol_pol_get_gp_x
+         FINAL        :: intpol_pol_destruct
       END TYPE
 
 !-------------------------------------------------------------------------------
 !>  Structure to hold all memory needed to be sent to the guassian process
-!>  callback function.
+!>  callback function of a point.
 !-------------------------------------------------------------------------------
       TYPE intpol_gp_context_i
 !>  Reference to a @ref model::model_class object.
          TYPE (model_class), POINTER :: model => null()
 !>  Position index.
          INTEGER                     :: i
+!>  Gaussian process kernel flags.
+         INTEGER                     :: flags = model_state_all_off
       END TYPE
 
 !-------------------------------------------------------------------------------
 !>  Structure to hold all memory needed to be sent to the guassian process
 !>  callback function for signal.
+!-------------------------------------------------------------------------------
+      TYPE intpol_gp_context_s
+!>  Reference to a @ref model::model_class object.
+         TYPE (model_class), POINTER   :: model => null()
+!>  First position.
+         CLASS (signal_class), POINTER :: signal => null()
+!>  Gaussian process kernel flags.
+         INTEGER                       :: flags = model_state_all_off
+      END TYPE
+
+!-------------------------------------------------------------------------------
+!>  Structure to hold all memory needed to be sent to the guassian process
+!>  callback function for position.
 !-------------------------------------------------------------------------------
       TYPE intpol_gp_context_x
 !>  Reference to a @ref model::model_class object.
@@ -84,22 +111,22 @@
 !  INTERFACE BLOCKS
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  Interface for the construction of @ref intpol_class types using
-!>  @ref intpol_construct_int or @ref intpol_construct_pol.
+!>  Interface for interferometry constructor.
 !-------------------------------------------------------------------------------
-      INTERFACE intpol_construct
-         MODULE PROCEDURE intpol_construct_int,                                &
-     &                    intpol_construct_pol
+      INTERFACE intpol_class
+         MODULE PROCEDURE intpol_construct
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
+!>  Interface for polarimetry constructor.
+!-------------------------------------------------------------------------------
+      INTERFACE intpol_pol_class
+         MODULE PROCEDURE intpol_pol_construct
       END INTERFACE
 
 !-------------------------------------------------------------------------------
 !>  Interface to get the guassian process kernel values.
 !-------------------------------------------------------------------------------
-      INTERFACE intpol_get_gp
-         MODULE PROCEDURE intpol_get_gp_i,                                     &
-     &                    intpol_get_gp_s,                                     &
-     &                    intpol_get_gp_x
-      END INTERFACE
 
       PRIVATE :: int_function, pol_function, gp_function_i,                    &
      &           gp_function_x
@@ -117,33 +144,29 @@
 !>  @param[in] chord_paths The nodes of a multi point segment integration path.
 !>  @returns A pointer to a constructed @ref intpol_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION intpol_construct_int(chord_paths)
+      FUNCTION intpol_construct(chord_paths)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (intpol_class), POINTER :: intpol_construct_int
-      REAL (rprec), DIMENSION(:,:) :: chord_paths
+      CLASS (intpol_class), POINTER :: intpol_construct
+      REAL (rprec), DIMENSION(:,:)  :: chord_paths
 
 !  local variables
-      INTEGER                      :: i
-      REAL (rprec)                 :: start_time
+      INTEGER                       :: i
+      REAL (rprec)                  :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      ALLOCATE(intpol_construct_int)
+      ALLOCATE(intpol_construct)
 
       DO i = 1, SIZE(chord_paths, 1)
-         CALL path_append_vertex(intpol_construct_int%chord_path,              &
+         CALL path_append_vertex(intpol_construct%chord_path,                  &
      &                           chord_paths(i,:))
       END DO
 
-      intpol_construct_int%type = intpol_interferometry_type
-      intpol_construct_int%wavelength = 0.0
-      intpol_construct_int%in_degrees = .false.
-
-      CALL profiler_set_stop_time('intpol_construct_int', start_time)
+      CALL profiler_set_stop_time('intpol_construct', start_time)
 
       END FUNCTION
 
@@ -159,35 +182,34 @@
 !>  @param[in] chord_paths The nodes of a multi point segment integration path.
 !>  @returns A pointer to a constructed @ref intpol_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION intpol_construct_pol(wavelength, in_degrees, chord_paths)
+      FUNCTION intpol_pol_construct(wavelength, in_degrees, chord_paths)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (intpol_class), POINTER :: intpol_construct_pol
-      REAL (rprec), INTENT(in)     :: wavelength
-      LOGICAL, INTENT(in)          :: in_degrees
-      REAL (rprec), DIMENSION(:,:) :: chord_paths
+      CLASS (intpol_pol_class), POINTER :: intpol_pol_construct
+      REAL (rprec), INTENT(in)          :: wavelength
+      LOGICAL, INTENT(in)               :: in_degrees
+      REAL (rprec), DIMENSION(:,:)      :: chord_paths
 
 !  local variables
-      INTEGER                      :: i
-      REAL (rprec)                 :: start_time
+      INTEGER                           :: i
+      REAL (rprec)                      :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      ALLOCATE(intpol_construct_pol)
+      ALLOCATE(intpol_pol_construct)
 
       DO i = 1, SIZE(chord_paths, 1)
-         CALL path_append_vertex(intpol_construct_pol%chord_path,              &
+         CALL path_append_vertex(intpol_pol_construct%chord_path,              &
      &                           chord_paths(i,:))
       END DO
 
-      intpol_construct_pol%type = intpol_polarimetry_type
-      intpol_construct_pol%wavelength = wavelength
-      intpol_construct_pol%in_degrees = in_degrees
+      intpol_pol_construct%wavelength = wavelength
+      intpol_pol_construct%in_degrees = in_degrees
 
-      CALL profiler_set_stop_time('intpol_construct_pol', start_time)
+      CALL profiler_set_stop_time('intpol_pol_construct', start_time)
 
       END FUNCTION
 
@@ -206,19 +228,34 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (intpol_class), POINTER :: this
+      TYPE (intpol_class), INTENT(inout) :: this
 
 !  Start of executable code
-      this%type = intpol_no_type
-      this%wavelength = 0.0
-      this%in_degrees = .false.
 
       IF (ASSOCIATED(this%chord_path)) THEN
          CALL path_destruct(this%chord_path)
          this%chord_path => null()
       END IF
 
-      DEALLOCATE(this)
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Deconstruct a @ref intpol_class object.
+!>
+!>  Deallocates memory and uninitializes a @ref intpol_class object.
+!>
+!>  @param[inout] this A @ref intpol_class instance.
+!-------------------------------------------------------------------------------
+      SUBROUTINE intpol_pol_destruct(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (intpol_pol_class), INTENT(inout) :: this
+
+!  Start of executable code
+      this%wavelength = 0
+      this%in_degrees = .false.
 
       END SUBROUTINE
 
@@ -226,34 +263,28 @@
 !  GETTER SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  @brief Calculates the modeled signal.
+!>  @brief Calculates the interferometry signal.
 !>
 !>  Calculates the modeled signal by integrating along the chord path. The
-!>  integration function is provided by @ref int_function for interferometer
-!>  diagnostics and @ ref pol_function for polarimetry diagnostics.
+!>  integration function is provided by @ref int_function.
 !>
-!>  @param[in]  this          A @ref intpol_class instance.
-!>  @param[in]  a_model       A @ref model instance.
-!>  @param[out] sigma         The modeled sigma.
-!>  @param[in]  last_value    Last good value in case the signal did not change.
-!>  @param[in]  scale_factor  Factor to scale the modeled signal.
-!>  @param[in]  offset_factor Factor to offset the modeled signal.
+!>  @param[inout] this       A @ref intpol_class instance.
+!>  @param[in]    a_model    A @ref model instance.
+!>  @param[out]   sigma      The modeled sigma.
+!>  @param[in]    last_value Last good value in case the signal did not change.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION intpol_get_modeled_signal(this, a_model, sigma,                 &
-     &                                   last_value, scale_factor,             &
-     &                                   offset_factor)
+     &                                   last_value)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4) :: intpol_get_modeled_signal
-      TYPE (intpol_class), INTENT(in)         :: this
-      TYPE (model_class), INTENT(in)          :: a_model
+      CLASS (intpol_class), INTENT(inout)     :: this
+      TYPE (model_class), POINTER             :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
       REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
-      REAL (rprec), INTENT(in)                :: scale_factor
-      REAL (rprec), INTENT(in)                :: offset_factor
 
 !  local variables
       CHARACTER(len=1), ALLOCATABLE           :: context(:)
@@ -263,7 +294,6 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      intpol_get_modeled_signal = last_value
       sigma = 0.0
 
       IF (BTEST(a_model%state_flags, model_state_vmec_flag)   .or.             &
@@ -278,32 +308,87 @@
          ALLOCATE(context(context_length))
          context = TRANSFER(a_model, context)
 
-         SELECT CASE (this%type)
-
-            CASE (intpol_interferometry_type)
-               intpol_get_modeled_signal(1) =                                  &
-     &            path_integrate(a_model%int_params, this%chord_path,          &
-     &                           int_function, context)
-
-            CASE (intpol_polarimetry_type)
-               intpol_get_modeled_signal(1) = intpol_polar_constant *          &
-     &            (this%wavelength**2.0_dp) *                                  &
-     &            path_integrate(a_model%int_params, this%chord_path,          &
-     &                           pol_function, context)
-               IF (this%in_degrees) THEN
-                   intpol_get_modeled_signal(1) =                              &
-     &                intpol_get_modeled_signal(1)/degree
-               ENDIF
-
-         END SELECT
-
          intpol_get_modeled_signal(1) =                                        &
-     &      (intpol_get_modeled_signal(1) + offset_factor)*scale_factor
+     &      path_integrate(a_model%int_params, this%chord_path,                &
+     &                     int_function, context)
 
          DEALLOCATE(context)
+
+         CALL this%scale_and_offset(a_model,                                   &
+     &                              intpol_get_modeled_signal(1))
+      ELSE
+         intpol_get_modeled_signal = last_value
       END IF
 
       CALL profiler_set_stop_time('intpol_get_modeled_signal',                 &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Calculates the polarimetry signal.
+!>
+!>  Calculates the modeled signal by integrating along the chord path. The
+!>  integration function is provided by @ ref pol_function.
+!>
+!>  @param[inout] this       A @ref intpol_pol_class instance.
+!>  @param[in]    a_model    A @ref model instance.
+!>  @param[out]   sigma      The modeled sigma.
+!>  @param[in]    last_value Last good value in case the signal did not change.
+!>  @returns The model value.
+!-------------------------------------------------------------------------------
+      FUNCTION intpol_pol_get_modeled_signal(this, a_model, sigma,             &
+     &                                       last_value)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(4) :: intpol_pol_get_modeled_signal
+      CLASS (intpol_pol_class), INTENT(inout) :: this
+      TYPE (model_class), POINTER             :: a_model
+      REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
+      REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
+
+!  local variables
+      CHARACTER(len=1), ALLOCATABLE           :: context(:)
+      INTEGER                                 :: context_length
+      REAL (rprec)                            :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      sigma = 0.0
+
+      IF (BTEST(a_model%state_flags, model_state_vmec_flag)   .or.             &
+     &    BTEST(a_model%state_flags, model_state_siesta_flag) .or.             &
+     &    BTEST(a_model%state_flags, model_state_ne_flag)     .or.             &
+     &    BTEST(a_model%state_flags, model_state_shift_flag)  .or.             &
+     &    BTEST(a_model%state_flags, model_state_signal_flag)) THEN
+
+!  Cast model into a data to a context. This is the equivalent to casting to a
+!  void pointer in C.
+         context_length = SIZE(TRANSFER(a_model, context))
+         ALLOCATE(context(context_length))
+         context = TRANSFER(a_model, context)
+
+         intpol_pol_get_modeled_signal(1) =                                    &
+     &      intpol_polar_constant*(this%wavelength**2.0_dp) *                  &
+     &      path_integrate(a_model%int_params, this%chord_path,                &
+     &                     pol_function, context)
+         IF (this%in_degrees) THEN
+            intpol_pol_get_modeled_signal(1) =                                 &
+     &                intpol_pol_get_modeled_signal(1)/degree
+         END IF
+
+         DEALLOCATE(context)
+
+         CALL this%scale_and_offset(a_model,                                   &
+     &                              intpol_pol_get_modeled_signal(1))
+      ELSE
+         intpol_pol_get_modeled_signal = last_value
+      END IF
+
+      CALL profiler_set_stop_time('intpol_pol_get_modeled_signal',             &
      &                            start_time)
 
       END FUNCTION
@@ -316,14 +401,14 @@
 !>  @param[in] this A @ref intpol_class instance.
 !>  @returns A string describing the intpol type.
 !-------------------------------------------------------------------------------
-      FUNCTION intpol_get_signal_type(this)
+      FUNCTION intpol_get_type(this)
       USE data_parameters
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=data_name_length) :: intpol_get_signal_type
-      TYPE (intpol_class), INTENT(in)  :: this
+      CHARACTER (len=data_name_length) :: intpol_get_type
+      CLASS (intpol_class), INTENT(in) :: this
 
 !  local variables
       REAL (rprec)                     :: start_time
@@ -331,24 +416,23 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      intpol_get_signal_type = 'ipch'
+      intpol_get_type = 'ipch'
 
-      CALL profiler_set_stop_time('intpol_get_signal_type', start_time)
+      CALL profiler_set_stop_time('intpol_get_type', start_time)
 
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Gets the guassian process kernel for an inteferometry/polarimetry
-!>  signal and a position.
+!>  @brief Gets the guassian process kernel for an inteferometry signal and a
+!>  position.
 !>
 !>  Calculates the guassian process kernel between the signal and the position.
-!>  Density kernels are provided by @ref model::model_get_gp_ne. Only valid for
-!>  interferometry types.
+!>  Density kernels are provided by @ref model::model_get_gp_ne.
 !>
-!>  @param[in] this         A @ref intpol_class instance.
-!>  @param[in] a_model      A @ref model instance.
-!>  @param[in] i            Index of the position for the kernel.
-!>  @param[in] flags        State flags to send to the kernel.
+!>  @param[in] this    A @ref intpol_class instance.
+!>  @param[in] a_model A @ref model instance.
+!>  @param[in] i       Index of the position for the kernel.
+!>  @param[in] flags   State flags to send to the kernel.
 !>  @returns Kernel value for the position and the signal.
 !-------------------------------------------------------------------------------
       FUNCTION intpol_get_gp_i(this, a_model, i, flags)
@@ -356,17 +440,17 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec)                           :: intpol_get_gp_i
-      TYPE (intpol_class), INTENT(in)        :: this
-      TYPE (model_class), TARGET, INTENT(in) :: a_model
-      INTEGER, INTENT(in)                    :: i
-      INTEGER, INTENT(in)                    :: flags
+      REAL (rprec)                     :: intpol_get_gp_i
+      CLASS (intpol_class), INTENT(in) :: this
+      TYPE (model_class), POINTER      :: a_model
+      INTEGER, INTENT(in)              :: i
+      INTEGER, INTENT(in)              :: flags
 
 !  local variables
-      CHARACTER(len=1), ALLOCATABLE          :: context(:)
-      INTEGER                                :: context_length
-      TYPE (intpol_gp_context_i)             :: gp_context
-      REAL (rprec)                           :: start_time
+      CHARACTER(len=1), ALLOCATABLE    :: context(:)
+      INTEGER                          :: context_length
+      TYPE (intpol_gp_context_i)       :: gp_context
+      REAL (rprec)                     :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -374,6 +458,7 @@
 !  The relevant data for the guassian process context.
       gp_context%model => a_model
       gp_context%i = i
+      gp_context%flags = flags
 
 !  Cast model into a data to a context. This is the equivalent to casting to a
 !  void pointer in C.
@@ -381,31 +466,13 @@
       ALLOCATE(context(context_length))
       context = TRANSFER(gp_context, context)
 
-      SELECT CASE (this%type)
-
-         CASE (intpol_interferometry_type)
-            intpol_get_gp_i =                                                  &
-     &         path_integrate(a_model%int_params, this%chord_path,             &
-     &                        gp_function_i, context)
-
-         CASE (intpol_polarimetry_type)
-            intpol_get_gp_i = intpol_polar_constant                            &
-     &                      * (this%wavelength**2.0_dp)                        &
-     &                      * path_integrate(a_model%int_params,               &
-     &                                       this%chord_path,                  &
-     &                                       gp_function_pol_i,                &
-     &                                       context)
-
-            IF (this%in_degrees) THEN
-               intpol_get_gp_i = intpol_get_gp_i/degree
-            END IF
-
-         CASE DEFAULT
-            intpol_get_gp_i = 0.0
-
-      END SELECT
+      intpol_get_gp_i = path_integrate(a_model%int_params,                     &
+     &                                 this%chord_path, gp_function_i,         &
+     &                                 context)
 
       DEALLOCATE(context)
+
+      CALL this%scale_and_offset(a_model, intpol_get_gp_i)
 
       CALL profiler_set_stop_time('intpol_get_gp_i', start_time)
 
@@ -416,64 +483,52 @@
 !>  signal.
 !>
 !>  Calculates the guassian process kernel between the signal and a signal.
-!>  Calls back to the @ref signal module to call the other signal. Only valid
-!>  for interferometry types. This is the first signal.
+!>  Calls back to the @ref signal module to call the other signal. This is the
+!>  first signal.
 !>
-!>  @param[in] this         A @ref intpol_class instance.
-!>  @param[in] a_model      A @ref model instance.
-!>  @param[in] gp_context   A @ref signal_class instance.
-!>  @param     gp_callback  Function pointer to call back to signal module.
+!>  @param[in] this    A @ref intpol_class instance.
+!>  @param[in] a_model A @ref model instance.
+!>  @param[in] signal  A @ref signal_class instance.
+!>  @param[in] flags   State flags to send to the kernel.
 !>  @returns Kernel value for the signal and the signal.
 !-------------------------------------------------------------------------------
-      FUNCTION intpol_get_gp_s(this, a_model, context, callback)
+      FUNCTION intpol_get_gp_s(this, a_model, signal, flags)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec)                    :: intpol_get_gp_s
-      TYPE (intpol_class), INTENT(in) :: this
-      TYPE (model_class), INTENT(in)  :: a_model
-      CHARACTER (len=1), INTENT(in)   :: context(:)
-      INTERFACE
-         FUNCTION callback(context, xcart, dxcart, length, dx)
-         USE stel_kinds
-         REAL (rprec)                           :: callback
-         CHARACTER (len=1), INTENT(in)          :: context(:)
-         REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
-         REAL (rprec), DIMENSION(3), INTENT(in) :: dxcart
-         REAL (rprec), INTENT(in)               :: length
-         REAL (rprec), INTENT(in)               :: dx
-         END FUNCTION
-      END INTERFACE
+      REAL (rprec)                     :: intpol_get_gp_s
+      CLASS (intpol_class), INTENT(in) :: this
+      TYPE (model_class), POINTER      :: a_model
+      CLASS (signal_class), POINTER    :: signal
+      INTEGER, INTENT(in)              :: flags
 
 !  local variables
-      REAL (rprec)                    :: start_time
+      CHARACTER(len=1), ALLOCATABLE    :: context(:)
+      INTEGER                          :: context_length
+      TYPE (intpol_gp_context_s)       :: gp_context
+      REAL (rprec)                     :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      SELECT CASE(this%type)
+      gp_context%model => a_model
+      gp_context%signal => signal
+      gp_context%flags = flags
 
-         CASE (intpol_interferometry_type)
-            intpol_get_gp_s = path_integrate(a_model%int_params,               &
-     &                                       this%chord_path, callback,        &
-     &                                       context)
+!  Cast model into a data to a context. This is the equivalent to casting to a
+!  void pointer in C.
+      context_length = SIZE(TRANSFER(gp_context, context))
+      ALLOCATE(context(context_length))
+      context = TRANSFER(gp_context, context)
 
-         CASE (intpol_polarimetry_type)
-            intpol_get_gp_s = intpol_polar_constant                            &
-     &                      * (this%wavelength**2.0_dp)                        &
-     &                      * path_integrate(a_model%int_params,               &
-     &                                       this%chord_path, callback,        &
-     &                                       context)
+      intpol_get_gp_s = path_integrate(a_model%int_params,                     &
+     &                                 this%chord_path, gp_function_s,         &
+     &                                 context)
 
-            IF (this%in_degrees) THEN
-               intpol_get_gp_s = intpol_get_gp_s/degree
-            ENDIF
+      DEALLOCATE(context)
 
-         CASE DEFAULT
-            intpol_get_gp_s = 0.0
-
-      END SELECT
+      CALL this%scale_and_offset(a_model, intpol_get_gp_s)
 
       CALL profiler_set_stop_time('intpol_get_gp_s', start_time)
 
@@ -484,12 +539,12 @@
 !>  cartesian position.
 !>
 !>  Calculates the guassian process kernel between the signal and the position.
-!>  Only valid for interferometry types. This is the second signal.
+!>  This is the second signal.
 !>
-!>  @param[in] this         A @ref intpol_class instance.
-!>  @param[in] a_model      A @ref model instance.
-!>  @param[in] x_cart       The cartesian position of to get the kernel at.
-!>  @param[in] flags        State flags to send to the kernel.
+!>  @param[in] this    A @ref intpol_class instance.
+!>  @param[in] a_model A @ref model instance.
+!>  @param[in] x_cart  The cartesian position of to get the kernel at.
+!>  @param[in] flags   State flags to send to the kernel.
 !>  @returns Kernel value for the signal and the signal.
 !-------------------------------------------------------------------------------
       FUNCTION intpol_get_gp_x(this, a_model, x_cart, flags)
@@ -498,8 +553,8 @@
 
 !  Declare Arguments
       REAL (rprec)                           :: intpol_get_gp_x
-      TYPE (intpol_class), INTENT(in)        :: this
-      TYPE (model_class), TARGET, INTENT(in) :: a_model
+      CLASS (intpol_class), INTENT(in)       :: this
+      TYPE (model_class), POINTER            :: a_model
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
       INTEGER, INTENT(in)                    :: flags
 
@@ -515,6 +570,184 @@
       gp_context%model => a_model
       gp_context%xcart = x_cart
 
+!  Cast model into a data context. This is the equivalent to casting to a void
+!  pointer in C.
+      context_length = SIZE(TRANSFER(gp_context, context))
+      ALLOCATE(context(context_length))
+      context = TRANSFER(gp_context, context)
+
+      intpol_get_gp_x = path_integrate(a_model%int_params,                     &
+     &                                 this%chord_path, gp_function_x,
+     &                                 context)
+
+      DEALLOCATE(context)
+
+      CALL this%scale_and_offset(a_model, intpol_get_gp_x)
+
+      CALL profiler_set_stop_time('intpol_get_gp_x', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the guassian process kernel for an polarimetry signal and a
+!>  position.
+!>
+!>  Calculates the guassian process kernel between the signal and the position.
+!>  Density kernels are provided by @ref model::model_get_gp_ne.
+!>
+!>  @param[in] this    A @ref intpol_pol_class instance.
+!>  @param[in] a_model A @ref model instance.
+!>  @param[in] i       Index of the position for the kernel.
+!>  @param[in] flags   State flags to send to the kernel.
+!>  @returns Kernel value for the position and the signal.
+!-------------------------------------------------------------------------------
+      FUNCTION intpol_pol_get_gp_i(this, a_model, i, flags)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                         :: intpol_pol_get_gp_i
+      CLASS (intpol_pol_class), INTENT(in) :: this
+      TYPE (model_class), POINTER          :: a_model
+      INTEGER, INTENT(in)                  :: i
+      INTEGER, INTENT(in)                  :: flags
+
+!  local variables
+      CHARACTER(len=1), ALLOCATABLE        :: context(:)
+      INTEGER                              :: context_length
+      TYPE (intpol_gp_context_i)           :: gp_context
+      REAL (rprec)                         :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+!  The relevant data for the guassian process context.
+      gp_context%model => a_model
+      gp_context%i = i
+      gp_context%flags = flags
+
+!  Cast model into a data to a context. This is the equivalent to casting to a
+!  void pointer in C.
+      context_length = SIZE(TRANSFER(gp_context, context))
+      ALLOCATE(context(context_length))
+      context = TRANSFER(gp_context, context)
+
+      intpol_pol_get_gp_i = intpol_polar_constant                              &
+     &                    * (this%wavelength**2.0_dp)                          &
+     &                    * path_integrate(a_model%int_params,                 &
+     &                                     this%chord_path,                    &
+     &                                     gp_pol_function_i,                  &
+     &                                     context)
+
+      DEALLOCATE(context)
+
+      IF (this%in_degrees) THEN
+         intpol_pol_get_gp_i = intpol_pol_get_gp_i/degree
+      END IF
+      CALL this%scale_and_offset(a_model, intpol_pol_get_gp_i)
+
+      CALL profiler_set_stop_time('intpol_pol_get_gp_i', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the guassian process kernel for an polarimetry signal and a
+!>  signal.
+!>
+!>  Calculates the guassian process kernel between the signal and a signal.
+!>  Calls back to the @ref signal module to call the other signal. This is the
+!>  first signal.
+!>
+!>  @param[in] this    A @ref intpol_class instance.
+!>  @param[in] a_model A @ref model instance.
+!>  @param[in] signal  A @ref signal_class instance.
+!>  @param[in] flags   State flags to send to the kernel.
+!>  @returns Kernel value for the signal and the signal.
+!-------------------------------------------------------------------------------
+      FUNCTION intpol_pol_get_gp_s(this, a_model, signal, flags)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                         :: intpol_pol_get_gp_s
+      CLASS (intpol_pol_class), INTENT(in) :: this
+      TYPE (model_class), POINTER          :: a_model
+      CLASS (signal_class), POINTER        :: signal
+      INTEGER, INTENT(in)                  :: flags
+
+!  local variables
+      CHARACTER(len=1), ALLOCATABLE        :: context(:)
+      INTEGER                              :: context_length
+      TYPE (intpol_gp_context_s)           :: gp_context
+      REAL (rprec)                         :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+!  The relevant data for the guassian process context.
+      gp_context%model => a_model
+      gp_context%signal => signal
+      gp_context%flags = flags
+
+!  Cast model into a data to a context. This is the equivalent to casting to a
+!  void pointer in C.
+      context_length = SIZE(TRANSFER(gp_context, context))
+      ALLOCATE(context(context_length))
+      context = TRANSFER(gp_context, context)
+
+      intpol_pol_get_gp_s = intpol_polar_constant                              &
+     &                    * (this%wavelength**2.0_dp)                          &
+     &                    * path_integrate(a_model%int_params,                 &
+     &                                     this%chord_path,                    &
+     &                                     gp_pol_function_s,                  &
+     &                                     context)
+
+      DEALLOCATE(context)
+
+      IF (this%in_degrees) THEN
+         intpol_pol_get_gp_s = intpol_pol_get_gp_s/degree
+      END IF
+      CALL this%scale_and_offset(a_model, intpol_pol_get_gp_s)
+
+      CALL profiler_set_stop_time('intpol_pol_get_gp_s', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the guassian process kernel for a polarimetry signal and a
+!>  cartesian position.
+!>
+!>  Calculates the guassian process kernel between the signal and the position.
+!>  This is the second signal.
+!>
+!>  @param[in] this    A @ref intpol_pol_class instance.
+!>  @param[in] a_model A @ref model instance.
+!>  @param[in] x_cart  The cartesian position of to get the kernel at.
+!>  @param[in] flags   State flags to send to the kernel.
+!>  @returns Kernel value for the signal and the signal.
+!-------------------------------------------------------------------------------
+      FUNCTION intpol_pol_get_gp_x(this, a_model, x_cart, flags)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: intpol_pol_get_gp_x
+      CLASS (intpol_pol_class), INTENT(in)   :: this
+      TYPE (model_class), POINTER            :: a_model
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      INTEGER, INTENT(in)                    :: flags
+
+!  local variables
+      REAL (rprec)                           :: start_time
+      CHARACTER(len=1), ALLOCATABLE          :: context(:)
+      INTEGER                                :: context_length
+      TYPE (intpol_gp_context_x)             :: gp_context
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      gp_context%model => a_model
+      gp_context%xcart = x_cart
 
 !  Cast model into a data context. This is the equivalent to casting to a void
 !  pointer in C.
@@ -522,87 +755,21 @@
       ALLOCATE(context(context_length))
       context = TRANSFER(gp_context, context)
 
-      SELECT CASE (this%type)
-
-         CASE (intpol_interferometry_type)
-            intpol_get_gp_x = path_integrate(a_model%int_params,               &
-     &                                       this%chord_path,                  &
-     &                                       gp_function_x, context)
-
-         CASE (intpol_polarimetry_type)
-            intpol_get_gp_x = intpol_polar_constant                            &
-     &                      * (this%wavelength**2.0_dp)                        &
-     &                      * path_integrate(a_model%int_params,               &
-     &                                       this%chord_path,                  &
-     &                                       gp_function_pol_x,                &
-     &                                       context)
-
-            IF (this%in_degrees) THEN
-               intpol_get_gp_x = intpol_get_gp_x/degree
-            END IF
-
-         CASE DEFAULT
-            intpol_get_gp_x = 0.0
-
-      END SELECT
+      intpol_pol_get_gp_x = intpol_polar_constant                              &
+     &                    * (this%wavelength**2.0_dp)                          &
+     &                    * path_integrate(a_model%int_params,                 &
+     &                                     this%chord_path,                    &
+     &                                     gp_pol_function_x,                  &
+     &                                     context)
 
       DEALLOCATE(context)
 
-      CALL profiler_set_stop_time('intpol_get_gp_x', start_time)
+      IF (this%in_degrees) THEN
+         intpol_pol_get_gp_x = intpol_pol_get_gp_x/degree
+      END IF
+      CALL this%scale_and_offset(a_model, intpol_pol_get_gp_x)
 
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!>  @brief Gets the integration element for the signal.
-!>
-!>  Integrated signals may contain extra quanties that are integrated. In the on
-!>  context of gaussian process, the correlation of two signals measureing
-!>  different quanties but using the same kernel can be computed. This ensures
-!>  the one of the signals has the correct value.
-!>
-!>  @param[in] this         A @ref intpol_class instance.
-!>  @param[in] a_model      A @ref model instance.
-!>  @param[in] xcart   The integration point.
-!>  @param[in] dxcart  A vector change in path. Not used in this function.
-!>  @param[in] length  Length along the integration.
-!>  @param[in] dx      A scalar change in path.
-!>  @param[in] flags   State flags to send to the kernel.
-!>  @returns Kernel value for the signal and the signal.
-!-------------------------------------------------------------------------------
-      FUNCTION intpol_get_dx(this, a_model, xcart, dxcart, length, dx,         &
-     &                       flags)
-      REAL (rprec)                           :: intpol_get_dx
-      TYPE (intpol_class), INTENT(in)        :: this
-      TYPE (model_class), TARGET, INTENT(in) :: a_model
-      REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
-      REAL (rprec), DIMENSION(3), INTENT(in) :: dxcart
-      REAL (rprec), INTENT(in)               :: length
-      REAL (rprec), INTENT(in)               :: dx
-      INTEGER, INTENT(in)                    :: flags
-
-! local variables
-      REAL (rprec), DIMENSION(3)             :: bcart
-      REAL (rprec)                           :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      SELECT CASE(this%type)
-
-         CASE (intpol_interferometry_type)
-            intpol_get_dx = dx
-
-         CASE (intpol_polarimetry_type)
-            bcart = equilibrium_get_B_vec(a_model%equilibrium, xcart,          &
-     &                                    .false.)
-            intpol_get_dx = DOT_PRODUCT(bcart, dxcart)
-
-         CASE DEFAULT
-            intpol_get_dx = 0.0
-
-      END SELECT
-
-      CALL profiler_set_stop_time('intpol_get_dx', start_time)
+      CALL profiler_set_stop_time('intpol_pol_get_gp_x', start_time)
 
       END FUNCTION
 
@@ -764,12 +931,12 @@
 !>  @param[in] dx      A scalar change in path.
 !>  @returns The k(x, i)*dl at point x.
 !-------------------------------------------------------------------------------
-      FUNCTION gp_function_pol_i(context, xcart, dxcart, length, dx)
+      FUNCTION gp_pol_function_i(context, xcart, dxcart, length, dx)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec)                           :: gp_function_pol_i
+      REAL (rprec)                           :: gp_pol_function_i
       CHARACTER (len=1), INTENT(in)          :: context(:)
       REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
       REAL (rprec), DIMENSION(3), INTENT(in) :: dxcart
@@ -787,21 +954,114 @@
       gp_context = TRANSFER(context, gp_context)
       bcart = equilibrium_get_B_vec(gp_context%model%equilibrium, xcart,       &
      &                              .false.)
-      gp_function_pol_i = model_get_gp_ne(gp_context%model, xcart,             &
+      gp_pol_function_i = model_get_gp_ne(gp_context%model, xcart,             &
      &                                    gp_context%i)                        *
      &                  * DOT_PRODUCT(bcart, dxcart)
 
-      CALL profiler_set_stop_time('gp_function_pol_i', start_time)
+      CALL profiler_set_stop_time('gp_pol_function_i', start_time)
 
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Electron density gaussian process callback function for kernel
-!>  evaluation of two signals.
+!>  @brief Interferometry gaussian process callback function for signal signal
+!>  kernel evaluation.
 !>
-!>  Calculates the guassian process kernel between the signal and a signal.
-!>  Calls back to the @ref signal module to call the other signal. This is the
-!>  second signal.
+!>  Returns the value of the density guassian process kernel times the change in
+!>  path length. This function is passed to
+!>  @ref integration_path::path_integrate to act as a callback. The density
+!>  kernel is provided by @ref model::model_get_gp_ne. This is the first signal.
+!>
+!>  @see integration_path
+!>
+!>  @param[in] context A @ref intpol_gp_context_i for the model.
+!>  @param[in] xcart   The integration point.
+!>  @param[in] dxcart  A vector change in path. Not used in this function.
+!>  @param[in] length  Length along the integration.
+!>  @param[in] dx      A scalar change in path.
+!>  @returns The k(x, i)*dl at point x.
+!-------------------------------------------------------------------------------
+      FUNCTION gp_function_s(context, xcart, dxcart, length, dx)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: gp_function_s
+      CHARACTER (len=1), INTENT(in)          :: context(:)
+      REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
+      REAL (rprec), DIMENSION(3), INTENT(in) :: dxcart
+      REAL (rprec), INTENT(in)               :: length
+      REAL (rprec), INTENT(in)               :: dx
+
+! local variables
+      TYPE (intpol_gp_context_s)             :: gp_context
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      gp_context = TRANSFER(context, gp_context)
+      gp_function_s = gp_context%signal%get_gp(gp_context%model, xcart,        &
+     &                                         gp_context%flags)*dx
+
+      CALL profiler_set_stop_time('gp_function_s', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Polarimetry gaussian process callback function for signal signal
+!>  kernel evaluation.
+!>
+!>  Returns the value of the density guassian process kernel times the change in
+!>  path length dotted with the magnetic field vector. This function is passed
+!>  to @ref integration_path::path_integrate to act as a callback. The density
+!>  kernel is provided by @ref model::model_get_gp_ne. This is the first signal.
+!>
+!>  @see integration_path
+!>
+!>  @param[in] context A @ref intpol_gp_context_i for the model.
+!>  @param[in] xcart   The integration point.
+!>  @param[in] dxcart  A vector change in path. Not used in this function.
+!>  @param[in] length  Length along the integration.
+!>  @param[in] dx      A scalar change in path.
+!>  @returns The k(x, i)*dl at point x.
+!-------------------------------------------------------------------------------
+      FUNCTION gp_pol_function_s(context, xcart, dxcart, length, dx)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: gp_pol_function_s
+      CHARACTER (len=1), INTENT(in)          :: context(:)
+      REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
+      REAL (rprec), DIMENSION(3), INTENT(in) :: dxcart
+      REAL (rprec), INTENT(in)               :: length
+      REAL (rprec), INTENT(in)               :: dx
+
+! local variables
+      TYPE (intpol_gp_context_s)             :: gp_context
+      REAL (rprec), DIMENSION(3)             :: bcart
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      gp_context = TRANSFER(context, gp_context)
+      bcart = equilibrium_get_B_vec(gp_context%model%equilibrium, xcart,       &
+     &                              .false.)
+      gp_pol_function_s = gp_context%signal%get_gp(gp_context%model,           &
+     &                                             xcart,                      &
+     &                                             gp_context%flags)           &
+     &                  * DOT_PRODUCT(bcart, dxcart)
+
+      CALL profiler_set_stop_time('gp_pol_function_s', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Interferometry gaussian process callback function for kernel
+!>  evaluation of two positions.
+!>
+!>  This is the second interferometry signal.
 !>
 !>  @see integration_path
 !>
@@ -841,12 +1101,10 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Electron density gaussian process callback function for kernel
-!>  evaluation of two signals.
+!>  @brief Polarimetry gaussian process callback function for kernel
+!>  evaluation of two positions.
 !>
-!>  Calculates the guassian process kernel between the signal and a signal.
-!>  Calls back to the @ref signal module to call the other signal. This is the
-!>  second signal for a polarimetry signal.
+!>  This is the second polarimetry signal.
 !>
 !>  @see integration_path
 !>
@@ -855,14 +1113,14 @@
 !>  @param[in] dxcart  A vector change in path. Not used in this function.
 !>  @param[in] length  Length along the integration.
 !>  @param[in] dx      A scalar change in path.
-!>  @returns The k(x, y)*dl at point y.
+!>  @returns The k(x, y)*B.dl at point y.
 !-------------------------------------------------------------------------------
-      FUNCTION gp_function_pol_x(context, xcart, dxcart, length, dx)
+      FUNCTION gp_pol_function_x(context, xcart, dxcart, length, dx)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec)                           :: gp_function_pol_x
+      REAL (rprec)                           :: gp_pol_function_x
       CHARACTER (len=1), INTENT(in)          :: context(:)
       REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
       REAL (rprec), DIMENSION(3), INTENT(in) :: dxcart
@@ -881,11 +1139,11 @@
       gp_context = TRANSFER(context, gp_context)
       bcart = equilibrium_get_B_vec(gp_context%model%equilibrium, xcart,       &
      &                              .false.)
-      gp_function_pol_x = model_get_gp_ne(gp_context%model,                    &
+      gp_pol_function_x = model_get_gp_ne(gp_context%model,                    &
      &                                    xcart, gp_context%xcart)             &
      &                  * DOT_PRODUCT(bcart, dxcart)
 
-      CALL profiler_set_stop_time('gp_function_x', start_time)
+      CALL profiler_set_stop_time('gp_pol_function_x', start_time)
 
       END FUNCTION
 

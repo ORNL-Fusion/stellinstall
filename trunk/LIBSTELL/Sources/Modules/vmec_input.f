@@ -203,5 +203,3 @@
       END SUBROUTINE read_mse_namelist
 
       END MODULE vmec_input
-
-
