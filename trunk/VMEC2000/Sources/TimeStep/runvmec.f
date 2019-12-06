@@ -148,6 +148,13 @@ C-----------------------------------------------
      &                     RUNVMEC_COMM_WORLD, MPI_ERR)
             CALL MPI_Bcast(lamscale, 1, MPI_REAL8, 0,
      &                     RUNVMEC_COMM_WORLD, MPI_ERR)
+
+            nsmin = t1lglob; nsmax = t1rglob
+            DO js = nsmin, nsmax
+               pphip(:,js) = phips(js)
+               pchip(:,js) = chips(js)
+            END DO
+
             CALL second0(bcasttoff)
             broadcast_time = broadcast_time + (bcasttoff - bcastton)
          END IF
