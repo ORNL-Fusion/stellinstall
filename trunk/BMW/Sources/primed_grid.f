@@ -911,6 +911,7 @@
       DO i = bmw_parallel_context_start(parallel, ns - 1),                     &
      &       bmw_parallel_context_end(parallel, ns - 1)
          si = bmw_parallel_context_i(i, ns)
+
          rmnch(:,si) = (rmnc(:,si + 1) + rmnc(:,si))/2.0
          zmnsh(:,si) = (zmns(:,si + 1) + zmns(:,si))/2.0
 

@@ -440,7 +440,7 @@
       CALL toijsp(jbsupsmnh(:,:,nsmin:nsmax), bsupsijh0, fcomb, fours)
       CALL toijsp(jbsupumnh(:,:,nsmin:nsmax), bsupuijh0, fcomb, fouruvp)
       CALL toijsp(jbsupvmnh(:,:,nsmin:nsmax), bsupvijh0, fcomb, fouruvp)
-      CALL toijsp(jpmnh(:,:,nsmin:nsmax), pijh0, fcomb, fouruvp, .true.)
+      CALL toijsp(jpmnh(:,:,nsmin:nsmax), pijh0, fcomb, fouruvp)
 
       END SUBROUTINE
 

@@ -148,6 +148,13 @@ C-----------------------------------------------
      &                     RUNVMEC_COMM_WORLD, MPI_ERR)
             CALL MPI_Bcast(lamscale, 1, MPI_REAL8, 0,
      &                     RUNVMEC_COMM_WORLD, MPI_ERR)
+
+            nsmin = t1lglob; nsmax = t1rglob
+            DO js = nsmin, nsmax
+               pphip(:,js) = phips(js)
+               pchip(:,js) = chips(js)
+            END DO
+
             CALL second0(bcasttoff)
             broadcast_time = broadcast_time + (bcasttoff - bcastton)
          END IF
@@ -204,7 +211,7 @@ C-----------------------------------------------
          CALL fixaray
       END IF
 
-      IF(lfreeb) CALL SetVacuumCommunicator(nuv, nuv3, max_grid_size)
+!      IF(lfreeb) CALL SetVacuumCommunicator(nuv, nuv3, max_grid_size)
 
       IF (lreset) THEN
 !
@@ -236,6 +243,8 @@ C-----------------------------------------------
       jacob_off = 0
 
       IF (IAND(ictrl_flag, timestep_flag) .EQ. 0) GOTO 1000
+
+      IF(lfreeb) CALL SetVacuumCommunicator(nuv, nuv3, max_grid_size) !SAL 070719
 
   50  CONTINUE
       iequi = 0

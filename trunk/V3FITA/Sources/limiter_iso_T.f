@@ -262,7 +262,7 @@
          END DO
       END DO
 
-!  Compute de/dr
+!  Compute de/dz
       ez = 0.0
       DO i = 0, 4
          DO j = 1, 4
