@@ -210,8 +210,7 @@
 !>   Only called if lrestart=F (otherwise data read in from restart file)    
 !*******************************************************************************
         SUBROUTINE Init_Fields
-        USE fourier, ONLY: orthonorm, tomnsp, f_sin, f_cos, m0, m1,        &
-                           isym, iasym
+        USE fourier, ONLY: orthonorm, tomnsp, f_sin, f_cos, m0, m1
         USE vmec_info, ONLY: lmns_i, lmnc_i, iflipj
         USE metrics, ONLY: sqrtg
         USE mpi_inc
@@ -241,10 +240,10 @@
         END IF
          
   		CALL Init_Bfield(jbsupsmnsh, jbsupumnch, jbsupvmnch,            &
-                         lmns_i, phiph, chiph, nsmin, nsmax, isym)
+                         lmns_i, phiph, chiph, nsmin, nsmax, f_sin)
 		IF (lasym)                                                      &
 		    CALL Init_Bfield(jbsupsmnch, jbsupumnsh, jbsupvmnsh,        &
-                             lmnc_i, phiph, chiph, nsmin, nsmax, iasym)
+                             lmnc_i, phiph, chiph, nsmin, nsmax, f_cos)
 
         DEALLOCATE (phiph, chiph, stat=istat)
         CALL ASSERT(istat.EQ.0,'Deallocate error #1 in init_fields')
@@ -287,195 +286,313 @@
 
         END SUBROUTINE Init_Fields
 
-
-        SUBROUTINE Init_Bfield(jbsupsmnh, jbsupumnh, jbsupvmnh,         &
-                               lmn, phiph, chiph, nsmin, nsmax, ipar)
-        USE fourier, ONLY: orthonorm, m0, m1, isym
+!-------------------------------------------------------------------------------
+!>  @brief Initialized magnetic field.
+!>
+!>  @param[inout] jbsupsmnh Contravariant magnetic field in the s direction.
+!>  @param[inout] jbsupumnh Contravariant magnetic field in the u direction.
+!>  @param[inout] jbsupvmnh Contravariant magnetic field in the v direction.
+!>  @param[in]    lmn       Lambda Fourier coeffients.
+!>  @param[in]    phiph     Radial toroidal flux derivative.
+!>  @param[in]    chiph     Radial poloidal flux derivative.
+!>  @param[in]    nsmin     Minimum radial index.
+!>  @param[in]    nsmax     Maximum radial index.
+!>  @param[in]    iparity   Fourier parity.
+!-------------------------------------------------------------------------------
+        SUBROUTINE Init_Bfield(jbsupsmnh, jbsupumnh, jbsupvmnh,                &
+                               lmn, phiph, chiph, nsmin, nsmax, iparity)
+        USE fourier, ONLY: orthonorm, m0, m1, f_sin
         USE siesta_namelist, ONLY: l_vessel
 #if defined(MPI_OPT)        
         USE mpi_inc
 #endif        
-!-----------------------------------------------
-	    INTEGER, INTENT(IN)  :: ipar, nsmin, nsmax
-		REAL(dp), INTENT(IN) :: phiph(ns), chiph(ns)
-		REAL(dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(IN) :: lmn
-		REAL(dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(INOUT) ::       &
-		                        jbsupsmnh, jbsupumnh, jbsupvmnh
-!-----------------------------------------------
-        INTEGER  :: m, n, sparity, mp, np
-!-----------------------------------------------
 
-		IF (ipar .EQ. isym) THEN
+        IMPLICIT NONE
+
+!  Declare Arguments
+        REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: jbsupsmnh
+        REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: jbsupumnh
+        REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: jbsupvmnh
+        REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(in)    :: lmn
+        REAL (dp), DIMENSION(:), INTENT(in)                     :: phiph
+        REAL (dp), DIMENSION(:), INTENT(in)                     :: chiph
+	    INTEGER, INTENT(in)                                     :: nsmin
+        INTEGER, INTENT(in)                                     :: nsmax
+        INTEGER, INTENT(in)                                     :: iparity
+
+!  local variables
+        INTEGER                                                 :: m
+        INTEGER                                                 :: n
+        INTEGER                                                 :: sparity
+        INTEGER                                                 :: mp
+        INTEGER                                                 :: np
+
+!  Start of executable code.
+		IF (iparity .eq. f_sin) THEN
 		   sparity = 1
 		ELSE
 		   sparity = -1
 		END IF
 		
-        IF (.NOT.l_vessel) THEN
+        IF (.not.l_vessel) THEN
       
-        DO m = 0,mpol
-	  	   mp = m*sparity
-           DO n = -ntor, ntor
-		      np = n*nfp*sparity
-              jbsupumnh(m,n,nsmin:nsmax) = phiph(nsmin:nsmax)*(-np*lmn(m,n,nsmin:nsmax))
-              jbsupvmnh(m,n,nsmin:nsmax) = phiph(nsmin:nsmax)*( mp*lmn(m,n,nsmin:nsmax))
+           DO m = 0,mpol
+	  	      mp = m*sparity
+              DO n = -ntor, ntor
+		         np = n*nfp*sparity
+                 jbsupumnh(m,n,nsmin:nsmax) = phiph(nsmin:nsmax)               &
+                                            * (-np*lmn(m,n,nsmin:nsmax))
+                 jbsupvmnh(m,n,nsmin:nsmax) = phiph(nsmin:nsmax)               &
+                                            * ( mp*lmn(m,n,nsmin:nsmax))
+              END DO
            END DO
-        END DO
 
-        IF (ipar .EQ. isym) THEN
-           jbsupumnh(m0,0,nsmin:nsmax) = chiph(nsmin:nsmax) / orthonorm(0,0)
-           jbsupvmnh(m0,0,nsmin:nsmax) = phiph(nsmin:nsmax) / orthonorm(0,0)
-        END IF
-        
+           IF (iparity .EQ. f_sin) THEN
+              jbsupumnh(m0,0,nsmin:nsmax) = chiph(nsmin:nsmax)/orthonorm(0,0)
+              jbsupvmnh(m0,0,nsmin:nsmax) = phiph(nsmin:nsmax)/orthonorm(0,0)
+           END IF
         END IF
         
         jbsupsmnh(:,:,nsmin:nsmax) = b_factor*jbsupsmnh(:,:,nsmin:nsmax)
         jbsupumnh(:,:,nsmin:nsmax) = b_factor*jbsupumnh(:,:,nsmin:nsmax)
         jbsupvmnh(:,:,nsmin:nsmax) = b_factor*jbsupvmnh(:,:,nsmin:nsmax)
 
-
-!STORE m=0 component of jbsupvmnh (and m=0,1 of jbsupumnh)  at origin of half-grid js=1
-        IF (nsmin .EQ. 1) THEN
-           jbsupsmnh(:,:,1) = 0;  jbsupsmnh(m1,:,1) = jbsupsmnh(m1,:,2)
-           jbsupumnh(:,:,1) = 0;  jbsupumnh(m0:m1,:,1) = jbsupumnh(m0:m1,:,2)
+!  Store m=0 component of jbsupvmnh (and m=0,1 of jbsupumnh) at origin of
+!  half-grid js=1.
+        IF (nsmin .eq. 1) THEN
+           jbsupsmnh(:,:,1) = 0
+           jbsupsmnh(m1,:,1) = jbsupsmnh(m1,:,2)
+           jbsupumnh(:,:,1) = 0
+           jbsupumnh(m0:m1,:,1) = jbsupumnh(m0:m1,:,2)
            jbsupvmnh(m0,:,1) = jbsupvmnh(m0,:,2) 
            jbsupvmnh(m1:,:,1) = 0
         END IF
         
-		END SUBROUTINE Init_Bfield
+		END SUBROUTINE
 
-!*******************************************************************************
-!>  \brief recomputes "lambda" for VMEC equilibrium on sqrt(flux) mesh
-!>   by solving J^s = 0 in flux coordinates
-!*******************************************************************************
-        SUBROUTINE ReCompute_Lambda(lmns, lmnc, jacobh, orthonorm,      &
+!-------------------------------------------------------------------------------
+!>  @brief Recompute lambda on the SIESTA mesh.
+!>
+!>  Solves J^s = 0 to find a new lambda consistent on the SIESTA mesh. The J^s
+!>  component is equal to zero when assuming a nested flux surface solution.
+!>
+!>    sqrt(g)J^s = Curl(B) = dB_v/du - dB_u/dv = 0                           (1)
+!>
+!>  From the fouier representation, equation 1 becomes.
+!>
+!>    0 = m*B^mn_v - n*nfp*B^mn_u                                            (2)
+!>
+!>  The magnetic field can be defined in terms of lambda by
+!>
+!>    B_ij^u = (chi' - phi'*dlambda_ij/dv)/sqrt(g)                           (3)
+!>
+!>    B_ij^v = (phi' + phi'*dlambda_ij/du)/sqrt(g)                           (4)
+!>
+!>  Using the Fourier definition equations 3 and 4 become
+!>
+!>    B_ij^u = (chi' - phi'*SUM(n*nfp*lambda_mn*cos(m*u + n*nfp*v)))/sqrt(g) (5)
+!>
+!>    B_ij^v = (phi' + phi'*SUM(m*lambda_mn*cos(m*u + n*nfp*v))/sqrt(g)      (6)
+!>
+!>  Where chi' is the radial derivative of the poloidal flux and phi' is the
+!>  radial derivative of the toroidal flux. The covariant components are then
+!>
+!>    B^ij_u = g_uu*B_ij^u + g_uv*B_ij^v                                     (7)
+!>
+!>    B^ij_v = g_uv*B_ij^u + g_vv*B_ij^v                                     (8)
+!>
+!>  B_u and B_v need to be transformed into Fourier space for use in equation
+!>  2.
+!>
+!>  @param[out] lmns      Lambda for stellarator symmetric parity.
+!>  @param[out] lmnc      Lambda for stellarator asymmetric parity.
+!>  @param[in]  jacobh    Jacobian on the half mesh.
+!>  @param[in]  orthonorm Fouier normalization factors.
+!>  @param[in]  phiph     Radial dervative of the toroidal flux.
+!>  @param[in]  chiph     Radial dervative of the poloidal flux.
+!>  @param[in]  nsmin     Minimum radial index.
+!>  @param[in]  nsmax     Maximum radial index.
+!-------------------------------------------------------------------------------
+      SUBROUTINE ReCompute_Lambda(lmns, lmnc, jacobh, orthonorm,             &
                                     phiph, chiph, nsmin, nsmax)
-!-----------------------------------------------
-        USE island_params, ns=>ns_i, nuv=>nuv_i, mnmax=>mnmax_i,  &
+      USE island_params, ns=>ns_i, nuv=>nuv_i, mnmax=>mnmax_i,               &
                            nfp => nfp_i, ntheta => nu_i, nzeta => nv_i  
-        USE metrics, ONLY: guu, guv, gvv
+      USE metrics, ONLY: guu, guv, gvv
 
-        INTEGER, INTENT(IN)   :: nsmin, nsmax
-        REAL(dp), INTENT(OUT) :: lmns(mnmax,ns), lmnc(mnmax,ns)
-        REAL(dp), INTENT(IN)  :: phiph(ns), chiph(ns), orthonorm(mnmax),&
-                                 jacobh(nuv, ns)
-        INTEGER               :: js, m, n, mp, np, mn, mnp, lk, lu, lv, &
-                                 info, isign, n2
-        REAL(dp), ALLOCATABLE :: amat(:,:), brhs(:,:), atemp(:), btemp(:)
-        REAL(dp), ALLOCATABLE :: cosmni(:,:), cosmnp(:,:),              &
-                                 sinmni(:,:), sinmnp(:,:)
-        REAL(dp) :: ton, toff
-!-----------------------------------------------
-        CALL second0(ton)
+      IMPLICIT NONE
 
-        lmns(:,1) = 0
-        IF (lasym) lmnc(:,1) = 0
-!
-!       ALLOCATE cos(mu+nv) and sin(mu+nv)
-! 
-        n2 = 1
-        IF (lasym) n2 = 2
-        ALLOCATE (atemp(nuv), btemp(nuv), cosmni(nuv,mnmax),            &
-                  cosmnp(nuv,mnmax),                                    &
-                  brhs(mnmax,n2), amat(mnmax*n2, mnmax*n2), stat=info)
-        CALL ASSERT(info.EQ.0,'Allocation error in Recompute_Lambda')
-        IF (lasym) THEN
-        ALLOCATE (sinmni(nuv,mnmax), sinmnp(nuv,mnmax), stat=info)
-        CALL ASSERT(info.EQ.0,'Allocation error in Recompute_Lambda')
-        END IF
-!COMPUTE MATRIX ELEMENTS, SURFACE BY SURFACE (can parallelize this: Sudip)
+!  Declare Arguments
+      REAL (dp), DIMENSION(mnmax,ns), INTENT(out) :: lmns
+      REAL (dp), DIMENSION(mnmax,ns), INTENT(out) :: lmnc
+      REAL (dp), DIMENSION(nuv,ns), INTENT(in)    :: jacobh
+      REAL (dp), DIMENSION(mnmax), INTENT(in)     :: orthonorm
+      REAL (dp), DIMENSION(ns), INTENT(in)        :: phiph
+      REAL (dp), DIMENSION(ns), INTENT(in)        :: chiph
+      INTEGER, INTENT(in)                         :: nsmin
+      INTEGER, INTENT(in)                         :: nsmax
 
-        mn = 0
-        DO n=-ntor,ntor
-           isign = 1; IF (n .LT. 0) isign = -1
-           np = ABS(n)
-           DO m=0,mpol
-	          mn = mn+1
-	          lk = 0
-	          DO lv = 1, nzeta
-	             DO lu = 1, ntheta
-     	         lk = lk+1
-                 cosmni(lk,mn) = cosmui(lu,m)*cosnv(lv,np)              &
-                               - isign*sinmui(lu,m)*sinnv(lv,np)
-                 cosmnp(lk,mn) = cosmu(lu,m)*cosnv(lv,np)               &
-                               - isign*sinmu(lu,m)*sinnv(lv,np)
-                 IF (.NOT. lasym) CYCLE
-                 sinmni(lk,mn) = sinmui(lu,m)*cosnv(lv,np)              &
-                               + isign*cosmui(lu,m)*sinnv(lv,np)
-                 sinmnp(lk,mn) = sinmu(lu,m)*cosnv(lv,np)               &
-                               + isign*cosmu(lu,m)*sinnv(lv,np)
-                 END DO
-              END DO
-              IF (m.EQ.0 .AND. n.LT.0) THEN
-                 cosmni(:,mn) = 0
-                 cosmnp(:,mn) = 0
-                 IF (lasym) THEN
-                 sinmni(:,mn) = 0
-                 sinmnp(:,mn) = 0
-                 END IF
-              END IF
-           END DO
-        END DO
-!
-!       COMPUTE Lambda from sqrt(g)*J^s == mB_v - nB_u = 0
-!
-        DO js = MAX(nsmin,2), nsmax
+!  Local Variables
+      INTEGER                                     :: js
+      INTEGER                                     :: m
+      INTEGER                                     :: n
+      INTEGER                                     :: mp
+      INTEGER                                     :: np
+      INTEGER                                     :: mn
+      INTEGER                                     :: mnp
+      INTEGER                                     :: lk
+      INTEGER                                     :: lu
+      INTEGER                                     :: lv
+      INTEGER                                     :: info
+      INTEGER                                     :: isign
+      INTEGER                                     :: n2
+      REAL (dp), DIMENSION(:,:), ALLOCATABLE      :: amat
+      REAL (dp), DIMENSION(:,:), ALLOCATABLE      :: brhs
+      REAL (dp), DIMENSION(:), ALLOCATABLE        :: atemp
+      REAL (dp), DIMENSION(:), ALLOCATABLE        :: btemp
+      REAL (dp), DIMENSION(:,:), ALLOCATABLE      :: cosmni(:,:)
+      REAL (dp), DIMENSION(:,:), ALLOCATABLE      :: cosmnp(:,:)
+      REAL (dp), DIMENSION(:,:), ALLOCATABLE      :: sinmni(:,:)
+      REAL (dp), DIMENSION(:,:), ALLOCATABLE      :: sinmnp(:,:)
+      REAL (dp)                                   :: ton
+      REAL (dp)                                   :: toff
 
-           mn = 0
-           DO n=-ntor,ntor
-              DO m=0,mpol
-!
-!       RHS (driving) TERMS [sinmi, -cosmni parts]
-!
- 	          mn = mn+1
-	          btemp = (-m*(chiph(js)*guv(:,js)+phiph(js)*gvv(:,js))     &
-	            + n*nfp*(chiph(js)*guu(:,js)+phiph(js)*guv(:,js)))      &
-                   / jacobh(:,js)
-              brhs(mn,1) = SUM(cosmni(:,mn)*btemp)
-              IF (lasym) brhs(mn,2) =-SUM(sinmni(:,mn)*btemp)
-			  
-!
-!            MATRIX ELEMENTS - COEFFICIENTS OF Lambda(mn,js)
-!	     
-              mnp = 0
+!  Start of executable code
+      CALL second0(ton)
 
-              DO np=-ntor,ntor
-                 DO mp=0,mpol
-                    mnp=mnp+1
-                    atemp = (m*mp*gvv(:,js)+(n*nfp)*(np*nfp)*guu(:,js)  &
-  	                      - nfp*(m*np+mp*n)*guv(:,js))/jacobh(:,js)
-                    amat(mn,mnp) = SUM(cosmni(:,mn)*cosmnp(:,mnp)*atemp)
-	                IF (mnp.EQ.mn .AND. amat(mn,mnp).EQ.zero)           &
-                       amat(mn,mnp) = signjac
-                    IF (.NOT.lasym) CYCLE
-                    amat(mn,mnp+mnmax) =-SUM(cosmni(:,mn)*sinmnp(:,mnp)*atemp)
-                    amat(mn+mnmax,mnp) =-SUM(sinmni(:,mn)*cosmnp(:,mnp)*atemp)
-                    amat(mn+mnmax,mnp+mnmax)                            &
-                                       = SUM(sinmni(:,mn)*sinmnp(:,mnp)*atemp)
-	                IF (mnp.EQ.mn .AND. amat(mn+mnmax,mnp+mnmax).EQ.zero) &
-                       amat(mn+mnmax,mnp+mnmax) = signjac
-                 END DO
-	          END DO
-	       END DO
-        END DO
+      lmns(:,1) = 0
+      n2 = 1
+      IF (lasym) THEN
+         lmnc(:,1) = 0
+         n2 = 2
+      END IF
 
-        CALL solver(amat, brhs, mnmax*n2, 1, info)
-        CALL ASSERT(info.EQ.0,'INFO != 0 IN RECOMPUTE_LAMBDA')
-        lmns(:,js) = brhs(:,1)/orthonorm/phiph(js)                        !Divide by phiph -> old style
-        IF (lasym) lmnc(:,js) = brhs(:,2)/orthonorm/phiph(js)
+      ALLOCATE(atemp(nuv), btemp(nuv), cosmni(nuv,mnmax), cosmnp(nuv,mnmax),                                    &
+               brhs(mnmax,n2), amat(mnmax*n2, mnmax*n2), stat=info)
+      CALL ASSERT(info.EQ.0,'Allocation error in Recompute_Lambda')
 
-        END DO
+      IF (lasym) THEN
+         ALLOCATE (sinmni(nuv,mnmax), sinmnp(nuv,mnmax), stat=info)
+         CALL ASSERT(info.EQ.0,'Allocation error in Recompute_Lambda')
+      END IF
 
-        CALL ASSERT(mn.EQ.mnmax, mnp.EQ.mnmax, 'mn or mnp != mnmax in RECOMPUTE_LAMBDA')
+!  Compute matrix elements surface by surface.
+      mn = 0
+      DO n = -ntor, ntor
+         isign = 1
+         IF (n .lt. 0) THEN
+            isign = -1
+         END IF
 
-        DEALLOCATE(atemp, btemp, cosmni, cosmnp, brhs, amat)
-        IF (lasym) DEALLOCATE(sinmni, sinmnp)
+         np = ABS(n)
+         DO m = 0, mpol
+            mn = mn + 1
+            lk = 0
 
-        CALL second0(toff)
-        IF (iam .EQ. 0 .and. lverbose) PRINT 100,' RECOMPUTE_LAMBDA - TIME: ', toff-ton,' S'
+            DO lv = 1, nzeta
+               DO lu = 1, ntheta
+                  lk = lk + 1
 
-100     FORMAT(a,f10.2,a)
-        END SUBROUTINE Recompute_Lambda
+                  cosmni(lk,mn) =       cosmui(lu,m)*cosnv(lv,np)              &
+                                - isign*sinmui(lu,m)*sinnv(lv,np)
+                  cosmnp(lk,mn) =       cosmu(lu,m)*cosnv(lv,np)               &
+                                - isign*sinmu(lu,m)*sinnv(lv,np)
+
+                  IF (lasym) THEN
+                     sinmni(lk,mn) =       sinmui(lu,m)*cosnv(lv,np)           &
+                                   + isign*cosmui(lu,m)*sinnv(lv,np)
+                     sinmnp(lk,mn) =       sinmu(lu,m)*cosnv(lv,np)            &
+                                   + isign*cosmu(lu,m)*sinnv(lv,np)
+                  END IF
+               END DO
+            END DO
+
+            IF (m .eq. 0 .and. n .lt. 0) THEN
+               cosmni(:,mn) = 0
+               cosmnp(:,mn) = 0
+               IF (lasym) THEN
+                  sinmni(:,mn) = 0
+                  sinmnp(:,mn) = 0
+               END IF
+            END IF
+         END DO
+      END DO
+
+!  Compute lambda from sqrt(g)*J^s == mB_v - nB_u = 0
+      DO js = MAX(nsmin,2), nsmax
+         mn = 0
+
+         DO n = -ntor, ntor
+            DO m = 0, mpol
+
+!  Right hand side terms sinmi and -cosmi parts.
+               mn = mn + 1
+               btemp = (-m*    (chiph(js)*guv(:,js) + phiph(js)*gvv(:,js)) +   &
+                         n*nfp*(chiph(js)*guu(:,js) + phiph(js)*guv(:,js)))    &
+                     / jacobh(:,js)
+
+               brhs(mn,1) = SUM(cosmni(:,mn)*btemp)
+               IF (lasym) THEN
+                  brhs(mn,2) = -SUM(sinmni(:,mn)*btemp)
+               END IF
+
+!  Matrix elements. Coefficients of lambda(ms, js)
+               mnp = 0
+
+               DO np = -ntor, ntor
+                  DO mp = 0, mpol
+                     mnp = mnp + 1
+                     atemp = (m*mp*gvv(:,js) + n*nfp*np*nfp*guu(:,js) -        &
+                              nfp*(m*np + mp*n)*guv(:,js))/jacobh(:,js)
+
+                     amat(mn,mnp) = SUM(cosmni(:,mn)*cosmnp(:,mnp)*atemp)
+	                 IF (mnp .eq. mn .and. amat(mn,mnp) .eq. zero) THEN
+                        amat(mn,mnp) = signjac
+                     END IF
+
+                     IF (lasym) THEN
+                        amat(mn,mnp+mnmax) =                                   &
+                           -SUM(cosmni(:,mn)*sinmnp(:,mnp)*atemp)
+                        amat(mn+mnmax,mnp) =                                   &
+                           -SUM(sinmni(:,mn)*cosmnp(:,mnp)*atemp)
+                        amat(mn+mnmax,mnp+mnmax) =                             &
+                           SUM(sinmni(:,mn)*sinmnp(:,mnp)*atemp)
+	                    IF (mnp .eq. mn .and.                                  &
+                            amat(mn+mnmax,mnp+mnmax).eq. zero) THEN
+                           amat(mn+mnmax,mnp+mnmax) = signjac
+                        END IF
+                     END IF
+                  END DO
+	           END DO
+	        END DO
+         END DO
+
+         CALL solver(amat, brhs, mnmax*n2, 1, info)
+         CALL ASSERT(info.EQ.0,'INFO != 0 IN RECOMPUTE_LAMBDA')
+
+! Divide by phiph -> old style
+         lmns(:,js) = brhs(:,1)/(orthonorm*phiph(js))
+!         lmns(:,js) = brhs(:,1)/orthonorm/phiph(js)
+         IF (lasym) THEN
+            lmnc(:,js) = brhs(:,2)/(orthonorm*phiph(js))
+!            lmnc(:,js) = brhs(:,2)/orthonorm/phiph(js)
+         END IF
+      END DO
+
+      CALL assert(mn .eq. mnmax .and. mnp .eq. mnmax,                          &
+                  'mn or mnp != mnmax in RECOMPUTE_LAMBDA')
+
+      DEALLOCATE(atemp, btemp, cosmni, cosmnp, brhs, amat)
+      IF (lasym) THEN
+         DEALLOCATE(sinmni, sinmnp)
+      END IF
+
+      CALL second0(toff)
+      IF (iam .EQ. 0 .and. lverbose) THEN
+         WRITE (*,1000) toff - ton
+      END IF
+
+1000  FORMAT(' RECOMPUTE_LAMBDA - TIME: ',f10.2,' S')
+      END SUBROUTINE
 
 !-------------------------------------------------------------------------------
 !>  @brief Allocates dependant variables.
@@ -579,6 +696,8 @@
                          mpol=>mpol_i, ntor=>ntor_i
       USE fourier, ONLY: toijsp, tomnsp, f_none, f_cos, f_sin, f_sum
       USE metrics, ONLY: toupper
+      USE utilities, ONLY: set_bndy_fouier_m0
+
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -602,11 +721,15 @@
       CALL toijsp(fsubsmncf(:,:,nsmin:nsmax), fsubsijf, f_none, f_cos)
       CALL toijsp(fsubumnsf(:,:,nsmin:nsmax), fsubuijf, f_none, f_sin)
       CALL toijsp(fsubvmnsf(:,:,nsmin:nsmax), fsubvijf, f_none, f_sin)
- 
+
       IF (lasym) THEN
          CALL toijsp(fsubsmnsf(:,:,nsmin:nsmax), fsubsijf, f_sum, f_sin)
          CALL toijsp(fsubumncf(:,:,nsmin:nsmax), fsubuijf, f_sum, f_cos)
          CALL toijsp(fsubvmncf(:,:,nsmin:nsmax), fsubvijf, f_sum, f_cos)
+      END IF
+
+      IF (nsmin .eq. 1) THEN
+         fsubuijf(:,:,1) = 0
       END IF
 
 !      
@@ -621,10 +744,14 @@
       CALL tomnsp(fsupuijf, fsupumnsf(:,:,nsmin:nsmax), f_sin)
       CALL tomnsp(fsupvijf, fsupvmnsf(:,:,nsmin:nsmax), f_sin)
 
+      CALL set_bndy_fouier_m0(fsupsmncf, fsupumnsf, fsupvmnsf, f_cos)
+
       IF (lasym) THEN
          CALL tomnsp(fsupsijf, fsupsmnsf(:,:,nsmin:nsmax), f_sin)
          CALL tomnsp(fsupuijf, fsupumncf(:,:,nsmin:nsmax), f_cos)
          CALL tomnsp(fsupvijf, fsupvmncf(:,:,nsmin:nsmax), f_cos)
+
+         CALL set_bndy_fouier_m0(fsupsmnsf, fsupumncf, fsupvmncf, f_sin)
       END IF
 
       DEALLOCATE(fsupsijf, fsupuijf, fsupvijf, stat=istat)

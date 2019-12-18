@@ -15,6 +15,7 @@
       USE descriptor_mod, ONLY: iam
       USE shared_data, ONLY: lasym, lrecon, unit_out
       USE v3_utilities, ONLY: assert_eq
+      USE stel_constants, ONLY: mu0
 
       IMPLICIT NONE
 
@@ -577,24 +578,33 @@
 
          tempmn_w = 0
 
+!  Remove the orthonorm and b_factor so these quantities can be directly summed.
          CALL tomnsp(bsupsijh, tempmn_w, f_sin)
          DO s = 1, ns
-            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)
+            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)     &
+                            / b_factor
          END DO
          CALL cdf_write(ncid, vn_bsupsmns, tempmn_w)
+
          CALL tomnsp(bsupuijh, tempmn_w, f_cos)
          DO s = 1, ns
-            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)
+            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)     &
+                            / b_factor
          END DO
          CALL cdf_write(ncid, vn_bsupumnc, tempmn_w)
+
          CALL tomnsp(bsupvijh, tempmn_w, f_cos)
          DO s = 1, ns
-            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)
+            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)     &
+                            / b_factor
          END DO
          CALL cdf_write(ncid, vn_bsupvmnc, tempmn_w)
+
+!  Remove the orthonorm and p_factor so this quantity can be directly summed.
          CALL tomnsp(pijh, tempmn_w, f_cos)
          DO s = 1, ns
-            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)
+            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)     &
+                            / (p_factor*mu0)
          END DO
          CALL cdf_write(ncid, vn_pmnc, tempmn_w)
 
@@ -610,19 +620,25 @@
          ALLOCATE(bsubumnh(0:mpol,-ntor:ntor,ns))
          ALLOCATE(bsubvmnh(0:mpol,-ntor:ntor,ns))
 
+!  Remove the orthonorm and b_factor so these quantities can be directly summed.
          CALL tomnsp(bsubsijh, bsubsmnh, f_sin)
          DO s = 1, ns
-            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*bsubsmnh(:,:,s)
+            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*bsubsmnh(:,:,s)     &
+                            / b_factor
          END DO
          CALL cdf_write(ncid, vn_bsubsmns, tempmn_w)
+
          CALL tomnsp(bsubuijh, bsubumnh, f_cos)
          DO s = 1, ns
-            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*bsubumnh(:,:,s)
+            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*bsubumnh(:,:,s)     &
+                            / b_factor
          END DO
          CALL cdf_write(ncid, vn_bsubumnc, tempmn_w)
+
          CALL tomnsp(bsubvijh, bsubvmnh, f_cos)
          DO s = 1, ns
-            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*bsubvmnh(:,:,s)
+            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*bsubvmnh(:,:,s)     &
+                            / b_factor
          END DO
          CALL cdf_write(ncid, vn_bsubvmnc, tempmn_w)
 
@@ -657,9 +673,9 @@
                jksupsmnf(m,n,:) = -m*    bsubvmnf(m,n,:) + n*nfp*bsubumnf(m,n,:)
                jksupumnf(m,n,:) =  n*nfp*bsubsmnf(m,n,:) - dbvds(m,n,:)
                jksupvmnf(m,n,:) =  dbuds(m,n,:)          - m*    bsubsmnf(m,n,:)
-               jksupsmnf(m,n,:) =  orthonorm(m,n)*jksupsmnf(m,n,:)
-               jksupumnf(m,n,:) =  orthonorm(m,n)*jksupumnf(m,n,:)
-               jksupvmnf(m,n,:) =  orthonorm(m,n)*jksupvmnf(m,n,:)
+               jksupsmnf(m,n,:) =  orthonorm(m,n)*jksupsmnf(m,n,:)/b_factor
+               jksupumnf(m,n,:) =  orthonorm(m,n)*jksupumnf(m,n,:)/b_factor
+               jksupvmnf(m,n,:) =  orthonorm(m,n)*jksupvmnf(m,n,:)/b_factor
             END DO
          END DO
 
@@ -668,40 +684,55 @@
          CALL cdf_write(ncid, vn_jksupvmnc, jksupvmnf)
 
          IF (lasym) THEN
+!  Remove the orthonorm and b_factor so these quantities can be directly summed.
             CALL tomnsp(bsupsijh, tempmn_w, f_cos)
             DO s = 1, ns
-               tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)
+               tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)  &
+                               / b_factor
             END DO
             CALL cdf_write(ncid, vn_bsupsmnc, tempmn_w)
+
             CALL tomnsp(bsupuijh, tempmn_w, f_sin)
             DO s = 1, ns
-               tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)
+               tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)  &
+                               / b_factor
             END DO
             CALL cdf_write(ncid, vn_bsupumns, tempmn_w)
+
             CALL tomnsp(bsupvijh, tempmn_w, f_sin)
             DO s = 1, ns
-               tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)
+               tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)  &
+                               / b_factor
             END DO
             CALL cdf_write(ncid, vn_bsupvmns, tempmn_w)
+
+!  Remove the orthonorm and p_factor so this quantity can be directly summed.
             CALL tomnsp(pijh, tempmn_w, f_sin)
             DO s = 1, ns
-               tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)
+               tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)  &
+                               / (p_factor*mu0)
             END DO
             CALL cdf_write(ncid, vn_pmns, tempmn_w)
 
+!  Remove the orthonorm and b_factor so these quantities can be directly summed.
             CALL tomnsp(bsubsijh, bsubsmnh, f_cos)
             DO s = 1, ns
-               tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*bsubsmnh(:,:,s)
+               tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*bsubsmnh(:,:,s)  &
+                               / b_factor
             END DO
             CALL cdf_write(ncid, vn_bsubsmnc, tempmn_w)
+
             CALL tomnsp(bsubuijh, bsubumnh, f_sin)
             DO s = 1, ns
-               tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*bsubumnh(:,:,s)
+               tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*bsubumnh(:,:,s)  &
+                               / b_factor
             END DO
             CALL cdf_write(ncid, vn_bsubumns, tempmn_w)
+
             CALL tomnsp(bsubvijh, bsubvmnh, f_sin)
             DO s = 1, ns
-               tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*bsubvmnh(:,:,s)
+               tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*bsubvmnh(:,:,s)  &
+                               / b_factor
             END DO
             CALL cdf_write(ncid, vn_bsubvmns, tempmn_w)
 
@@ -724,9 +755,9 @@
                   jksupsmnf(m,n,:) = m*bsubvmnf(m,n,:) - n*nfp*bsubumnf(m,n,:)
                   jksupumnf(m,n,:) = -n*nfp*bsubsmnf(m,n,:) - dbvds(m,n,:)
                   jksupvmnf(m,n,:) = dbuds(m,n,:) + m*bsubsmnf(m,n,:)
-                  jksupsmnf(m,n,:) = orthonorm(m,n)*jksupsmnf(m,n,:)
-                  jksupumnf(m,n,:) = orthonorm(m,n)*jksupumnf(m,n,:)
-                  jksupvmnf(m,n,:) = orthonorm(m,n)*jksupvmnf(m,n,:)
+                  jksupsmnf(m,n,:) = orthonorm(m,n)*jksupsmnf(m,n,:)/b_factor
+                  jksupumnf(m,n,:) = orthonorm(m,n)*jksupumnf(m,n,:)/b_factor
+                  jksupvmnf(m,n,:) = orthonorm(m,n)*jksupvmnf(m,n,:)/b_factor
                END DO
             END DO
 

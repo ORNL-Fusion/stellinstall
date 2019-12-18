@@ -111,11 +111,11 @@
 !  update_press.
       CALL IncFields(jbsupsmnsh,  jbsupumnch,  jbsupvmnch,  jpmnch,            &
                      djbsupsmnsh, djbsupumnch, djbsupvmnch, djpmnch,           &
-                     bsupsijh, bsupuijh, bsupvijh, pijh, isym)
+                     bsupsijh, bsupuijh, bsupvijh, pijh, f_sin)
       IF (lasym) THEN
          CALL IncFields(jbsupsmnch,  jbsupumnsh,  jbsupvmnsh,  jpmnsh,         &
                         djbsupsmnch, djbsupumnsh, djbsupvmnsh, djpmnsh,        &
-                        bsupsijh, bsupuijh, bsupvijh, pijh, iasym)
+                        bsupsijh, bsupuijh, bsupvijh, pijh, f_cos)
       END IF
 
 !  Update thermal energy (pressure based). pijh contains the jacobian term at
@@ -184,10 +184,10 @@
       END IF
 
       CALL GetMHDForce(fsubsmncf, fsubumnsf, fsubvmnsf,                        &
-                       pijh, KxBsij, KxBuij, KxBvij, pardamp, isym)
+                       pijh, KxBsij, KxBuij, KxBvij, pardamp, f_cos)
       IF (lasym) THEN
          CALL GetMHDForce(fsubsmnsf, fsubumncf, fsubvmncf,                     &
-                          pijh, KxBsij, KxBuij, KxBvij, pardamp, iasym)
+                          pijh, KxBsij, KxBuij, KxBvij, pardamp, f_sin)
       END IF
 
       CALL Apply_ColScale(gc, col_scale, nsmin, nsmax)
@@ -261,7 +261,7 @@
       nsmin = MAX(1, startglobrow)
       nsmax = MIN(ns, endglobrow + 1)
 
-      IF (iparity .EQ. isym) THEN
+      IF (iparity .EQ. f_sin) THEN
          fcomb = f_none
          fours = f_sin
          fouruv = f_cos
@@ -420,7 +420,8 @@
       SUBROUTINE GetMHDForce(fsubsmnf, fsubumnf, fsubvmnf, pijh,               &
                              KxBsij, KxBuij, KxBvij, pardamp, iparity)
       USE island_params, ONLY: ohs=>ohs_i
-      USE utilities, ONLY: set_bndy_half_to_full, set_bndy_half_to_full_ds
+      USE utilities, ONLY: set_bndy_half_to_full, set_bndy_half_to_full_ds,    &
+                           set_bndy_full_origin
 
       IMPLICIT NONE
 
@@ -461,7 +462,7 @@
 
       nsmax = MIN(ns, endglobrow)
 
-      IF (iparity .EQ. isym) THEN
+      IF (iparity .EQ. f_cos) THEN
          fours = f_cos
          fouruv = f_sin
          sparity = -1
@@ -476,14 +477,18 @@
       CALL tomnsp(KxBuij, fsubumnf(:,:,nsmin:nsmax), fouruv)
       CALL tomnsp(KxBvij, fsubvmnf(:,:,nsmin:nsmax), fouruv)
 
+      IF (nsmin .eq. 1) THEN
+         CALL set_bndy_full_origin(fsubsmnf, fsubumnf, fsubvmnf)
+      END IF
+
 !  Harmonics of true pressure. The jacobian factor has been divided out of pijh.
       CALL tomnsp(pijh, pmnh, fours)
       CALL to_full_mesh(pmnh, pmnf)
-      CALL set_bndy_half_to_full(pmnh, pmnf, nsmin, fouruv)
+      CALL set_bndy_half_to_full(pmnh, pmnf, nsmin, fours)
 
 !  Radial derivative of pressure.
       CALL GradientFull(pmnf_ds, pmnh)
-      CALL set_bndy_half_to_full_ds(pmnh, pmnf_ds, nsmin, fouruv)
+      CALL set_bndy_half_to_full_ds(pmnh, pmnf_ds, nsmin, fours)
 
       IF (nsmax.EQ.ns .AND. l_pedge) THEN
          pmnf(:,:,ns) = 0
@@ -493,12 +498,12 @@
 !  Add pressure gradient to the lorentz force.
       fsubsmnf(:,:,nsmin:nsmax) = fsubsmnf(:,:,nsmin:nsmax) - pmnf_ds
       DO m = 0, mpol
-         moff = m + 1
+         moff = m + LBOUND(fsubumnf, 1)
          fsubumnf(moff,:,nsmin:nsmax) = fsubumnf(moff,:,nsmin:nsmax)           &
                                       - m*sparity*pmnf(m,:,nsmin:nsmax)
       END DO
       DO n = -ntor, ntor
-         noff = n + ntor + 1
+         noff = n + ntor + LBOUND(fsubvmnf, 2)
          fsubvmnf(:,noff,nsmin:nsmax) = fsubvmnf(:,noff,nsmin:nsmax)           &
                                       - n*nfp*sparity*pmnf(:,n,nsmin:nsmax)
       END DO
@@ -622,7 +627,7 @@
       CALL assert(ALL(f_vmnf(m0+moff,-ntor+noff:noff-1,nsmin:nsmax) .eq. zero),&
                   'f_vmnf != 0, m=0, n<0')
       IF (ALLOCATED(pardamp)) THEN
-         IF (iparity .EQ. isym) THEN
+         IF (iparity .EQ. f_cos) THEN
             CALL AddParDamping(pardamp,                                        &
                                f_smnf(:,:,nsmin:nsmax),                        &
                                f_umnf(:,:,nsmin:nsmax),                        &
@@ -678,7 +683,7 @@
 #endif
 
          IF (iam .eq. 0 .and. lverbose) THEN
-            IF (iparity .eq. isym) THEN
+            IF (iparity .eq. f_cos) THEN
                WRITE (*,1000)
             ELSE
                WRITE (*,1001)

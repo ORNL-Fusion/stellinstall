@@ -95,15 +95,8 @@
 !>  Loads values on to the SIESTA meshes. This involves splining and
 !>  interpolating the VMEC quantities from the VMEC radial grid to the SIESTA
 !>  radial grid.
-!>
-!>  @param[in] ns_in     Number of SIESTA radial surfaces.
-!>  @param[in] mpol_in   Number of SIESTA poloidal modes.
-!>  @param[in] ntor_in   Number of SIESTA toroidal modes.
-!>  @param[in] nfp_in    Number of SIESTA field periods.
-!>  @param[in] wout_file VMEC woutfile.
 !-------------------------------------------------------------------------------
-      SUBROUTINE init_metric_elements(ns_in, mpol_in, ntor_in,           &
-                                      nfp_in, wout_file)
+      SUBROUTINE init_metric_elements()
       USE timer_mod, ONLY: init_timers
       USE shared_data, ONLY: torflux, polflux
       USE island_params, hs=>hs_i, ns=>ns_i
@@ -111,27 +104,11 @@
 
       IMPLICIT NONE
 
-!  Declare Arguments
-      INTEGER, INTENT(IN)          :: ns_in
-      INTEGER, INTENT(IN)          :: mpol_in
-      INTEGER, INTENT(IN)          :: ntor_in
-      INTEGER, INTENT(IN)          :: nfp_in
-      CHARACTER(len=*), INTENT(in) :: wout_file
-
-!  Local variables
-      INTEGER                      :: istat
-      INTEGER                      :: js
-      REAL(dp)                     :: temp
-
 !  Start of executable code
-
-!  COMPUTE HALF-MESH LOWER/UPPER METRIC ELEMENTS AND JACOBIAN
-      CALL half_mesh_metrics (r1_i, ru_i, rv_i, z1_i, zu_i, zv_i)
-!  COMPUTE FULL-MESH METRIC ELEMENTS
+!  Compute half-mesh lower and upper metric elements and jacobian.
+      CALL half_mesh_metrics(r1_i, ru_i, rv_i, z1_i, zu_i, zv_i)
+!  Convert half grid elements to the full grid.
       CALL full_mesh_metrics
-
-1000  FORMAT('Failed to read vessel file. Proceeding with ' //   &
-             'fixed boundary.')
 
       END SUBROUTINE init_metric_elements
 
@@ -685,6 +662,11 @@
                         + guvf(:,js)*xsupuij(:,js1)                      &
                         + gvvf(:,js)*xsupvij(:,js1)
       END DO
+
+!  FIXME: CHECK THIS
+      IF (nsmin .eq. 1) THEN
+         xsubuij(:,1) = 0
+      END IF
 
       END SUBROUTINE tolowerf
 

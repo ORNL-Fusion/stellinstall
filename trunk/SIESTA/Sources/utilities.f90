@@ -12,7 +12,7 @@
       USE island_params, ONLY: ohs=>ohs_i, ns=>ns_i, mpol=>mpol_i,             &
                                ntor=>ntor_i, nfp=>nfp_i
       USE v3_utilities, ONLY: assert, assert_eq
-      USE fourier, ONLY: isym, iasym, m0, m1
+      USE fourier, ONLY: m0, m1, m2, n0, n1, f_sin, f_cos
 
       IMPLICIT NONE
 
@@ -49,6 +49,23 @@
 !-------------------------------------------------------------------------------
       INTERFACE curl_htof
          MODULE PROCEDURE curl_htof, curl_htof_targ
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
+!>  Interface to set the boundary conditions on a full mesh quantity converted
+!>  from the half mesh for either a scalar @ref set_bndy_half_to_full or
+!>  vector @ref set_bndy_half_to_full_vec quantities.
+!-------------------------------------------------------------------------------
+      INTERFACE set_bndy_half_to_full
+         MODULE PROCEDURE set_bndy_half_to_full, set_bndy_half_to_full_vec
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
+!>  Interface to set the fouier conditions on a quantity for either scalar
+!>  @ref set_bndy_fouier_m0 or vector @ref set_bndy_fouier_m0_vec quantities.
+!-------------------------------------------------------------------------------
+      INTERFACE set_bndy_fouier_m0
+         MODULE PROCEDURE set_bndy_fouier_m0, set_bndy_fouier_m0_vec
       END INTERFACE
 
       CONTAINS
@@ -178,8 +195,8 @@
       nsmin = LBOUND(vech,3)
       nsmax = UBOUND(vech,3)
 
-      vech(:,:,nsmin + 1:nsmax) = 0.5*(vecf(:,:,nsmin:nsmax - 1)               &
-                                +      vecf(:,:,nsmin + 1:nsmax))
+      vech(:,:,nsmin + 1:nsmax) = (vecf(:,:,nsmin:nsmax - 1)                   &
+                                +  vecf(:,:,nsmin + 1:nsmax))*0.5
       vech(:,:,nsmin) = 0
 
       END SUBROUTINE
@@ -208,9 +225,8 @@
 !  Start of executable code
       nsmin = LBOUND(vech,3)
       nsmax = UBOUND(vech,3)
-
-      vech(:,:,nsmin + 1:nsmax) = 0.5*(vecf(:,:,nsmin:nsmax - 1)               &
-                                +      vecf(:,:,nsmin + 1:nsmax))
+      vech(:,:,nsmin + 1:nsmax) = (vecf(:,:,nsmin:nsmax - 1)                   &
+                                +  vecf(:,:,nsmin + 1:nsmax))*0.5
       vech(:,:,nsmin) = 0
 
       END SUBROUTINE
@@ -344,6 +360,7 @@
       INTEGER                                                 :: mp
       INTEGER                                                 :: np
       INTEGER                                                 :: sparity
+      INTEGER                                                 :: fouruv
       INTEGER                                                 :: istat
       INTEGER                                                 :: nmin
       REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)                :: asubsmnh
@@ -355,10 +372,12 @@
 !  Start of executable code
       CALL assert(nsmax .le. UBOUND(jbsupsmnh,3), 'UBOUND wrong in curl_ftoh')
 
-      IF (iparity .EQ. isym) THEN
+      IF (iparity .EQ. f_sin) THEN
          sparity = 1
+         fouruv = f_cos
       ELSE
          sparity = -1
+         fouruv = f_sin
       END IF
 
       ALLOCATE(asubsmnh(0:mpol,-ntor:ntor,nsmin:nsmax),                   &
@@ -370,6 +389,8 @@
       CALL to_half_mesh(asubumnf, asubumnh)
       CALL to_half_mesh(asubvmnf, asubvmnh)
 
+      CALL set_bndy_fouier_m0(asubsmnh, asubumnh, asubvmnh, iparity)
+
 !  Compute sqrt(g)B^X contravariant B-field components in Fourier space
       ALLOCATE(da_uds(0:mpol,-ntor:ntor,nsmin:nsmax),                     &
                da_vds(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
@@ -379,6 +400,9 @@
 !  and edge will be treated separately.
       CALL GradientHalf(da_uds, asubumnf)
       CALL GradientHalf(da_vds, asubvmnf)
+
+      CALL set_bndy_fouier_m0(da_uds, fouruv)
+      CALL set_bndy_fouier_m0(da_vds, fouruv)
 
       nmin = MAX(2, startglobrow)
       CALL assert(nmin .ge. LBOUND(jbsupsmnh,3), 'LBOUND wrong in curl_ftoh')
@@ -401,14 +425,12 @@
       CALL assert_eq(0, istat, 'Deallocation failed in curl_ftoh')
 
       IF (startglobrow .eq. 1) THEN
-         jbsupsmnh(:,:,1) = 0
-         jbsupumnh(:,:,1) = 0
-         jbsupvmnh(:,:,1) = 0
+         jbsupsmnh(m1:,:,1) = 0
+         jbsupumnh(m1:,:,1) = 0
+         jbsupvmnh(m1:,:,1) = 0
       END IF
 
-      jbsupsmnh(0,-ntor:-1,:) = 0
-      jbsupumnh(0,-ntor:-1,:) = 0
-      jbsupvmnh(0,-ntor:-1,:) = 0
+      CALL set_bndy_fouier_m0(jbsupsmnh, jbsupumnh, jbsupvmnh, iparity)
 
       END SUBROUTINE
 
@@ -433,15 +455,14 @@
 !>                          jacobian factor full grid.
 !>  @param[inout] jBsubsmnf Contravariant vector in the v direction with
 !>                          jacobian factor full grid.
-!>  @param[in]    ipar      Parity flag.
+!>  @param[in]    iparity   Parity flag.
 !>  @param[in]    nsmin     Minimum radial index.
 !>  @param[in]    nsmax     Maximum radial index.
 !-------------------------------------------------------------------------------
       SUBROUTINE curl_htof(asubsmnh, asubumnh, asubvmnh,                       &
-                           jbsupsmnf, jbsupumnf, jbsupvmnf, ipar, nsmin, nsmax)
+                           jbsupsmnf, jbsupumnf, jbsupvmnf, iparity,           &
+                           nsmin, nsmax)
       USE nscalingtools, ONLY: endglobrow
-      USE descriptor_mod, ONLY: iam
-      USE fourier, ONLY: f_cos, f_sin
 
       IMPLICIT NONE
 
@@ -452,9 +473,9 @@
       REAL (dp), DIMENSION(:,:,:), POINTER                 :: jbsupsmnf
       REAL (dp), DIMENSION(:,:,:), POINTER                 :: jbsupumnf
       REAL (dp), DIMENSION(:,:,:), POINTER                 :: jbsupvmnf
-      INTEGER, INTENT(IN)                                  :: ipar
-      INTEGER, INTENT(IN)                                  :: nsmin
-      INTEGER, INTENT(IN)                                  :: nsmax
+      INTEGER, INTENT(in)                                  :: iparity
+      INTEGER, INTENT(in)                                  :: nsmin
+      INTEGER, INTENT(in)                                  :: nsmax
 
 !  Local variables
       INTEGER                                              :: m
@@ -479,7 +500,7 @@
 !  Start of executable code
       CALL assert(nsmin .ge. LBOUND(jbsupsmnf,3), 'LBOUND wrong in curl_htof')
 
-      IF (ipar .eq. isym) THEN
+      IF (iparity .eq. f_sin) THEN
          sparity = 1
          fours = f_sin
          fouruv = f_cos
@@ -501,9 +522,8 @@
       CALL to_full_mesh(asubumnh, asubumnf)
       CALL to_full_mesh(asubvmnh, asubvmnf)
 
-      CALL set_bndy_half_to_full(asubsmnh, asubsmnf, nsmin, fours)
-      CALL set_bndy_half_to_full(asubumnh, asubumnf, nsmin, fouruv)
-      CALL set_bndy_half_to_full(asubvmnh, asubvmnf, nsmin, fouruv)
+      CALL set_bndy_half_to_full(asubsmnh, asubumnh, nsmin, iparity,           &
+                                 asubsmnf, asubumnf, asubvmnf)
 
 !  Compute sqrt(g)B^X == A^X contravariant current components in Fourier space.
       ALLOCATE(da_uds(0:mpol,-ntor:ntor,nsmin:nsmax),                          &
@@ -548,9 +568,10 @@
       jbsupumnf(:,:,LBOUND(jbsupsmnf,3):nsmin-1) = 0
       jbsupvmnf(:,:,LBOUND(jbsupsmnf,3):nsmin-1) = 0
 
-      jbsupsmnf(moff,-ntor+noff:-1+noff,:) = 0
-      jbsupumnf(moff,-ntor+noff:-1+noff,:) = 0
-      jbsupvmnf(moff,-ntor+noff:-1+noff,:) = 0
+      CALL set_bndy_fouier_m0(jbsupsmnf, jbsupumnf, jbsupvmnf, iparity)
+      IF (nsmin .eq. 1) THEN
+         CALL set_bndy_full_origin(jbsupsmnf, jbsupumnf, jbsupvmnf)
+      END IF
 
       END SUBROUTINE
 
@@ -616,7 +637,6 @@
 !>  @param[in]    iparity Parity flag.
 !-------------------------------------------------------------------------------
       PURE SUBROUTINE set_bndy_half_to_full(amnh, amnf, nsmin, iparity)
-      USE fourier, ONLY: f_cos, n0, n1
 
       IMPLICIT NONE
 
@@ -641,6 +661,58 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
+!>  @brief Set fouier boundary conditions for full grid vector quantity
+!>         converted from half grid.
+!>
+!>  At the center of the grid, the a_u basis vector is zero. The a_s basis
+!>  vector only has m=1 components. The a_v vector only has m=0 components.
+!>
+!>  @param[in]    asubsmnh Half grid covariant s fourier quantity.
+!>  @param[in]    asubvmnh Half grid covariant v fourier quantity.
+!>  @param[in]    nsmin    Minimum radial index.
+!>  @param[in]    parity   Parity flag.
+!>  @param[inout] asubsmnf Full grid covariant s fourier quantity.
+!>  @param[inout] asubumnf Full grid covariant u fourier quantity.
+!>  @param[inout] asubvmnf Full grid covariant v fourier quantity.
+!-------------------------------------------------------------------------------
+      PURE SUBROUTINE set_bndy_half_to_full_vec(asubsmnh, asubvmnh,            &
+                                                nsmin, parity,                 &
+                                                asubsmnf, asubumnf, asubvmnf)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(in)    :: asubsmnh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(in)    :: asubvmnh
+      INTEGER, INTENT(IN)                                     :: nsmin
+      INTEGER, INTENT(in)                                     :: parity
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: asubsmnf
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: asubumnf
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: asubvmnf
+
+!  Local Variables
+      INTEGER                                                 :: moffh
+      INTEGER                                                 :: mofff
+
+!  Start of executable code
+      moffh = LBOUND(asubsmnh, 1)
+      mofff = LBOUND(asubsmnf, 1)
+
+      IF (nsmin .eq. 1) THEN
+         asubsmnf(:,:,1) = 0
+         asubsmnf(m1 + mofff,:,1) = asubsmnh(m1 + moffh,:,2)
+
+         asubumnf(:,:,1) = 0
+
+         asubvmnf(:,:,1) = 0
+         asubvmnf(m0 + mofff,:,1) = asubvmnh(m0 + moffh,:,2)
+      END IF
+
+      CALL set_bndy_fouier_m0(asubsmnf, asubumnf, asubvmnf, parity)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
 !>  @brief Set fouier boundary conditions for full grid radial derivative
 !>         quantity converted from half grid.
 !>
@@ -648,13 +720,12 @@
 !>  m > 0 modes should be zero. For the m = 0 terms, 2*x/ds to preserve
 !>  divergence free values.
 !>
-!>  @param[in]    amnh    Half grid fourier quantity.
-!>  @param[inout] amnf    Full grid fourier quantity.
-!>  @param[in]    nsmin   Minimum radial index.
-!>  @param[in]    iparity Parity flag.
+!>  @param[in]    amnh   Half grid fourier quantity.
+!>  @param[inout] amnf   Full grid fourier quantity.
+!>  @param[in]    nsmin  Minimum radial index.
+!>  @param[in]    parity Parity flag.
 !-------------------------------------------------------------------------------
-      PURE SUBROUTINE set_bndy_half_to_full_ds(amnh, amnf_ds, nsmin, iparity)
-      USE fourier, ONLY: f_cos, n0, n1
+      PURE SUBROUTINE set_bndy_half_to_full_ds(amnh, amnf_ds, nsmin, parity)
 
       IMPLICIT NONE
 
@@ -662,7 +733,7 @@
       REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(in)    :: amnh
       REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: amnf_ds
       INTEGER, INTENT(IN)                                     :: nsmin
-      INTEGER, INTENT(in)                                     :: iparity
+      INTEGER, INTENT(in)                                     :: parity
 
 !  Start of executable code
       IF (nsmin .eq. 1) THEN
@@ -670,10 +741,109 @@
          amnf_ds(m0,:,1) = 2.0*ohs*amnh(m0,:,2)
       END IF
 
-      IF (iparity .eq. f_cos) THEN
-         amnf_ds(m0,-ntor:-n1,:) = 0.0
+      CALL set_bndy_fouier_m0(amnf_ds, parity)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Apply origin vector boundary conditions.
+!>
+!>  At the center of the grid, a vector quantity should have only m=1 modes in
+!>  the s direction, no modes in the u direction and only m=0 modes in the v
+!>  direction.
+!>
+!>  @param[inout] amnsf  Full grid fourier quantity for s component.
+!>  @param[inout] amnuf  Full grid fourier quantity for u component.
+!>  @param[inout] amnvf  Full grid fourier quantity for v component.
+!-------------------------------------------------------------------------------
+      PURE SUBROUTINE set_bndy_full_origin(amnsf, amnuf, amnvf)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp), DIMENSION(:,:,:), INTENT(inout) :: amnsf
+      REAL (dp), DIMENSION(:,:,:), INTENT(inout) :: amnuf
+      REAL (dp), DIMENSION(:,:,:), INTENT(inout) :: amnvf
+
+!  Local Variables
+      INTEGER                                    :: moff
+
+!  Start of executable code
+      moff = LBOUND(amnsf, 1)
+
+      amnsf(m0 + moff,:,1) = 0
+      amnsf(m2 + moff:,:,1) = 0
+
+      amnuf(:,:,1) = 0
+
+      amnvf(m1 + moff:,:,1) = 0
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Set vector fourier conditions.
+!>
+!>  For fouier modes for m=0 and for the negative n modes. The n=0 modes are
+!>  zero for quantities with sin parity.
+!>
+!>  @param[inout] amn    Fourier quantity.
+!>  @param[in]    parity Fouier parity flag.
+!-------------------------------------------------------------------------------
+      PURE SUBROUTINE set_bndy_fouier_m0(amn, parity)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp), DIMENSION(:,:,:), INTENT(inout) :: amn
+      INTEGER, INTENT(in)                        :: parity
+
+!  Local Variables
+      INTEGER                                    :: moff
+      INTEGER                                    :: noff
+
+!  Start of executable code
+      moff = LBOUND(amn, 1)
+      noff = LBOUND(amn, 2) + ntor
+
+      IF (parity .eq. f_cos) THEN
+         amn(m0 + moff,-ntor+noff:-n1+noff,:) = 0
       ELSE
-         amnf_ds(m0,-ntor:n0,:) = 0.0
+         amn(m0 + moff,-ntor+noff:n0+noff,:) = 0
+      END IF
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Set vector fourier conditions.
+!>
+!>  For fouier modes for m=0 and for the negative n modes. The n=0 modes are
+!>  zero for quantities with sin parity.
+!>
+!>  @param[inout] amns   Fourier quantity for s component.
+!>  @param[inout] amnu   Fourier quantity for u component.
+!>  @param[inout] amnv   Fourier quantity for v component.
+!>  @param[in]    parity Fouier parity flag.
+!-------------------------------------------------------------------------------
+      PURE SUBROUTINE set_bndy_fouier_m0_vec(amns, amnu, amnv, parity)
+      USE fourier, ONLY: f_cos, f_sin
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp), DIMENSION(:,:,:), INTENT(inout) :: amns
+      REAL (dp), DIMENSION(:,:,:), INTENT(inout) :: amnu
+      REAL (dp), DIMENSION(:,:,:), INTENT(inout) :: amnv
+      INTEGER, INTENT(in)                        :: parity
+
+!  Start of executable code
+      IF (parity .eq. f_cos) THEN
+         CALL set_bndy_fouier_m0(amns, f_cos)
+         CALL set_bndy_fouier_m0(amnu, f_sin)
+         CALL set_bndy_fouier_m0(amnv, f_sin)
+      ELSE
+         CALL set_bndy_fouier_m0(amns, f_sin)
+         CALL set_bndy_fouier_m0(amnu, f_cos)
+         CALL set_bndy_fouier_m0(amnv, f_cos)
       END IF
 
       END SUBROUTINE

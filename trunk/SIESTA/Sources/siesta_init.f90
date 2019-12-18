@@ -7,32 +7,32 @@
 !
 !>  Initializes unperturbed siesta fields and pressure in real space.
 !*******************************************************************************
-       MODULE siesta_init
-       USE v3_utilities, ONLY: assert, assert_eq
-       USE stel_kinds
-       USE descriptor_mod, ONLY: SIESTA_COMM, iam
-       USE fourier, ONLY: toijsp, tomnsp, f_none, f_sin, f_cos, &
-                          f_du, f_dv, f_sum, orthonorm, m0, m1, isym, iasym
-       USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
-       USE quantities
-       USE shared_data, ONLY: l_update_state, l_pedge
-       USE mpi_inc
+      MODULE siesta_init
+      USE v3_utilities, ONLY: assert, assert_eq
+      USE stel_kinds
+      USE descriptor_mod, ONLY: SIESTA_COMM, iam
+      USE fourier, ONLY: toijsp, tomnsp, f_none, f_sin, f_cos, &
+                          f_du, f_dv, f_sum, orthonorm, m0, m1
+      USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
+      USE quantities
+      USE shared_data, ONLY: l_update_state, l_pedge
+      USE mpi_inc
  
-       IMPLICIT NONE
+      IMPLICIT NONE
 
-       PRIVATE
+      PRIVATE
 !*******************************************************************************
 !  utilities module variables
 !*******************************************************************************
 ! FIXME: Remove these if possible.
-       INTEGER                                  :: nsmin
-       INTEGER                                  :: nsmax
-       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: pfilter
-       REAL (dp)                                :: pedge
+      INTEGER                                  :: nsmin
+      INTEGER                                  :: nsmax
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: pfilter
+      REAL (dp)                                :: pedge
        
-       PUBLIC  :: init_state
+      PUBLIC  :: init_state
 
-       CONTAINS
+      CONTAINS
 
 !-------------------------------------------------------------------------------
 !>  @brief Initialize equilibrium state.
@@ -97,9 +97,9 @@
 !  Calculate unperturbed half mesh jac*bsupX and jac*pressure from nsmin to
 !  nsmax. Sum symmetric and (for lasym) asymmetric parts. Returning from
 !  update_state, jbsupXmn, jpmn have been gathered onto all processors.
-         CALL GetFields(jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch, isym)
+         CALL GetFields(jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch, f_sin)
          IF (lasym) THEN
-            CALL GetFields(jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh, iasym)
+            CALL GetFields(jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh, f_cos)
          END IF
 
 !  Convert jac*bsubXh to bsupXh and jac*pres to presh in real space. On exit,
@@ -139,9 +139,9 @@
       IF (l_update_state) THEN
          ALLOCATE(pfilter(ntheta, nzeta, nsmin:nsmax))
       END IF
-      CALL FilterPressure(isym)
+      CALL FilterPressure(f_cos)
       IF (lasym) THEN
-         CALL FilterPressure(iasym)
+         CALL FilterPressure(f_sin)
       END IF
 
 !  Compute radial pressure derivative pijf0_ds at full mesh points
@@ -153,7 +153,7 @@
       IF (nsmin .EQ. 1) THEN
          pijf0_ds(:,:,1) = 2.0*(pijh0(:,:,2) - pijh0(:,:,1))*ohs
       END IF
-      
+
 !  SPH11-3-16 preserve s=1 as iso-pressure contour
       IF (nsmax .eq. ns .and. l_pedge) THEN
          pijf0(:,:,ns) = pedge
@@ -182,9 +182,9 @@
       END IF
       DEALLOCATE(pfilter)
 
-      CALL CheckFFT(jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch, isym)
+      CALL CheckFFT(jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch, f_sin)
       IF (lasym) THEN
-         CALL CheckFFT(jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh, iasym)
+         CALL CheckFFT(jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh, f_cos)
       END IF
 
       IF (.not.lpar) THEN
@@ -427,7 +427,7 @@
          CALL assert(ALL(jpmnh(m1:,:,1)       .eq. zero), 'pmnh(m1:,1) != 0')
       END IF
 
-      IF (iparity .EQ. isym) THEN
+      IF (iparity .EQ. f_sin) THEN
          fcomb = f_none
          fours = f_sin
          fouruvp = f_cos
@@ -440,7 +440,7 @@
       CALL toijsp(jbsupsmnh(:,:,nsmin:nsmax), bsupsijh0, fcomb, fours)
       CALL toijsp(jbsupumnh(:,:,nsmin:nsmax), bsupuijh0, fcomb, fouruvp)
       CALL toijsp(jbsupvmnh(:,:,nsmin:nsmax), bsupvijh0, fcomb, fouruvp)
-      CALL toijsp(jpmnh(:,:,nsmin:nsmax), pijh0, fcomb, fouruvp)
+      CALL toijsp(jpmnh(:,:,nsmin:nsmax), pijh0, fcomb, fouruvp, .true.)
 
       END SUBROUTINE
 
@@ -457,20 +457,17 @@
        IMPLICIT NONE
 
 !  Declare Arguments
-       INTEGER, INTENT(IN)                      :: iparity
+       INTEGER, INTENT(in)                      :: iparity
 
 !  local variables
-       INTEGER                                  :: four
        INTEGER                                  :: fcomb
        INTEGER                                  :: istat
        REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: pmnh
 
 !  Start of executable code
-       IF (iparity .EQ. isym) THEN
-          four = f_cos
+       IF (iparity .EQ. f_cos) THEN
           fcomb = f_none
        ELSE
-          four = f_sin
           fcomb = f_sum
        END IF
 
@@ -479,56 +476,78 @@
        ALLOCATE(pmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
        CALL assert_eq(0, istat, 'Allocation error in FilterPressure')
 
-       CALL tomnsp(pijh0, pmnh, four)
+       CALL tomnsp(pijh0, pmnh, iparity)
        
-       IF (iparity .eq. isym .and. nsmax .eq. ns) THEN
-          pedge = pmnh(m0, 0,ns)*orthonorm(0,0)
+       IF (iparity .eq. f_cos .and. nsmax .eq. ns) THEN
+          pedge = pmnh(m0,0,ns)*orthonorm(0,0)
        END IF
 
 !  Spectrally filtered angle derivatives of p in real space (half mesh).
-       CALL toijsp(pmnh, pijh0_du, IOR(f_du, fcomb), four)
-       CALL toijsp(pmnh, pijh0_dv, IOR(f_dv, fcomb), four)
+       CALL toijsp(pmnh, pijh0_du, IOR(f_du, fcomb), iparity)
+       CALL toijsp(pmnh, pijh0_dv, IOR(f_dv, fcomb), iparity)
        
        IF (l_update_state) THEN
-          CALL toijsp(pmnh, pfilter, fcomb, four)
+          CALL toijsp(pmnh, pfilter, fcomb, iparity)
        END IF
 
        DEALLOCATE(pmnh)
 
        END SUBROUTINE
-       
-       
-       SUBROUTINE CheckFFT(jbsupsmnh, jbsupumnh, jbsupvmnh,             &
-                           jpmnh, ipar)
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-       REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(IN) ::           &
-             jbsupsmnh, jbsupumnh, jbsupvmnh, jpmnh
-       INTEGER, INTENT(IN) :: ipar
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-       REAL(dp), PARAMETER :: rtol = 1.E-14_dp
-       INTEGER  :: fours, fouru, fourv, fcomb, sparity, fouru1, fourv1, &
-                   m, mp, n, np
-       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)  :: FFT_TEST, pmnh, temp
-       REAL(dp) :: rtest
-!-----------------------------------------------
+
+!-------------------------------------------------------------------------------
+!>  @brief
+!>
+!>  @param[in] jbsupsmnh Contravariant magnetic field in the s direction.
+!>  @param[in] jbsupumnh Contravariant magnetic field in the u direction.
+!>  @param[in] jbsupvmnh Contravariant magnetic field in the v direction.
+!>  @param[in] jpmnh     Pressure on the half grid.
+!>  @param[in] iparity   Fourier parity of the s component.
+!-------------------------------------------------------------------------------
+       SUBROUTINE CheckFFT(jbsupsmnh, jbsupumnh, jbsupvmnh, jpmnh, iparity)
+
+       IMPLICIT NONE
+
+!  Declare Arguments
+       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in) :: jbsupsmnh
+       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in) :: jbsupumnh
+       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in) :: jbsupvmnh
+       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in) :: jpmnh
+       INTEGER, INTENT(in)                                  :: iparity
+
+!  Local Variables
+       INTEGER                                              :: fours
+       INTEGER                                              :: fouruv
+       INTEGER                                              :: fcomb
+       INTEGER                                              :: sparity
+       INTEGER                                              :: m
+       INTEGER                                              :: mp
+       INTEGER                                              :: n
+       INTEGER                                              :: np
+       REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)             :: FFT_TEST
+       REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)             :: pmnh
+       REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)             :: temp
+       REAL (dp)                                            :: rtest
+
+!  Local Parameters
+       REAL (dp), PARAMETER                                 :: rtol = 1.E-14_dp
+
+!  Start of executable code.
 #undef _TEST_INIT
 !#define _TEST_INIT
 #if defined(_TEST_INIT)
-       IF (ipar .EQ. isym) THEN
-          fours = f_sin; fouru = f_cos; fourv = f_cos; sparity=1
-          fouru1 = f_sin; fourv1 = f_sin          
+       IF (iparity .EQ. f_sin) THEN
+          fours = f_sin
+          fouruv = f_cos
+          sparity = 1
        ELSE
-          fours = f_cos; fouru = f_sin; fourv = f_sin; sparity=-1
-          fouru1 = f_cos; fourv1 = f_cos          
+          fours = f_cos
+          fouruv = f_sin
+          sparity = -1
        END IF
 
 !check independent variables
-       ALLOCATE (fft_test(0:mpol,-ntor:ntor,nsmin:nsmax),               &
-                 temp(ntheta,nzeta,nsmin:nsmax),                        &
+       ALLOCATE (fft_test(0:mpol,-ntor:ntor,nsmin:nsmax),                      &
+                 temp(ntheta,nzeta,nsmin:nsmax),                               &
                  pmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=m)
        CALL assert(m.EQ.0,' Allocation failed in CheckFFT')
        temp = bsupsijh0*jacobh(:,:,nsmin:nsmax)
@@ -536,28 +555,28 @@
        rTest = MAXVAL(ABS(fft_test - jbsupsmnh(:,:,nsmin:nsmax)))
        CALL assert(rtest.LT.rtol, ' jbsupsmnh FFT error in siesta_init')
        temp = bsupuijh0*jacobh(:,:,nsmin:nsmax)
-       CALL tomnsp(temp, fft_test, fouru)
+       CALL tomnsp(temp, fft_test, fouruv)
        rTest = MAXVAL(ABS(fft_test - jbsupumnh(:,:,nsmin:nsmax)))
        CALL assert(rTest.LT.rtol,' jbsupumnh FFT error in siesta_init')
        temp = bsupvijh0*jacobh(:,:,nsmin:nsmax)
-       CALL tomnsp(temp, fft_test, fourv)
+       CALL tomnsp(temp, fft_test, fouruv)
        rTest = MAXVAL(ABS(fft_test - jbsupvmnh(:,:,nsmin:nsmax)))
        CALL assert(rTest.LT.rtol,' jbsupvmnh FFT error in siesta_init')
        temp = pijh0*jacobh(:,:,nsmin:nsmax)
-       CALL tomnsp(temp, fft_test, fourv)
+       CALL tomnsp(temp, fft_test, fouruv)
        rTest = MAXVAL(ABS(fft_test - jpmnh(:,:,nsmin:nsmax)))
        CALL assert(rTest.LT.rtol,' jpmnh FFT error in siesta_init')
             
 ! check angle derivatives of pressure            
-       CALL tomnsp(pijh0, pmnh, fouru)
-       CALL tomnsp(pijh0_du, fft_test, fouru1)
+       CALL tomnsp(pijh0, pmnh, fouruv)
+       CALL tomnsp(pijh0_du, fft_test, fouruv)
        DO m = 0, mpol
           mp = -sparity*m
           CALL assert(MAXVAL(ABS(fft_test(m,:,:) - mp*pmnh(m,:,:))) .LE. rtol,   &
                      ' pijh0_du FFT error in siesta_init')
        END DO
        
-       CALL tomnsp(pijh0_dv, fft_test, fourv1)
+       CALL tomnsp(pijh0_dv, fft_test, fouruv)
        DO n = -ntor, ntor
           np = -sparity*n*nfp
           CALL assert(MAXVAL(ABS(fft_test(:,n,:) - np*pmnh(:,n,:))) .LE. rtol,   &
@@ -567,7 +586,7 @@
        DEALLOCATE(fft_test, pmnh, temp)
 #endif                       
        
-       END SUBROUTINE CheckFFT
+       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
 !>  @brief Check that p > 0.

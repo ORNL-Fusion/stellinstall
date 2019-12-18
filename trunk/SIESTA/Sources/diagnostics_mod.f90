@@ -38,6 +38,7 @@
 
         SUBROUTINE divb (ns_min, ns_max)
         USE island_params, ONLY: ohs=>ohs_i
+      USE hessian, ONLY: gather_array
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -45,7 +46,7 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-        INTEGER  :: istat, m, n, n1, n2
+        INTEGER  :: istat, m, n, nl, nh, s
         REAL(dp) :: tnorm, temp(2), ton, toff
 !-----------------------------------------------
 !
@@ -53,9 +54,10 @@
 !
         CALL second0(ton)
 
-        nsmin=ns_min;  nsmax=ns_max
-        n1 = MAX(2, nsmin)
-        n2 = MIN(ns-1, nsmax)       
+        nsmin = ns_min
+        nsmax = ns_max
+        nl = MAX(2, nsmin)
+        nh = MIN(ns-1, nsmax)
  
         IF (ALLOCATED(divbmnsf)) DEALLOCATE(divbmnsf)
         IF (ALLOCATED(divbmncf)) DEALLOCATE(divbmncf)
@@ -63,22 +65,37 @@
                  divbmncf(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
         CALL ASSERT(istat.EQ.0,'Allocation failed in divb')
         
-        divbmnsf = 0; divbmncf = 0
+        divbmnsf = 0
+        divbmncf = 0
+
+        CALL Gather_Array(jbsupsmnsh)
+        CALL Gather_Array(jbsupumnch)
+        CALL Gather_Array(jbsupvmnch)
+        IF (lasym) THEN
+           CALL Gather_Array(jbsupsmnch)
+           CALL Gather_Array(jbsupumnsh)
+           CALL Gather_Array(jbsupvmnsh)
+        END IF
 
         DO m = 0, mpol
            DO n = -ntor, ntor
-           divbmnsf(m,n,n1:n2) =                                        &
-                -m*(jbsupumnch(m,n,n1+1:n2+1)+jbsupumnch(m,n,n1:n2))/2  &
-            -n*nfp*(jbsupvmnch(m,n,n1+1:n2+1)+jbsupvmnch(m,n,n1:n2))/2  &
-            + ohs *(jbsupsmnsh(m,n,n1+1:n2+1)-jbsupsmnsh(m,n,n1:n2))
-           IF (lasym) THEN
-           divbmncf(m,n,n1:n2) =                                        &
-                 m*(jbsupumnsh(m,n,n1+1:n2+1)+jbsupumnsh(m,n,n1:n2))/2  &
-            +n*nfp*(jbsupvmnsh(m,n,n1+1:n2+1)+jbsupvmnsh(m,n,n1:n2))/2  &
-            + ohs *(jbsupsmnch(m,n,n1+1:n2+1)-jbsupsmnch(m,n,n1:n2))
-           END IF
+              divbmnsf(m,n,nl:nh) =    -m*(jbsupumnch(m,n,nl+1:nh+1) +         &
+                                           jbsupumnch(m,n,nl:nh))*0.5          &
+                                  - n*nfp*(jbsupvmnch(m,n,nl+1:nh+1) +         &
+                                           jbsupvmnch(m,n,nl:nh))*0.5          &
+                                  +   ohs*(jbsupsmnsh(m,n,nl+1:nh+1) -         &
+                                           jbsupsmnsh(m,n,nl:nh))
+              IF (lasym) THEN
+                 divbmncf(m,n,nl:nh) =     m*(jbsupumnsh(m,n,nl+1:nh+1) +      &
+                                              jbsupumnsh(m,n,nl:nh))*0.5       &
+                                     + n*nfp*(jbsupvmnsh(m,n,nl+1:nh+1) +      &
+                                              jbsupvmnsh(m,n,nl:nh))*0.5       &
+                                     +   ohs*(jbsupsmnch(m,n,nl+1:nh+1) -      &
+                                              jbsupsmnch(m,n,nl:nh))
+              END IF
            END DO
         END DO
+
 
         tnorm = hs_i*SUM(jbsupumnch(:,:,nsmin:nsmax)**2                 &
               +          jbsupvmnch(:,:,nsmin:nsmax)**2                 &

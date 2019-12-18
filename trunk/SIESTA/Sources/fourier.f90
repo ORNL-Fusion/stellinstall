@@ -79,12 +79,6 @@
 !>  n = 1 mode.
       INTEGER, PARAMETER   :: n1 = 1
 
-!  Parity flags.
-!>  Stellarator parity.
-      INTEGER, PARAMETER   :: isym = 0
-!>  Non-stellarator parity.
-      INTEGER, PARAMETER   :: iasym = 1
-
       CONTAINS
 
 !*******************************************************************************
@@ -354,7 +348,11 @@
          END DO
 
 ! Redundant: To avoid counting (0,-n) for non-zero n.
-         xmn1(m0,-ntor:-n1) = zero
+         IF (iparity .eq. f_cos) THEN
+            xmn1(m0,-ntor:-n1) = zero
+         ELSE
+            xmn1(m0,-ntor:n0) = zero
+         END IF
          xmn(:,:,js) = orthonorm(0:mpol,-ntor:ntor)*xmn1(:,:)
       END DO NS_LOOP
 

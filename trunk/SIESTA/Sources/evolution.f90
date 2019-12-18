@@ -50,7 +50,7 @@
 !!  Terminates when the force residual stops changing by more than a factor of 2
       SUBROUTINE converge_diagonal (wout_file, ftol)
       USE siesta_namelist, ONLY: ladd_pert, l_output_alliter   !R. Sanchez, added Jul '10: L_OUTPUT_ALLITER Dump info on file at each timestep
-      USE perturbation, ONLY: add_perturb
+      USE perturbation, ONLY: add_perturb, niter_max
       USE dumping_mod, ONLY: write_output
 
 !-----------------------------------------------
@@ -93,7 +93,9 @@
             CALL write_output (wout_file, niter, .FALSE.)   !MRC Do not close wout_file
          END IF
 
-         l_iterate = (fsq_ratio1.LE.0.5_dp .AND. fsq_total1.GT.fsq_block)
+         l_iterate = fsq_ratio1 .le. 0.5_dp    .and.                           &
+                     fsq_total1 .gt. fsq_block .and.                           &
+                     niter .lt. niter_max
 
          IF (ladd_pert .AND. fsq_total1.lt.100*fsq_block) THEN
             l_init_state=.TRUE.
@@ -136,7 +138,7 @@
       l_Gmres   = .FALSE.
       nprecon_type = PREBLOCK
       nprecon = 1
-      niter_max = niter+niter_max
+!      niter_max = niter+niter_max   ! FIXME: MRC REMOVE LATER
       l_iterate = (niter.LT.niter_max) .AND. (fsq_total1.GT.ftol) 
       nrow = 0
 
@@ -154,16 +156,16 @@
             IF (IAM .EQ. 0) PRINT *,'CONJ GRADIENT UNABLE TO MAKE PROGRESS'
             l_iterate=.FALSE.
          ELSE IF (nprecon.GT.3 .AND. fsq_ratio.GT.1.E5_dp) THEN
-            IF (IAM.EQ.0 .AND. lverbose) PRINT 100, fsq_ratio1
-            l_iterate=.FALSE.
+!            IF (IAM.EQ.0 .AND. lverbose) PRINT 100, fsq_ratio1
+!            l_iterate=.FALSE.
          END IF
 !STOP IF LACK OF PROGRESS
          IF (nprecon.GT.2 .AND. ABS(1 - fsq_ratio1).LT.1.E-2_dp) THEN
             levm_scale = levm_scale/3
             nrow = nrow+1
             IF (nrow.EQ.3 .AND. l_iterate) THEN
-               l_iterate=.FALSE.
-               IF (IAM.EQ.0 .AND. lverbose) PRINT 100, fsq_ratio1
+!               l_iterate=.FALSE.
+!               IF (IAM.EQ.0 .AND. lverbose) PRINT 100, fsq_ratio1
             END IF
          ELSE 
             nrow = 0

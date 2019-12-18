@@ -34,7 +34,6 @@
                             jbsupsmnch, jbsupumnsh, jbsupvmnsh
 
       USE mpi_inc
-      USE diagnostics_mod, ONLY: divb, divb_rms
 
       IMPLICIT NONE
 
@@ -76,6 +75,7 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE run_pchelms
       USE shared_data, ONLY: lverbose
+      USE diagnostics_mod, ONLY: divb, divb_rms
 
       IMPLICIT NONE
 
@@ -132,6 +132,8 @@
          CALL DUMP_B(js, 666)
       END DO
 
+      nsmin = startglobrow
+      nsmax = MIN(ns, endglobrow + 1)
       CALL divb(nsmin, nsmax)
     
       IF (lverbose .and. iam .EQ. 0) THEN
@@ -174,27 +176,34 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE CURLA_PCHELMS(Asubsmnf,  Asubumnf,  Asubvmnf,                 &
                                jbsupsmnh, jbsupumnh, jbsupvmnh, iparity)
-      USE utilities, ONLY: CURL_FtoH
+      USE utilities, ONLY: CURL_FtoH, set_bndy_fouier_m0, set_bndy_full_origin
 
 !  Declare Arguments
-      REAL(dp), DIMENSION(:,:,:), POINTER                    :: Asubsmnf
-      REAL(dp), DIMENSION(:,:,:), POINTER                    :: Asubumnf
-      REAL(dp), DIMENSION(:,:,:), POINTER                    :: Asubvmnf
-      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jbsupsmnh
-      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jbsupumnh
-      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jbsupvmnh
-      INTEGER, INTENT(IN)                                    :: iparity
+      REAL (dp), DIMENSION(:,:,:), POINTER                    :: Asubsmnf
+      REAL (dp), DIMENSION(:,:,:), POINTER                    :: Asubumnf
+      REAL (dp), DIMENSION(:,:,:), POINTER                    :: Asubvmnf
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jbsupsmnh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jbsupumnh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jbsupvmnh
+      INTEGER, INTENT(in)                                     :: iparity
 
 !  local variables
-      INTEGER                                                :: fcomb
-      INTEGER                                                :: fours
-      INTEGER                                                :: fouruv
-      INTEGER                                                :: moff
-      INTEGER                                                :: nmin
-      INTEGER                                                :: nmatch
+      INTEGER                                                 :: fcomb
+      INTEGER                                                 :: fours
+      INTEGER                                                 :: fouruv
+      INTEGER                                                 :: moff
+      INTEGER                                                 :: noff
+      INTEGER                                                 :: nmin
+      INTEGER                                                 :: nmatch
+
+      INTEGER :: m,n
 
 !  Start of executable code
-      IF (iparity .EQ. isym) THEN
+      moff = LBOUND(asubsmnf, 1)
+      noff = ntor + LBOUND(asubsmnf, 2)
+      nmin = nsmin
+
+      IF (iparity .EQ. f_sin) THEN
          fcomb = f_none
          fours = f_sin
          fouruv = f_cos
@@ -204,18 +213,14 @@
          fouruv = f_sin
       END IF
 
-      moff = LBOUND(asubsmnf, 1)
-      nmin = nsmin
-      
+      CALL set_bndy_fouier_m0(asubsmnf, asubumnf, asubvmnf, iparity)
       IF (nsmin .EQ. 1) THEN
-          asubsmnf(:,:,1) = 0 
-          asubumnf(:,:,1) = 0
-          asubvmnf(1 + moff:,:,1) = 0
+         CALL set_bndy_full_origin(asubsmnf, asubumnf, asubvmnf)
       END IF
 
 !  Dirichelet bc (fixed) for A_u, A_v (A_s floats) consistent with Poynting
 !  flux = 0.
-!      IF (nmax .eq. ns .and.                                                   &
+!      IF (nsmax .eq. ns .and.                                                  &
 !          lHessian     .and.                                                   &
 !          .not.lInit) THEN
 !         IF (.not.l_AsEdge) THEN
@@ -228,26 +233,20 @@
 !  Need this to keep Hessian symmetric
       IF (nmin .le. ns_match .and. lHessian .and. .not.lInit) THEN
           nmatch = MIN(ns_match, nsmax)
-          asubumnf(1 + moff,:,nmin:nmatch) = 0
-          asubvmnf(1 + moff,:,nmin:nmatch) = 0
+          asubumnf(m1 + moff,:,nmin:nmatch) = 0
+          asubvmnf(m1 + moff,:,nmin:nmatch) = 0
       END IF
 
-      CALL CURL_FtoH(Asubsmnf,  Asubumnf,  Asubvmnf,                           &
+      CALL CURL_FtoH(asubsmnf,  asubumnf,  asubvmnf,                           &
                      jbsupsmnh, jbsupumnh, jbsupvmnh, iparity, nmin, nsmax)
-      nmin = startglobrow
 
-!  Never use this except to make B_X finite at s=1
-!      IF (nmin .eq. 1) THEN
-!         jbsupsmnh(:,:,1) = 0
-!         jbsupumnh(:,:,1) = 0
-!         jbsupvmnh(:,:,1) = 0
-!      END IF
+      nmin = startglobrow
 
 !  Convert to real space.
       CALL toijsp(jbsupsmnh(:,:,nmin:nsmax), Bsupsijh, fcomb, fours)
       CALL toijsp(jbsupumnh(:,:,nmin:nsmax), Bsupuijh, fcomb, fouruv)
       CALL toijsp(jbsupvmnh(:,:,nmin:nsmax), Bsupvijh, fcomb, fouruv)
-      
+
       END SUBROUTINE
       
 !-------------------------------------------------------------------------------
@@ -268,8 +267,7 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE CURLB_PCHELMS(ksupsmnf, ksupumnf, ksupvmnf, asubsmnf,         &
                                bsupsmnh, iparity)
-      USE utilities, ONLY: CURL_HtoF, GradientHalf
-
+      USE utilities, ONLY: CURL_HtoF, GradientHalf, set_bndy_fouier_m0
 !  Declare Arguments
       REAL(dp), POINTER, DIMENSION(:,:,:)                 :: ksupsmnf
       REAL(dp), POINTER, DIMENSION(:,:,:)                 :: ksupumnf
@@ -283,8 +281,8 @@
       INTEGER                                             :: fouruv
       INTEGER                                             :: moff
       INTEGER                                             :: noff
-      INTEGER                                             :: n1
-      INTEGER                                             :: n2
+      INTEGER                                             :: nl
+      INTEGER                                             :: nh
       INTEGER                                             :: istat
       INTEGER                                             :: nmin
       INTEGER                                             :: nmax
@@ -299,8 +297,9 @@
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE            :: bsubvmnh
       REAL (dp)                                           :: Diff
       REAL (dp), DIMENSION(nsp)                           :: t1(nsp)
-!-----------------------------------------------
-      IF (iparity .EQ. isym) THEN
+
+!  Start of executable code
+      IF (iparity .eq. f_sin) THEN
          fours = f_sin
          fouruv = f_cos
          sparity = 1
@@ -318,22 +317,26 @@
       ALLOCATE(bsubsmnh(0:mpol,-ntor:ntor,nmin:nmax),                          &
                bsubumnh(0:mpol,-ntor:ntor,nmin:nmax),                          &
                bsubvmnh(0:mpol,-ntor:ntor,nmin:nmax), stat=istat)   
-      CALL ASSERT(istat.EQ.0,'Allocation1 failed in CURLB_PCHELMS')
-      
+      CALL ASSERT(istat .eq. 0,'Allocation1 failed in CURLB_PCHELMS')
+
       CALL tomnsp(bsubsijh, bsubsmnh(:,:,nmin:nmax), fours)          ! Compute BSUBXMNH
       CALL tomnsp(bsubuijh, bsubumnh(:,:,nmin:nmax), fouruv)
       CALL tomnsp(bsubvijh, bsubvmnh(:,:,nmin:nmax), fouruv)
-      
-      IF (nmax .eq. ns .and. iparity .eq. isym) THEN
+
+      CALL set_bndy_fouier_m0(bsubsmnh, bsubumnh, bsubvmnh, fours)
+
+!  Sub s term has sin parity so the subu term has cos parity.
+      IF (nmax .eq. ns .and. iparity .eq. f_sin) THEN
          line_Bu = bsubumnh(0,0,ns)
       END IF
 
       CALL CURL_HtoF(bsubsmnh, bsubumnh, bsubvmnh,                             &
                      Ksupsmnf, Ksupumnf, Ksupvmnf, iparity, nmin, nmax)
+
       nmax = endglobrow
       DEALLOCATE (bsubsmnh, bsubumnh, bsubvmnh, stat=istat)   
       CALL assert_eq(0, istat, 'Deallocation failed in CURLB_PCHELMS')
- 
+#if 0
 !  Add smoothing diffusion for A_s in Hessian:
       IF (lHessian) THEN
          np = MAX(1, nmin - 1)
@@ -353,40 +356,40 @@
          DEALLOCATE(dA_sds)
       END IF
 
-      n2 = MIN(nmax, nsp)
-      IF (n2 .GE. nmin) THEN
+      nh = MIN(nmax, nsp)
+      IF (nh .GE. nmin) THEN
 !Force b^s -> 0 for js <= nsp (add (B^s)**2 to energy)
-         n1 = nmin
+         nl = nmin
          Diff = 0.1_dp
          DO m = 0,mpol
             mp = m*sparity
             DO n = -ntor,ntor
                np = n*sparity*nfp
-               t1(n1:n2) = Diff*(bsupsmnh(m,n,n1:n2)                           &
-                         +       bsupsmnh(m,n,n1+1:n2+1))
-               ksupumnf(m+moff,n+noff,n1:n2) = ksupumnf(m+moff,n+noff,n1:n2)   &
-                                             - np*t1(n1:n2)
-               ksupvmnf(m+moff,n+noff,n1:n2) = ksupvmnf(m+moff,n+noff,n1:n2)   &
-                                             + mp*t1(n1:n2)
+               t1(nl:nh) = Diff*(bsupsmnh(m,n,nl:nh)                           &
+                         +       bsupsmnh(m,n,nl+1:nh+1))
+               ksupumnf(m+moff,n+noff,nl:nh) = ksupumnf(m+moff,n+noff,nl:nh)   &
+                                             - np*t1(nl:nh)
+               ksupvmnf(m+moff,n+noff,nl:nh) = ksupvmnf(m+moff,n+noff,nl:nh)   &
+                                             + mp*t1(nl:nh)
             END DO
          END DO
       END IF
+#endif
 
-!ORIGIN BOUNDARY CONDITIONS: IF asubs(m0,:,1) = 0 IN CURLA, MUST
-!                            SET ksupsmnf(m0,:,1) = 0 HERE FOR HESSIAN SYMMETRY
-!NEED FACTOR OF 1/2 FOR HESSIAN SYMMETRY AT JS=1
-      IF (nmin .EQ. 1) THEN
-         ksupsmnf(0 + moff,:,1) = 0.5_dp*ksupsmnf(m0+moff,:,1)
-         ksupsmnf(1 + moff:,:,1) = 0
-         ksupumnf(:,:,1) = 0
-         ksupvmnf(0 + moff,:,1) = 0.5_dp*ksupvmnf(m0+moff,:,1)
-         ksupvmnf(1 + moff:,:,1) = 0
-      END IF
-      IF (nmax .EQ. ns) THEN
-         ksupsmnf(:,:,ns) = 0.5_dp*ksupsmnf(:,:,ns)
-         ksupumnf(:,:,ns) = 0.5_dp*ksupumnf(:,:,ns)
-         ksupvmnf(:,:,ns) = 0.5_dp*ksupvmnf(:,:,ns)
-      END IF
+!  Origin boundary conditions: If asubs(0,:,1) = 0 in curla, must set
+!                              ksupsmnf(0,:,1) = 0 here for hessian symmetry.
+!  Need factor of 1/2 for hessian symmetry at js=1
+!      IF (nmin .eq. 1) THEN
+!         ksupsmnf(:,:,1) = 0
+!         ksupumnf(:,:,1) = 0
+!         ksupvmnf(m0+moff,:,1) = 0.5*ksupvmnf(m0+moff,:,1)
+!         ksupvmnf(m1+moff,:,1) = 0
+!      END IF
+!      IF (nmax .eq. ns) THEN
+!         ksupsmnf(:,:,ns) = 0.5*ksupsmnf(:,:,ns)
+!         ksupumnf(:,:,ns) = 0.5*ksupumnf(:,:,ns)
+!         ksupvmnf(:,:,ns) = 0.5*ksupvmnf(:,:,ns)
+!      END IF
 
 !  Flip sign to get correct diagonal sign (>0).
       ksupsmnf(:,:,nmin:nmax) = -ksupsmnf(:,:,nmin:nmax)
@@ -467,6 +470,7 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE INIT_A(cA_s, cA_u, cA_v, A_s, A_u, A_v, iparity)
       USE metrics, ONLY: phipf_i, chipf_i
+      USE utilities, ONLY: set_bndy_fouier_m0, set_bndy_full_origin
 
       IMPLICIT NONE
 
@@ -496,7 +500,7 @@
       A_u = 0
       A_v = 0
 
-      IF (iparity .EQ. 0) THEN
+      IF (iparity .EQ. f_sin) THEN
 !  e_s (sin), e_u (cos), e_v (cos)
          fours = f_sin
          fouruv = f_cos
@@ -532,9 +536,8 @@
          END DO
       END DO
 
-      A_s(0,-ntor:-1,:) = 0.0
-      A_u(0,-ntor:-1,:) = 0.0
-      A_v(0,-ntor:-1,:) = 0.0
+      CALL set_bndy_fouier_m0(A_s, A_u, A_v, fours)
+      CALL set_bndy_full_origin(A_s, A_u, A_v)
 
       END SUBROUTINE
 
@@ -554,9 +557,8 @@
 !>                       full grid.
 !>  @param[in]  jcurrvmn Contravariant VMEC current in the v direction on the
 !>                       full grid.
-!>  @param[in]  iparity  Parity flag to indicate stellaratory symmetry.
 !-------------------------------------------------------------------------------
-      SUBROUTINE INIT_F(Fsupsmn, Fsupumn, Fsupvmn, jcurrumn, jcurrvmn, iparity)
+      SUBROUTINE INIT_F(Fsupsmn, Fsupumn, Fsupvmn, jcurrumn, jcurrvmn)
 
       IMPLICIT NONE
 
@@ -566,7 +568,6 @@
       REAL (dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(out) :: Fsupvmn
       REAL (dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(in)  :: jcurrumn
       REAL (dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(in)  :: jcurrvmn
-      INTEGER, INTENT(in)                                     :: iparity
 
 !  Local variables
       INTEGER                                                 :: js
@@ -580,11 +581,11 @@
       
       CALL ASSERT(ALL(jcurrumn(:,:,nsp+1:).EQ.0._dp), 'jcurumn != 0 in vacuum!')
       CALL ASSERT(ALL(jcurrvmn(:,:,nsp+1:).EQ.0._dp), 'jcurvmn != 0 in vacuum!')
-   
+
       Fsupsmn(:,:,nsmin:nsmax) = 0
       Fsupumn(:,:,nsmin:nsmax) = jcurrumn(:,:,nsmin:nsmax)
       Fsupvmn(:,:,nsmin:nsmax) = jcurrvmn(:,:,nsmin:nsmax)
-      
+
 !  Smooth edge current gradient.
       DO js = nsp - 10, nsp
          t1 = 1 - REAL(js-1,dp)/(nsp-1)
@@ -592,10 +593,17 @@
          Fsupvmn(:,:,js) = t1*Fsupvmn(:,:,js)
       END DO
 
+!      Fsupumn(:,:,1) = 0
+!      IF (iparity .eq. 0) THEN
+!         Fsupvmn(m1:,:,1) = 0
+!      ELSE
+!         Fsupvmn(m1:,:,1) = 0
+!      END IF
+
 !IMPROVES CONVERGENCE BY SUPPRESSING jac*B^u(m=1) NEAR AXIS (AT LEAST FOR W7X CASE)
-      IF (ns_match .GT. 0) RETURN
-      Fsupumn(m1,:,1:nsp/4) = 0
-      Fsupvmn(m1,:,1:nsp/4) = 0
+!      IF (ns_match .GT. 0) RETURN
+!      Fsupumn(m1,:,1:nsp/4) = 0
+!      Fsupvmn(m1,:,1:nsp/4) = 0
 
       END SUBROUTINE INIT_F
 
@@ -614,23 +622,28 @@
 !>                       full grid.
 !>  @param[in]  iparity  Parity flag to indicate stellaratory symmetry.
 !-------------------------------------------------------------------------------
-      SUBROUTINE COMPARE_CURRENT(Fsupumn, Fsupvmn, jcurrumn, jcurrvmn)         
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), DIMENSION(:,:,:) :: Fsupumn, Fsupvmn,                   &
-                                    jcurrumn, jcurrvmn
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      INTEGER :: ns_mid, m, n, moff, noff
-      REAL(dp) :: t1 
-!-----------------------------------------------
-!NOTE: mu0 factored into j's in metric; minus sign because r = b - Ax
-!Only do this once, so no need to parallelize (note: F -> -F to get correct
-!sign of hessian diagonal elements)
-      RETURN
+      SUBROUTINE COMPARE_CURRENT(Fsupumn, Fsupvmn, jcurrumn, jcurrvmn)
 
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp), DIMENSION(:,:,:), INTENT(in) :: Fsupumn
+      REAL (dp), DIMENSION(:,:,:), INTENT(in) :: Fsupvmn
+      REAL (dp), DIMENSION(:,:,:), INTENT(in) :: jcurrumn
+      REAL (dp), DIMENSION(:,:,:), INTENT(in) :: jcurrvmn
+
+!  Local variables
+      INTEGER                                 :: ns_mid
+      INTEGER                                 :: m
+      INTEGER                                 :: n
+      INTEGER                                 :: moff
+      INTEGER                                 :: noff
+      REAL (dp)                               :: t1
+
+!  Start of executable code
+!  Note: mu0 factored into j's in metric; minus sign because r = b - Ax
+!        Only do this once, so no need to parallelize (note: F -> -F to get
+!        correct sign of hessian diagonal elements)
       nsmin = startglobrow
       nsmax = endglobrow
       ns_mid = (nsmin + nsmax)/2
@@ -754,6 +767,7 @@
       SUBROUTINE DUMP_B(js, iunit)
       USE metrics, ONLY: r1_i, chipf_i, phipf_i
       USE hessian, ONLY: gather_array
+      USE siesta_namelist, ONLY: nsin
 
       IMPLICIT NONE
 
@@ -791,7 +805,12 @@
          CALL Gather_Array(jbsupsmnsh)
          CALL Gather_Array(jbsupumnch)
          CALL Gather_Array(jbsupvmnch)
-      
+         IF (lasym) THEN
+            CALL Gather_Array(jbsupsmnch)
+            CALL Gather_Array(jbsupumnsh)
+            CALL Gather_Array(jbsupvmnsh)
+         END IF
+
          WRITE(iunit + 10,1000)
                            
          IF (endglobrow .EQ. NS) THEN
@@ -866,9 +885,10 @@
 !  Estimate iota profile on extended mesh. Note bsupx is jac*bupx here and minus
 !  sign for sign of jacobian. FIXME: Sign of the jacobian is hard coded here.
 !  This should be read from the wout file.
-      chipf_i(1) = 0.0
-      phipf_i(1) = 0.0
-      DO is = 2, ns - 1
+!      chipf_i(1) = 0.0
+!      phipf_i(1) = 0.0
+!      DO is = 2, ns - 1
+      DO is = nsin, ns - 1
          chipf_i(is) = (-jbsupumnch(0,0,is + 1) - jbsupumnch(0,0,is))*0.5
          phipf_i(is) = (-jbsupvmnch(0,0,is + 1) - jbsupvmnch(0,0,is))*0.5
       END DO
@@ -896,13 +916,25 @@
 !  read from the wout file.
          WRITE (*, 1010)
          DO is = 2, ns, 10 !Skip Every 10
+!         DO is = 2, ns
              rho = (is-1.5_dp)*hs
              WRITE (*,1011) rho, 0.5_dp*(chipf_i(is) + chipf_i(is - 1)),       &
                                  -jbsupumnch(0,0,is),                          &
+                                 -(asubvmncf(1,ntor + 1,is - 1) -              &
+                                   asubvmncf(1,ntor + 1,is))*ohs,              &
                                  0.5_dp*(phipf_i(is) + phipf_i(is - 1)),       &
-                                 -jbsupvmnch(0,0,is)
+                                 -jbsupvmnch(0,0,is),                          &
+                                 -(asubumncf(1,ntor + 1,is) -                  &
+                                   asubumncf(1,ntor + 1,is-1))*ohs
          END DO
       END IF !iam = 0
+
+      chipf_i(1) = 0.0
+      phipf_i(1) = 0.0
+      DO is = 2,nsin - 1
+         chipf_i(is) = (-jbsupumnch(0,0,is + 1) - jbsupumnch(0,0,is))*0.5
+         phipf_i(is) = (-jbsupvmnch(0,0,is + 1) - jbsupvmnch(0,0,is))*0.5
+      END DO
 
 1000  FORMAT(' EDGE VALUES OF jB^X FOR ALL M,N',/,                             &
              '   M   N   jB^s      jB^u      jB^v')
@@ -916,8 +948,10 @@
 1008  FORMAT(2i8, 5(1p,e12.4))
 1009  FORMAT(' jac(u=0,v=0,ns): ',1p,e12.3,' jacobh: ',1p,e12.3,/              &
              ' R*B^v(u=0,v=0,ns) : ',1p,e12.3)
-1010  FORMAT(/,'  RAD     CHIP(WOUT)     CHIP(PCH)    PHIP(WOUT)     PHIP(PCH)')
-1011  FORMAT(f7.3,1p,4e14.3)
+1010  FORMAT(/,'  RAD      CHIP(WOUT)    CHIP(PCH)     CHIP(VP)'               &
+               '      PHIP(WOUT)    PHIP(PCH)     PHIP(VP)')
+!1011  FORMAT(f7.3,1p,4e14.3)
+1011  FORMAT(f7.3,1p,6e14.3)
 
       END SUBROUTINE DUMP_B
 
@@ -983,6 +1017,8 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE CHECK_CURRENT
       USE metrics, ONLY: jsupvdotA
+      USE vmec_info, ONLY: Itor
+      USE quantities, ONLY: b_factor
 
       IMPLICIT NONE
 
@@ -996,9 +1032,11 @@
       
       currv_int = hs*(SUM(jcurrvmnc(0,0,1:ns - 1)) + jcurrvmnc(0,0,ns)/2)
 
-      WRITE (*,1000) line_bu, currv_int, jsupvdotA
+      WRITE (*,1000) -twopi*line_Bu*orthonorm(0,0)/mu0, Itor
+      WRITE (*,1001) line_bu, currv_int, jsupvdotA
 
-1000  FORMAT(' Line Integral B_u: ',1p,e12.4,4x,                               &
+1000  FORMAT(' Toroidal Current (SIESTA): '1p,e12.4,4x,1p,'(VMEC): ',1p,e12.4)
+1001  FORMAT(' Line Integral B_u: ',1p,e12.4,4x,                               &
              ' Surface-integrated current: ',1p,e12.4,4x,                      &
              ' VMEC Surface-integrated current: ',1p,e12.4)
 
@@ -1030,10 +1068,10 @@
       xc = xc + xc0
 
       CALL INIT_F(Fsupsmnsf, Fsupumncf, Fsupvmncf,                             &
-                  jcurrumnc, jcurrvmnc, isym)
+                  jcurrumnc, jcurrvmnc)
       IF (lasym) THEN
          CALL INIT_F(Fsupsmncf, Fsupumnsf, Fsupvmnsf,                          &
-                     jcurrumns, jcurrvmns, iasym)
+                     jcurrumns, jcurrvmns)
       END IF
       gc0 = gc
 
@@ -1104,6 +1142,7 @@
                              fsupsmncf, fsupumnsf, fsupvmnsf, neqs
       USE bmw_run, ONLY: bmw_exec
       USE siesta_namelist, ONLY: wout_file, mgrid_file
+      USE read_wout_mod, ONLY: Itor
 
       IMPLICIT NONE
 
@@ -1146,10 +1185,10 @@
          END IF
     
          CALL INIT_F(Fsupsmnsf, Fsupumncf, Fsupvmncf,                          &
-                     jcurrumnc, jcurrvmnc, isym)
+                     jcurrumnc, jcurrvmnc)
          IF (lasym) THEN
             CALL INIT_F(Fsupsmncf, Fsupumnsf, Fsupvmnsf,                       &
-                     jcurrumns, jcurrvmns, iasym)
+                        jcurrumns, jcurrvmns)
          END IF
          gc0 = gc
          
@@ -1171,10 +1210,10 @@
                          cA_s(:,:,1), cA_u(:,:,1), cA_v(:,:,1))
          DEALLOCATE(A_r, A_p, A_z)
 
-         CALL INIT_A(cA_s, cA_u, cA_v, asubsmnsf, asubumncf, asubvmncf, isym)
+         CALL INIT_A(cA_s, cA_u, cA_v, asubsmnsf, asubumncf, asubvmncf, f_sin)
          IF (lasym) THEN
             CALL INIT_A(cA_s, cA_u, cA_v, asubsmncf, asubumnsf, asubvmnsf,     &
-                        iasym)
+                        f_cos)
          END IF
          DEALLOCATE(cA_s, cA_u, cA_v)
 
@@ -1188,11 +1227,10 @@
       nsmin = MAX(1, startglobrow - 1)
       nsmax = MIN(ns, endglobrow + 1)
       CALL CURLA_PCHELMS(Asubsmnsf,  Asubumncf,  Asubvmncf,                    &
-                         jbsupsmnsh, jbsupumnch, jbsupvmnch, isym)
-                        
+                         jbsupsmnsh, jbsupumnch, jbsupvmnch, f_sin)
       IF (lasym) THEN
          CALL CURLA_PCHELMS(Asubsmncf,  Asubumnsf,  Asubvmnsf,                 &
-                            jbsupsmnch, jbsupumnsh, jbsupvmnsh, iasym)
+                            jbsupsmnch, jbsupumnsh, jbsupvmnsh, f_cos)
       END IF
 
 !  Add 1/jac factor
@@ -1205,7 +1243,6 @@
 !  Convert to covariant component of B_i on half grid.
       CALL tolowerh(Bsupsijh, Bsupuijh, Bsupvijh,                              &
                     Bsubsijh, Bsubuijh, Bsubvijh, nsmin, nsmax)
-                    
 
 !  Get -sqrt(g)*CURLB dot grad(s,u,v) Fourier coefficients [sqrt(g)*J^i] on full
 !  grid and store in FsupXmnf (sign is flipped to make positive contributions to
@@ -1213,15 +1250,15 @@
       nsmin = startglobrow
       nsmax = MIN(ns, endglobrow + 1)
       CALL CURLB_PCHELMS(Fsupsmnsf, Fsupumncf, Fsupvmncf, Asubsmnsf,           &
-                         jbsupsmnsh, isym)
+                         jbsupsmnsh, f_sin)
       IF (lasym) THEN
          CALL CURLB_PCHELMS(Fsupsmncf, Fsupumnsf, Fsupvmnsf, Asubsmncf,        &
-                            jbsupsmnch, iasym)
+                            jbsupsmnch, f_cos)
       END IF
       nsmax = endglobrow
       
 !  Dump debugging info.
-!  FIXME: This should only get written out of compiled in debug mode. Check
+!  FIXME: This should only get written out if compiled in debug mode. Check
 !  linit to see if this is only written once.
       IF (linit) THEN
          CALL Compare_Current(Fsupumncf, Fsupvmncf, jcurrumnc, jcurrvmnc)
@@ -1236,9 +1273,9 @@
 
 !  Compute ONLY -Ax, NOT residue= -Ax + b (for preconditioner and GMRES)
 !  Subtract [sqrt(g)*J]mn (input from VMEC) to get net force (residual=b-Ax)
-      CALL BoundaryConditions(Fsupsmnsf, Fsupumncf, Fsupvmncf)
+      CALL BoundaryConditions(Fsupsmnsf, Fsupumncf, Fsupvmncf, f_sin)
       IF (lasym) THEN
-         CALL BoundaryConditions(Fsupsmncf, Fsupumnsf, Fsupvmnsf)
+         CALL BoundaryConditions(Fsupsmncf, Fsupumnsf, Fsupvmnsf, f_cos)
       END IF
       
 !  Subtract A*x0 since A_u, A_v are fixed at the edge b' = b + A*x0 (new
@@ -1260,9 +1297,11 @@
 !>  @param(inout) Fsupsmn Contravariant current in the s direction.
 !>  @param(inout) Fsupumn Contravariant current in the u direction.
 !>  @param(inout) Fsupvmn Contravariant current in the v direction.
+!>  @param(in)    iparity Fourier parity of the residuals.
 !-------------------------------------------------------------------------------
-      SUBROUTINE BoundaryConditions(Fsupsmn, Fsupumn, Fsupvmn)
+      SUBROUTINE BoundaryConditions(Fsupsmn, Fsupumn, Fsupvmn, iparity)
       USE hessian, ONLY: l_Compute_Hessian
+      USE utilities, ONLY: set_bndy_fouier_m0, set_bndy_full_origin
 
       IMPLICIT NONE
 
@@ -1270,6 +1309,7 @@
       REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(inout) :: Fsupsmn
       REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(inout) :: Fsupumn
       REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(inout) :: Fsupvmn
+      INTEGER, INTENT(in)                                      :: iparity
 
 !  Local variables
       INTEGER                                                  :: nmatch
@@ -1281,6 +1321,11 @@
          END IF
          fsupumn(:,:,ns) = 0
          fsupvmn(:,:,ns) = 0
+      END IF
+
+      CALL set_bndy_fouier_m0(Fsupsmn, Fsupumn, Fsupvmn, iparity)
+      IF (startglobrow .eq. 1) THEN
+         CALL set_bndy_full_origin(Fsupsmn, Fsupumn, Fsupvmn)
       END IF
 
 !  Preserve surfaces for js < ns_match

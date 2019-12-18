@@ -36,6 +36,10 @@
 !>  Although sqrt(g) = 0 at origin, jvsups and jvsupv are defined with jacobf
 !>  which is finite (=jacobh(2)) at the origin to allow asymptotically correct
 !>  variations in the s and v components.
+!>
+!>  Pertubations to the displacement are stored in the xc array. But the gc_sup
+!>  Arrays is used as a temp buffer to scale the displacements. This is why the
+!>  gvsup*mn*f components point to fsup*mn*f and not jvsup*mn*f.
 !-------------------------------------------------------------------------------
       SUBROUTINE update_upperv
       USE shared_data, ONLY: lasym, gc_sup, xc, col_scale
@@ -43,8 +47,7 @@
       USE quantities, ONLY: gvsupsmncf => fsupsmncf, gvsupumnsf => fsupumnsf,  &
                             gvsupvmnsf => fsupvmnsf, gvsupsmnsf => fsupsmnsf,  &
                             gvsupumncf => fsupumncf, gvsupvmncf => fsupvmncf
-      USE fourier, ONLY: isym, iasym
-      USE descriptor_mod, ONLY: iam
+      USE fourier, ONLY: f_sin, f_cos
 
       IMPLICIT NONE
 
@@ -64,9 +67,9 @@
 !  factors so the gc_sup array is treated as the xc here.
       CALL ScaleDisplacement(gc_sup, xc, col_scale)
 
-      CALL InitDisplacement(gvsupsmncf, gvsupumnsf, gvsupvmnsf, isym)
+      CALL InitDisplacement(gvsupsmncf, gvsupumnsf, gvsupvmnsf, f_cos)
       IF (lasym) THEN
-         CALL InitDisplacement(gvsupsmnsf, gvsupumncf, gvsupvmncf, iasym)
+         CALL InitDisplacement(gvsupsmnsf, gvsupumncf, gvsupvmncf, f_sin)
       END IF
 
       CALL second0(toff)
@@ -85,14 +88,14 @@
 !>  @param[in]    Fourier iparity   Parity of the displacements.
 !-------------------------------------------------------------------------------
       SUBROUTINE InitDisplacement(gvsupsmnf, gvsupumnf, gvsupvmnf, iparity)
-      USE fourier, ONLY: toijsp, f_cos, f_sin, f_none, f_sum, isym, iasym,     &
-                         m0, m1, m2
+      USE fourier, ONLY: toijsp, f_cos, f_sin, f_none, f_sum, m0, m1, m2
       USE quantities, ONLY: jvsupsijf, jvsupuijf, jvsupvijf, mpol, ntor
       USE shared_data, ONLY: l_push_s, l_push_u, l_push_v, l_pedge,     &
                              l_push_edge, col_scale
       USE v3_utilities, ONLY: assert_eq
 
       USE descriptor_mod, ONLY: iam
+      USE utilities, ONLY: set_bndy_fouier_m0, set_bndy_full_origin
 
       IMPLICIT NONE
 
@@ -107,58 +110,49 @@
       INTEGER                                                   :: fouruv
       INTEGER                                                   :: fcomb
       INTEGER                                                   :: nsmin
-      INTEGER                                                   :: nsmax
+      INTEGER                                                   :: nsmax, i,j,k
 
 !  Start of executable code
       nsmin = MAX(1, startglobrow - 1)
       nsmax = MIN(endglobrow + 1, ns)
 
-      IF (iparity .eq. isym) THEN
+      IF (iparity .eq. f_cos) THEN
          fours = f_cos
          fouruv = f_sin
          fcomb = f_none
-         gvsupumnf(m0,0,nsmin:nsmax) = 0
-         gvsupvmnf(m0,0,nsmin:nsmax) = 0
       ELSE
          fours = f_sin
          fouruv = f_cos
          fcomb = f_sum
-         gvsupsmnf(m0,0,nsmin:nsmax) = 0
       END IF
 
       CALL assert_eq(1, LBOUND(gvsupsmnf,3), 'LBOUND WRONG IN InitDisplacement')
       CALL assert_eq(ns, UBOUND(gvsupsmnf,3),                                  &
                      'UBOUND WRONG IN InitDisplacement')
 
-!  For m = 0, n < 0 set = 0 to avoid singular Hessian
-      gvsupsmnf(m0,-ntor:-1,nsmin:nsmax) = 0       
-      gvsupumnf(m0,-ntor:-1,nsmin:nsmax) = 0       
-      gvsupvmnf(m0,-ntor:-1,nsmin:nsmax) = 0       
+      CALL set_bndy_fouier_m0(gvsupsmnf, gvsupumnf, gvsupvmnf, fours)
 
 !  Origin boundary conditions (evolve m = 1 F_u, F_s, m = 0 F_v)
-      NS1: IF (nsmin .eq. 1) THEN
-         gvsupsmnf(m0,:,1) = 0
-         gvsupsmnf(m2:,:,1) = 0
+      IF (nsmin .eq. 1) THEN
+!  FIXME: Check if this should be here. Seems to converge faster if this is
+!         commented out.
+         CALL set_bndy_full_origin(gvsupsmnf, gvsupumnf, gvsupvmnf)
+
          IF (.not.l_push_s) THEN
             gvsupsmnf(m1,:,1) = 0
          END IF
-
-         gvsupumnf(m0,:,1) = 0
-         gvsupumnf(m2:,:,1) = 0
          IF (.not.l_push_u) THEN
             gvsupumnf(m1,:,1) = 0
          END IF
-
-         gvsupvmnf(m1:,:,1) = 0
          IF (.not.l_push_v) THEN
             gvsupvmnf(m0,:,1) = 0
          END IF
-      END IF NS1
+      END IF
 
 !  Edge boundary conditions (B_tangential = 0 => vsups = 0; J^s = 0 => F_v = 0)
 !  Note that F_v and F_u are both ~J^s at edge, so only one can be varied to
 !  prevent a dependent row in the Hessian matrix
-      EDGE: IF (nsmax .eq. ns) THEN
+      IF (nsmax .eq. ns) THEN
          gvsupsmnf(:,:,ns) = 0
          IF (l_pedge) THEN
             gvsupumnf(:,:,ns) = 0
@@ -167,7 +161,7 @@
             gvsupumnf(:,:,ns) = 0
             gvsupvmnf(:,:,ns) = 0
          END IF
-      END IF EDGE
+      END IF
 
 !  Calculate contravariant (SUP) velocities in real space on full mesh
       CALL toijsp(gvsupsmnf(:,:,nsmin:nsmax),                                  &

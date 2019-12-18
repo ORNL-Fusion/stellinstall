@@ -192,9 +192,9 @@ CONTAINS
     END DO
 
     nse = nse-1 !Not to double count s=1 surface
-    ALLOCATE(r_full(ntheta,nzeta,nse), z_full(ntheta,nzeta,nse),        &
-      ru_full(ntheta,nzeta,nse), zu_full(ntheta,nzeta,nse), &
-      rv_full(ntheta,nzeta,nse), zv_full(ntheta,nzeta,nse))
+    ALLOCATE(r_full(ntheta,nzeta,nse), z_full(ntheta,nzeta,nse),               &
+             ru_full(ntheta,nzeta,nse), zu_full(ntheta,nzeta,nse),             &
+             rv_full(ntheta,nzeta,nse), zv_full(ntheta,nzeta,nse))
  
     r_full (:,:,1:ns) = r1_i; r_full (:,:,ns+1:nse) = r_ext
     z_full (:,:,1:ns) = z1_i; z_full (:,:,ns+1:nse) = z_ext

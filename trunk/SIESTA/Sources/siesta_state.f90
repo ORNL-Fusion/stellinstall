@@ -15,7 +15,7 @@
       USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR,       &
                                PARSOLVER
       USE mpi_inc
-      USE fourier, ONLY: isym, iasym
+      USE fourier, ONLY: f_sin, f_cos
 
       IMPLICIT NONE
 
@@ -41,9 +41,9 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      LOGICAL, INTENT(IN)   :: lprint
-      REAL (dp), INTENT(IN) :: fsq_total
-      REAL (dp), INTENT(IN) :: ftol
+      LOGICAL, INTENT(in)   :: lprint
+      REAL (dp), INTENT(in) :: fsq_total
+      REAL (dp), INTENT(in) :: ftol
 
 !  local variables
       REAL (dp)             :: ton
@@ -61,7 +61,7 @@
                            djbsupsmnch, djbsupumnsh, djbsupvmnsh, djpmnsh)
       END IF
 
-! Gather new total fields onto all processors
+!  Gather new total fields onto all processors
       IF (PARSOLVER) THEN
          CALL GatherFields
       END IF
@@ -69,7 +69,7 @@
       CALL second0(toff)
       time_update_state = time_update_state + (toff - ton)
 
-! Reset perturbations
+!  Reset perturbations
       CALL Clear_Field_Perts
 
       CALL second0(toff)
@@ -83,11 +83,11 @@
 
       CALL Update_Diagnostics(jbsupsmnsh, jbsupumnch, jbsupumnch, jpmnch,      &
                               bs0(1:6), bu0(1:6), bsbu_ratio_s, pwr_spec_s,    &
-                              isym)
+                              f_sin)
       IF (lasym) THEN
          CALL Update_Diagnostics(jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh,   &
                                  bs0(7:12), bu0(7:12), bsbu_ratio_a,           &
-                                 pwr_spec_a, iasym)
+                                 pwr_spec_a, f_cos)
       END IF
       lfirst = .false.
 
@@ -131,22 +131,42 @@
 
       END SUBROUTINE update_state
 
-!>  \brief Subroutine for updating the fields (B,p) of the SIESTA state
-!!   based on dJBSUPXMNH perturbations computed in update_bfield and update_pressure
-      SUBROUTINE UpdateFields(jbsupsmnh, jbsupumnh, jbsupvmnh, jpmnh,   &
-                              djbsupsmnh,djbsupumnh,djbsupvmnh,djpmnh)
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)   ::                      &
-          jbsupsmnh, jbsupumnh, jbsupvmnh, jpmnh,                       &
-         djbsupsmnh,djbsupumnh,djbsupvmnh,djpmnh
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      REAL(dp) :: rho
-      INTEGER :: n1, n2
-!-----------------------------------------------
+!-------------------------------------------------------------------------------
+!>  @brief Update the magentic and pressure for the current SIESTA state.
+!>
+!>  @param[inout] jbsupsmnh  Contravariant magnetic field in the s direction.
+!>  @param[inout] jbsupumnh  Contravariant magnetic field in the u direction.
+!>  @param[inout] jbsupvmnh  Contravariant magnetic field in the v direction.
+!>  @param[inout] jpmnh      Pressure Fourier coeffients.
+!>  @param[inout] djbsupsmnh Contravariant magnetic field perturbation in the s
+!>                           direction.
+!>  @param[inout] djbsupumnh Contravariant magnetic field perturbation in the u
+!>                           direction.
+!>  @param[inout] djbsupvmnh Contravariant magnetic field perturbation in the v
+!>                           direction.
+!>  @param[inout] djpmnh     Pressure perturbation.
+!-------------------------------------------------------------------------------
+      SUBROUTINE UpdateFields(jbsupsmnh, jbsupumnh, jbsupvmnh, jpmnh,          &
+                              djbsupsmnh, djbsupumnh, djbsupvmnh, djpmnh)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: jbsupsmnh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: jbsupumnh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: jbsupvmnh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: jpmnh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: djbsupsmnh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: djbsupumnh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: djbsupvmnh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: djpmnh
+
+!  local variables
+      REAL (dp)                                               :: rho
+      INTEGER                                                 :: n1
+      INTEGER                                                 :: n2
+
+!  Start of executable code.
       n1 = startglobrow
       n2 = endglobrow
 
@@ -155,47 +175,74 @@
       jbsupvmnh(:,:,n1:n2) = jbsupvmnh(:,:,n1:n2) + djbsupvmnh(:,:,n1:n2)
       jpmnh(:,:,n1:n2)     = jpmnh(:,:,n1:n2)     + djpmnh(:,:,n1:n2)
 
-      END SUBROUTINE UpdateFields
+      END SUBROUTINE
 
-!>  \brief Subroutine for writing SIESTA diagnostic (screen) output per iteration
+!-------------------------------------------------------------------------------
+!>  @brief Write SIESTA diagnostic (screen) output per iteration.
+!>
+!>  @param[in]    jbsupsmnh  Contravariant magnetic field in the s direction.
+!>  @param[in]    jbsupumnh  Contravariant magnetic field in the u direction.
+!>  @param[in]    jbsupvmnh  Contravariant magnetic field in the v direction.
+!>  @param[in]    jpmnh      Pressure Fourier coeffients.
+!>  @param[out]   bs         UNKNOWN FIXME:
+!>  @param[out]   bu         UNKNOWN FIXME:
+!>  @param[out]   bsbu_ratio UNKNOWN FIXME:
+!>  @param[inout] pwr_spec   UNKNOWN FIXME:
+!>  @param[in]    iparity    Fourier parity.
+!-------------------------------------------------------------------------------
       SUBROUTINE Update_Diagnostics(jbsupsmnh, jbsupumnh, jbsupvmnh,    &
                                     jpmnh, bs, bu, bsbu_ratio,          &
-                                    pwr_spec, ipar)
+                                    pwr_spec, iparity)
       USE island_params, ns=>ns_i, hs=>hs_i
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(IN) ::          &
-                jbsupsmnh, jbsupumnh, jbsupvmnh, jpmnh
-      REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns,4), INTENT(INOUT) ::  pwr_spec
-      REAL(dp), INTENT(OUT) :: bs(6), bu(6), bsbu_ratio
-      INTEGER  :: ipar
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      CHARACTER*(4)      :: def(2) = (/'SYM ', 'ASYM'/)
-      INTEGER, PARAMETER :: m1=1
-      REAL(dp) :: r12, diag_b, diag_p, d1(12)
-      INTEGER  :: js, itype, n1, n2
-!-----------------------------------------------
-      n1 = startglobrow;  n2 = endglobrow
+      USE fourier, ONLY: m1
 
-      IF (ipar .EQ. isym) THEN
-         itype=1; r12 = hs/2
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(IN)      :: jbsupsmnh
+      REAL (dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(IN)      :: jbsupumnh
+      REAL (dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(IN)      :: jbsupvmnh
+      REAL (dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(IN)      :: jpmnh
+      REAL (dp), DIMENSION(6), INTENT(out)                        :: bs
+      REAL (dp), DIMENSION(6), INTENT(out)                        :: bu
+      REAL (dp), INTENT(out)                                      :: bsbu_ratio
+      REAL (dp), DIMENSION(0:mpol,-ntor:ntor,ns,4), INTENT(inout) :: pwr_spec
+      INTEGER, INTENT(in)                                         :: iparity
+
+!  Local Variables
+      REAL (dp)                                                   :: r12
+      REAL (dp)                                                   :: diag_b
+      REAL (dp)                                                   :: diag_p
+      REAL (dp), DIMENSION(12)                                    :: d1
+      INTEGER                                                     :: js
+      INTEGER                                                     :: itype
+      INTEGER                                                     :: n1
+      INTEGER                                                     :: n2
+
+!  Local Parameters
+      CHARACTER (len=4), DIMENSION(2), PARAMETER                  ::           &
+         def = (/'SYM ', 'ASYM'/)
+
+!  Start of executable code.
+      n1 = startglobrow
+      n2 = endglobrow
+
+      IF (iparity .eq. f_sin) THEN
+         itype = 1
+         r12 = hs/2
       ELSE
-         itype=2; r12 =-hs/2
+         itype = 2
+         r12 = -hs/2
       END IF
 
 #undef _TEST_STATE
 !#define _TEST_STATE
 #if defined(_TEST_STATE)
-      IF (iam .EQ. 0) THEN
-         PRINT *,'ipar: ', ipar
-         PRINT *,'  n       B^s        r12*B^u'
+      IF (iam .eq. 0) THEN
+         WRITE (*,1000) def(itype)
          DO js = -ntor,ntor
-            PRINT 20, js, jbsupsmnh(m1,js,2), r12*jbsupumnh(m1,js,2)
+            WRITE (*,1001) js, jbsupsmnh(m1,js,2), r12*jbsupumnh(m1,js,2)
          END DO
- 20      FORMAT(i4,1p,2e14.4)         
       END IF
 #endif
 
@@ -204,9 +251,11 @@
       
 #if defined(MPI_OPT)
       IF (PARSOLVER) THEN
-         d1(1) = bs(1); d1(2) = bu(1)
-         CALL MPI_BCAST(d1,2,MPI_REAL8,0,SIESTA_COMM,MPI_ERR)
-         bs(1) = d1(1); bu(1) = d1(2)
+         d1(1) = bs(1)
+         d1(2) = bu(1)
+         CALL MPI_BCAST(d1, 2, MPI_REAL8, 0, SIESTA_COMM, MPI_ERR)
+         bs(1) = d1(1)
+         bu(1) = d1(2)
       END IF
 #endif
       IF (ABS(bu(1)) .GT. 1.E-10_dp) THEN
@@ -222,9 +271,12 @@
                                SIESTA_COMM, MPI_ERR)
          END IF
 #endif
-         bs(1:6) = d1(1:6);  bu(1:6) = d1(7:12)
+         bs(1:6) = d1(1:6)
+         bu(1:6) = d1(7:12)
       ELSE 
-         bs(1:6)=0; bu(1:6)=0; bsbu_ratio_s = 1
+         bs(1:6) = 0
+         bu(1:6) = 0
+         bsbu_ratio_s = 1
       END IF
 
 #if defined(DUMP_STATE)
@@ -234,32 +286,40 @@
          pwr_spec(:,:,n1:n2,3) = jbsupvmnh(:,:,n1:n2)
          pwr_spec(:,:,n1:n2,4) = jpmnh(:,:,n1:n2)
       ELSE
-         d1(1) = SUM((jbsupsmnh(:,:,n1:n2)-pwr_spec(:,:,n1:n2,1))**2 + &
-                     (jbsupumnh(:,:,n1:n2)-pwr_spec(:,:,n1:n2,2))**2 + &
-                     (jbsupvmnh(:,:,n1:n2)-pwr_spec(:,:,n1:n2,3))**2)
-         d1(2) = SUM((jpmnh(:,:,n1:n2)-pwr_spec(:,:,n1:n2,4))**2)
+         d1(1) = SUM((jbsupsmnh(:,:,n1:n2) - pwr_spec(:,:,n1:n2,1))**2 +       &
+                     (jbsupumnh(:,:,n1:n2) - pwr_spec(:,:,n1:n2,2))**2 +       &
+                     (jbsupvmnh(:,:,n1:n2) - pwr_spec(:,:,n1:n2,3))**2)
+         d1(2) = SUM((jpmnh(:,:,n1:n2) - pwr_spec(:,:,n1:n2,4))**2)
 #if defined(MPI_OPT)
          IF (PARSOLVER) THEN
             CALL MPI_ALLREDUCE(MPI_IN_PLACE, d1, 2, MPI_REAL8, MPI_SUM,        &
                                SIESTA_COMM, MPI_ERR)
 		 END IF
 #endif		 
-         diag_b = d1(1);  diag_p = d1(2)
+         diag_b = d1(1)
+         diag_p = d1(2)
          IF (iam .EQ. 0) THEN
-         DO js = 6, unit_out, unit_out-6
-         IF (.NOT.lverbose .AND. js.EQ.6) CYCLE
-         WRITE(js, 100) 'POWER SPECTRA(', def(itype),                   &
-                        ') -- dB: ', diag_b, ' dP: ', diag_p
-         END DO 
+            DO js = 6, unit_out, unit_out - 6
+               IF (.NOT.lverbose .AND. js.EQ.6) CYCLE
+               WRITE(js, 1002) def(itype), diag_b, diag_p
+            END DO
          END IF
       END IF
- 100  FORMAT(1x, 2a,2(a,1p,e10.3))
-#endif
-      END SUBROUTINE Update_Diagnostics
 
-!>  \brief Subroutine for resetting the perturbations of the SIESTA state
+1000  FORMAT('ipar: ',a,/,'  n       B^s        r12*B^u')
+1001  FORMAT(i4,1p,2e14.4)
+1002  FORMAT(1x,'POWER SPECTRA(',a,') -- dB: ',1p,e10.3,' dP: ',1p,e10.3)
+#endif
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Reset the perturbations of the SIESTA state.
+!-------------------------------------------------------------------------------
       SUBROUTINE Clear_Field_Perts
-!-----------------------------------------------
+
+      IMPLICIT NONE
+
+!  Start of executable code.
       djbsupsmnsh = 0
       djbsupumnch = 0
       djbsupvmnch = 0
@@ -272,6 +332,6 @@
          djpmnsh     = 0
       END IF
 
-      END SUBROUTINE Clear_Field_Perts
+      END SUBROUTINE
 
-      END MODULE siesta_state
+      END MODULE

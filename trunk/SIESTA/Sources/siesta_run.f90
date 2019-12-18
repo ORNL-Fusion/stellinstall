@@ -353,7 +353,7 @@
 !  Declare Arguments
       TYPE (siesta_run_class), INTENT(inout) :: this
 
-!  local variables.
+!  local variables
       INTEGER                                :: istat
 
 !  Start of executable code
@@ -372,7 +372,7 @@
          l_vessel = .false.
       END IF
 
-      CALL init_metric_elements(nsin, mpolin, ntorin, nfpin, wout_file)
+      CALL init_metric_elements()
       CALL init_quantities !Initializes BCYCLIC
       CALL init_evolution !neqs is set here
       CALL initRemap(mpol, ntor, ns, nprocs, iam)
@@ -427,7 +427,7 @@
       nprecon = restart_read(restart_ext, wout_file, mpolin, ntorin, nfpin,    &
                              ns)
 
-      CALL init_metric_elements(ns, mpolin, ntorin, nfpin, wout_file)
+      CALL init_metric_elements()
       CALL init_quantities !Initializes BCYCLIC
       CALL init_evolution !neqs is set here
       CALL initRemap(mpolin, ntorin, ns, nprocs, iam)

@@ -203,8 +203,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Scale displacements.
 !>
-!>  @param[inout] gc       Scratch buffer to scale columns in. FIXME: Why is
-!>                         this marked out? What reads it?
+!>  @param[inout] gc       Scratch buffer to scale columns in.
 !>  @param[in]    colscale Column scaling factors.
 !>  @param[in]    nsmin    Minimum radial index.
 !>  @param[in]    nsmax    Maximum radial index.

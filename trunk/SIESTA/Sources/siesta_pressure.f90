@@ -15,17 +15,8 @@
       USE quantities
       USE nscalingtools, ONLY: startglobrow, endglobrow
       USE utilities, ONLY: GradientHalf, to_half_mesh
-      USE fourier, ONLY: m0, m1, n0, isym, iasym
 
       IMPLICIT NONE
-
-!*******************************************************************************
-!  utilities module variables
-!*******************************************************************************
-!  FIXME: These should be taken out of the global scope.
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: workmn4
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: workmn5
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: workmn6
 
       CONTAINS
 
@@ -66,6 +57,11 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE update_pres
       USE timer_mod, ONLY: time_update_pres
+      USE fourier, ONLY: tomnsp, toijsp, f_cos, f_sin, f_sum, f_du, f_dv
+      USE quantities, ONLY: gvsupumnsf => fsupumnsf, gvsupvmnsf => fsupvmnsf,  &
+                            gvsupumncf => fsupumncf, gvsupvmncf => fsupvmncf
+      USE utilities, ONLY: set_bndy_fouier_m0, m0
+      USE shared_data, ONLY: delta_t
 
       IMPLICIT NONE
 
@@ -78,6 +74,8 @@
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: workij1
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: workij2
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: workij3
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: workmn4
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: workmn5
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: vgradph
       INTEGER                                  :: nsmin
       INTEGER                                  :: nsmax
@@ -101,8 +99,7 @@
       CALL assert_eq(0, istat, 'Allocation1 failed in update_pres')
 
       ALLOCATE(workmn4(0:mpol,-ntor:ntor,nsmin:nsmax),                         &
-               workmn5(0:mpol,-ntor:ntor,nsmin:nsmax),                         &
-               workmn6(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
+               workmn5(0:mpol,-ntor:ntor,nsmin:nsmax))
       CALL assert_eq(0, istat, 'Allocation2 failed in update_pres')
 
       ALLOCATE (jvsupuijh(ntheta,nzeta,nsmin:nsmax),                           &
@@ -121,144 +118,77 @@
               + jvsupuijh(:,:,nsmin:nsmax)*pijh0_du(:,:,nsmin:nsmax)           &
               + jvsupvijh(:,:,nsmin:nsmax)*pijh0_dv(:,:,nsmin:nsmax)
 
-!  Compute second term on r.h.s. ~gamma*Div(p*V). Note that near axis, must set
-!  jvsupsijf == 0 since it makes no contribution to the Div term. Compute the
-!  pv term.
-      workij2 = pijf0(:,:,nsmin:nsmax)*jvsupsijf(:,:,nsmin:nsmax)
-
-!  "Upwinding" to suppress grid separation of pressure in radial direction makes
-!  diagonal contribution to 1st order streaming. Conservative so makes no
-!  contribution to MHD force (integrates to zero). Note this is not real
-!  upwinding, since the ABS(jvsupsijf) does not lead to a good derivative around
-!  velocity = 0!
-      IF (l_upwind) THEN
-         workij2 = workij2 - hs_i*workij1
-      END IF
+!  d/ds Jv^s
+      workij2(:,:,nsmin:nsmax) = jvsupsijf(:,:,nsmin:nsmax)
 
       IF (nsmin .EQ. 1) THEN
 !  Enforce bc at origin in Div(pv) term.
          workij2(:,:,1) = 0
       END IF
-!  Compute d/ds p*jv where j is the jacobian, v is the displacement vector and
-!  p is the pressure. On exit, work1 is valid on [nsmin + 1:nsmax].
+
       CALL GradientHalf(workij1, workij2)
 
-!  Work 2 and 3 now represent half mesh quantities.
-      nsmin = MAX(2, startglobrow)
-      workij2(:,:,nsmin:nsmax) = pijh0(:,:,nsmin:nsmax)*jvsupuijh(:,:,nsmin:nsmax)
-      workij3(:,:,nsmin:nsmax) = pijh0(:,:,nsmin:nsmax)*jvsupvijh(:,:,nsmin:nsmax)
-      DEALLOCATE(jvsupuijh, jvsupvijh)
+!  Get djvsupudu and djvsupvdv. d/du Jv^u and d/dv Jv^v
+      CALL to_half_mesh(gvsupumnsf, workmn4)
+      CALL to_half_mesh(gvsupvmnsf, workmn5)
 
-      CALL Continuity(djpmnch, vgradph, workij1, workij2, workij3, isym,       &
-                      nsmin, nsmax)
+      CALL set_bndy_fouier_m0(workmn4, f_sin)
+      CALL set_bndy_fouier_m0(workmn5, f_sin)
+
+      CALL toijsp(workmn4(:,:,nsmin:nsmax), workij2(:,:,nsmin:nsmax), f_du, f_sin)
+      CALL toijsp(workmn5(:,:,nsmin:nsmax), workij3(:,:,nsmin:nsmax), f_dv, f_sin)
       IF (lasym) THEN
-         CALL Continuity(djpmnsh, vgradph, workij1, workij2, workij3, iasym,   &
-                         nsmin, nsmax)
+         CALL to_half_mesh(gvsupumncf, workmn4)
+         CALL to_half_mesh(gvsupvmncf, workmn5)
+
+         CALL set_bndy_fouier_m0(workmn4, f_cos)
+         CALL set_bndy_fouier_m0(workmn5, f_cos)
+
+         CALL toijsp(workmn4(:,:,nsmin:nsmax), workij2(:,:,nsmin:nsmax),    &
+                     IOR(f_du, f_sum), f_cos)
+         CALL toijsp(workmn5(:,:,nsmin:nsmax), workij3(:,:,nsmin:nsmax),    &
+                     IOR(f_dv, f_sum), f_cos)
       END IF
 
-      DEALLOCATE(workij1, workij2, workij3, workmn4, workmn5, workmn6, vgradph)
-       
+      nsmin = MAX(2, startglobrow)
+
+!  First half of the pressure variation.
+!  gamma*p*d/ds Jv^s + gamma*p*d/du Jv^u + gamma*p*d/dv Jv^v
+      workij1(:,:,nsmin:nsmax) = gamma*pijh0(:,:,nsmin:nsmax)                  &
+                               * (workij1(:,:,nsmin:nsmax) +                   &
+                                  workij2(:,:,nsmin:nsmax) +                   &
+                                  workij3(:,:,nsmin:nsmax))
+
+!  Second half the the pressure variation.
+!  J dp/dt = -Jv^s d/ds p - Jv^u d/du -Jv^v d/dv
+!          - gamma*p*d/ds Jv^s + gamma*p*d/du Jv^u + gamma*p*d/dv Jv^v
+      workij1(:,:,nsmin:nsmax) = -vgradph(:,:,nsmin:nsmax)                     &
+                               - workij1(:,:,nsmin:nsmax)
+
+!  Convert to Fourier space.
+      CALL tomnsp(workij1(:,:,nsmin:nsmax), djpmnch(:,:,nsmin:nsmax), f_cos)
+      djpmnch(:,:,nsmin:nsmax) = delta_t*djpmnch(:,:,nsmin:nsmax)
+      IF (lasym) THEN
+         CALL tomnsp(workij1(:,:,nsmin:nsmax), djpmnsh(:,:,nsmin:nsmax), f_sin)
+         djpmnsh(:,:,nsmin:nsmax) = delta_t*djpmnsh(:,:,nsmin:nsmax)
+      END IF
+
+      IF (startglobrow .eq. 1) THEN
+         djpmnch(:,:,1) = 0
+         djpmnch(m0,:,1) = djpmnch(m0,:,2)
+
+         IF (lasym) THEN
+            djpmnsh(:,:,1) = 0
+            djpmnsh(m0,:,1) = djpmnsh(m0,:,2)
+         END IF
+      END IF
+
+      DEALLOCATE(workij1, workij2, workij3, vgradph)
+      DEALLOCATE(workmn4, workmn5)
+
       CALL second0(toff)
       time_update_pres = time_update_pres + (toff - ton)
 
       END SUBROUTINE update_pres
-       
-!-------------------------------------------------------------------------------
-!>  @brief Evolve p, using density (n, continuity) equation, with p = n^gamma.
-!>
-!>  djpmnh needed up to nsmax = endglobrow + 1 to compute perturbed pressure in
-!>  @ref siesta_forces.
-!>
-!>  @param[inout] djpmnh
-!>  @param[in]    vgradph     Diplacement time gradient of pressure on half
-!>                            grid.
-!>  @param[in]    dpjsupsdsij Real space d/ds p*jvsups.
-!>  @param[in]    pjsupuij    Real space p*jvsupu.
-!>  @param[in]    pjsupvij    Real space p*jvsupu.
-!>  @param[in]    iparity     Parity flag of fouier components.
-!>  @param[in]    nsmin       Minimum s index.
-!>  @param[in]    nsmax       Maximum s index.
-!-------------------------------------------------------------------------------
-      SUBROUTINE Continuity(djpmnh, vgradph, dpjsupsdsij, pjsupuij, pjsupvij,  &
-                            iparity, nsmin, nsmax)
-      USE shared_data, ONLY: delta_t
-      USE fourier
-      USE island_params, ONLY: ns=>ns_i
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: djpmnh
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in)    :: vgradph
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in)    :: dpjsupsdsij
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in)    :: pjsupuij
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in)    :: pjsupvij
-      INTEGER, INTENT(in)                                     :: iparity
-      INTEGER, INTENT(in)                                     :: nsmin
-      INTEGER, INTENT(in)                                     :: nsmax
-
-!  local variables
-      INTEGER                                                 :: fours
-      INTEGER                                                 :: fouruv
-      INTEGER                                                 :: m
-      INTEGER                                                 :: n
-      REAL (dp)                                               :: sparity
-
-!  Start of executable code
-      IF (iparity .EQ. isym) THEN
-         fours = f_cos
-         fouruv = f_sin
-         sparity = 1
-      ELSE
-         fours = f_sin
-         fouruv = f_cos
-         sparity = -1
-      END IF
-
-      m = LBOUND(djpmnh,3)
-      n = UBOUND(djpmnh,3)
-      CALL assert(nsmin .ge. m, nsmax .le. n,                                  &
-                  'djpmnh: wrong bounds - Continuity')
-
-!  Calculate Fourier transform of v*gradp, r.h.s. of pres eq. (half mesh).
-      CALL tomnsp(vgradph, workmn4, fours)
-      djpmnh(:,:,nsmin:nsmax) = (gamma - 1)*workmn4(:,:,nsmin:nsmax)
-
-!  FFT of -Div(p*Flux) terms
-      CALL tomnsp(dpjsupsdsij(:,:,nsmin:nsmax), workmn4(:,:,nsmin:nsmax),      &
-                  fours)
-      CALL tomnsp(pjsupuij(:,:,nsmin:nsmax), workmn5(:,:,nsmin:nsmax), fouruv)
-      CALL tomnsp(pjsupvij(:,:,nsmin:nsmax), workmn6(:,:,nsmin:nsmax), fouruv)
-
-!  Multiply angular derivatives by m ~d/du, n*nfp ~d/dv (*sparity below).
-      DO m = 0, mpol
-         workmn5(m,:,nsmin:nsmax) = m*workmn5(m,:,nsmin:nsmax)
-      END DO
-      DO n = -ntor, ntor
-         workmn6(:,n,nsmin:nsmax) = n*nfp*workmn6(:,n,nsmin:nsmax)
-      ENDDO
-     
-!  Sum radial and angular div terms
-      workmn4(:,:,nsmin:nsmax) = workmn4(:,:,nsmin:nsmax)                      &
-                               + (workmn5(:,:,nsmin:nsmax) +                   &
-                                  workmn6(:,:,nsmin:nsmax))*sparity
-       
-!  Gamma = adiabatic factor
-      djpmnh(:,:,nsmin:nsmax) = djpmnh(:,:,nsmin:nsmax)                        &
-                              - gamma*workmn4(:,:,nsmin:nsmax)
-
-!  Evolve harmonics of (jacobh * pres)mn to conserve pressure. Calculate
-!  increment of pressure harmonics.
-      djpmnh(:,:,nsmin:nsmax) = delta_t*djpmnh(:,:,nsmin:nsmax)
-
-!  Store js=1, m=0 value.
-      IF (startglobrow .EQ. 1) THEN
-         djpmnh(:,:,1)  = 0
-         djpmnh(m0,:,1) = djpmnh(m0,:,2)! store js=1, m=0 value
-         CALL assert(ALL(djpmnh(m0,-ntor:-1,:) .eq. zero),                     &
-                         'djpmn(m0,-n) NONZERO')
-      END IF
-
-      END SUBROUTINE
 
       END MODULE

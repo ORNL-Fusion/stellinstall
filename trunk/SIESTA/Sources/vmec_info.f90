@@ -17,7 +17,7 @@
                          wb_vmec=>wb, wp_vmec=>wp, gamma_vmec=>gamma,          &
                          volume_vmec=>volume, raxis_vmec=>raxis,               &
                          lasym_vmec=>lasym, iasym_vmec=>iasym
-      USE fourier, ONLY: isym, iasym
+      USE fourier, ONLY: f_cos, f_sin
 
       IMPLICIT NONE
 
@@ -300,13 +300,13 @@
       CALL vmec_info_set_RZL_splines(rmnc_vmec, zmns_vmec, lmns_vmec,          &
                                      currumnc, currvmnc,                       &
                                      rmnc_spline, zmns_spline, lmns_spline,    &
-                                     currumnc_spline, currvmnc_spline, isym)
+                                     currumnc_spline, currvmnc_spline, f_cos)
       IF (lasym) THEN
          CALL vmec_info_set_RZL_splines(rmns_vmec, zmnc_vmec, lmnc_vmec,       &
                                         currumns, currvmns,                    &
                                         rmns_spline, zmnc_spline, lmnc_spline, &
                                         currumns_spline, currvmns_spline,      &
-                                        iasym)
+                                        f_sin)
       END IF
 
 !  Spline 1-D arrays: careful -> convert phipf VMEC and multiply by
@@ -374,11 +374,11 @@
 !>  @param[in]    lmn_vmec       VMEC lambda Fourier amplitudes.
 !>  @param[in]    currumn_vmec   VMEC J^u Fourier amplitudes.
 !>  @param[in]    currvmn_vmec   VMEC J^v Fourier amplitudes.
-!>  @param[in]    rmn_spline     Spline R Fourier amplitudes.
-!>  @param[in]    zmn_spline     Spline Z Fourier amplitudes.
-!>  @param[in]    lmn_spline     Spline lambda Fourier amplitudes.
-!>  @param[in]    currumn_spline Spline J^u Fourier amplitudes.
-!>  @param[in]    currvmn_spline Spline J^v Fourier amplitudes.
+!>  @param[inout] rmn_spline     Spline R Fourier amplitudes.
+!>  @param[inout] zmn_spline     Spline Z Fourier amplitudes.
+!>  @param[inout] lmn_spline     Spline lambda Fourier amplitudes.
+!>  @param[inout] currumn_spline Spline J^u Fourier amplitudes.
+!>  @param[inout] currvmn_spline Spline J^v Fourier amplitudes.
 !>  @param[in]    parity         Parity of the Fourier amplitudes.
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_info_set_RZL_splines(rmn_vmec, zmn_vmec, lmn_vmec,       &
@@ -388,33 +388,34 @@
                                            parity)
       USE shared_data, ONLY: jsupvdotA
       USE stel_constants, ONLY: mu0
+      USE v3_utilities, ONLY: assert, assert_eq
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (dp), DIMENSION(:,:), INTENT(in)  :: rmn_vmec
-      REAL (dp), DIMENSION(:,:), INTENT(in)  :: zmn_vmec
-      REAL (dp), DIMENSION(:,:), INTENT(in)  :: lmn_vmec
-      REAL (dp), DIMENSION(:,:), INTENT(in)  :: currumn_vmec
-      REAL (dp), DIMENSION(:,:), INTENT(in)  :: currvmn_vmec
-      REAL (dp), ALLOCATABLE, DIMENSION(:,:) :: rmn_spline
-      REAL (dp), ALLOCATABLE, DIMENSION(:,:) :: zmn_spline
-      REAL (dp), ALLOCATABLE, DIMENSION(:,:) :: lmn_spline
-      REAL (dp), ALLOCATABLE, DIMENSION(:,:) :: currumn_spline
-      REAL (dp), ALLOCATABLE, DIMENSION(:,:) :: currvmn_spline
-      INTEGER, INTENT(in)                          :: parity
+      REAL (dp), DIMENSION(:,:), INTENT(in)                 :: rmn_vmec
+      REAL (dp), DIMENSION(:,:), INTENT(in)                 :: zmn_vmec
+      REAL (dp), DIMENSION(:,:), INTENT(in)                 :: lmn_vmec
+      REAL (dp), DIMENSION(:,:), INTENT(in)                 :: currumn_vmec
+      REAL (dp), DIMENSION(:,:), INTENT(in)                 :: currvmn_vmec
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:), INTENT(inout) :: rmn_spline
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:), INTENT(inout) :: zmn_spline
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:), INTENT(inout) :: lmn_spline
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:), INTENT(inout) :: currumn_spline
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:), INTENT(inout) :: currvmn_spline
+      INTEGER, INTENT(in)                                   :: parity
 
 !  Local variables
-      INTEGER                                :: istat
-      INTEGER                                :: modes
-      INTEGER                                :: modes_nyq
-      INTEGER                                :: n_off
-      INTEGER                                :: n_max
-      REAL (dp), DIMENSION(:,:), ALLOCATABLE :: tempmn1
-      REAL (dp), DIMENSION(:,:), ALLOCATABLE :: tempmn2
+      INTEGER                                               :: istat
+      INTEGER                                               :: modes
+      INTEGER                                               :: modes_nyq
+      INTEGER                                               :: n_off
+      INTEGER                                               :: n_max
+      REAL (dp), DIMENSION(:,:), ALLOCATABLE                :: tempmn1
+      REAL (dp), DIMENSION(:,:), ALLOCATABLE                :: tempmn2
 
 !  Start of executable code
-      IF (parity.EQ.iasym .AND. .NOT.lasym_vmec) THEN
+      IF (parity .eq. f_sin .and. .not.lasym_vmec) THEN
          rmn_spline = 0
          zmn_spline = 0
          lmn_spline = 0
@@ -452,6 +453,9 @@
 
       modes_nyq = 1
       DO modes = 1, mnmax
+         CALL assert(xm_vmec(modes) .eq. xm_nyq(modes_nyq), 'm mode mismatch')
+         CALL assert(xn_vmec(modes) .eq. xn_nyq(modes_nyq), 'n mode mismatch')
+
          tempmn1(modes,:) = mu0*currumn_vmec(modes_nyq,:)
          tempmn2(modes,:) = mu0*currvmn_vmec(modes_nyq,:)
 
@@ -461,7 +465,7 @@
             modes_nyq = modes_nyq + 1
          END IF
       END DO
-      IF (parity .EQ. isym) THEN
+      IF (parity .eq. f_cos) THEN
          jsupvdotA = mu0*(SUM(tempmn2(1,2:ns_vmec - 1))                        &
                    + (tempmn2(1, 1) + tempmn2(1, ns_vmec))/2)
          jsupvdotA = jsupvdotA/(ns_vmec - 1)
@@ -475,7 +479,7 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!>  @brief Add ghost points to at js=1 (s=0) and js = ns + 1 (s=1).
+!>  @brief Add ghost points to js=1 (s=0) and js = ns + 1 (s=1).
 !>
 !>  Extends the VMEC lmn to the ns+1 grid.
 !>
@@ -523,11 +527,11 @@
       CALL vmec_info_construct_island(mpol, ntor, ns, lasym)
       CALL vmec_info_repack(rmnc_i, zmns_i, lmns_i, jcurrumnc, jcurrvmnc,      &
                             rmnc_spline, zmns_spline, lmns_spline,             &
-                            currumnc_spline, currvmnc_spline, isym)
+                            currumnc_spline, currvmnc_spline, f_cos)
       IF (lasym) THEN
          CALL vmec_info_repack(rmns_i, zmnc_i, lmnc_i, jcurrumns, jcurrvmns,   &
                                rmns_spline, zmnc_spline, lmnc_spline,          &
-                               currumns_spline, currvmns_spline, isym)
+                               currumns_spline, currvmns_spline, f_sin)
       END IF
       CALL vmec_info_destruct_spline
 
@@ -543,15 +547,23 @@
 !>
 !>    rmnc_spl(1:mnmax,ns_i)
 !>
-!>  Now pack them so they can be used by ISLAND Fourier routines.
+!>  Now pack them so they can be used by island Fourier routines.
 !>
 !>    rmn(0:mpol, -ntor:ntor, ns_i)
 !>
 !>  Arrays passed into the spline arguments get deallocated.
 !>
-!>  @param[inout] isl    Repacked Fourier coefficents.
-!>  @param[in]    spl    Splined Fourier coefficents.
-!>  @param[in]    parity True if using stellarator symmetry.
+!>  @param[inout] rmn         Repacked R Fourier coefficents.
+!>  @param[inout] zmn         Repacked Z Fourier coefficents.
+!>  @param[inout] lmn         Repacked Lambda Fourier coefficents.
+!>  @param[inout] currumn     Repacked jsupu Fourier coefficents.
+!>  @param[inout] currvmn     Repacked jsupv Fourier coefficents.
+!>  @param[in]    rmn_spl     Splined R Fourier coefficents.
+!>  @param[in]    zmn_spl     Splined Z Fourier coefficents.
+!>  @param[in]    lmn_spl     Splined Lambda Fourier coefficents.
+!>  @param[in]    currumn_spl Splined jsupu Fourier coefficents.
+!>  @param[in]    currvmn_spl Splined jsupv Fourier coefficents.
+!>  @param[in]    parity      True if using stellarator symmetry.
 !>
 !>  @note
 !>  mpol_i == mpol_vmec, ntor_i == ntor_vmec here. Also, must flip the sign of
@@ -566,7 +578,7 @@
       SUBROUTINE vmec_info_repack(rmn, zmn, lmn, currumn, currvmn,             &
                                   rmn_spl, zmn_spl, lmn_spl,                   &
                                   currumn_spl, currvmn_spl, parity)
-      USE fourier, ONLY: orthonorm
+      USE fourier, ONLY: orthonorm, m0, m1, n0, n1
       USE island_params, ONLY: mpol=>mpol_i, ntor=>ntor_i, ns=>ns_i,           &
      &                         nfp=>nfp_i, hs=>hs_i
       USE descriptor_mod, ONLY: iam
@@ -575,40 +587,40 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: rmn
-      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: zmn
-      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: lmn
-      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: currumn
-      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: currvmn
-      REAL (dp), ALLOCATABLE, DIMENSION(:,:)   :: rmn_spl
-      REAL (dp), ALLOCATABLE, DIMENSION(:,:)   :: zmn_spl
-      REAL (dp), ALLOCATABLE, DIMENSION(:,:)   :: lmn_spl
-      REAL (dp), ALLOCATABLE, DIMENSION(:,:)   :: currumn_spl
-      REAL (dp), ALLOCATABLE, DIMENSION(:,:)   :: currvmn_spl
-      INTEGER, INTENT(in)                      :: parity
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: rmn
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: zmn
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: lmn
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: currumn
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: currvmn
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:), INTENT(in)      :: rmn_spl
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:), INTENT(in)      :: zmn_spl
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:), INTENT(in)      :: lmn_spl
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:), INTENT(in)      :: currumn_spl
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:), INTENT(in)      :: currvmn_spl
+      INTEGER, INTENT(in)                                     :: parity
 
 !  Local variables
-      INTEGER                                  :: modes
-      INTEGER                                  :: js
-      INTEGER                                  :: m
-      INTEGER                                  :: n
-      INTEGER                                  :: n1
-      INTEGER                                  :: s1
-      INTEGER                                  :: s2
-      INTEGER                                  :: istat
+      INTEGER                                                 :: mn_mode
+      INTEGER                                                 :: js
+      INTEGER                                                 :: m
+      INTEGER                                                 :: n
+      INTEGER                                                 :: n_abs
+      INTEGER                                                 :: s1
+      INTEGER                                                 :: s2
+      INTEGER                                                 :: istat
 
 !  Start executable code.
       CALL assert_eq(mnmax, SIZE(rmn_spl,1),'rmn_spl wrong size1 in REPACK')
       CALL assert_eq(ns, SIZE(rmn_spl,2),'rmn_spl wrong size2 in REPACK')
       CALL assert_eq(ns + 1, SIZE(lmn_spl,2),'lmn_spl wrong size2 in REPACK')
 
-      IF (parity .EQ. isym) THEN
+      IF (parity .EQ. f_cos) THEN
          s1 = 1
       ELSE
          s2 = 1
       END IF
 
-      IF (iam .EQ. 0 .AND. lverbose .AND. parity .EQ. isym) THEN
+      IF (iam .EQ. 0 .AND. lverbose .AND. parity .EQ. f_cos) THEN
          m = INT(MAXVAL(xm_vmec))
          n = INT(MAXVAL(ABS(xn_vmec)))/nfp
          IF (m.GT.mpol .OR. n.GT.ntor) THEN
@@ -619,27 +631,30 @@
       END IF
 
 !  Flip vmec n to siesta -n so trig arg is in siesta notation.
-      DO modes = 1,mnmax
-         m = xm_vmec(modes)
-         n = xn_vmec(modes)/nfp
-         n1 = ABS(n)
-         IF (m .GT. mpol .OR. n1 .GT. ntor) CYCLE
+      DO mn_mode = 1,mnmax
+         m = xm_vmec(mn_mode)
+         n = xn_vmec(mn_mode)/nfp
+         n_abs = ABS(n)
+         IF (m .le. mpol .and. n_abs .le. ntor) THEN
 
 !  For m=0 load only the positive n values.
-         IF (m .EQ. 0) THEN
-            IF (parity .EQ. isym)  s2 = -SIGN(1,n)
-            IF (parity .EQ. iasym) s1 = -SIGN(1,n)
-            rmn(m,n1,:) = rmn(m,n1,:) + s1*rmn_spl(modes,:)
-            zmn(m,n1,:) = zmn(m,n1,:) + s2*zmn_spl(modes,:)
-            lmn(m,n1,:) = lmn(m,n1,:) + s2*lmn_spl(modes,:)*iflipj
-            currumn(m,n1,:) = currumn(m,n1,:) + s1*currumn_spl(modes,:)
-            currvmn(m,n1,:) = currvmn(m,n1,:) + s1*currvmn_spl(modes,:)
-         ELSE
-            rmn(m,-n*iflipj,:) = rmn_spl(modes,:)
-            zmn(m,-n*iflipj,:) = zmn_spl(modes,:)*iflipj
-            lmn(m,-n*iflipj,:) = lmn_spl(modes,:)
-            currumn(m,-n*iflipj,:) = currumn_spl(modes,:)
-            currvmn(m,-n*iflipj,:) = currvmn_spl(modes,:)
+            IF (m .EQ. 0) THEN
+               IF (parity .EQ. f_cos) s2 = -SIGN(1,n)
+               IF (parity .EQ. f_sin) s1 = -SIGN(1,n)
+               rmn(m,n_abs,:) = rmn(m,n_abs,:) + s1*rmn_spl(mn_mode,:)
+               zmn(m,n_abs,:) = zmn(m,n_abs,:) + s2*zmn_spl(mn_mode,:)
+               lmn(m,n_abs,:) = lmn(m,n_abs,:) + s2*lmn_spl(mn_mode,:)*iflipj
+               currumn(m,n_abs,:) = currumn(m,n_abs,:)                         &
+                                  + s1*currumn_spl(mn_mode,:)
+               currvmn(m,n_abs,:) = currvmn(m,n_abs,:)                         &
+                                  + s1*currvmn_spl(mn_mode,:)
+            ELSE
+               rmn(m,-n*iflipj,:) = rmn_spl(mn_mode,:)
+               zmn(m,-n*iflipj,:) = zmn_spl(mn_mode,:)*iflipj
+               lmn(m,-n*iflipj,:) = lmn_spl(mn_mode,:)
+               currumn(m,-n*iflipj,:) = currumn_spl(mn_mode,:)
+               currvmn(m,-n*iflipj,:) = currvmn_spl(mn_mode,:)
+            END IF
          END IF
       END DO
 
@@ -649,12 +664,42 @@
          lmn(:,:,js) = lmn(:,:,js)/orthonorm(0:mpol,-ntor:ntor)
          rmn(:,:,js) = rmn(:,:,js)/orthonorm(0:mpol,-ntor:ntor)
          zmn(:,:,js) = zmn(:,:,js)/orthonorm(0:mpol,-ntor:ntor)
-         currumn(:,:,js) = 2*hs*(js - 1)*currumn(:,:,js)                       &
-                         / orthonorm(0:mpol,-ntor:ntor)
-         currvmn(:,:,js) = 2*hs*(js - 1)*currvmn(:,:,js)                       &
-                         / orthonorm(0:mpol,-ntor:ntor)
+!         IF (js .eq. 1) THEN
+!            currumn(:,:,js) = currumn(:,:,js)/orthonorm(0:mpol,-ntor:ntor)
+!            currvmn(:,:,js) = currvmn(:,:,js)/orthonorm(0:mpol,-ntor:ntor)
+!         ELSE
+            currumn(:,:,js) = 2*hs*(js - 1)*currumn(:,:,js)                       &
+                            / orthonorm(0:mpol,-ntor:ntor)
+            currvmn(:,:,js) = 2*hs*(js - 1)*currvmn(:,:,js)                       &
+                            / orthonorm(0:mpol,-ntor:ntor)
+!         END IF
       END DO
+
       lmn(:,:,ns + 1) = lmn(:,:,ns + 1)/orthonorm(0:mpol,-ntor:ntor)
+
+!      lmn(m1:,:,1) = 0
+      rmn(m1:,:,1) = 0
+      zmn(m1:,:,1) = 0
+!      currumn(:,:,1) = 0
+!      currumn(m1:,:,1) = 0
+!      currvmn(m1:,:,1) = 0
+
+      IF (parity .eq. f_cos) THEN
+         lmn(m0,-ntor:n0,:) = 0
+         rmn(m0,-ntor:-n1,:) = 0
+         zmn(m0,-ntor:n0,:) = 0
+         currumn(m0,-ntor:-n1,:) = 0
+         currvmn(m0,-ntor:-n1,:) = 0
+      ELSE
+         lmn(m0,-ntor:-n0,:) = 0
+         rmn(m0,-ntor:n0,:) = 0
+         zmn(m0,-ntor:-n1,:) = 0
+         currumn(m0,-ntor:n0,:) = 0
+         currvmn(m0,-ntor:n0,:) = 0
+      END IF
+
+      currumn(:,:,ns) = 0
+      currvmn(:,:,ns) = 0
 
 1000  FORMAT(' It is recommended to increase the number of modes to at' &
              ' least VMEC values mpol=',i4,' ntor=',i4)

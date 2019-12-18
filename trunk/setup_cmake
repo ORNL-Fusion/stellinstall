@@ -154,7 +154,7 @@ then
               -DNETCDF_INC_PATH=/usr/local/include/                        \
               -DNETCDF_LIB_PATH=/usr/local/lib                             \
               -DEXTRA_FLAGS="-fopenmp -DNEW_CODE -mavx2 -Wuninitialized"   \
-              -DEXTRA_DEBUG_FLAGS="-fsanitize=address"                     \
+              -DEXTRA_DEBUG_FLAGS="-fsanitize=address" \
               -DUSE_PARVMEC=ON                                             \
               -DUSE_FAST_COPY=ON
 

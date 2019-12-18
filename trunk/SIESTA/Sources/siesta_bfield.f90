@@ -91,6 +91,10 @@
       esubvijf = -(jvsupsijf(:,:,nsmin:nsmax)*bsupuijf0(:,:,nsmin:nsmax) -     &
                    jvsupuijf(:,:,nsmin:nsmax)*bsupsijf0(:,:,nsmin:nsmax))
 
+      IF (nsmin .eq. 1) THEN
+         esubuijf(:,:,1) = 0
+      END IF
+
 !  Verify boundary condition: esubu,v(s=1) = 0 (tangential E vanishes at bdy =>
 !  dB^s = 0). FIXME: Does this still hold in free boundary?
       IF (nsmax .eq. ns) THEN
@@ -136,10 +140,14 @@
          esubuijf = esubuijf + resistivity*ksubuijf(:,:,nsmin:nsmax)
          esubvijf = esubvijf + resistivity*ksubvijf(:,:,nsmin:nsmax)
 
+         IF (nsmin .eq. 1) THEN
+            esubuijf(:,:,1) = 0
+         END IF
+
          DEALLOCATE (resistivity)
       END IF
 
-!  Allocate working arrays used in Faraday.
+!  Allocate working arrays used in Faraday. FIXME: Move to inside faraday.
       ALLOCATE(esubsmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                        &
                esubumnf(0:mpol,-ntor:ntor,nsmin:nsmax),                        &
                esubvmnf(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
@@ -148,11 +156,11 @@
 !  Update Bfield using Faraday's Law
       CALL Faraday(djbsupsmnsh, djbsupumnch, djbsupvmnch,                      &
                    esubsijf, esubuijf, esubvijf,                               &
-                   esubsmnf, esubumnf, esubvmnf, isym, nsmin, nsmax)
+                   esubsmnf, esubumnf, esubvmnf, f_sin, nsmin, nsmax)
       IF (lasym) THEN
          CALL Faraday(djbsupsmnch, djbsupumnsh, djbsupvmnsh,                   &
                       esubsijf, esubuijf, esubvijf,                            &
-                      esubsmnf, esubumnf, esubvmnf, iasym, nsmin, nsmax)
+                      esubsmnf, esubumnf, esubvmnf, f_cos, nsmin, nsmax)
       END IF
 
       DEALLOCATE(esubsijf, esubuijf, esubvijf,                                 &
@@ -194,8 +202,7 @@
                          esubsmnf, esubumnf, esubvmnf, iparity, nsmin, nsmax)
       USE shared_data, ONLY: l_natural, delta_t
       USE hessian, ONLY: l_compute_hessian
-      USE utilities, ONLY: Curl_FtoH
-
+      USE utilities, ONLY: Curl_FtoH, set_bndy_full_origin
       IMPLICIT NONE
 
 !  Declare Arguments
@@ -219,7 +226,7 @@
       REAL (dp)                                               :: r12
 
 !  Start of executable code
-      IF (iparity .EQ. isym) THEN
+      IF (iparity .EQ. f_sin) THEN
 !  e_s (sin), e_u (cos), e_v (cos)
          fours = f_sin
          fouruv = f_cos
@@ -240,21 +247,22 @@
       IF (startglobrow .EQ. 1) THEN
 !  These conditions are needed so that delta-W jogs (CheckForces) agree with
 !  forces at origin.
-         esubsmnf(m2:,:,1) = 0 ! f_v(1) wrong w/0 this
-         esubumnf(m0,:,1) = 0
-         esubumnf(m2:,:,1) = 0 ! f_v(1) wrong w/0 this
-         esubvmnf(m1:,:,1) = 0
+!         esubsmnf(m2:,:,1) = 0 ! f_v(1) wrong w/0 this
+!         esubumnf(m0,:,1) = 0
+!         esubumnf(m2:,:,1) = 0 ! f_v(1) wrong w/0 this
+!         esubvmnf(m1:,:,1) = 0
+         CALL set_bndy_full_origin(esubsmnf, esubumnf, esubvmnf)
 
-         IF (.not.l_natural) THEN
-            r12 = sparity*hs_i/2
-            djbsupsmnh(m1,:,2) = (esubsmnf(m1,:,1) + esubsmnf(m1,:,2))/2
-            djbsupumnh(m1,:,2) = (esubumnf(m1,:,1) + esubumnf(m1,:,2))/2
-            djbsupsmnh(m1,:,1) = r12*djbsupsmnh(m1,:,2) - djbsupumnh(m1,:,2) !-> 0
+!         IF (.not.l_natural) THEN
+!            r12 = sparity*hs_i/2
+!            djbsupsmnh(m1,:,2) = (esubsmnf(m1,:,1) + esubsmnf(m1,:,2))/2
+!            djbsupumnh(m1,:,2) = (esubumnf(m1,:,1) + esubumnf(m1,:,2))/2
+!            djbsupsmnh(m1,:,1) = r12*djbsupsmnh(m1,:,2) - djbsupumnh(m1,:,2) !-> 0
 !  This constrains [esubs(2)*r12 - esubu(2)] = 0 at s=r12 (first half grid pt)
 !  needed to make djb^s ~ r12*djb^u there
-            esubsmnf(m1,:,1) = esubsmnf(m1,:,1) - djbsupsmnh(m1,:,1)/r12
-            esubumnf(m1,:,1) = esubumnf(m1,:,1) + djbsupsmnh(m1,:,1)
-         END IF
+!            esubsmnf(m1,:,1) = esubsmnf(m1,:,1) - djbsupsmnh(m1,:,1)/r12
+!            esubumnf(m1,:,1) = esubumnf(m1,:,1) + djbsupsmnh(m1,:,1)
+!         END IF
       END IF
 
 !  dB = -Curl(E)

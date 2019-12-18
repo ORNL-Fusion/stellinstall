@@ -166,12 +166,12 @@
       CALL CURLB(ksupsmnsf, ksupumncf, ksupvmncf,                              &
                  bsubsijh, bsubuijh, bsubvijh,                                 &
                  bs_filter, bu_filter, bv_filter, edge_cur,                    &
-                 jsju_ratio_s, isym, lcurr, nsmax, nsmin)
+                 jsju_ratio_s, f_sin, lcurr, nsmax, nsmin)
       IF (lasym) THEN
          CALL CURLB(ksupsmncf, ksupumnsf, ksupvmnsf,                           &
                     bsubsijh, bsubuijh, bsubvijh,                              &
                     bs_filter, bu_filter, bv_filter, edge_cur,                 &
-                    jsju_ratio_a, iasym, lcurr, nsmax, nsmin)
+                    jsju_ratio_a, f_cos, lcurr, nsmax, nsmin)
       END IF
 
       IF (lcurr) THEN
@@ -183,10 +183,10 @@
 !  Calculate full mesh, contravariant real-space current components
 !  KsupXF = sqrt(g)*JsupXF.
       CALL GETCV(ksupsmnsf, ksupumncf, ksupvmncf, ksupsijf, ksupuijf,          &
-                 ksupvijf, isym, nsmax, nmin)
+                 ksupvijf, f_sin, nsmax, nmin)
       IF (lasym) THEN
          CALL GETCV(ksupsmncf, ksupumnsf, ksupvmnsf, ksupsijf, ksupuijf,       &
-                    ksupvijf, iasym, nsmax, nmin)
+                    ksupvijf, f_cos, nsmax, nmin)
       END IF
 
 !  Covariant K components (with jacob factor still there) in real space needed
@@ -286,7 +286,7 @@
                        bsubsijh, bsubuijh, bsubvijh,                           &
                        bs_filter, bu_filter, bv_filter, edge_cur,              &
                        jsju_ratio, iparity, lcurr, nsmax, nsmin)
-      USE utilities, ONLY: curl_htof
+      USE utilities, ONLY: curl_htof, set_bndy_fouier_m0
 
       IMPLICIT NONE
 
@@ -324,7 +324,7 @@
       nmin = MAX(1, startglobrow)
       nmax = MIN(ns, endglobrow)
 
-      IF (iparity .EQ. isym) THEN
+      IF (iparity .EQ. f_sin) THEN
          fcomb = f_none
          fours = f_sin
          fouruv = f_cos
@@ -345,12 +345,14 @@
       CALL tomnsp(bsubsijh, bsubsmnh, fours)
       CALL tomnsp(bsubuijh, bsubumnh, fouruv)
       CALL tomnsp(bsubvijh, bsubvmnh, fouruv)
-      
+
+      CALL set_bndy_fouier_m0(bsubsmnh, bsubumnh, bsubvmnh, iparity)
+
       CALL CURL_HtoF(bsubsmnh, bsubumnh, bsubvmnh,                             &
                      ksupsmnf, ksupumnf, ksupvmnf, iparity, nsmin, nsmax)
 
 !  Diagnostics
-     DIAGNO: IF (l_update_state) THEN
+      DIAGNO: IF (l_update_state) THEN
          IF (nmax .EQ. ns) THEN
             edge_cur = edge_cur + SUM(ksupsmnf(:,:,ns)*ksupsmnf(:,:,ns))
          END IF
@@ -377,13 +379,6 @@
 
       DEALLOCATE (bsubsmnh, bsubumnh, bsubvmnh, stat=istat)   
       CALL assert_eq(0, istat, 'Deallocation failed in CURLB')
-
-      IF (nsmin .EQ. 1) THEN
-          ksupsmnf(m0,:,1) = 0
-          ksupsmnf(m2:,:,1) = 0
-          ksupumnf(m2:,:,1) = 0
-          ksupvmnf(m1:,:,1) = 0
-      END IF
 
       END SUBROUTINE
 
@@ -419,7 +414,7 @@
       INTEGER                                                :: fouruv
       INTEGER                                                :: fcomb
 !-----------------------------------------------
-      IF (iparity .EQ. isym) THEN
+      IF (iparity .EQ. f_sin) THEN
          fcomb = f_none
          fours = f_sin
          fouruv = f_cos
