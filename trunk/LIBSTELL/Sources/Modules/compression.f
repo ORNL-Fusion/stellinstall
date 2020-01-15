@@ -25,16 +25,16 @@
 
 !>  Postfix for the data buffer.
       CHARACTER (len=*), PARAMETER ::                                          &
-     &   compression_data_buffer_post = "data_buffer"
+     &   compression_data_buffer_post = 'data_buffer'
 !>  Postfix for the data buffer.
       CHARACTER (len=*), PARAMETER ::                                          &
-     &   compression_u_buffer_post = "u_buffer"
+     &   compression_u_buffer_post = 'u_buffer'
 !>  Postfix for the data buffer.
       CHARACTER (len=*), PARAMETER ::                                          &
-     &   compression_wvt_buffer_post = "wvt_buffer"
+     &   compression_wvt_buffer_post = 'wvt_buffer'
 !>  Postfix for the data buffer.
       CHARACTER (len=*), PARAMETER ::                                          &
-     &   compression_data_dim_post = "data_dim"
+     &   compression_data_dim_post = 'data_dim'
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS

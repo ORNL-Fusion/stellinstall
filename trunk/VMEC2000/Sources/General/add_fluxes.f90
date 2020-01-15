@@ -1,4 +1,3 @@
-#if defined(SKS)      
       SUBROUTINE add_fluxes_par(overg, bsupu, bsupv, lcurrent)
       USE vmec_main
       USE realspace, ONLY: pwint, pguu, pguv, pchip, pphip
@@ -62,13 +61,19 @@
       END DO
 
       nsmin=MAX(2,t1lglob); nsmax=MIN(ns-1,trglob)
-      IF (nsmin.EQ.1) chipf(1) = chips(2)
+      IF (t1lglob .eq. 1 .and. trglob .gt. 2) THEN
+         chipf(1) = c1p5*chips(2) - p5*chips(3)
+      ELSE IF (t1lglob .eq. 1) THEN
+         chipf(1) = chips(2)
+      END IF
       chipf(nsmin:nsmax) = (chips(nsmin:nsmax) + chips(nsmin+1:nsmax+1))/2
       IF (nsmax.EQ.ns) chipf(ns)    = c1p5*chips(ns)- p5*chips(ns-1)
 
 !     Do not compute iota too near origin
       IF(trglob_arr(1).LE.2) THEN
+#if defined(MPI_OPT)
         CALL MPI_Bcast(iotas(3),1,MPI_REAL8,1,NS_COMM,MPI_ERR)
+#endif
       END IF
       IF (lrfp) THEN
          IF (nsmin.EQ.1) iotaf(1)  = one/(c1p5/iotas(2) - p5/iotas(3))
@@ -88,16 +93,11 @@
       bsupu(:,nsmin:nsmax) = bsupu(:,nsmin:nsmax)+pchip(:,nsmin:nsmax)*overg(:,nsmin:nsmax)
 
       END SUBROUTINE add_fluxes_par
-#endif
 
       SUBROUTINE add_fluxes(overg, bsupu, bsupv, lcurrent)
       USE vmec_main
       USE realspace, ONLY: wint, guu, guv, chip, phip
-#if defined(SKS)      
-      USE vmec_input, ONLY: nzeta
-      USE vmec_dim, ONLY: ntheta3
-      USE parallel_include_module
-#endif
+
       IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -115,9 +115,7 @@
 !-----------------------------------------------
       INTEGER :: js, l
       REAL(rprec) :: top, bot
-#if defined(SKS)      
-      INTEGER :: i, j, k, nsmin, nsmax, lnsnum, istat
-#endif      
+
 !-----------------------------------------------
 !
 !     ADD MAGNETIC FLUX (CHIP, PHIP) TERMS TO BSUPU=-OVERG*LAM_V, BSUPV=OVERG*LAM_U

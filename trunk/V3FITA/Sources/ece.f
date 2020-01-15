@@ -14,7 +14,7 @@
 
       USE stel_kinds, only: rprec
       USE integration_path
-      USE model
+      USE signal
 
       IMPLICIT NONE
 
@@ -29,11 +29,22 @@
 !>  @par Super Class:
 !>  @ref diagnostic
 !-------------------------------------------------------------------------------
-      TYPE ece_class
+      TYPE, EXTENDS(signal_class) :: ece_class
 !>  The complete path of the chord.
          TYPE (vertex), POINTER :: chord_path => null()
 !>  Resonance factor.
          REAL (rprec)           :: resonance
+      CONTAINS
+         PROCEDURE              ::                                             &
+     &      get_modeled_signal_last => ece_get_modeled_signal
+         PROCEDURE              :: get_cart => ece_get_cart
+         PROCEDURE              ::                                             &
+     &      get_type => ece_get_type
+         PROCEDURE              :: get_header => ece_get_header
+         PROCEDURE              :: get_gp_i => ece_get_gp_i
+         PROCEDURE              :: get_gp_s => ece_get_gp_s
+         PROCEDURE              :: get_gp_x => ece_get_gp_x
+         FINAL                  :: ece_destruct
       END TYPE ece_class
 
 !-------------------------------------------------------------------------------
@@ -50,12 +61,10 @@
 !  INTERFACE BLOCKS
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  Interface to get the guassian process kernel values.
+!>  Interface for ece constructor.
 !-------------------------------------------------------------------------------
-      INTERFACE ece_get_gp
-         MODULE PROCEDURE ece_get_gp_i,                                        &
-     &                    ece_get_gp_s,                                        &
-     &                    ece_get_gp_x
+      INTERFACE ece_class
+         MODULE PROCEDURE ece_construct
       END INTERFACE
 
       PRIVATE :: ece_function, is_in_range
@@ -79,7 +88,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (ece_class), POINTER              :: ece_construct
+      CLASS (ece_class), POINTER             :: ece_construct
       REAL (rprec), DIMENSION(3), INTENT(in) :: start_path
       REAL (rprec), DIMENSION(3), INTENT(in) :: end_path
       REAL (rprec), INTENT(in)               :: resonance
@@ -116,15 +125,13 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (ece_class), POINTER :: this
+      TYPE (ece_class), INTENT(inout) :: this
 
 !  Start of executable code
       IF (ASSOCIATED(this%chord_path)) THEN
          CALL path_destruct(this%chord_path)
          this%chord_path => null()
       END IF
-
-      DEALLOCATE(this)
 
       END SUBROUTINE
 
@@ -137,27 +144,22 @@
 !>  Calculates the ECE signal by searching along the chord for the resonance.
 !>  The search criteria is provided by the @ref ece_function.
 !>
-!>  @param[in]  this          A @ref ece_class instance.
-!>  @param[in]  a_model       A @ref model instance.
-!>  @param[out] sigma         The modeled sigma.
-!>  @param[in]  last_value    Last good value in case the signal did not change.
-!>  @param[in]  scale_factor  Factor to scale the modeled signal.
-!>  @param[in]  offset_factor Factor to offset the modeled signal.
+!>  @param[inout] this       A @ref ece_class instance.
+!>  @param[in]    a_model    A @ref model instance.
+!>  @param[out]   sigma      The modeled sigma.
+!>  @param[in]    last_value Last good value in case the signal did not change.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
-      FUNCTION ece_get_modeled_signal(this, a_model, sigma, last_value,        &
-     &                                scale_factor, offset_factor)
+      FUNCTION ece_get_modeled_signal(this, a_model, sigma, last_value)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4) :: ece_get_modeled_signal
-      TYPE (ece_class), INTENT(in)            :: this
-      TYPE (model_class), TARGET, INTENT(in)  :: a_model
+      CLASS (ece_class), INTENT(inout)        :: this
+      TYPE (model_class), POINTER             :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
       REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
-      REAL (rprec), INTENT(in)                :: scale_factor
-      REAL (rprec), INTENT(in)                :: offset_factor
 
 ! local variables
       LOGICAL                                 :: found
@@ -166,7 +168,6 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      ece_get_modeled_signal = last_value
       sigma = 0.0
 
       IF (BTEST(a_model%state_flags, model_state_vmec_flag)   .or.             &
@@ -175,8 +176,7 @@
      &    BTEST(a_model%state_flags, model_state_shift_flag)  .or.             &
      &    BTEST(a_model%state_flags, model_state_signal_flag)) THEN
 
-         ece_get_modeled_signal(2:4) = ece_get_cart(this, a_model,             &
-     &                                              found)
+         ece_get_modeled_signal(2:4) = this%get_cart(a_model, found)
 
          IF (found) THEN
             ece_get_modeled_signal(1) =                                        &
@@ -185,8 +185,9 @@
             ece_get_modeled_signal(1) = 0.0
          END IF
 
-         ece_get_modeled_signal(1) =                                           &
-     &     (ece_get_modeled_signal(1) + offset_factor)*scale_factor
+         CALL this%scale_and_offset(a_model, ece_get_modeled_signal(1))
+      ELSE
+         ece_get_modeled_signal = last_value
       END IF
 
       CALL profiler_set_stop_time('ece_get_modeled_signal', start_time)
@@ -209,16 +210,16 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(3)             :: ece_get_cart
-      TYPE (ece_class), INTENT(in)           :: this
-      TYPE (model_class), TARGET, INTENT(in) :: a_model
-      LOGICAL, INTENT(out)                   :: found
+      REAL (rprec), DIMENSION(3)    :: ece_get_cart
+      CLASS (ece_class), INTENT(in) :: this
+      TYPE (model_class), POINTER   :: a_model
+      LOGICAL, INTENT(out)          :: found
 
 ! local variables
-      CHARACTER(len=1), ALLOCATABLE          :: context(:)
-      INTEGER                                :: context_length
-      TYPE (ece_context)                     :: temp_context
-      REAL (rprec)                           :: start_time
+      CHARACTER(len=1), ALLOCATABLE :: context(:)
+      INTEGER                       :: context_length
+      TYPE (ece_context)            :: temp_context
+      REAL (rprec)                  :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -250,14 +251,14 @@
 !>  @param[in] this A @ref ece_class instance.
 !>  @returns A string describing the ece type.
 !-------------------------------------------------------------------------------
-      FUNCTION ece_get_signal_type(this)
+      FUNCTION ece_get_type(this)
       USE data_parameters
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=data_name_length) :: ece_get_signal_type
-      TYPE (ece_class), INTENT(in)     :: this
+      CHARACTER (len=data_name_length) :: ece_get_type
+      CLASS (ece_class), INTENT(in)    :: this
 
 !  local variables
       REAL (rprec)                     :: start_time
@@ -265,9 +266,9 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      ece_get_signal_type = 'ece'
+      ece_get_type = 'ece'
 
-      CALL profiler_set_stop_time('ece_get_signal_type', start_time)
+      CALL profiler_set_stop_time('ece_get_type', start_time)
 
       END FUNCTION
 
@@ -277,17 +278,19 @@
 !>  Returns a description of the array indices for use when writting output
 !>  files.
 !>
-!>  @param[in] this A @ref ece_class instance.
+!>  @param[in]    this   A @ref ece_class instance.
+!>  @param[inout] header Buffer arrays to write header strings to.
 !>  @returns A string describing the model and model sigma array indices.
 !-------------------------------------------------------------------------------
-      FUNCTION ece_get_header(this)
+      SUBROUTINE ece_get_header(this, header)
       USE data_parameters
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=data_name_length), DIMENSION(7) :: ece_get_header
-      TYPE (ece_class), INTENT(in)                   :: this
+      CLASS (ece_class), INTENT(in)                  :: this
+      CHARACTER (len=data_name_length), DIMENSION(7), INTENT(inout) ::         &
+     &   header
 
 !  local variables
       REAL (rprec)                                   :: start_time
@@ -295,18 +298,18 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      ece_get_header(1) = 'x (m)'
-      ece_get_header(2) = 'y (m)'
-      ece_get_header(3) = 'z (m)'
+      header(1) = 'x (m)'
+      header(2) = 'y (m)'
+      header(3) = 'z (m)'
 
-      ece_get_header(4) = 'model_sig(1)'
-      ece_get_header(5) = 'model_sig(2)'
-      ece_get_header(6) = 'model_sig(3)'
-      ece_get_header(7) = 'model_sig(4)'
+      header(4) = 'model_sig(1)'
+      header(5) = 'model_sig(2)'
+      header(6) = 'model_sig(3)'
+      header(7) = 'model_sig(4)'
 
       CALL profiler_set_stop_time('ece_get_header', start_time)
 
-      END FUNCTION
+      END SUBROUTINE
 
 !-------------------------------------------------------------------------------
 !>  @brief Gets the guassian process kernel for an ece signal and a position.
@@ -325,26 +328,28 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec)                   :: ece_get_gp_i
-      TYPE (ece_class), INTENT(in)   :: this
-      TYPE (model_class), INTENT(in) :: a_model
-      INTEGER, INTENT(in)            :: i
-      INTEGER, INTENT(in)            :: flags
+      REAL (rprec)                  :: ece_get_gp_i
+      CLASS (ece_class), INTENT(in) :: this
+      TYPE (model_class), POINTER   :: a_model
+      INTEGER, INTENT(in)           :: i
+      INTEGER, INTENT(in)           :: flags
 
 !  local variables
-      REAL (rprec), DIMENSION(3)     :: x_cart
-      LOGICAL                        :: found
-      REAL (rprec)                   :: start_time
+      REAL (rprec), DIMENSION(3)    :: x_cart
+      LOGICAL                       :: found
+      REAL (rprec)                  :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      x_cart = ece_get_cart(this, a_model, found)
+      x_cart = this%get_cart(a_model, found)
       IF (found) THEN
          ece_get_gp_i = model_get_gp_te(a_model, x_cart, i)
       ELSE
          ece_get_gp_i = 0.0
       END IF
+
+      CALL this%scale_and_offset(a_model, ece_get_gp_i)
 
       CALL profiler_set_stop_time('ece_get_gp_i', start_time)
 
@@ -356,48 +361,39 @@
 !>  Calculates the guassian process kernel between the signal and a signal.
 !>  Calls back to the @ref signal module to call the other signal.
 !>
-!>  @param[in] this         A @ref ece_class instance.
-!>  @param[in] a_model      A @ref model instance.
-!>  @param[in] gp_context   A @ref signal_class instance.
-!>  @param     gp_callback  Function pointer to call back to signal module.
+!>  @param[in] this    A @ref ece_class instance.
+!>  @param[in] a_model A @ref model instance.
+!>  @param[in] signal  A @ref signal_class instance for the second signal.
+!>  @param[in] flags   State flags to send to the kernel.
 !>  @returns Kernel value for the signal and the signal.
 !-------------------------------------------------------------------------------
-      FUNCTION ece_get_gp_s(this, a_model, context, callback)
+      FUNCTION ece_get_gp_s(this, a_model, signal, flags)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec)                   :: ece_get_gp_s
-      TYPE (ece_class), INTENT(in)   :: this
-      TYPE (model_class), INTENT(in) :: a_model
-      CHARACTER (len=1), INTENT(in)  :: context(:)
-      INTERFACE
-         FUNCTION callback(context, xcart, dxcart, length, dx)
-         USE stel_kinds
-         REAL (rprec)                           :: callback
-         CHARACTER (len=1), INTENT(in)          :: context(:)
-         REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
-         REAL (rprec), DIMENSION(3), INTENT(in) :: dxcart
-         REAL (rprec), INTENT(in)               :: length
-         REAL (rprec), INTENT(in)               :: dx
-         END FUNCTION
-      END INTERFACE
+      REAL (rprec)                  :: ece_get_gp_s
+      CLASS (ece_class), INTENT(in) :: this
+      TYPE (model_class), POINTER   :: a_model
+      CLASS (signal_class), POINTER :: signal
+      INTEGER, INTENT(in)           :: flags
 
 !  local variables
-      REAL (rprec), DIMENSION(3)     :: x_cart
-      LOGICAL                        :: found
-      REAL (rprec)                   :: start_time
+      REAL (rprec), DIMENSION(3)    :: x_cart
+      LOGICAL                       :: found
+      REAL (rprec)                  :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      x_cart = ece_get_cart(this, a_model, found)
+      x_cart = this%get_cart(a_model, found)
       IF (found) THEN
-         ece_get_gp_s = callback(context, x_cart, x_cart, 1.0_rprec,           &
-     &                           1.0_rprec)
+         ece_get_gp_s = signal%get_gp(a_model, x_cart, flags)
       ELSE
          ece_get_gp_s = 0.0
       END IF
+
+      CALL this%scale_and_offset(a_model, ece_get_gp_s)
 
       CALL profiler_set_stop_time('ece_get_gp_s', start_time)
 
@@ -418,14 +414,14 @@
 !>  @param[in] flags        State flags to send to the kernel.
 !>  @returns Kernel value for the signal and the signal.
 !-------------------------------------------------------------------------------
-         FUNCTION ece_get_gp_x(this, a_model, x_cart, flags)
+      FUNCTION ece_get_gp_x(this, a_model, x_cart, flags)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec)                           :: ece_get_gp_x
-      TYPE (ece_class), INTENT(in)           :: this
-      TYPE (model_class), INTENT(in)         :: a_model
+      CLASS (ece_class), INTENT(in)          :: this
+      TYPE (model_class), POINTER            :: a_model
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
       INTEGER, INTENT(in)                    :: flags
 
@@ -437,12 +433,14 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      y_cart = ece_get_cart(this, a_model, found)
+      y_cart = this%get_cart(a_model, found)
       IF (found) THEN
          ece_get_gp_x = model_get_gp_te(a_model, y_cart, x_cart)
       ELSE
          ece_get_gp_x = 0.0
       END IF
+
+      CALL this%scale_and_offset(a_model, ece_get_gp_x)
 
       CALL profiler_set_stop_time('ece_get_gp_x', start_time)
 
