@@ -7,7 +7,6 @@
       USE directaccess, ONLY: DeleteDAFile
       USE gmres_mod, ONLY: nfcn
       USE realspace
-      USE vsvd
       USE xstuff
 ! Add below JDH 2010-08-03
       USE vmec_history
@@ -54,11 +53,8 @@ C-----------------------------------------------
  1000 CONTINUE
 
       itfsq = 0
-      rsfac   = one
       w1      = zero
       r00s    = zero
-      gphifac = zero
-      grmse   = zero
 
 !
 !     COMPUTE INITIAL R, Z AND MAGNETIC FLUX PROFILES
