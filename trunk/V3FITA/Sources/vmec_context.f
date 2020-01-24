@@ -231,7 +231,6 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_context_sync_state(this, recon_comm)
       USE v3_utilities
-      USE vsvd
 
       IMPLICIT NONE
 
@@ -286,7 +285,6 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_context_sync_child(this, index, recon_comm)
       USE v3_utilities
-      USE vsvd
 
       IMPLICIT NONE
 
