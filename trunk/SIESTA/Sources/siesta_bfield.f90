@@ -147,24 +147,15 @@
          DEALLOCATE (resistivity)
       END IF
 
-!  Allocate working arrays used in Faraday. FIXME: Move to inside faraday.
-      ALLOCATE(esubsmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                        &
-               esubumnf(0:mpol,-ntor:ntor,nsmin:nsmax),                        &
-               esubvmnf(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
-      CALL assert_eq(0, istat, 'Allocation3 failed in update_bfield')
-
 !  Update Bfield using Faraday's Law
       CALL Faraday(djbsupsmnsh, djbsupumnch, djbsupvmnch,                      &
-                   esubsijf, esubuijf, esubvijf,                               &
-                   esubsmnf, esubumnf, esubvmnf, f_sin, nsmin, nsmax)
+                   esubsijf, esubuijf, esubvijf, f_sin, nsmin, nsmax)
       IF (lasym) THEN
          CALL Faraday(djbsupsmnch, djbsupumnsh, djbsupvmnsh,                   &
-                      esubsijf, esubuijf, esubvijf,                            &
-                      esubsmnf, esubumnf, esubvmnf, f_cos, nsmin, nsmax)
+                      esubsijf, esubuijf, esubvijf, f_cos, nsmin, nsmax)
       END IF
 
-      DEALLOCATE(esubsijf, esubuijf, esubvijf,                                 &
-                 esubsmnf, esubumnf, esubvmnf, stat=istat)
+      DEALLOCATE(esubsijf, esubuijf, esubvijf, stat=istat)
       CALL assert_eq(0, istat, 'Deallocation failed in update_bfield')
 
       CALL second0(toff)
@@ -187,19 +178,12 @@
 !>                           direction.
 !>  @param[in]    esubvijf   Covariant real space electric field in the s
 !>                           direction.
-!>  @param[in]    esubsmnf   Covariant fourier space electric field in the s
-!>                           direction.
-!>  @param[in]    esubumnf   Covariant fourier space electric field in the s
-!>                           direction.
-!>  @param[in]    esubvmnf   Covariant fourier space electric field in the s
-!>                           direction.
 !>  @param[in]    iparity    Fourier parity control flag.
 !>  @param[in]    nsmin      Minimum radial index.
 !>  @param[in]    nsmax      Maximum radial index.
 !-------------------------------------------------------------------------------
       SUBROUTINE Faraday(djbsupsmnh, djbsupumnh, djbsupvmnh,                   &
-                         esubsijf, esubuijf, esubvijf,                         &
-                         esubsmnf, esubumnf, esubvmnf, iparity, nsmin, nsmax)
+                         esubsijf, esubuijf, esubvijf, iparity, nsmin, nsmax)
       USE shared_data, ONLY: l_natural, delta_t
       USE hessian, ONLY: l_compute_hessian
       USE utilities, ONLY: Curl_FtoH, set_bndy_full_origin
@@ -212,9 +196,6 @@
       REAL (dp), DIMENSION(:,:,:), INTENT(in)                 :: esubsijf
       REAL (dp), DIMENSION(:,:,:), INTENT(in)                 :: esubuijf
       REAL (dp), DIMENSION(:,:,:), INTENT(in)                 :: esubvijf
-      REAL (dp), DIMENSION(:,:,:), POINTER                    :: esubsmnf
-      REAL (dp), DIMENSION(:,:,:), POINTER                    :: esubumnf
-      REAL (dp), DIMENSION(:,:,:), POINTER                    :: esubvmnf
       INTEGER, INTENT(in)                                     :: iparity
       INTEGER, INTENT(in)                                     :: nsmin
       INTEGER, INTENT(in)                                     :: nsmax
@@ -224,6 +205,9 @@
       INTEGER                                                 :: fouruv
       REAL (dp)                                               :: sparity
       REAL (dp)                                               :: r12
+      REAL (dp), DIMENSION(:,:,:), POINTER                    :: esubsmnf
+      REAL (dp), DIMENSION(:,:,:), POINTER                    :: esubumnf
+      REAL (dp), DIMENSION(:,:,:), POINTER                    :: esubvmnf
 
 !  Start of executable code
       IF (iparity .EQ. f_sin) THEN
@@ -238,6 +222,11 @@
          sparity = -1
       END IF
 
+!  Allocate working arrays used in Faraday. FIXME: Move to inside faraday.
+      ALLOCATE(esubsmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                        &
+               esubumnf(0:mpol,-ntor:ntor,nsmin:nsmax),                        &
+               esubvmnf(0:mpol,-ntor:ntor,nsmin:nsmax))
+
 !  Calculate harmonics of electric field
       CALL tomnsp(esubsijf, esubsmnf, fours)
       CALL tomnsp(esubuijf, esubumnf, fouruv)
@@ -247,10 +236,6 @@
       IF (startglobrow .EQ. 1) THEN
 !  These conditions are needed so that delta-W jogs (CheckForces) agree with
 !  forces at origin.
-!         esubsmnf(m2:,:,1) = 0 ! f_v(1) wrong w/0 this
-!         esubumnf(m0,:,1) = 0
-!         esubumnf(m2:,:,1) = 0 ! f_v(1) wrong w/0 this
-!         esubvmnf(m1:,:,1) = 0
          CALL set_bndy_full_origin(esubsmnf, esubumnf, esubvmnf)
 
 !         IF (.not.l_natural) THEN
@@ -269,6 +254,8 @@
       CALL curl_ftoh(esubsmnf, esubumnf, esubvmnf,                             &
                      djbsupsmnh, djbsupumnh, djbsupvmnh,                       &
                      iparity, nsmin, nsmax)
+
+      DEALLOCATE(esubsmnf, esubumnf, esubvmnf)
 
 !  Boundary conditions at origin (Used to compute bfields at origin in
 !  siesta_init and siesta_forces).

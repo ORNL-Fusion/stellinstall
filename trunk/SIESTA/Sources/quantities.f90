@@ -336,7 +336,7 @@
 		
         IF (.not.l_vessel) THEN
       
-           DO m = 0,mpol
+           DO m = 0, mpol
 	  	      mp = m*sparity
               DO n = -ntor, ntor
 		         np = n*nfp*sparity
@@ -364,7 +364,7 @@
            jbsupsmnh(m1,:,1) = jbsupsmnh(m1,:,2)
            jbsupumnh(:,:,1) = 0
            jbsupumnh(m0:m1,:,1) = jbsupumnh(m0:m1,:,2)
-           jbsupvmnh(m0,:,1) = jbsupvmnh(m0,:,2) 
+           jbsupvmnh(m0,:,1) = jbsupvmnh(m0,:,2)
            jbsupvmnh(m1:,:,1) = 0
         END IF
         
@@ -571,10 +571,10 @@
 
 ! Divide by phiph -> old style
          lmns(:,js) = brhs(:,1)/(orthonorm*phiph(js))
-!         lmns(:,js) = brhs(:,1)/orthonorm/phiph(js)
+!!         lmns(:,js) = brhs(:,1)/orthonorm/phiph(js)
          IF (lasym) THEN
             lmnc(:,js) = brhs(:,2)/(orthonorm*phiph(js))
-!            lmnc(:,js) = brhs(:,2)/orthonorm/phiph(js)
+!!            lmnc(:,js) = brhs(:,2)/orthonorm/phiph(js)
          END IF
       END DO
 
@@ -696,7 +696,7 @@
                          mpol=>mpol_i, ntor=>ntor_i
       USE fourier, ONLY: toijsp, tomnsp, f_none, f_cos, f_sin, f_sum
       USE metrics, ONLY: toupper
-      USE utilities, ONLY: set_bndy_fouier_m0
+      USE utilities, ONLY: set_bndy_full_origin
 
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
@@ -744,14 +744,18 @@
       CALL tomnsp(fsupuijf, fsupumnsf(:,:,nsmin:nsmax), f_sin)
       CALL tomnsp(fsupvijf, fsupvmnsf(:,:,nsmin:nsmax), f_sin)
 
-      CALL set_bndy_fouier_m0(fsupsmncf, fsupumnsf, fsupvmnsf, f_cos)
+      IF (nsmin .eq. 1) THEN
+         CALL set_bndy_full_origin(fsupsmncf, fsupumnsf, fsupvmnsf)
+      END IF
 
       IF (lasym) THEN
          CALL tomnsp(fsupsijf, fsupsmnsf(:,:,nsmin:nsmax), f_sin)
          CALL tomnsp(fsupuijf, fsupumncf(:,:,nsmin:nsmax), f_cos)
          CALL tomnsp(fsupvijf, fsupvmncf(:,:,nsmin:nsmax), f_cos)
 
-         CALL set_bndy_fouier_m0(fsupsmnsf, fsupumncf, fsupvmncf, f_sin)
+         IF (nsmin .eq. 1) THEN
+            CALL set_bndy_full_origin(fsupsmnsf, fsupumncf, fsupvmncf)
+         END IF
       END IF
 
       DEALLOCATE(fsupsijf, fsupuijf, fsupvijf, stat=istat)

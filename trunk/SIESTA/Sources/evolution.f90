@@ -212,8 +212,8 @@
       l_push_v = .FALSE.
 
       IF (l_push_u) l_push_s = .FALSE.                                    !avoid linear dependency
-!      l_push_edge=.TRUE.
-      l_push_edge=.FALSE.
+      l_push_edge=.TRUE.
+!      l_push_edge=.FALSE.
 
       scale_s = hs
       scale_u = SQRT(scale_s)
@@ -227,7 +227,7 @@
       niter    = 0
       wtotal0  = -1
       etak_tol = 1.E-01_dp                                                !initial Newton tolerance parameter
-      delta_t = 1
+      delta_t = 1.0
       l_linearize = .FALSE.
       l_getfsq = .TRUE.
       l_getwmhd= .FALSE.                                                  !set in getwmhd function

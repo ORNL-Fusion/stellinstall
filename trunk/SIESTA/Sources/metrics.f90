@@ -223,8 +223,7 @@
 !  Declare Arguments
       INTEGER, INTENT(out) :: istat
 
-!  COMPUTE AND STORE R, Z AND THEIR ANGULAR DERIVATIVES, AND LAMBDA (NEED FOR
-!  VECTOR POT)
+!  Start executable code.
       ALLOCATE (r1_i(nu_i, nv_i, ns_i), z1_i(nu_i, nv_i, ns_i),         &
                 ru_i(nu_i, nv_i, ns_i), zu_i(nu_i, nv_i, ns_i),         &
                 rv_i(nu_i, nv_i, ns_i), zv_i(nu_i, nv_i, ns_i),         &
@@ -235,9 +234,13 @@
          CALL rz_to_ijsp(rmns_i, zmnc_i, .true.)
       END IF
 
-      rmax = MAXVAL(r1_i);      rmin = MINVAL(r1_i)
-      zmax = MAXVAL(z1_i);      zmin = MINVAL(z1_i)
-      IF (.NOT.lasym) zmin = MIN(zmin, -zmax)                           !ONLY TOP HALF
+      rmax = MAXVAL(r1_i)
+      rmin = MINVAL(r1_i)
+      zmax = MAXVAL(z1_i)
+      zmin = MINVAL(z1_i)
+      IF (.NOT.lasym) THEN
+         zmin = MIN(zmin, -zmax) !  ONLY TOP HALF
+      END IF
 
       END SUBROUTINE
 
@@ -302,7 +305,7 @@
 !>  @param[in] zu_i dZdu on the full mesh.
 !>  @param[in] zv_i dZdv on the full mesh.
 !-------------------------------------------------------------------------------
-      SUBROUTINE half_mesh_metrics (r1_i, ru_i, rv_i, z1_i, zu_i, zv_i)
+      SUBROUTINE half_mesh_metrics(r1_i, ru_i, rv_i, z1_i, zu_i, zv_i)
       USE island_params, nuv=>nuv_i, nu=>nu_i, nv=>nv_i!, ns=>ns_i
 
       IMPLICIT NONE  
@@ -317,7 +320,6 @@
 
 !  Local variables
       INTEGER                                   :: js
-      INTEGER                                   :: js1
       INTEGER                                   :: istat
       INTEGER                                   :: imin(2)
       INTEGER                                   :: imax(2)
@@ -338,36 +340,39 @@
 !  Start executable code.
 
 !  ALLOCATE METRIC ELEMENT ARRAYS
-      ALLOCATE(sqrtg(nuv,ns_i),                                         &
-               gss(nuv,ns_i), gsu(nuv,ns_i), gsv(nuv,ns_i),             &
+      ALLOCATE(sqrtg(nuv,ns_i),                                                &
+               gss(nuv,ns_i), gsu(nuv,ns_i), gsv(nuv,ns_i),                    &
                guu(nuv,ns_i), guv(nuv,ns_i), gvv(nuv,ns_i), stat=istat)
 
 !  COMPUTE ALL ON THE HALF MESH
       sqrtg(:,1) = 0
 
       DO js = 2, ns_i
-         js1  = js - 1
-         r12  = p5*(r1_i(:,js) + r1_i(:,js1))
-         rs12 =    (r1_i(:,js) - r1_i(:,js1))*ohs_i
-         ru12 = p5*(ru_i(:,js) + ru_i(:,js1))
-         rv12 = p5*(rv_i(:,js) + rv_i(:,js1))
-         zs12 =    (z1_i(:,js) - z1_i(:,js1))*ohs_i
-         zu12 = p5*(zu_i(:,js) + zu_i(:,js1))
-         zv12 = p5*(zv_i(:,js) + zv_i(:,js1))
-         guu(:,js) = ru12*ru12 + zu12*zu12
-         guv(:,js) = ru12*rv12 + zu12*zv12
-         gvv(:,js) = r12*r12 + rv12*rv12 + zv12*zv12
+         r12  = p5*(r1_i(:,js) + r1_i(:,js - 1))
+         rs12 =    (r1_i(:,js) - r1_i(:,js - 1))*ohs_i
+         ru12 = p5*(ru_i(:,js) + ru_i(:,js - 1))
+         rv12 = p5*(rv_i(:,js) + rv_i(:,js - 1))
+         zs12 =    (z1_i(:,js) - z1_i(:,js - 1))*ohs_i
+         zu12 = p5*(zu_i(:,js) + zu_i(:,js - 1))
+         zv12 = p5*(zv_i(:,js) + zv_i(:,js - 1))
+         gss(:,js) = rs12*rs12 + zs12*zs12
          gsu(:,js) = rs12*ru12 + zs12*zu12
          gsv(:,js) = rs12*rv12 + zs12*zv12
-         gss(:,js) = rs12*rs12 + zs12*zs12
+         guu(:,js) = ru12*ru12 + zu12*zu12
+         guv(:,js) = ru12*rv12 + zu12*zv12
+         gvv(:,js) = rv12*rv12 + r12*r12 + zv12*zv12
          sqrtg(:,js) = r12*(ru12*zs12 - rs12*zu12)
       END DO
 
       sqrtg(:,1) = sqrtg(:,2)
 
 !NEED THESE FOR CURRENT CALCULATION AT ORIGIN
-      gss(:,1) = gss(:,2);  gsu(:,1) = 0;  gsv(:,1) = gsv(:,2)
-      guu(:,1) = 0;         guv(:,1) = 0;  gvv(:,1) = gvv(:,2)
+      gss(:,1) = gss(:,2)
+      gsu(:,1) = 0
+      gsv(:,1) = gsv(:,2)
+      guu(:,1) = 0
+      guv(:,1) = 0
+      gvv(:,1) = gvv(:,2)
 
       mintest = MINVAL(sqrtg(:,2:))
       maxtest = MAXVAL(sqrtg(:,2:))
@@ -376,14 +381,16 @@
          imin = MINLOC(sqrtg(:,2:))
          imax = MAXLOC(sqrtg(:,2:))
          IF (iam .EQ. 0) THEN
-            WRITE(*,1000) ' MIN-G: ', mintest, imin(2),           &
-                          ' MAX-G: ', maxtest, imax(2)
+            WRITE(*,1000) mintest, imin(2), maxtest, imax(2)
          END IF
-         CALL ASSERT(mintest*maxtest.GT.zero,' Jacobian changed sign in half_mesh_metrics')
+         CALL ASSERT(mintest*maxtest.GT.zero,                                  &
+                     ' Jacobian changed sign in half_mesh_metrics')
       END IF
 
-1000  FORMAT(2(a,1p,e12.4,' AT JS: ',i5))
-      END SUBROUTINE half_mesh_metrics
+1000  FORMAT(' MIN-G: ',1p,e12.4,' AT JS: ',i5,                                &
+             ' MAX-G: ',1p,e12.4,' AT JS: ',i5)
+
+      END SUBROUTINE
 
 !-------------------------------------------------------------------------------
 !>  @brief Gets the full grid metric elements.
@@ -397,46 +404,33 @@
       IMPLICIT NONE  
 
 !  Local variables
-      INTEGER                                 :: istat
-      INTEGER                                 :: js
-      REAL(dp), DIMENSION(nuv)                :: det
-#if defined(DEBUG)
-      REAL(dp)                                :: eps
-      REAL(dp)                                :: maxtest
-      REAL(dp)                                :: r1
-      REAL(dp)                                :: s1
-      REAL(dp)                                :: t1
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: temps
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: tempu
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: tempv
-#endif
+      INTEGER                   :: istat
+      INTEGER                   :: js
+      REAL (dp), DIMENSION(nuv) :: det
 
 !  Start executable code.
-      ALLOCATE(gssf(nuv,ns_i), guuf(nuv,ns_i), gvvf(nuv,ns_i),           &
-               gsuf(nuv,ns_i), gsvf(nuv,ns_i), guvf(nuv,ns_i),           &
-               hss(nuv,ns_i),  huu(nuv,ns_i),  hvv(nuv,ns_i),            &
+      ALLOCATE(gssf(nuv,ns_i), guuf(nuv,ns_i), gvvf(nuv,ns_i),                 &
+               gsuf(nuv,ns_i), gsvf(nuv,ns_i), guvf(nuv,ns_i),                 &
+               hss(nuv,ns_i),  huu(nuv,ns_i),  hvv(nuv,ns_i),                  &
                hsu(nuv,ns_i),  hsv(nuv,ns_i),  huv(nuv,ns_i), stat=istat)
 
-      CALL to_full_mesh(gss,gssf)
-      CALL to_full_mesh(guu,guuf)
-      CALL to_full_mesh(gvv,gvvf)
-      CALL to_full_mesh(gsu,gsuf)
-      CALL to_full_mesh(gsv,gsvf)
-      CALL to_full_mesh(guv,guvf)
-      guuf(:,1) = 0;  gsuf(:,1) = 0;  guvf(:,1) = 0
+      CALL to_full_mesh(gss, gssf)
+      CALL to_full_mesh(guu, guuf)
+      CALL to_full_mesh(gvv, gvvf)
+      CALL to_full_mesh(gsu, gsuf)
+      CALL to_full_mesh(gsv, gsvf)
+      CALL to_full_mesh(guv, guvf)
 
 !  Compute upper metric elements (inverse of lower matrix) on full mesh.
 !  NOTE: DET == 1/det|Gij| == 1/sqrtg(full)**2
-      hss(:,1) = 0;  hsu(:,1) = 0;  hsv(:,1) = 0
-      huu(:,1) = 0;  huv(:,1) = 0;  hvv(:,1) = 0
-
-      DO js = 2, ns_i
-         det(:) =                                                        &
-                gssf(:,js)*(guuf(:,js)*gvvf(:,js)-guvf(:,js)*guvf(:,js)) &
-              + gsuf(:,js)*(guvf(:,js)*gsvf(:,js)-gsuf(:,js)*gvvf(:,js)) &
-              + gsvf(:,js)*(gsuf(:,js)*guvf(:,js)-gsvf(:,js)*guuf(:,js))
+      DO js = 1, ns_i
+         det(:) = gssf(:,js)*(guuf(:,js)*gvvf(:,js) - guvf(:,js)*guvf(:,js))   &
+                + gsuf(:,js)*(guvf(:,js)*gsvf(:,js) - gsuf(:,js)*gvvf(:,js))   &
+                + gsvf(:,js)*(gsuf(:,js)*guvf(:,js) - gsvf(:,js)*guuf(:,js))
          IF (ANY(det .LE. zero)) THEN
-            IF (iam .EQ. 0) PRINT *,'Determinant |gijf| <= 0 at js = ',js
+            IF (iam .EQ. 0) THEN
+               WRITE (*,1000) js
+            END IF
             IF (js .EQ. ns_i) THEN
                det(:) = sqrtg(:,ns_i)**2
                gssf(:,ns_i) = gss(:,ns_i)
@@ -447,7 +441,6 @@
                gsvf(:,ns_i) = gsv(:,ns_i)
             ELSE
                det(:) = ((sqrtg(:,js) + sqrtg(:,js + 1))/2)**2
-!               CALL ErrorAbort('Full_mesh_metrics gijf')
             END IF
          END IF
          det = one/det
@@ -466,40 +459,8 @@
 
       END DO
 
-#if defined(DEBUG)
-!  CONFIRM ACCURACY OF INVERSE
-      eps = 0.01_dp*SQRT(EPSILON(eps))
+1000  FORMAT('Determinant |gijf| <= 0 at js = ',i4)
 
-      ALLOCATE(temps(ntheta,nzeta,ns_i),                                 &
-               tempu(ntheta,nzeta,ns_i),                                 &
-               tempv(ntheta,nzeta,ns_i), stat=istat)
-
-!  gijf * hj1   (first column of hij matrix)
-      CALL tolowerf(hss, hsu, hsv, temps, tempu, tempv, 1, ns_i)
-      r1 = MAXVAL(ABS(temps(:,:,2:) - 1))
-      s1 = MAXVAL(ABS(tempu(:,:,2:)))
-      t1 = MAXVAL(ABS(tempv(:,:,2:)))
-      maxtest = MAX(r1,s1,t1)
-!      IF (maxtest.GT.eps .AND. iam.EQ.0) CALL ErrorAbort('ERROR1 IN FULL_MESH_METRICS')
-
-!  gijf * hj2   (second column of hij matrix)
-      CALL tolowerf(hsu, huu, huv, temps, tempu, tempv, 1, ns_i)
-      r1 = MAXVAL(ABS(temps(:,:,2:)))
-      s1 = MAXVAL(ABS(tempu(:,:,2:) - 1))
-      t1 = MAXVAL(ABS(tempv(:,:,2:)))
-      maxtest = MAX(r1,s1,t1)
-!      IF (maxtest.GT.eps .AND. iam.EQ.0) CALL ErrorAbort('ERROR2 IN FULL_MESH_METRICS')
-
-!  gijf * hj3   (third column of hij matrix)
-      CALL tolowerf(hsv, huv, hvv, temps, tempu, tempv, 1, ns_i)
-      r1 = MAXVAL(ABS(temps(:,:,2:)))
-      s1 = MAXVAL(ABS(tempu(:,:,2:)))
-      t1 = MAXVAL(ABS(tempv(:,:,2:) - 1))
-      maxtest = MAX(r1,s1,t1)
-!      IF (maxtest.GT.eps .AND. iam.EQ.0) CALL ErrorAbort('ERROR3 IN FULL_MESH_METRICS')
-
-      DEALLOCATE(temps, tempu, tempv)
-#endif
       END SUBROUTINE full_mesh_metrics
 
 !-------------------------------------------------------------------------------
@@ -521,7 +482,7 @@
 !>  @param[in]  nsmin   Min radial index.
 !>  @param[in]  nsmax   Max radial index.
 !-------------------------------------------------------------------------------
-      SUBROUTINE toupper(xsubsij, xsubuij, xsubvij,                     &
+      SUBROUTINE toupper(xsubsij, xsubuij, xsubvij,                            &
                          xsupsij, xsupuij, xsupvij, nsmin, nsmax)
       USE stel_kinds
       USE island_params, nuv=>nuv_i
@@ -543,18 +504,18 @@
 
 !  Start executable code.
       DO js = nsmin, nsmax
-         xsupsij(:,js) = hss(:,js)*xsubsij(:,js)                        &
-                       + hsu(:,js)*xsubuij(:,js)                        &
+         xsupsij(:,js) = hss(:,js)*xsubsij(:,js)                               &
+                       + hsu(:,js)*xsubuij(:,js)                               &
                        + hsv(:,js)*xsubvij(:,js)
-         xsupuij(:,js) = hsu(:,js)*xsubsij(:,js)                        &
-                       + huu(:,js)*xsubuij(:,js)                        &
+         xsupuij(:,js) = hsu(:,js)*xsubsij(:,js)                               &
+                       + huu(:,js)*xsubuij(:,js)                               &
                        + huv(:,js)*xsubvij(:,js)
-         xsupvij(:,js) = hsv(:,js)*xsubsij(:,js)                        &
-                       + huv(:,js)*xsubuij(:,js)                        &
+         xsupvij(:,js) = hsv(:,js)*xsubsij(:,js)                               &
+                       + huv(:,js)*xsubuij(:,js)                               &
                        + hvv(:,js)*xsubvij(:,js)
       END DO
 
-      END SUBROUTINE toupper
+      END SUBROUTINE
 
 !-------------------------------------------------------------------------------
 !>  @brief Converts to covariant component half grid.
@@ -716,4 +677,4 @@
 
       END SUBROUTINE dealloc_full_lower_metrics
 
-      END MODULE metrics
+      END MODULE

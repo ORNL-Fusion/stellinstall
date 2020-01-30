@@ -61,6 +61,15 @@
       END INTERFACE
 
 !-------------------------------------------------------------------------------
+!>  Interface to set the boundary conditions on a full mesh quantity converted
+!>  from the half mesh for either a scalar @ref set_bndy_half_to_full or
+!>  vector @ref set_bndy_half_to_full_vec quantities.
+!-------------------------------------------------------------------------------
+      INTERFACE set_bndy_half_to_full_ds
+         MODULE PROCEDURE set_bndy_half_to_full_ds, set_bndy_half_to_full_uv_ds
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
 !>  Interface to set the fouier conditions on a quantity for either scalar
 !>  @ref set_bndy_fouier_m0 or vector @ref set_bndy_fouier_m0_vec quantities.
 !-------------------------------------------------------------------------------
@@ -160,6 +169,10 @@
 
       gradientf(:,:,nsmin:nsmax - 1) = ohs*(vech(:,:,nsmin + 1:nsmax)          &
                                      -      vech(:,:,nsmin:nsmax - 1))
+
+      IF (UBOUND(gradientf,3) .ge. nsmax) THEN
+         gradientf(:,:,nsmax:) = 0
+      END IF
 
       IF (nsmin .eq. 1) THEN
          gradientf(:,:,1) = 0
@@ -425,9 +438,9 @@
       CALL assert_eq(0, istat, 'Deallocation failed in curl_ftoh')
 
       IF (startglobrow .eq. 1) THEN
-         jbsupsmnh(m1:,:,1) = 0
-         jbsupumnh(m1:,:,1) = 0
-         jbsupvmnh(m1:,:,1) = 0
+         jbsupsmnh(:,:,1) = 0
+         jbsupumnh(:,:,1) = 0
+         jbsupvmnh(:,:,1) = 0
       END IF
 
       CALL set_bndy_fouier_m0(jbsupsmnh, jbsupumnh, jbsupvmnh, iparity)
@@ -458,10 +471,11 @@
 !>  @param[in]    iparity   Parity flag.
 !>  @param[in]    nsmin     Minimum radial index.
 !>  @param[in]    nsmax     Maximum radial index.
+!>  @param[in]    extend    Extend the radial index of the curl.
 !-------------------------------------------------------------------------------
       SUBROUTINE curl_htof(asubsmnh, asubumnh, asubvmnh,                       &
                            jbsupsmnf, jbsupumnf, jbsupvmnf, iparity,           &
-                           nsmin, nsmax)
+                           nsmin, nsmax, extend)
       USE nscalingtools, ONLY: endglobrow
 
       IMPLICIT NONE
@@ -476,6 +490,7 @@
       INTEGER, INTENT(in)                                  :: iparity
       INTEGER, INTENT(in)                                  :: nsmin
       INTEGER, INTENT(in)                                  :: nsmax
+      LOGICAL, INTENT(in)                                  :: extend
 
 !  Local variables
       INTEGER                                              :: m
@@ -522,7 +537,8 @@
       CALL to_full_mesh(asubumnh, asubumnf)
       CALL to_full_mesh(asubvmnh, asubvmnf)
 
-      CALL set_bndy_half_to_full(asubsmnh, asubumnh, nsmin, iparity,           &
+!  FIXME: CHECK Boundary Conditions. asubs,subu,subv don't match older version.
+      CALL set_bndy_half_to_full(asubsmnh, asubvmnh, nsmin, iparity,           &
                                  asubsmnf, asubumnf, asubvmnf)
 
 !  Compute sqrt(g)B^X == A^X contravariant current components in Fourier space.
@@ -538,7 +554,11 @@
       CALL set_bndy_half_to_full_ds(asubumnh, da_uds, nsmin, fouruv)
       CALL set_bndy_half_to_full_ds(asubvmnh, da_vds, nsmin, fouruv)
 
-      nmax = endglobrow
+      IF (extend) THEN
+         nmax = MIN(ns, endglobrow + 1)
+      ELSE
+         nmax = MIN(ns, endglobrow)
+      END IF
       CALL assert(nmax .le. UBOUND(jbsupsmnf,3), 'UBOUND wrong in curl_htof')
 
 !  (sqrt(g)*J^X)mn
@@ -587,13 +607,14 @@
 !>                          jacobian factor full grid.
 !>  @param[inout] jBsubsmnf Contravariant vector in the v direction with
 !>                          jacobian factor full grid.
-!>  @param[in]    ipar      Parity flag.
+!>  @param[in]    iparity   Parity flag.
 !>  @param[in]    nsmin     Minimum radial index.
 !>  @param[in]    nsmax     Maximum radial index.
+!>  @param[in]    extend    Extend the radial index of the curl.
 !-------------------------------------------------------------------------------
       SUBROUTINE curl_htof_targ(asubsmnh, asubumnh, asubvmnh,                  &
                                 jbsupsmnf, jbsupumnf, jbsupvmnf,               &
-                                ipar, nsmin, nsmax)
+                                iparity, nsmin, nsmax, extend)
 
 !  Declare Arguments
       REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(in) :: asubsmnh
@@ -605,9 +626,10 @@
          jbsupumnf
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, TARGET, INTENT(inout) ::       &
          jbsupvmnf
-      INTEGER, INTENT(IN)                                  :: ipar
+      INTEGER, INTENT(IN)                                  :: iparity
       INTEGER, INTENT(IN)                                  :: nsmin
       INTEGER, INTENT(IN)                                  :: nsmax
+      LOGICAL, INTENT(in)                                  :: extend
 
 !  Local variables
       REAL (dp), POINTER, DIMENSION(:,:,:)                 :: jbsp
@@ -618,8 +640,8 @@
       jbsp => jbsupsmnf
       jbup => jbsupumnf
       jbvp => jbsupvmnf
-      CALL curl_htof(asubsmnh, asubumnh, asubvmnh,                      &
-                     jbsp, jbup, jbvp, ipar, nsmin, nsmax)
+      CALL curl_htof(asubsmnh, asubumnh, asubvmnh,                             &
+                     jbsp, jbup, jbvp, iparity, nsmin, nsmax, extend)
 
       END SUBROUTINE
 
@@ -716,9 +738,9 @@
 !>  @brief Set fouier boundary conditions for full grid radial derivative
 !>         quantity converted from half grid.
 !>
-!>  At the center of the grid, the quantity should not be a function of u so all
-!>  m > 0 modes should be zero. For the m = 0 terms, 2*x/ds to preserve
-!>  divergence free values.
+!>  At the center of the grid the the m=1 quanity flips size across the s=0
+!>  point. The results in a doubling of the m=1 component for the first half
+!>  grid.
 !>
 !>  @param[in]    amnh   Half grid fourier quantity.
 !>  @param[inout] amnf   Full grid fourier quantity.
@@ -730,18 +752,66 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(in)    :: amnh
-      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: amnf_ds
-      INTEGER, INTENT(IN)                                     :: nsmin
-      INTEGER, INTENT(in)                                     :: parity
+      REAL (dp), DIMENSION(:,:,:), INTENT(in)    :: amnh
+      REAL (dp), DIMENSION(:,:,:), INTENT(inout) :: amnf_ds
+      INTEGER, INTENT(IN)                        :: nsmin
+      INTEGER, INTENT(in)                        :: parity
+
+!  Local Variables
+      INTEGER                                    :: moff
 
 !  Start of executable code
       IF (nsmin .eq. 1) THEN
+         moff = LBOUND(amnh, 1)
+
          amnf_ds(:,:,1) = 0.0
-         amnf_ds(m0,:,1) = 2.0*ohs*amnh(m0,:,2)
+         amnf_ds(m1 + moff,:,1) = 2.0*ohs*amnh(m1 + moff,:,2)
       END IF
 
       CALL set_bndy_fouier_m0(amnf_ds, parity)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Set fouier boundary conditions for full grid radial derivative
+!>         quantity converted from half grid for uv vectors.
+!>
+!>  At the center of the grid, the quantity should not be a function of u so all
+!>  m > 0 modes should be zero. For the m = 0 terms, 2*x/ds to preserve
+!>  divergence free values.
+!>
+!>  @param[in]    aumnh  Half grid u fourier quantity.
+!>  @param[in]    avmnh  Half grid v fourier quantity.
+!>  @param[inout] aumnf  Full grid u fourier quantity.
+!>  @param[inout] avmnf  Full grid u fourier quantity.
+!>  @param[in]    nsmin  Minimum radial index.
+!>  @param[in]    parity Parity flag.
+!-------------------------------------------------------------------------------
+      PURE SUBROUTINE set_bndy_half_to_full_uv_ds(aumnh, avmnh,                &
+                                                  aumnf_ds, avmnf_ds,          &
+                                                  nsmin, parity)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp), DIMENSION(:,:,:), INTENT(in)    :: aumnh
+      REAL (dp), DIMENSION(:,:,:), INTENT(in)    :: avmnh
+      REAL (dp), DIMENSION(:,:,:), INTENT(inout) :: aumnf_ds
+      REAL (dp), DIMENSION(:,:,:), INTENT(inout) :: avmnf_ds
+      INTEGER, INTENT(IN)                        :: nsmin
+      INTEGER, INTENT(in)                        :: parity
+
+!  Local Variables
+      INTEGER                                    :: moff
+
+!  Start of executable code
+      CALL set_bndy_half_to_full_ds(aumnh, aumnf_ds, nsmin, parity)
+      CALL set_bndy_half_to_full_ds(avmnh, avmnf_ds, nsmin, parity)
+
+      IF (nsmin .eq. 1) THEN
+         moff = LBOUND(aumnh, 1)
+         aumnf_ds(m0 + moff,:,1) = 2.0*ohs*aumnh(m0 + moff,:,2)
+      END IF
 
       END SUBROUTINE
 

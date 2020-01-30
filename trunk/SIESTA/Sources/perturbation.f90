@@ -210,11 +210,13 @@
       
       bmns_res = 0
       CALL tomnsp(jdotb, bmnc_res, f_cos)
-      IF (lasym) CALL tomnsp(jdotb, bmns_res, f_sin)
+      IF (lasym) THEN
+         CALL tomnsp(jdotb, bmns_res, f_sin)
+      END IF
 #endif      
 
 !     Compute responses to resonant resistitive perturbations
-      lresistive=.TRUE.
+      lresistive = .TRUE.
       normal = hs_i**2
 
       RES_TEST: DO icount = 1, SIZE(HelPert)
@@ -391,7 +393,8 @@
 !-----------------------------------------------
       IF (mres0.GT.mpolin .OR. ABS(nres0).GT.ntorin) RETURN
 
-      HelP_local = HelPert0; HelPA_local = HelPert0A
+      HelP_local = HelPert0
+      HelPA_local = HelPert0A
       IF (isign1 .EQ. 2) THEN
          HelP_local = -HelPert0
          HelPA_local = -HelPert0A
@@ -402,7 +405,7 @@
       IF (js.LT.1 .OR. js.GT.ns) RETURN
       chip0 = chipf_i(js)
       phip0 = phipf_i(js)
-      locrad = REAL(irscale-1,dp)/(irad_scale-1)
+      locrad = REAL(irscale - 1,dp)/(irad_scale - 1)
       p_width = 0.1_dp + 0.9_dp*locrad                !decay length, ~delta-fcn for irscale=1 to broad (full radius)
       locrad = one/p_width
       DO js = 1,ns

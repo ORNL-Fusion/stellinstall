@@ -152,8 +152,7 @@
          wb = signjac*(twopi*pi*hs_i)*wb
       END IF
 
-! Calculate BsubXmnh and KsupXmnf harmonics
-!  Deallocated in calling routine
+!  Calculate BsubXmnh and KsupXmnf harmonics. Deallocated in calling routine.
       ns_span = nsmax - nsmin
       IF (l_update_state) THEN
          ALLOCATE(bs_filter(ntheta,nzeta,ns_span),                             &
@@ -182,11 +181,11 @@
 
 !  Calculate full mesh, contravariant real-space current components
 !  KsupXF = sqrt(g)*JsupXF.
-      CALL GETCV(ksupsmnsf, ksupumncf, ksupvmncf, ksupsijf, ksupuijf,          &
-                 ksupvijf, f_sin, nsmax, nmin)
+      CALL GETCV(ksupsmnsf, ksupumncf, ksupvmncf,                              &
+                 ksupsijf, ksupuijf, ksupvijf, f_sin, nsmax, nmin)
       IF (lasym) THEN
-         CALL GETCV(ksupsmncf, ksupumnsf, ksupvmnsf, ksupsijf, ksupuijf,       &
-                    ksupvijf, f_cos, nsmax, nmin)
+         CALL GETCV(ksupsmncf, ksupumnsf, ksupvmnsf,                           &
+                    ksupsijf, ksupuijf, ksupvijf, f_cos, nsmax, nmin)
       END IF
 
 !  Covariant K components (with jacob factor still there) in real space needed
@@ -194,7 +193,7 @@
       IF (lcurr) THEN
          CALL tolowerf(ksupsijf, ksupuijf, ksupvijf,                           &
                        ksubsijf, ksubuijf, ksubvijf, nsmin, nsmax)
-         IF (nsmin .EQ. 1) THEN
+         IF (nsmin .eq. 1) THEN
             ksubuijf(:,:,1) = 0
          END IF
       END IF
@@ -286,7 +285,7 @@
                        bsubsijh, bsubuijh, bsubvijh,                           &
                        bs_filter, bu_filter, bv_filter, edge_cur,              &
                        jsju_ratio, iparity, lcurr, nsmax, nsmin)
-      USE utilities, ONLY: curl_htof, set_bndy_fouier_m0
+      USE utilities, ONLY: curl_htof
 
       IMPLICIT NONE
 
@@ -303,7 +302,7 @@
       REAL (dp), INTENT(inout)                                :: edge_cur
       REAL (dp), INTENT(out)                                  :: jsju_ratio
       INTEGER, INTENT(IN)                                     :: iparity
-      LOGICAL, INTENT(IN)                                     :: lcurr
+      LOGICAL, INTENT(IN)                                     :: lcurr !  FIXME: CHECK THIS
       INTEGER, INTENT(IN)                                     :: nsmax
       INTEGER, INTENT(IN)                                     :: nsmin
 
@@ -346,10 +345,9 @@
       CALL tomnsp(bsubuijh, bsubumnh, fouruv)
       CALL tomnsp(bsubvijh, bsubvmnh, fouruv)
 
-      CALL set_bndy_fouier_m0(bsubsmnh, bsubumnh, bsubvmnh, iparity)
-
       CALL CURL_HtoF(bsubsmnh, bsubumnh, bsubvmnh,                             &
-                     ksupsmnf, ksupumnf, ksupvmnf, iparity, nsmin, nsmax)
+                     ksupsmnf, ksupumnf, ksupvmnf,                             &
+                     iparity, nsmin, nsmax, lcurr)
 
 !  Diagnostics
       DIAGNO: IF (l_update_state) THEN
@@ -413,7 +411,8 @@
       INTEGER                                                :: fours
       INTEGER                                                :: fouruv
       INTEGER                                                :: fcomb
-!-----------------------------------------------
+
+!  Start of executable code
       IF (iparity .EQ. f_sin) THEN
          fcomb = f_none
          fours = f_sin

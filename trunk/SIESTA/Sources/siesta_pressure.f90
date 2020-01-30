@@ -144,9 +144,9 @@
          CALL set_bndy_fouier_m0(workmn4, f_cos)
          CALL set_bndy_fouier_m0(workmn5, f_cos)
 
-         CALL toijsp(workmn4(:,:,nsmin:nsmax), workij2(:,:,nsmin:nsmax),    &
+         CALL toijsp(workmn4(:,:,nsmin:nsmax), workij2(:,:,nsmin:nsmax),       &
                      IOR(f_du, f_sum), f_cos)
-         CALL toijsp(workmn5(:,:,nsmin:nsmax), workij3(:,:,nsmin:nsmax),    &
+         CALL toijsp(workmn5(:,:,nsmin:nsmax), workij3(:,:,nsmin:nsmax),       &
                      IOR(f_dv, f_sum), f_cos)
       END IF
 

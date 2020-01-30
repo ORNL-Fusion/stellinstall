@@ -140,6 +140,7 @@
       CALL assert_eq(0, istat, 'Allocation2 failed in UPDATE_FORCE')
 
 !  Update full mesh components of bsup* and pressure in real-space by averaging.
+!  This removes the jacobian term.
       CALL bhalftobfull(bsupsijh, bsupuijh, bsupvijh,                          &
                         bsupsijf, bsupuijf, bsupvijf, pijh, pijf1)
 
@@ -589,6 +590,7 @@
       USE quantities, ONLY: gvsupsmncf => fsupsmncf, gvsupumnsf => fsupumnsf,  &
                             gvsupvmnsf => fsupvmnsf, gvsupsmnsf => fsupsmnsf,  &
                             gvsupumncf => fsupumncf, gvsupvmncf => fsupvmncf
+      USE utilities, ONLY: set_bndy_full_origin, set_bndy_fouier_m0
 
       IMPLICIT NONE
 
@@ -696,32 +698,30 @@
          END IF
       END IF PRINT_O
 
-!  Origin boundart conditions. 1/2 factors below are needed to preserve hessian
+!  Origin boundary conditions. 1/2 factors below are needed to preserve hessian
 !  symmetry,
-       NSMIN_1: IF (nsmin .eq. 1) THEN
-          f_smnf(m0+moff,:,1) = 0
-          f_smnf(m2+moff:,:,1) = 0
+       CALL set_bndy_fouier_m0(f_smnf, f_umnf, f_vmnf, iparity)
+       IF (nsmin .eq. 1) THEN
+          CALL set_bndy_full_origin(f_smnf, f_umnf, f_vmnf)
+
           IF (.not.l_push_s) THEN
-             f_smnf(m1+moff,:,1) = 0
+             f_smnf(m1 + moff,:,1) = 0
           ELSE
-             f_smnf(m1+moff,:,1) = p5*f_smnf(m1,:,1)
+             f_smnf(m1 + moff,:,1) = p5*f_smnf(m1 + moff,:,1)
           END IF
 
-          f_umnf(m0+moff,:,1) = 0
-          f_umnf(m2+moff:,:,1) = 0
           IF (.not.l_push_u) THEN
-             f_umnf(m1+moff,:,1) = 0
+             f_umnf(m1 + moff,:,1) = 0
           ELSE
-             f_umnf(m1+moff,:,1) = p5*f_umnf(m1,:,1)
+             f_umnf(m1 + moff,:,1) = p5*f_umnf(m1 + moff,:,1)
           END IF
 
-          f_vmnf(m1+moff:,:,1) = 0
           IF (.not.l_push_v) THEN
-             f_vmnf(m0+moff,:,1) = 0
+             f_vmnf(m0 + moff,:,1) = 0
           ELSE
-             f_vmnf(m0+moff,:,1) = p5*f_vmnf(m0+moff,:,1)
+             f_vmnf(m0 + moff,:,1) = p5*f_vmnf(m0 + moff,:,1)
           END IF
-       END IF NSMIN_1
+       END IF
 
 !  Edge boundary conditions.
        EDGE: IF (nsmax .EQ. ns) THEN
@@ -778,16 +778,16 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (dp), DIMENSION(:,:), INTENT(in)                 :: pardamp
-      REAL (dp), DIMENSION(:,:,:), INTENT(inout)            :: f_smnf
-      REAL (dp), DIMENSION(:,:,:), INTENT(inout)            :: f_umnf
-      REAL (dp), DIMENSION(:,:,:), INTENT(inout)            :: f_vmnf
-      REAL (dp), DIMENSION(:,:,:), INTENT(in)               :: jvsupsmnf
-      REAL (dp), DIMENSION(:,:,:), INTENT(in)               :: jvsupumnf
-      REAL (dp), DIMENSION(:,:,:), INTENT(in)               :: jvsupvmnf
+      REAL (dp), DIMENSION(:,:), INTENT(in)      :: pardamp
+      REAL (dp), DIMENSION(:,:,:), INTENT(inout) :: f_smnf
+      REAL (dp), DIMENSION(:,:,:), INTENT(inout) :: f_umnf
+      REAL (dp), DIMENSION(:,:,:), INTENT(inout) :: f_vmnf
+      REAL (dp), DIMENSION(:,:,:), INTENT(in)    :: jvsupsmnf
+      REAL (dp), DIMENSION(:,:,:), INTENT(in)    :: jvsupumnf
+      REAL (dp), DIMENSION(:,:,:), INTENT(in)    :: jvsupvmnf
 
 !  local variables
-      INTEGER                                               :: js
+      INTEGER                                    :: js
 
 !  Start of executable code
 !  Update mupar_norm in cv_currents and put in 1/jacobh factor. Simpler, faster

@@ -331,7 +331,8 @@
       END IF
 
       CALL CURL_HtoF(bsubsmnh, bsubumnh, bsubvmnh,                             &
-                     Ksupsmnf, Ksupumnf, Ksupvmnf, iparity, nmin, nmax)
+                     Ksupsmnf, Ksupumnf, Ksupvmnf,                             &
+                     iparity, nmin, nmax, .False.)
 
       nmax = endglobrow
       DEALLOCATE (bsubsmnh, bsubumnh, bsubvmnh, stat=istat)   

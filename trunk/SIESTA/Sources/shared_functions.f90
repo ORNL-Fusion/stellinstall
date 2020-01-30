@@ -129,14 +129,15 @@
          temp(2) = temp(2) + SUM(fsubumncf(:,:,nsmin:nsmax)**2)
          temp(3) = temp(3) + SUM(fsubvmncf(:,:,nsmin:nsmax)**2)
       END IF
-         
 #if defined(MPI_OPT)         
       IF (PARSOLVER) THEN
          CALL MPI_ALLREDUCE(MPI_IN_PLACE,temp,3,MPI_REAL8,MPI_SUM,             &
                             SIESTA_COMM,MPI_ERR)
       END IF
-#endif         
-      fsqvs=hs*temp(1); fsqvu=hs*temp(2); fsqvv=hs*temp(3)
+#endif
+      fsqvs = hs*temp(1)
+      fsqvu = hs*temp(2)
+      fsqvv = hs*temp(3)
 
       CALL toupper_forces
 
@@ -162,7 +163,7 @@
       END IF
 #endif
       fsqout = temp(1)/temp(2)
-      
+
       END SUBROUTINE GetFSQ
 
 
@@ -225,24 +226,25 @@
 
       DO j = 1, 100
          CALL funct_island
-         IF (fsq_total1 .LT. fsq_min) THEN
+         IF (fsq_total1 .lt. fsq_min) THEN
             xcmin = xc
+!  FIXME: Remove one.
             IF (fsq_total1 .GT. 0.98_dp*fsq_min) iter=iter+1
             IF (fsq_total1 .LT. 0.85_dp*fsq_min) iter = 0
             fsq_min = fsq_total1
-         ELSE IF (j .GT. 4) THEN
-            iter = iter+1
+         ELSE IF (j .gt. 4) THEN
+            iter = iter + 1
          END IF
-         IF (iam .EQ. 0 .AND. lverbose) THEN
-            PRINT 100, j, fsq_total1, SQRT(SUM(xc*xc)),                 &
-                       MAXVAL(ABS(xc)), facmin
+         IF (iam .eq. 0 .and. lverbose) THEN
+            WRITE (*,1000) j, fsq_total1, SQRT(SUM(xc*xc)), MAXVAL(ABS(xc)),   &
+                           facmin
             facmin = facmin/SQRT2
          END IF
-         IF (iter.GT.2 .OR. fsq_total1.LE.ftol) EXIT
+         IF (iter .gt. 2 .OR. fsq_total1 .le. ftol) EXIT
          xc = xc/SQRT2
       END DO
 
- 100  FORMAT(i5,4(3x,1pe12.3))
+1000  FORMAT(i5,4(3x,1pe12.3))
  
       END SUBROUTINE LineSearch
 
