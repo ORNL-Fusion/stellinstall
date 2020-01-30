@@ -323,7 +323,9 @@
       CALL tomnsp(bsubuijh, bsubumnh(:,:,nmin:nmax), fouruv)
       CALL tomnsp(bsubvijh, bsubvmnh(:,:,nmin:nmax), fouruv)
 
-      CALL set_bndy_fouier_m0(bsubsmnh, bsubumnh, bsubvmnh, fours)
+      bsubsmnh(:,:,nmin) = 0
+      bsubumnh(:,:,nmin) = 0
+      bsubvmnh(:,:,nmin) = 0
 
 !  Sub s term has sin parity so the subu term has cos parity.
       IF (nmax .eq. ns .and. iparity .eq. f_sin) THEN
@@ -472,6 +474,8 @@
       SUBROUTINE INIT_A(cA_s, cA_u, cA_v, A_s, A_u, A_v, iparity)
       USE metrics, ONLY: phipf_i, chipf_i
       USE utilities, ONLY: set_bndy_fouier_m0, set_bndy_full_origin
+      USE vmec_info
+      USE siesta_namelist, ONLY: nsin
 
       IMPLICIT NONE
 
@@ -606,7 +610,7 @@
 !      Fsupumn(m1,:,1:nsp/4) = 0
 !      Fsupvmn(m1,:,1:nsp/4) = 0
 
-      END SUBROUTINE INIT_F
+      END SUBROUTINE
 
 !-------------------------------------------------------------------------------
 !>  @brief Compare Curl(Curl(A)) with the expected VMEC and vacuum currents.
@@ -769,6 +773,7 @@
       USE metrics, ONLY: r1_i, chipf_i, phipf_i
       USE hessian, ONLY: gather_array
       USE siesta_namelist, ONLY: nsin
+      USE vmec_info
 
       IMPLICIT NONE
 
@@ -889,12 +894,14 @@
 !      chipf_i(1) = 0.0
 !      phipf_i(1) = 0.0
 !      DO is = 2, ns - 1
-      DO is = nsin, ns - 1
+      DO is = nsin + 1, ns - 1, 1
          chipf_i(is) = (-jbsupumnch(0,0,is + 1) - jbsupumnch(0,0,is))*0.5
          phipf_i(is) = (-jbsupvmnch(0,0,is + 1) - jbsupvmnch(0,0,is))*0.5
       END DO
-      chipf_i(ns) = -2.5*jbsupumnch(0,0,ns) + 1.5*jbsupumnch(0,0,ns - 1)
-      phipf_i(ns) = -2.5*jbsupvmnch(0,0,ns) + 1.5*jbsupvmnch(0,0,ns - 1)
+      IF (ns .gt. nsin) THEN
+         chipf_i(ns) = -2.5*jbsupumnch(0,0,ns) + 1.5*jbsupumnch(0,0,ns - 1)
+         phipf_i(ns) = -2.5*jbsupvmnch(0,0,ns) + 1.5*jbsupvmnch(0,0,ns - 1)
+      END IF
 
 !  Check Edge value
       IF (iam .EQ. 0) THEN
@@ -916,7 +923,7 @@
 !  of jacobian. FIXME: Sign of the jacobian is hard coded here. This should be
 !  read from the wout file.
          WRITE (*, 1010)
-         DO is = 2, ns, 10 !Skip Every 10
+         DO is = 2, ns!, 10 !Skip Every 10
 !         DO is = 2, ns
              rho = (is-1.5_dp)*hs
              WRITE (*,1011) rho, 0.5_dp*(chipf_i(is) + chipf_i(is - 1)),       &
@@ -932,9 +939,9 @@
 
       chipf_i(1) = 0.0
       phipf_i(1) = 0.0
-      DO is = 2,nsin - 1
-         chipf_i(is) = (-jbsupumnch(0,0,is + 1) - jbsupumnch(0,0,is))*0.5
-         phipf_i(is) = (-jbsupvmnch(0,0,is + 1) - jbsupvmnch(0,0,is))*0.5
+      DO is = 2, nsin - 1
+         chipf_i(is) = -(jbsupumnch(0,0,is + 1) + jbsupumnch(0,0,is))*0.5
+         phipf_i(is) = -(jbsupvmnch(0,0,is + 1) + jbsupvmnch(0,0,is))*0.5
       END DO
 
 1000  FORMAT(' EDGE VALUES OF jB^X FOR ALL M,N',/,                             &
@@ -951,10 +958,9 @@
              ' R*B^v(u=0,v=0,ns) : ',1p,e12.3)
 1010  FORMAT(/,'  RAD      CHIP(WOUT)    CHIP(PCH)     CHIP(VP)'               &
                '      PHIP(WOUT)    PHIP(PCH)     PHIP(VP)')
-!1011  FORMAT(f7.3,1p,4e14.3)
 1011  FORMAT(f7.3,1p,6e14.3)
 
-      END SUBROUTINE DUMP_B
+      END SUBROUTINE
 
 !-------------------------------------------------------------------------------
 !>  @brief The the current residual.
@@ -1029,14 +1035,14 @@
 
 !  Start of executable code
 !  Average over toroidal angle too (should not dependent on toroidal angle)
-      IF (endglobrow .NE. ns) RETURN
-      
-      currv_int = hs*(SUM(jcurrvmnc(0,0,1:ns - 1)) + jcurrvmnc(0,0,ns)/2)
+      IF (endglobrow .eq. ns) THEN
+         currv_int = hs*(SUM(jcurrvmnc(0,0,1:ns - 1)) + jcurrvmnc(0,0,ns)/2)
 
-      WRITE (*,1000) -twopi*line_Bu*orthonorm(0,0)/mu0, Itor
-      WRITE (*,1001) line_bu, currv_int, jsupvdotA
+         WRITE (*,1000) -twopi*line_Bu*orthonorm(0,0)/mu0, Itor
+         WRITE (*,1001) line_bu, currv_int, jsupvdotA
+      END IF
 
-1000  FORMAT(' Toroidal Current (SIESTA): '1p,e12.4,4x,1p,'(VMEC): ',1p,e12.4)
+1000  FORMAT(' Toroidal Current (SIESTA): '1p,e12.4,'    (VMEC): ',1p,e12.4)
 1001  FORMAT(' Line Integral B_u: ',1p,e12.4,4x,                               &
              ' Surface-integrated current: ',1p,e12.4,4x,                      &
              ' VMEC Surface-integrated current: ',1p,e12.4)
@@ -1143,7 +1149,6 @@
                              fsupsmncf, fsupumnsf, fsupvmnsf, neqs
       USE bmw_run, ONLY: bmw_exec
       USE siesta_namelist, ONLY: wout_file, mgrid_file
-      USE read_wout_mod, ONLY: Itor
 
       IMPLICIT NONE
 
@@ -1167,7 +1172,7 @@
       nsmax = MIN(ns,endglobrow + 1)
       ns_match = 0  !nsp /4
 
-!  FIXME: All this is initalizion it should be somewhere else.
+!  FIXME: All this initalizion should be somewhere else.
       IF (bnorm .LT. 0) THEN
          linit = .TRUE.
          IF (.NOT. ALLOCATED(xc0)) THEN

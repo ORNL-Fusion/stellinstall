@@ -24,15 +24,6 @@
 !>  @ref bmw_context   Defines the main pointers to all allocated memory and
 !>                     objects.
 !*******************************************************************************
-!*******************************************************************************
-!  MAIN PROGRAM
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief BMW main program.
-!>
-!>  Highest level BMW routine. This computes the vector potential on the mgrid
-!>  grid.
-!-------------------------------------------------------------------------------
       MODULE bmw_run
       USE bmw_context
       USE bmw_commandline_parser
@@ -43,6 +34,25 @@
 
       CONTAINS 
 
+!-------------------------------------------------------------------------------
+!>  @brief BMW main program.
+!>
+!>  Highest level BMW routine. This computes the vector potential on the mgrid
+!>  grid.
+!>
+!>  @param[in]  mgrid_file_name Path to the mgrid file.
+!>  @param[in]  wout_file_mame  Path to the wout file.
+!>  @param[in]  r_grid          Radial grid points to compute the vector
+!>                              potential on.
+!>  @param[in]  z_grid          Vertial grid points to compute the vector
+!>                              potential on.
+!>  @param[in]  dphi            Grid size in the phi direction.
+!>  @param[in]  surf_num        Surface index of the last surface.
+!>  @param[out] A_r             Vector potential in the cyclindical R direction.
+!>  @param[out] A_p             Vector potential in the cyclindical Phi
+!>                              direction.
+!>  @param[out] A_z             Vector potential in the cyclindical Z direction.
+!-------------------------------------------------------------------------------
       SUBROUTINE bmw_exec(mgrid_file_name, wout_file_name,                     &
      &                    r_grid, z_grid, dphi, surf_num,                      &
      &                    A_r, A_p, A_z)
@@ -108,6 +118,6 @@
 
 1000  FORMAT('BMW ',i4,' Series.')
 
-      END SUBROUTINE bmw_exec
+      END SUBROUTINE
 
-      END MODULE bmw_run
+      END MODULE
