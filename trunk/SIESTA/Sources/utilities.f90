@@ -551,8 +551,8 @@
       CALL GradientFull(da_uds, asubumnh)
       CALL GradientFull(da_vds, asubvmnh)
 
-      CALL set_bndy_half_to_full_ds(asubumnh, da_uds, nsmin, fouruv)
-      CALL set_bndy_half_to_full_ds(asubvmnh, da_vds, nsmin, fouruv)
+      CALL set_bndy_half_to_full_uv_ds(asubumnh, asubvmnh,                     &
+                                       da_uds, da_vds, nsmin, fouruv)
 
       IF (extend) THEN
          nmax = MIN(ns, endglobrow + 1)
@@ -765,7 +765,7 @@
          moff = LBOUND(amnh, 1)
 
          amnf_ds(:,:,1) = 0.0
-         amnf_ds(m1 + moff,:,1) = 2.0*ohs*amnh(m1 + moff,:,2)
+         amnf_ds(m0 + moff,:,1) = 2.0*ohs*amnh(m0 + moff,:,2)
       END IF
 
       CALL set_bndy_fouier_m0(amnf_ds, parity)
@@ -805,13 +805,18 @@
       INTEGER                                    :: moff
 
 !  Start of executable code
-      CALL set_bndy_half_to_full_ds(aumnh, aumnf_ds, nsmin, parity)
-      CALL set_bndy_half_to_full_ds(avmnh, avmnf_ds, nsmin, parity)
-
       IF (nsmin .eq. 1) THEN
          moff = LBOUND(aumnh, 1)
+
+         aumnf_ds(:,:,1) = 0.0
          aumnf_ds(m0 + moff,:,1) = 2.0*ohs*aumnh(m0 + moff,:,2)
+
+         avmnf_ds(:,:,1) = 0.0
+         avmnf_ds(m1 + moff,:,1) = 2.0*ohs*avmnh(m1 + moff,:,2)
       END IF
+
+      CALL set_bndy_fouier_m0(aumnf_ds, parity)
+      CALL set_bndy_fouier_m0(avmnf_ds, parity)
 
       END SUBROUTINE
 

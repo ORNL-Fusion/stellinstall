@@ -323,9 +323,7 @@
       CALL tomnsp(bsubuijh, bsubumnh(:,:,nmin:nmax), fouruv)
       CALL tomnsp(bsubvijh, bsubvmnh(:,:,nmin:nmax), fouruv)
 
-      bsubsmnh(:,:,nmin) = 0
-      bsubumnh(:,:,nmin) = 0
-      bsubvmnh(:,:,nmin) = 0
+      CALL set_bndy_fouier_m0(bsubsmnh, bsubumnh, bsubvmnh, fours)
 
 !  Sub s term has sin parity so the subu term has cos parity.
       IF (nmax .eq. ns .and. iparity .eq. f_sin) THEN
@@ -474,8 +472,6 @@
       SUBROUTINE INIT_A(cA_s, cA_u, cA_v, A_s, A_u, A_v, iparity)
       USE metrics, ONLY: phipf_i, chipf_i
       USE utilities, ONLY: set_bndy_fouier_m0, set_bndy_full_origin
-      USE vmec_info
-      USE siesta_namelist, ONLY: nsin
 
       IMPLICIT NONE
 
@@ -895,8 +891,8 @@
 !      phipf_i(1) = 0.0
 !      DO is = 2, ns - 1
       DO is = nsin + 1, ns - 1, 1
-         chipf_i(is) = (-jbsupumnch(0,0,is + 1) - jbsupumnch(0,0,is))*0.5
-         phipf_i(is) = (-jbsupvmnch(0,0,is + 1) - jbsupvmnch(0,0,is))*0.5
+         chipf_i(is) = -(jbsupumnch(0,0,is + 1) + jbsupumnch(0,0,is))*0.5
+         phipf_i(is) = -(jbsupvmnch(0,0,is + 1) + jbsupvmnch(0,0,is))*0.5
       END DO
       IF (ns .gt. nsin) THEN
          chipf_i(ns) = -2.5*jbsupumnch(0,0,ns) + 1.5*jbsupumnch(0,0,ns - 1)
@@ -1153,12 +1149,10 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      LOGICAL, INTENT(IN) :: lNLinear
+      LOGICAL, INTENT(in)                      :: lNLinear
 
 !  Local variables
       INTEGER                                  :: istat
-      INTEGER                                  :: moff
-      INTEGER                                  :: noff
       REAL (dp)                                :: dphi
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: A_r
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: A_p
@@ -1245,7 +1239,7 @@
       Bsupsijh = Bsupsijh/jacobh(:,:,nsmin:nsmax)
       Bsupuijh = Bsupuijh/jacobh(:,:,nsmin:nsmax)
       Bsupvijh = Bsupvijh/jacobh(:,:,nsmin:nsmax)
-      
+
 !  Convert to covariant component of B_i on half grid.
       CALL tolowerh(Bsupsijh, Bsupuijh, Bsupvijh,                              &
                     Bsubsijh, Bsubuijh, Bsubvijh, nsmin, nsmax)
@@ -1261,8 +1255,9 @@
          CALL CURLB_PCHELMS(Fsupsmncf, Fsupumnsf, Fsupvmnsf, Asubsmncf,        &
                             jbsupsmnch, f_cos)
       END IF
+
       nsmax = endglobrow
-      
+
 !  Dump debugging info.
 !  FIXME: This should only get written out if compiled in debug mode. Check
 !  linit to see if this is only written once.
@@ -1283,7 +1278,7 @@
       IF (lasym) THEN
          CALL BoundaryConditions(Fsupsmncf, Fsupumnsf, Fsupvmnsf, f_cos)
       END IF
-      
+
 !  Subtract A*x0 since A_u, A_v are fixed at the edge b' = b + A*x0 (new
 !  right-hand side)
       IF (linit) THEN
