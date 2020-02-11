@@ -1941,7 +1941,7 @@
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
 !-----------------------------------------------
-      INTEGER :: ipart,jpart,i,j,k
+      INTEGER :: ipart,jpart,k
       INTEGER :: ia,ja,inc1,ib,jb,inc2,nsm
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
