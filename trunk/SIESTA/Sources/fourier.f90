@@ -317,8 +317,8 @@
 !  include normalization factors.
          DO lk = 1, nzeta
             DO m = 0, mpol
-               work1(m,:) = 0
-               work2(m,:) = 0
+               work1(m,lk) = 0
+               work2(m,lk) = 0
                DO jk = 1, ntheta
                   work1(m,lk) = work1(m,lk) + xuv(jk,lk,js)*cosmui(jk, m)
                   work2(m,lk) = work2(m,lk) + xuv(jk,lk,js)*sinmui(jk, m)
