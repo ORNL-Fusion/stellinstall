@@ -4857,7 +4857,7 @@ REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: sendBuf, bottomLeftMatrix
 INTEGER :: topNeighbor, bottomNeighbor
 
 INTEGER :: mpistatus(MPI_STATUS_SIZE), mpi_err
-INTEGER :: blkrow,blktype,i,j,k
+INTEGER :: blkrow,blktype,i,j
 
 ALLOCATE(bottomLeftMatrix(M,M), sendBuf(M,M), stat=i)
 CALL ASSERT(i.EQ.0,'Allocation error in CheckSymmetry')
