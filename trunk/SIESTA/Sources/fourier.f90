@@ -296,7 +296,6 @@
       INTEGER                                  :: js
       REAL (dp), DIMENSION(:,:), ALLOCATABLE   :: work1
       REAL (dp), DIMENSION(:,:), ALLOCATABLE   :: work2
-      REAL (dp), DIMENSION(:,:), ALLOCATABLE   :: xuv1
       REAL (dp), DIMENSION(:,:), ALLOCATABLE   :: xmn1
       REAL (dp), DIMENSION(:), ALLOCATABLE     :: work3
       REAL (dp), DIMENSION(:), ALLOCATABLE     :: work4
@@ -308,21 +307,22 @@
       CALL second0(skston)
       ALLOCATE(work1(0:mpol,nzeta), work2(0:mpol,nzeta),                       &
                work3(0:mpol), work4(0:mpol),                                   &
-               xuv1(ntheta,nzeta), xmn1(0:mpol,-ntor:ntor), stat=istat)
+               xmn1(0:mpol,-ntor:ntor), stat=istat)
       CALL assert_eq(0, istat, 'Allocation error in tomnsp')
 
       NS_LOOP: DO js = 1, MIN(UBOUND(xmn,3), UBOUND(xuv,3))
-         xuv1(:,:) = xuv(:,:,js)
          xmn1      = 0
 
 !  First, add over poloidal collocation angles. Note use of cosmuI/sinmuI
 !  include normalization factors.
-         DO m = 0, mpol
-            work1(m,:) = 0
-            work2(m,:) = 0
-            DO jk = 1, ntheta
-               work1(m,:) = work1(m,:) + xuv1(jk,:)*cosmui(jk, m)
-               work2(m,:) = work2(m,:) + xuv1(jk,:)*sinmui(jk, m)
+         DO lk = 1, nzeta
+            DO m = 0, mpol
+               work1(m,:) = 0
+               work2(m,:) = 0
+               DO jk = 1, ntheta
+                  work1(m,lk) = work1(m,lk) + xuv(jk,lk,js)*cosmui(jk, m)
+                  work2(m,lk) = work2(m,lk) + xuv(jk,lk,js)*sinmui(jk, m)
+               END DO
             END DO
          END DO
 
@@ -356,7 +356,7 @@
          xmn(:,:,js) = orthonorm(0:mpol,-ntor:ntor)*xmn1(:,:)
       END DO NS_LOOP
 
-      DEALLOCATE(work1, work2, work3, work4, xuv1, xmn1)
+      DEALLOCATE(work1, work2, work3, work4, xmn1)
 
       CALL second0(skstoff)
       IF (DIAGONALDONE.AND.INHESSIAN) THEN
