@@ -1,15 +1,14 @@
-!>  \brief Module contained subroutines for allocating and initializing
-!>  curvilinear magnetic covariant and pressure Fourier harmonics on the
-!>  half-radial mesh
-!!  \author S. P. Hirshman and R. Sanchez
-!!  \date Aug 21, 2006
-      MODULE quantities
-!     
-!     WRITTEN 08-18-06 BY R. SANCHEZ AS PART OF THE ORNL SIESTA PROJECT (c)
-!     
-!     PURPOSE: This module contains the dynamical variables evolved: 
-!        Namely, pressure, velocity and magnetic field.
+!*******************************************************************************
+!>  @file utilities.f90
+!>  @brief Contains module @ref utilities.
 !
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
+!
+!>  This file contains subroutines for allocating and initializing curvilinear
+!>  magnetic covariant and pressure Fourier harmonics on the half-radial mesh.
+!*******************************************************************************
+      MODULE quantities
       USE stel_kinds
       USE stel_constants      
       USE v3_utilities, ONLY: assert, assert_eq
@@ -21,95 +20,244 @@
       USE nscalingtools, ONLY: startglobrow, endglobrow, PARSOLVER, MPI_ERR
       USE utilities, ONLY: to_half_mesh, to_full_mesh
       USE siesta_namelist, ONLY: l_vessel
+
       IMPLICIT NONE
 
-!
-!       Convention: The name of the variables may contain:
-!           i.   The first one or two letters identifies the quantity. So, "p"=pressure, "B" = magnetic field,
-!                "jB" = magnetic field*jacobian, "v" = velocity, "jv" = velocity*jacobian 
-!           ii.  The next three letters maybe "SUB" or "SUP", to distinguish covariant/contravariant 
-!           ii.  The next letter maybe "s", "u" or "v" to distinguish radial/poloidal/toroidal components
-!           iii. The next two letters maybe "MN" or "IJ", to distinguish Fourier harmonics or angular values 
-!           iv.  The next letter maybe "C" or "S" to distinguish COSINE or SINE parity
-!           v.   The last letter maybe "F" or "H" to distinguish FULL or HALF radial mesh
-!
-!       Radial meshes
-!           velocity, force components       :: full mesh
-!           p, contravariant components of B :: half mesh
-!           jacobh (jacobian to curvilinear coordinates) :: half mesh
-!                  store m0 (poloidal average) component of jacobh(2) in jacobh(1)
-!           jacobf : full mesh average of jacobh, with jacobf(1) = jacobh(1)
-!                    so values of p and B at origin can be extrapolated
-!     VARIABLE DECLARATIONS  
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-       REAL(dp) :: b_factor, p_factor                                      ! Scale internal energy <wb+wp/(gam-1)> to 1
-       REAL(dp) :: signjac
-       REAL(dp) :: wp, wb, wp0                                             ! summed (over procs) energies/local energies
-!---- Fourier Space Arrays - lasym=F parity
-       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                       &  ! Fourier harmonics= BSUP?, VSUB?, P
-        jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch,                     & 
-        ksupsmnsf,  ksupumncf,  ksupvmncf,                              &
-        djpmnch, djbsupsmnsh, djbsupumnch, djbsupvmnch                     ! Array names starting with "d" represent perturbations
+!*******************************************************************************
+!  Module variables
+!*******************************************************************************
+!>  Magnetic scaling factor to scale internal energy to 1.
+      REAL (dp) :: b_factor
+!>  Pressure scaling factor to scale internal energy to 1.
+      REAL (dp) :: p_factor
+!>  Sign of the jacobian.
+      REAL (dp) :: signjac
+!>  Energy due to the pressure.
+      REAL (dp) :: wp
+!>  Energy due to the magnetic field.
+      REAL (dp) :: wb
+!>  Initial pressure.
+      REAL (dp) :: wp0
 
-!----  Pointers are subsections of xc, gc
-       REAL(dp), POINTER, DIMENSION(:,:,:) ::                           &  ! Fourier harmonics= JVSUP?mn?F
-        jvsupsmncf, jvsupumnsf, jvsupvmnsf,                             &  ! Evolved quantities
-        fsubsmncf, fsubumnsf, fsubvmnsf,                                &  ! Computed forces
-        fsupsmncf, fsupumnsf, fsupvmnsf                                  
+!>  Fouier amplitudes of the contravariant magnetic field and jacobian for
+!>  stellarator symmetric parity in the s direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: jbsupsmnsh
+!>  Fouier amplitudes of the contravariant magnetic field and jacobian for
+!>  stellarator symmetric parity in the u direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: jbsupumnch
+!>  Fouier amplitudes of the contravariant magnetic field and jacobian for
+!>  stellarator symmetric parity in the v direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: jbsupvmnch
+!>  Fouier amplitudes of the pressure and jacobian for stellarator symmetric
+!>  parity.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: jpmnch
+!>  Fouier amplitudes of the contravariant current for stellarator symmetric
+!>  parity in the s direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: ksupsmnsf
+!>  Fouier amplitudes of the contravariant current for stellarator symmetric
+!>  parity in the u direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: ksupumncf
+!>  Fouier amplitudes of the contravariant current for stellarator symmetric
+!>  parity in the v direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: ksupvmncf
+!>  Fouier amplitudes of the pressure perturbation and jacobian for stellarator
+!>  symmetric parity.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: djpmnch
+!>  Fouier amplitudes of the contravariant magnetic field perturbation and
+!>  jacobian for stellarator symmetric parity in the s direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: djbsupsmnsh
+!>  Fouier amplitudes of the contravariant magnetic field perturbation and
+!>  jacobian for stellarator symmetric parity in the u direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: djbsupumnch
+!>  Fouier amplitudes of the contravariant magnetic field perturbation and
+!>  jacobian for stellarator symmetric parity in the v direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: djbsupvmnch
 
-!---- Fourier Space Arrays - lasym=T parity
-       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                       &  ! Fourier harmonics= BSUP?, VSUB?, P
-        jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh,                     & 
-        ksupsmncf,  ksupumnsf,  ksupvmnsf,                              &
-        djpmnsh, djbsupsmnch, djbsupumnsh, djbsupvmnsh                     ! Array names starting with "d" represent perturbations
+!>  Fouier amplitudes of the contravariant displacement vector and jacobian for
+!>  stellarator symmetric parity in the s direction.
+      REAL (dp), POINTER, DIMENSION(:,:,:) :: jvsupsmncf
+!>  Fouier amplitudes of the contravariant displacement vector and jacobian for
+!>  stellarator symmetric parity in the u direction.
+      REAL (dp), POINTER, DIMENSION(:,:,:) :: jvsupumnsf
+!>  Fouier amplitudes of the contravariant displacement vector and jacobian for
+!>  stellarator symmetric parity in the v direction.
+      REAL (dp), POINTER, DIMENSION(:,:,:) :: jvsupvmnsf
+!>  Fouier amplitudes of the covariant force for stellarator symmetric parity
+!>  in the s direction.
+      REAL (dp), POINTER, DIMENSION(:,:,:) :: fsubsmncf
+!>  Fouier amplitudes of the covariant force for stellarator symmetric parity
+!>  in the u direction.
+      REAL (dp), POINTER, DIMENSION(:,:,:) :: fsubumnsf
+!>  Fouier amplitudes of the covariant force for stellarator symmetric parity
+!>  in the v direction.
+      REAL (dp), POINTER, DIMENSION(:,:,:) :: fsubvmnsf
+!>  Fouier amplitudes of the contravariant force for stellarator symmetric
+!>  parity in the s direction.
+      REAL (dp), POINTER, DIMENSION(:,:,:) :: fsupsmncf
+!>  Fouier amplitudes of the contravariant force for stellarator symmetric
+!>  parity in the u direction.
+      REAL (dp), POINTER, DIMENSION(:,:,:) :: fsupumnsf
+!>  Fouier amplitudes of the contravariant force for stellarator symmetric
+!>  parity in the v direction.
+      REAL (dp), POINTER, DIMENSION(:,:,:) :: fsupvmnsf
 
-       REAL(dp), POINTER, DIMENSION(:,:,:) ::                           &  ! Fourier harmonics= JVSUP?mn?F
-        jvsupsmnsf, jvsupumncf, jvsupvmncf,                             &  ! Evolved quantities
-        fsubsmnsf, fsubumncf, fsubvmncf,                                &  ! Computed forces
-        fsupsmnsf, fsupumncf, fsupvmncf                                  
+!>  Fouier amplitudes of the contravariant magnetic field and jacobian for
+!>  stellarator asymmetric parity in the s direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: jbsupsmnch
+!>  Fouier amplitudes of the contravariant magnetic field and jacobian for
+!>  stellarator asymmetric parity in the u direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: jbsupumnsh
+!>  Fouier amplitudes of the contravariant magnetic field and jacobian for
+!>  stellarator asymmetric parity in the v direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: jbsupvmnsh
+!>  Fouier amplitudes of the pressure and jacobian for stellarator asymmetric
+!>  parity.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: jpmnsh
+!>  Fouier amplitudes of the contravariant current for stellarator asymmetric
+!>  parity in the s direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: ksupsmncf
+!>  Fouier amplitudes of the contravariant current for stellarator asymmetric
+!>  parity in the u direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: ksupumnsf
+!>  Fouier amplitudes of the contravariant current for stellarator asymmetric
+!>  parity in the v direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: ksupvmnsf
+!>  Fouier amplitudes of the pressure perturbation and jacobian for stellarator
+!>  asymmetric parity.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: djpmnsh
+!>  Fouier amplitudes of the contravariant magnetic field perturbation and
+!>  jacobian for astellarator symmetric parity in the s direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: djbsupsmnch
+!>  Fouier amplitudes of the contravariant magnetic field perturbation and
+!>  jacobian for astellarator symmetric parity in the u direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: djbsupumnsh
+!>  Fouier amplitudes of the contravariant magnetic field perturbation and
+!>  jacobian for astellarator symmetric parity in the v direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: djbsupvmnsh
 
-!---- Fourier Initial Power Spectrum Storage
-       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:,:) ::                     &
-        pwr_spec_s, pwr_spec_a
-                                
-!---- Real Space Arrays
-       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: jvsupsijf,            &  ! all these are needed to compute convolutions
-        jvsupuijf, jvsupvijf, jacobh, jacobf, wint                         ! in pressure and magn. field evolution equations.
-  
-       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                       &
-        bsupsijf0, bsupuijf0, bsupvijf0,                                &
-        bsupsijh0, bsupuijh0, bsupvijh0,                                &
-        bsupsijf,  bsupuijf,  bsupvijf,                                 &
-        bsubsijf,  bsubuijf,  bsubvijf, bsq,                            &
-        ksubsijf, ksubuijf, ksubvijf,                                   &
-        ksupsijf0, ksupuijf0, ksupvijf0,                                &
-        ksupsijf,  ksupuijf,  ksupvijf
+!>  Fouier amplitudes of the contravariant displacement vector and jacobian for
+!>  stellarator asymmetric parity in the s direction.
+      REAL (dp), POINTER, DIMENSION(:,:,:)     :: jvsupsmnsf
+!>  Fouier amplitudes of the contravariant displacement vector and jacobian for
+!>  stellarator asymmetric parity in the u direction.
+      REAL (dp), POINTER, DIMENSION(:,:,:)     :: jvsupumncf
+!>  Fouier amplitudes of the contravariant displacement vector and jacobian for
+!>  stellarator asymmetric parity in the v direction.
+      REAL (dp), POINTER, DIMENSION(:,:,:)     :: jvsupvmncf
+!>  Fouier amplitudes of the covariant force for stellarator asymmetric parity
+!>  in the s direction.
+      REAL (dp), POINTER, DIMENSION(:,:,:)     :: fsubsmnsf
+!>  Fouier amplitudes of the covariant force for stellarator asymmetric parity
+!>  in the u direction.
+      REAL (dp), POINTER, DIMENSION(:,:,:)     :: fsubumncf
+!>  Fouier amplitudes of the covariant force for stellarator asymmetric parity
+!>  in the v direction.
+      REAL (dp), POINTER, DIMENSION(:,:,:)     :: fsubvmncf
+!>  Fouier amplitudes of the contravariant force for stellarator asymmetric
+!>  parity in the s direction.
+      REAL (dp), POINTER, DIMENSION(:,:,:)     :: fsupsmnsf
+!>  Fouier amplitudes of the contravariant force for stellarator asymmetric
+!>  parity in the u direction.
+      REAL (dp), POINTER, DIMENSION(:,:,:)     :: fsupumncf
+!>  Fouier amplitudes of the contravariant force for stellarator asymmetric
+!>  parity in the v direction.
+      REAL (dp), POINTER, DIMENSION(:,:,:)     :: fsupvmncf
 
-       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                       &
-        pijh0, pijh0_du, pijh0_dv,                                      &
-        pijf0, pijf0_ds
+!>  Initial power spectrum storage for stellarator symmetric parity.
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:,:) :: pwr_spec_s
+!>  Initial power spectrum storage for stellarator asymmetric parity.
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:,:) :: pwr_spec_a
 
-       REAL(dp) :: fbdy(13)                
-!
-!    Note that: DBSUP?MNF:              calculated in UPDATE_BFIELD;    used in UPDATE_FORCE and UPDATE_STATE
-!               DPCMNF:                 calculated in UPDATE_PRES;      used in UPDATE_FORCE and UPDATE_STATE
-!               BSUP?MN:                updated by UPDATE_STATE;        used in UPDATE_FORCE   
-!               PMN:                    updated in UPDATE_STATE;        used in UPDATE_FORCE     
-!               JVSUP?IJ:               updated in UPDATE_UPPERV;       used in UPDATE_BFIELD + UPDATE_PRES 
-!               FSUB?MN:                updated in UPDATE_FORCE;        used in UPDATE_STATE
-!               VSUB?MN:                updated by UPDATE_VEL;          used in UPDATE_DISPLACEMENT
-!-----------------------------------------------
+!>  Real space contravariant displacement vector in the s direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: jvsupsijf
+!>  Real space contravariant displacement vector in the u direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: jvsupuijf
+!>  Real space contravariant displacement vector in the v direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: jvsupvijf
+!>  Real space jacobian on the half grid.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: jacobh
+!>  Real space jacobian on the full grid.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: jacobf
+!>  Volumn integration element.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: wint
+
+!>  Unperturbed realspace contravariant magnetic field in the s direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: bsupsijf0
+!>  Unperturbed realspace contravariant magnetic field in the v direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: bsupuijf0
+!>  Unperturbed realspace contravariant magnetic field in the u direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: bsupvijf0
+!>  Unperturbed half grid realspace contravariant magnetic field in the s
+!>  direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: bsupsijh0
+!>  Unperturbed half grid realspace contravariant magnetic field in the u
+!>  direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: bsupuijh0
+!>  Unperturbed half grid realspace contravariant magnetic field in the v
+!>  direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: bsupvijh0
+!>  Perturbed full grid realspace contravariant magnetic field in the s
+!>  direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: bsupsijf
+!>  Perturbed full grid realspace contravariant magnetic field in the u
+!>  direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: bsupuijf
+!>  Perturbed full grid realspace contravariant magnetic field in the v
+!>  direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: bsupvijf
+!>  Perturbed full grid realspace covariant magnetic field in the s direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: bsubsijf
+!>  Perturbed full grid realspace covariant magnetic field in the u direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: bsubuijf
+!>  Perturbed full grid realspace covariant magnetic field in the v direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: bsubvijf
+!>  Realspace magnetude of |B|^2.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: bsq
+!>  Perturbed full grid realspace covariant current in the s direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: ksubsijf
+!>  Perturbed full grid realspace covariant current in the u direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: ksubuijf
+!>  Perturbed full grid realspace covariant current in the v direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: ksubvijf
+!>  Unperturbed full grid realspace contravariant current in the s direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: ksupsijf0
+!>  Unperturbed full grid realspace contravariant current in the u direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: ksupuijf0
+!>  Unperturbed full grid realspace contravariant current in the v direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: ksupvijf0
+!>  Perturbed full grid realspace contravariant current in the s direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: ksupsijf
+!>  Perturbed full grid realspace contravariant current in the u direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: ksupuijf
+!>  Perturbed full grid realspace contravariant current in the v direction.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: ksupvijf
+
+!>  Unperturbed half grid realspace pressure.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: pijh0
+!>  Unperturbed half grid realspace u gradient of the pressure.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: pijh0_du
+!>  Unperturbed half grid realspace v gradient of the pressure.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: pijh0_dv
+!>  Unperturbed full grid realspace pressure.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: pijf0
+!>  Unperturbed full grid realspace s gradient of the pressure.
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:) :: pijf0_ds
+
+!>  Saved boundary harmonics.
+      REAL (dp) :: fbdy(13)
 
       CONTAINS
+
 !*******************************************************************************
-!>  \brief Initializes mpi and computes jacobian
+!  UTILITY SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief intialize quantities.
+!-------------------------------------------------------------------------------
       SUBROUTINE init_quantities
       USE descriptor_mod, ONLY: LSCALAPACK
-      USE fourier, ONLY: getorigin, tomnsp, toijsp, f_none, f_cos,    &
-                           f_sin, f_sum, Test_Fourier, m0
+      USE fourier, ONLY: getorigin, tomnsp, toijsp, f_none, f_cos,             &
+                         f_sin, f_sum, Test_Fourier, m0
       USE metrics, ONLY: sqrtg
       USE shared_data, ONLY: mblk_size, ndims, lasym
 #if defined(MPI_OPT)        
@@ -118,13 +266,15 @@
       USE blocktridiagonalsolver_s, ONLY: Initialize
       USE siesta_namelist, ONLY: lrestart
 
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      INTEGER :: istat, l
-      REAL(dp) :: sum1
+      IMPLICIT NONE
+
+!  Local variables.
+      INTEGER                                  :: istat
+      INTEGER                                  :: l
+      REAL (dp)                                :: sum1
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: tempmn
-!-----------------------------------------------
+
+!  Start of executable code.
       IF (PARSOLVER) THEN
          CALL Initialize(ns, mblk_size)
       ELSE IF (LSCALAPACK) THEN
@@ -178,7 +328,8 @@
       END IF
 
       CALL to_full_mesh(jacobh, jacobf)
-! Must be consistent with variational form of pressure evolution equation (DO NOT USE 2pt EXTRAPOLATIONS!)
+!  Must be consistent with variational form of pressure evolution equation. Do
+!  not use 2pt extrapoltaion.
       jacobf(:,:,1) = jacobh(:,:,1)
       jacobf(:,:,ns)= jacobh(:,:,ns)
 
@@ -190,10 +341,11 @@
       CALL assert_eq(0, istat, 'Allocation error in init_quantities')
       CALL SurfAverage(vp_f, jacobf, 1, ns)
 
-!SANITY CHECK: COMPARE TO volume_i
-      sum1 = 0.5*hs_i*(SUM(vp_f(2:ns)) + SUM(vp_f(1:ns-1)))*signjac
-      sum1 = (twopi*twopi)*sum1
-      IF (ABS((sum1-volume_i)/volume_i) .GT. 1.E-3_dp) THEN
+!  Compar volumes for a sanity check that the siesta grid and orginal VMEC
+!  volume match.
+      sum1 = 0.5*hs_i*(SUM(vp_f(2:ns)) + SUM(vp_f(1:ns - 1)))*signjac
+      sum1 = twopi*twopi*sum1
+      IF (ABS((sum1 - volume_i)/volume_i) .GT. 1.E-3_dp) THEN
          IF (IAM .EQ. 0 .and. lverbose) THEN
             WRITE (*,1001) volume_i, sum1
          END IF
@@ -202,28 +354,36 @@
 1000  FORMAT(' JACOBIAN SPECTRAL TRUNCATION ERROR: ',1pe8.2)
 1001  FORMAT(' VMEC VOLUME: ', 1pe8.2, ' SIESTA VOLUME: ',1pe8.2)
 
-      END SUBROUTINE init_quantities
+      END SUBROUTINE
 
-!*******************************************************************************
-!>  \brief Initializes half-mesh covariant components of jac*Bsuph-i and jac*presh
-!>   Fields are gathered to all processors at the end of this routine
-!>   Only called if lrestart=F (otherwise data read in from restart file)    
-!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Initalize half-mesh covariant components of JBsup* and JP.
+!>
+!>  Fields are gathered to all processors at the end. Only called if lrestart is
+!>  false otherwise data is read directly from the restart file.
+!-------------------------------------------------------------------------------
         SUBROUTINE Init_Fields
         USE fourier, ONLY: orthonorm, tomnsp, f_sin, f_cos, m0, m1
         USE vmec_info, ONLY: lmns_i, lmnc_i, iflipj
         USE metrics, ONLY: sqrtg
         USE mpi_inc
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-        INTEGER  :: istat, nsmin, nsmax, nloc, js
-        REAL(dp), DIMENSION(:), ALLOCATABLE :: phiph, chiph
-        REAL(dp), DIMENSION(:,:), ALLOCATABLE :: pmnf
-        REAL(dp), DIMENSION(:,:,:), ALLOCATABLE:: presif, presih
-!-----------------------------------------------
-       
-        nsmin=MAX(1,startglobrow); nsmax=MIN(endglobrow,ns)
+
+        IMPLICIT NONE
+
+!  Local variables.
+        INTEGER                                 :: istat
+        INTEGER                                 :: nsmin
+        INTEGER                                 :: nsmax
+        INTEGER                                 :: nloc
+        INTEGER                                 :: js
+        REAL(dp), DIMENSION(:), ALLOCATABLE     :: phiph
+        REAL(dp), DIMENSION(:), ALLOCATABLE     :: chiph
+        REAL(dp), DIMENSION(:,:,:), ALLOCATABLE :: presif
+        REAL(dp), DIMENSION(:,:,:), ALLOCATABLE :: presih
+
+!  Start of executable code.
+        nsmin = MAX(1, startglobrow)
+        nsmax = MIN(endglobrow, ns)
 
         ALLOCATE(phiph(ns), chiph(ns))
 
@@ -232,27 +392,27 @@
 
         phiph(2:ns) = (phipf_i(2:ns) + phipf_i(1:nsh))/2
         chiph(2:ns) = (chipf_i(2:ns) + chipf_i(1:nsh))/2
-        phiph(1) = 0;  chiph(1) = 0
+        phiph(1) = 0
+        chiph(1) = 0
 
         IF (.NOT.l_vessel) THEN
-          CALL ReCompute_Lambda(lmns_i, lmnc_i, jacobh, orthonorm,      &
+          CALL ReCompute_Lambda(lmns_i, lmnc_i, jacobh, orthonorm,             &
                                 phiph, chiph, nsmin, nsmax)
         END IF
          
-  		CALL Init_Bfield(jbsupsmnsh, jbsupumnch, jbsupvmnch,            &
+  		CALL Init_Bfield(jbsupsmnsh, jbsupumnch, jbsupvmnch,                   &
                          lmns_i, phiph, chiph, nsmin, nsmax, f_sin)
-		IF (lasym)                                                      &
-		    CALL Init_Bfield(jbsupsmnch, jbsupumnsh, jbsupvmnsh,        &
+		IF (lasym) THEN
+		    CALL Init_Bfield(jbsupsmnch, jbsupumnsh, jbsupvmnsh,               &
                              lmnc_i, phiph, chiph, nsmin, nsmax, f_cos)
+        END IF
 
         DEALLOCATE (phiph, chiph, stat=istat)
         CALL ASSERT(istat.EQ.0,'Deallocate error #1 in init_fields')
 
-!
-!       Initialize half mesh pressure
-!
-        nloc = MAX(1,startglobrow-1)
-        ALLOCATE(presih(ntheta,nzeta,nloc:nsmax),                       &
+!  Initialize half mesh pressure
+        nloc = MAX(1,startglobrow - 1)
+        ALLOCATE(presih(ntheta,nzeta,nloc:nsmax),                              &
                  presif(ntheta,nzeta,nloc:nsmax), stat=istat)
         CALL ASSERT(istat.EQ.0, 'Allocate error #1 in init_fields')
 
@@ -262,14 +422,14 @@
 
         CALL to_half_mesh(presif, presih)
       
-! Initialize (internally) jacob*(real pressure), which is evolved
-        presih(:,:,nsmin:nsmax) = presih(:,:,nsmin:nsmax)*jacobh(:,:,nsmin:nsmax)
+!  Initialize (internally) jacob*(real pressure), which is evolved
+        presih(:,:,nsmin:nsmax) =                                              &
+       &   presih(:,:,nsmin:nsmax)*jacobh(:,:,nsmin:nsmax)
 
-! Initialize internal pressure harmonics (half mesh)        
+!  Initialize internal pressure harmonics (half mesh)
         CALL tomnsp(presih(:,:,nsmin:nsmax), jpmnch(:,:,nsmin:nsmax), f_cos)
         jpmnch(:,:,1) = 0
         jpmnch(m0,:,1) = jpmnch(m0,:,2)
-
         IF (lasym) THEN
            CALL tomnsp(presih(:,:,nsmin:nsmax), jpmnsh(:,:,nsmin:nsmax), f_sin)
            jpmnsh(:,:,1) = 0
@@ -277,14 +437,13 @@
         END IF
 
         DEALLOCATE(presif, presih, stat=istat)
-        CALL ASSERT(istat.EQ.0, 'Deallocate error #2 in init_fields')
+        CALL assert_eq(istat, 0, 'Deallocate error #2 in init_fields')
 
-!
-!       Gather jbsupmnX's, jpmn onto all processors (same as in update_state but for initial values)
-!
+!  Gather jbsupmnX's, jpmn onto all processors. This same as in update_state but
+!  for initial values.
         CALL GatherFields
 
-        END SUBROUTINE Init_Fields
+        END SUBROUTINE
 
 !-------------------------------------------------------------------------------
 !>  @brief Initialized magnetic field.
@@ -303,6 +462,7 @@
                                lmn, phiph, chiph, nsmin, nsmax, iparity)
         USE fourier, ONLY: orthonorm, m0, m1, f_sin
         USE siesta_namelist, ONLY: l_vessel
+        USE utilities, ONLY: set_bndy_fouier_m0
 #if defined(MPI_OPT)        
         USE mpi_inc
 #endif        
@@ -321,7 +481,7 @@
         INTEGER, INTENT(in)                                     :: iparity
 
 !  local variables
-        INTEGER                                                 :: m
+        INTEGER                                                 :: m      ,i,j,k
         INTEGER                                                 :: n
         INTEGER                                                 :: sparity
         INTEGER                                                 :: mp
@@ -357,6 +517,8 @@
         jbsupumnh(:,:,nsmin:nsmax) = b_factor*jbsupumnh(:,:,nsmin:nsmax)
         jbsupvmnh(:,:,nsmin:nsmax) = b_factor*jbsupvmnh(:,:,nsmin:nsmax)
 
+        CALL set_bndy_fouier_m0(jbsupsmnh, jbsupumnh, jbsupvmnh, iparity)
+
 !  Store m=0 component of jbsupvmnh (and m=0,1 of jbsupumnh) at origin of
 !  half-grid js=1.
         IF (nsmin .eq. 1) THEN
@@ -367,7 +529,7 @@
            jbsupvmnh(m0,:,1) = jbsupvmnh(m0,:,2)
            jbsupvmnh(m1:,:,1) = 0
         END IF
-        
+
 		END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -413,10 +575,10 @@
 !>  @param[in]  nsmin     Minimum radial index.
 !>  @param[in]  nsmax     Maximum radial index.
 !-------------------------------------------------------------------------------
-      SUBROUTINE ReCompute_Lambda(lmns, lmnc, jacobh, orthonorm,             &
-                                    phiph, chiph, nsmin, nsmax)
-      USE island_params, ns=>ns_i, nuv=>nuv_i, mnmax=>mnmax_i,               &
-                           nfp => nfp_i, ntheta => nu_i, nzeta => nv_i  
+      SUBROUTINE ReCompute_Lambda(lmns, lmnc, jacobh, orthonorm,               &
+                                  phiph, chiph, nsmin, nsmax)
+      USE island_params, ns=>ns_i, nuv=>nuv_i, mnmax=>mnmax_i,                 &
+                         nfp => nfp_i, ntheta => nu_i, nzeta => nv_i
       USE metrics, ONLY: guu, guv, gvv
 
       IMPLICIT NONE
@@ -466,7 +628,7 @@
          n2 = 2
       END IF
 
-      ALLOCATE(atemp(nuv), btemp(nuv), cosmni(nuv,mnmax), cosmnp(nuv,mnmax),                                    &
+      ALLOCATE(atemp(nuv), btemp(nuv), cosmni(nuv,mnmax), cosmnp(nuv,mnmax),   &
                brhs(mnmax,n2), amat(mnmax*n2, mnmax*n2), stat=info)
       CALL ASSERT(info.EQ.0,'Allocation error in Recompute_Lambda')
 
@@ -609,9 +771,9 @@
 
 !  Start of executable code
 !  Half mesh quantities (harmonics), B^s (sine), B^u (cosine), B^v (cosine)
-      ALLOCATE(jbsupsmnsh(0:mpol,-ntor:ntor,ns),                             &
-               jbsupumnch(0:mpol,-ntor:ntor,ns),                             &
-               jbsupvmnch(0:mpol,-ntor:ntor,ns),                             &
+      ALLOCATE(jbsupsmnsh(0:mpol,-ntor:ntor,ns),                               &
+               jbsupumnch(0:mpol,-ntor:ntor,ns),                               &
+               jbsupvmnch(0:mpol,-ntor:ntor,ns),                               &
                jpmnch    (0:mpol,-ntor:ntor,ns), stat=istat)
       CALL assert_eq(0, istat, 'Allocation #1 failed in alloc_quantities')
       jbsupsmnsh = zero
@@ -683,38 +845,42 @@
 !  Quantities allocated in alloc_quantities
          DEALLOCATE(jpmnsh, jbsupsmnch, jbsupumnsh, jbsupvmnsh)
 !  Other quantities
-         DEALLOCATE(djpmnsh, djbsupsmnch, djbsupumnsh, djbsupvmnsh,                        &
+         DEALLOCATE(djpmnsh, djbsupsmnch, djbsupumnsh, djbsupvmnsh,            &
                     ksupsmncf, ksupumnsf, ksupvmnsf)
       END IF
 
-      END SUBROUTINE dealloc_quantities
+      END SUBROUTINE
 
-!>  \brief Parallel/Serial routine to compute contravariant force components
-!!  \author S. P. Hirshman
+!-------------------------------------------------------------------------------
+!>  @brief Routine to compute the contravariant force components.
+!-------------------------------------------------------------------------------
       SUBROUTINE toupper_forces
-      USE island_params, ONLY: ntheta=>nu_i, nzeta=>nv_i,               &
-                         mpol=>mpol_i, ntor=>ntor_i
+      USE island_params, ONLY: ntheta=>nu_i, nzeta=>nv_i,                      &
+                               mpol=>mpol_i, ntor=>ntor_i
       USE fourier, ONLY: toijsp, tomnsp, f_none, f_cos, f_sin, f_sum
       USE metrics, ONLY: toupper
       USE utilities, ONLY: set_bndy_full_origin
 
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                        &
-                                    fsubsijf, fsubuijf, fsubvijf,       &
-                                    fsupsijf, fsupuijf, fsupvijf
-!-----------------------------------------------
-      INTEGER :: nsmin, nsmax, istat
-!-----------------------------------------------
+!  Local Variables
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: fsubsijf
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: fsubuijf
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: fsubvijf
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: fsupsijf
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: fsupuijf
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: fsupvijf
+      INTEGER                                 :: nsmin
+      INTEGER                                 :: nsmax
+      INTEGER                                 :: istat
+
+!  Start of executable code.
       nsmin = MAX(1, startglobrow)
       nsmax = MIN(ns, endglobrow)
 
-      ALLOCATE(fsubsijf(ntheta,nzeta,nsmin:nsmax),                      &
-               fsubuijf(ntheta,nzeta,nsmin:nsmax),                      &
-               fsubvijf(ntheta,nzeta,nsmin:nsmax),                      &
-               fsupsijf(ntheta,nzeta,nsmin:nsmax),                      &
-               fsupuijf(ntheta,nzeta,nsmin:nsmax),                      &
+      ALLOCATE(fsubsijf(ntheta,nzeta,nsmin:nsmax),                             &
+               fsubuijf(ntheta,nzeta,nsmin:nsmax),                             &
+               fsubvijf(ntheta,nzeta,nsmin:nsmax),                             &
+               fsupsijf(ntheta,nzeta,nsmin:nsmax),                             &
+               fsupuijf(ntheta,nzeta,nsmin:nsmax),                             &
                fsupvijf(ntheta,nzeta,nsmin:nsmax), stat=istat)
       CALL ASSERT(istat.eq.0,' Allocation error in toupper_forces')
 
@@ -732,11 +898,8 @@
          fsubuijf(:,:,1) = 0
       END IF
 
-!      
-!     COMPUTE CONTRAVARIANT FORCES NEEDED TO COMPUTE <||F||^2>
-!
-
-      CALL toupper(fsubsijf, fsubuijf, fsubvijf,                        &
+!  Compute contravariant forces needed to compute <||F||^2>.
+      CALL toupper(fsubsijf, fsubuijf, fsubvijf,                               &
                    fsupsijf, fsupuijf, fsupvijf, nsmin, nsmax) 
       DEALLOCATE(fsubsijf, fsubuijf, fsubvijf)
 
@@ -760,7 +923,7 @@
 
       DEALLOCATE(fsupsijf, fsupuijf, fsupvijf, stat=istat)
 
-      END SUBROUTINE toupper_forces
+      END SUBROUTINE
 
 !-------------------------------------------------------------------------------
 !>  @brief Gather fields from all processors if running in parallel.
@@ -779,22 +942,16 @@
       
       END SUBROUTINE
 
-#if 0
-      SUBROUTINE PADFIELDS
-      
-      IF (PARSOLVER) THEN
-      CALL PAD_FIELDS(djbsupsmnsh, djbsupumnch, djbsupvmnch, djpmnch)
-      IF (lasym)                                                        &
-      CALL PAD_FIELDS(djbsupsmnch, djbsupumnsh, djbsupvmnsh, djpmnsh)
-      END IF
-      
-      END SUBROUTINE PADFIELDS      
-#endif
-
 !-------------------------------------------------------------------------------
 !>  @brief Gather fields for a partity.
 !>
-!>
+!>  @param[inout] jbsupsmnh Fouier amplitudes of the contravariant magnetic
+!>                          field and jacobian in the s direction.
+!>  @param[inout] jbsupumnh Fouier amplitudes of the contravariant magnetic
+!>                          field and jacobian in the udirection.
+!>  @param[inout] jbsupvmnh Fouier amplitudes of the contravariant magnetic
+!>                          field and jacobian in the vdirection.
+!>  @param[inout] jpmnh     Fouier amplitudes of the pressure and jacobian.
 !-------------------------------------------------------------------------------
       SUBROUTINE GATHER_FIELDS(jbsupsmnh, jbsupumnh, jbsupvmnh, jpmnh)
       USE hessian, ONLY: gather_array
@@ -802,14 +959,12 @@
       IMPLICIT NONE
 
 !  Start of executable code
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jbsupsmnh
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jbsupumnh
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jbsupvmnh
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jpmnh
+      REAL (dp), DIMENSION(:,:,:), INTENT(inout) :: jbsupsmnh
+      REAL (dp), DIMENSION(:,:,:), INTENT(inout) :: jbsupumnh
+      REAL (dp), DIMENSION(:,:,:), INTENT(inout) :: jbsupvmnh
+      REAL (dp), DIMENSION(:,:,:), INTENT(inout) :: jpmnh
 
-!  Start of executable code
-      CALL assert(ALLOCATED(jbsupsmnh),                                        &
-                  'input arrays not allocated in gather_fields')
+!  Start of executable code.
       CALL assert_eq(ns, SIZE(jbsupsmnh,3),                                    &
                      'Radial array size needs to be ns in GATHER_FIELDS')
 
@@ -820,78 +975,37 @@
 
       END SUBROUTINE
 
-#if 0          
-      SUBROUTINE PAD_FIELDS(djbsupsmnh, djbsupumnh, djbsupvmnh, djpmnh)
-      USE blocktridiagonalsolver_s, ONLY: PadSides
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)   ::                      &
-                djbsupsmnh, djbsupumnh, djbsupvmnh, djpmnh
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: tmps, tmpu, tmpv, tmpp
-      INTEGER  :: istat, nsmin, nsmax, k1, k2
-!-----------------------------------------------
-!
-!     pads (perturbed) field arrays to [nsmin-1, nsmax+2] as required in siesta_init
-!     From siesta_bfield, siesta_pressure, djbsupXmnh, djpmnh are on
-!     [nsmin,nsmax+1] as required for Hessian computation in siesta_forces
-!
-      nsmin=MAX(1,startglobrow); nsmax=MIN(ns,endglobrow)
-
-      CALL ASSERT(ALLOCATED(djbsupsmnh),'input arrays not allocated in pad_fields')
-
-      ALLOCATE (tmps(0:mpol,-ntor:ntor,ns), tmpu(0:mpol,-ntor:ntor,ns),  &
-                tmpv(0:mpol,-ntor:ntor,ns), tmpp(0:mpol,-ntor:ntor,ns),  &
-                stat=istat)
-      CALL ASSERT(istat.EQ.0,'Allocation error #1 in pad_fields')
-
-      k1 = SIZE(tmps,1)*SIZE(tmps,2)
-      tmps(:,:,nsmin:nsmax) = djbsupsmnh(:,:,nsmin:nsmax)
-      CALL PadSides(tmps, k1, 1, 2)
-      tmpu(:,:,nsmin:nsmax) = djbsupumnh(:,:,nsmin:nsmax)
-      CALL PadSides(tmpu, k1, 1, 2)
-      tmpv(:,:,nsmin:nsmax) = djbsupvmnh(:,:,nsmin:nsmax)
-      CALL PadSides(tmpv, k1, 1, 2)
-      tmpp(:,:,nsmin:nsmax) = djpmnh(:,:,nsmin:nsmax)
-      CALL PadSides(tmpp, k1, 1, 2)
-
-      k1 = LBOUND(djpmnh,3);  k2 = UBOUND(djpmnh,3)
- 	  CALL ASSERT(k1.EQ.MAX(1,startglobrow-1),'k1 wrong in pad_fields')
-	  CALL ASSERT(k2.EQ.MIN(ns,endglobrow+2),'k2 wrong in pad_fields')
-
-      djbsupsmnh(:,:,k1:k2) = tmps(:,:,k1:k2)
-      djbsupumnh(:,:,k1:k2) = tmpu(:,:,k1:k2)
-      djbsupvmnh(:,:,k1:k2) = tmpv(:,:,k1:k2)
-      djpmnh(:,:,k1:k2)     = tmpp(:,:,k1:k2)
-      DEALLOCATE (tmps, tmpu, tmpv, tmpp)
-
-      END SUBROUTINE PAD_FIELDS
-#endif
-
-
+!-------------------------------------------------------------------------------
+!>  @brief Get the surface average of quantity.
+!>
+!>  @param[inout] jbsupsmnh Fouier amplitudes of the contravariant magnetic
+!>                          field and jacobian in the s direction.
+!>  @param[inout] jbsupumnh Fouier amplitudes of the contravariant magnetic
+!>                          field and jacobian in the udirection.
+!>  @param[inout] jbsupvmnh Fouier amplitudes of the contravariant magnetic
+!>                          field and jacobian in the vdirection.
+!>  @param[inout] jpmnh     Fouier amplitudes of the pressure and jacobian.
+!-------------------------------------------------------------------------------
       SUBROUTINE SurfAverage(average, q3d, nsmin, nsmax)
       USE stel_kinds, ONLY: dp
       USE island_params, ONLY: ns=>ns_i, ntheta=>nu_i, nzeta=>nv_i
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      INTEGER, INTENT(IN)   :: nsmin, nsmax
-      REAL(dp), INTENT(OUT) :: average(nsmin:nsmax)
-      REAL(dp), INTENT(IN)  :: q3d(ntheta,nzeta,nsmin:nsmax)
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      INTEGER               :: js
-!-----------------------------------------------
 
+      IMPLICIT NONE
+
+!  Declare Arguments.
+      REAL(dp), DIMENSION(nsmin:nsmax), INTENT(out)             :: average
+      REAL(dp), DIMENSION(ntheta,nzeta,nsmin:nsmax), INTENT(in) :: q3d
+      INTEGER, INTENT(in)                                       :: nsmin
+      INTEGER, INTENT(in)                                       :: nsmax
+
+!  Local variables.
+      INTEGER                                                   :: js
+
+!  Start of executable code.
       DO js = nsmin, nsmax
 		 average(js) = SUM(q3d(:,:,js)*wint(:,:,js))
       END DO
 
-      END SUBROUTINE SurfAverage
+      END SUBROUTINE
      
-      END MODULE quantities
-          
+      END MODULE
