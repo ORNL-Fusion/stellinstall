@@ -174,7 +174,6 @@ then
               -DNETCDF_INC_PATH=/usr/local/include/      \
               -DNETCDF_LIB_PATH=/usr/local/lib           \
               -DEXTRA_FLAGS="-fopenmp -DNEW_CODE -mavx2" \
-              -DUSE_PARVMEC=ON                           \
               -DUSE_FAST_COPY=ON
 
 elif [ $MACHINE_ID == "swim.ornl.gov"    ] || \
