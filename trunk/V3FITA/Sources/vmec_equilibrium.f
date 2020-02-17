@@ -24,24 +24,26 @@
 !>  reconstructed that change the equilibirum. These parameters require
 !>  the equilibrium to reconverge.
 !>  @begin_table
-!>     @item{ac,         1D Array of function current profile parameters.,  @ref vmec_input::ac}
-!>     @item{ac_aux_s,   1D Array of segment current profile s poitions.,   @ref vmec_input::ac_aux_s}
-!>     @item{ac_aux_f,   1D Array of segment current profile f values.,     @ref vmec_input::ac_aux_f}
-!>     @item{ai,         1D Array of function current profile parameters.,  @ref vmec_input::ai}
-!>     @item{ai_aux_s,   1D Array of segment iotabar profile s poitions.,   @ref vmec_input::ai_aux_s}
-!>     @item{ai_aux_f,   1D Array of segment iotabar profile f values.,     @ref vmec_input::ai_aux_f}
-!>     @item{am,         1D Array of function current profile parameters.,  @ref vmec_input::am}
-!>     @item{am_aux_s,   1D Array of segment pressure profile s poitions.,  @ref vmec_input::am_aux_s}
-!>     @item{am_aux_f,   1D Array of segment pressure profile f values.,    @ref vmec_input::am_aux_f}
-!>     @item{bloat,      Extends the field into the vacuum region.,         @ref vmec_input::bloat}
-!>     @item{rbc,        2D Array of outer boundary R cosine coeffiecents., @ref vmec_input::rbc}
-!>     @item{zbs,        2D Array of outer boundary Z sine coeffiecents.,   @ref vmec_input::zbs}
-!>     @item{rbs,        2D Array of outer boundary R sine coeffiecents.,   @ref vmec_input::rbs}
-!>     @item{zbc,        2D Array of outer boundary Z cosine coeffiecents., @ref vmec_input::zbc}
-!>     @item{extcur,     1D Array of external currents.,                    @ref vmec_input::extcur}
-!>     @item{curtor,     Toroidal current.,                                 @ref vmec_input::curtor}
-!>     @item{phiedge,    The edge magnetic flux.,                           @ref vmec_input::phiedge}
-!>     @item{pres_scale, The scaling parameter for the pressure.,           @ref vmec_input::pres_scale}
+!>     @item{ac,         1D Array of function current profile parameters.,    @ref vmec_input::ac}
+!>     @item{ac_aux_s,   1D Array of segment current profile s poitions.,     @ref vmec_input::ac_aux_s}
+!>     @item{ac_aux_f,   1D Array of segment current profile f values.,       @ref vmec_input::ac_aux_f}
+!>     @item{ai,         1D Array of function current profile parameters.,    @ref vmec_input::ai}
+!>     @item{ai_aux_s,   1D Array of segment iotabar profile s poitions.,     @ref vmec_input::ai_aux_s}
+!>     @item{ai_aux_f,   1D Array of segment iotabar profile f values.,       @ref vmec_input::ai_aux_f}
+!>     @item{am,         1D Array of function current profile parameters.,    @ref vmec_input::am}
+!>     @item{am_aux_s,   1D Array of segment pressure profile s poitions.,    @ref vmec_input::am_aux_s}
+!>     @item{am_aux_f,   1D Array of segment pressure profile f values.,      @ref vmec_input::am_aux_f}
+!>     @item{bloat,      Extends the field into the vacuum region.,           @ref vmec_input::bloat}
+!>     @item{rbc,        2D Array of outer boundary R cosine coeffiecents.,   @ref vmec_input::rbc}
+!>     @item{zbs,        2D Array of outer boundary Z sine coeffiecents.,     @ref vmec_input::zbs}
+!>     @item{rbs,        2D Array of outer boundary R sine coeffiecents.,     @ref vmec_input::rbs}
+!>     @item{zbc,        2D Array of outer boundary Z cosine coeffiecents.,   @ref vmec_input::zbc}
+!>     @item{rhoc,       2D Array of outer boundary Rho cosine coeffiecents., @ref vmec_input::rhoc}
+!>     @item{rhos,       2D Array of outer boundary Rho sine coeffiecents.,   @ref vmec_input::rhos}
+!>     @item{extcur,     1D Array of external currents.,                      @ref vmec_input::extcur}
+!>     @item{curtor,     Toroidal current.,                                   @ref vmec_input::curtor}
+!>     @item{phiedge,    The edge magnetic flux.,                             @ref vmec_input::phiedge}
+!>     @item{pres_scale, The scaling parameter for the pressure.,             @ref vmec_input::pres_scale}
 !>  @end_table
 !>  @subsection vmec_equilibrium_aux_recon_param_sec VMEC Auxiliary Reconstruction Parameters
 !>  VMEC Auxiliary reconstruction parameters are parameters that maybe
@@ -178,136 +180,142 @@
 !>  2D Array of outer boundary Z cosine coeffiecents. Defined in
 !>  @ref vmec_input.
       INTEGER, PARAMETER :: vmec_zbc_id         = 28
+!>  2D Array of outer boundary Rho cosine coeffiecents. Defined in
+!>  @ref vmec_input.
+      INTEGER, PARAMETER :: vmec_rhoc_id        = 29
+!>  2D Array of outer boundary Rho sine coeffiecents. Defined in
+!>  @ref vmec_input.
+      INTEGER, PARAMETER :: vmec_rhos_id        = 30
 !>  1D Array of external currents. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_extcur_id      = 29
+      INTEGER, PARAMETER :: vmec_extcur_id      = 31
 !>  The toroidal current. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_curtor_id      = 30
+      INTEGER, PARAMETER :: vmec_curtor_id      = 32
 !>  The edge magnetic flux. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_phiedge_id     = 31
+      INTEGER, PARAMETER :: vmec_phiedge_id     = 33
 !>  The scaling parameter for the pressure. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_pres_scale_id  = 32
+      INTEGER, PARAMETER :: vmec_pres_scale_id  = 34
 
 !  Derived Parameters
 !>  2D Array of surface R cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_rmnc_id        = 33
+      INTEGER, PARAMETER :: vmec_rmnc_id        = 35
 !>  2D Array of surface Z sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_zmns_id        = 34
+      INTEGER, PARAMETER :: vmec_zmns_id        = 36
 !>  2D Array of surface lambda cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_lmns_id        = 35
+      INTEGER, PARAMETER :: vmec_lmns_id        = 37
 !>  2D Array of surface g cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_gmnc_id        = 36
+      INTEGER, PARAMETER :: vmec_gmnc_id        = 38
 !>  2D Array of surface B_s sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsubsmns_id    = 37
+      INTEGER, PARAMETER :: vmec_bsubsmns_id    = 39
 !>  2D Array of surface B_u cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsubumnc_id    = 38
+      INTEGER, PARAMETER :: vmec_bsubumnc_id    = 40
 !>  2D Array of surface B_v cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsubvmnc_id    = 39
+      INTEGER, PARAMETER :: vmec_bsubvmnc_id    = 41
 !>  2D Array of surface B^u cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsupumnc_id    = 40
+      INTEGER, PARAMETER :: vmec_bsupumnc_id    = 42
 !>  2D Array of surface B^v cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsupvmnc_id    = 41
+      INTEGER, PARAMETER :: vmec_bsupvmnc_id    = 43
 !>  2D Array of surface R sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_rmns_id        = 42
+      INTEGER, PARAMETER :: vmec_rmns_id        = 44
 !>  2D Array of surface Z cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_zmnc_id        = 43
+      INTEGER, PARAMETER :: vmec_zmnc_id        = 45
 !>  2D Array of surface lambda sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_lmnc_id        = 44
+      INTEGER, PARAMETER :: vmec_lmnc_id        = 46
 !>  2D Array of surface g sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_gmns_id        = 45
+      INTEGER, PARAMETER :: vmec_gmns_id        = 47
 !>  2D Array of surface B_s cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsubsmnc_id    = 46
+      INTEGER, PARAMETER :: vmec_bsubsmnc_id    = 48
 !>  2D Array of surface B_u sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsubumns_id    = 47
+      INTEGER, PARAMETER :: vmec_bsubumns_id    = 49
 !>  2D Array of surface B_v sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsubvmns_id    = 48
+      INTEGER, PARAMETER :: vmec_bsubvmns_id    = 50
 !>  2D Array of surface B^u sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsupumns_id    = 49
+      INTEGER, PARAMETER :: vmec_bsupumns_id    = 51
 !>  2D Array of surface B^v sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsupvmns_id    = 50
+      INTEGER, PARAMETER :: vmec_bsupvmns_id    = 52
 !>  Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_phi_id         = 51
+      INTEGER, PARAMETER :: vmec_phi_id         = 53
 !>  1D Array of full grid iotabar. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_iotaf_id       = 52
+      INTEGER, PARAMETER :: vmec_iotaf_id       = 54
 !>  1D Array of half grid iotabar. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_iotas_id       = 53
+      INTEGER, PARAMETER :: vmec_iotas_id       = 55
 !>  1D Array of magnetic axis R cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_raxis_cc_id    = 54
+      INTEGER, PARAMETER :: vmec_raxis_cc_id    = 56
 !>  1D Array of magnetic axis R sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_raxis_cs_id    = 55
+      INTEGER, PARAMETER :: vmec_raxis_cs_id    = 57
 !>  1D Array of magnetic axis Z cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_zaxis_cc_id    = 56
+      INTEGER, PARAMETER :: vmec_zaxis_cc_id    = 58
 !>  1D Array of magnetic axis Z sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_zaxis_cs_id    = 57
+      INTEGER, PARAMETER :: vmec_zaxis_cs_id    = 59
 !>  1D Array of full grid safety factor. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_qfact_id       = 58
+      INTEGER, PARAMETER :: vmec_qfact_id       = 60
 
 !  Auxiliary Model Parameters
 !>  1D Array of function density profile parameters. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ne_b_id     = 59
+      INTEGER, PARAMETER :: vmec_pp_ne_b_id     = 61
 !>  1D Array of segment density profile s poitions. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ne_as_id    = 60
+      INTEGER, PARAMETER :: vmec_pp_ne_as_id    = 62
 !>  1D Array of segment density profile f values. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ne_af_id    = 61
+      INTEGER, PARAMETER :: vmec_pp_ne_af_id    = 63
 !>  1D Array of function sxrem profile parameters. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_sxrem_b_id  = 62
+      INTEGER, PARAMETER :: vmec_pp_sxrem_b_id  = 64
 !>  1D Array of segment sxrem profile s poitions. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_sxrem_as_id = 63
+      INTEGER, PARAMETER :: vmec_pp_sxrem_as_id = 65
 !>  1D Array of segment sxrem profile f values. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_sxrem_af_id = 64
+      INTEGER, PARAMETER :: vmec_pp_sxrem_af_id = 66
 !>  1D Array of function electron temperature profile parameters. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_te_b_id     = 65
+      INTEGER, PARAMETER :: vmec_pp_te_b_id     = 67
 !>  1D Array of segment electron temperature profile s poitions. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_te_as_id    = 66
+      INTEGER, PARAMETER :: vmec_pp_te_as_id    = 68
 !>  1D Array of segment electron temperature profile f values. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_te_af_id    = 67
+      INTEGER, PARAMETER :: vmec_pp_te_af_id    = 69
 !>  1D Array of function ion temperature profile parameters. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ti_b_id     = 68
+      INTEGER, PARAMETER :: vmec_pp_ti_b_id     = 70
 !>  1D Array of segment ion temperature profile s poitions. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ti_as_id    = 69
+      INTEGER, PARAMETER :: vmec_pp_ti_as_id    = 71
 !>  1D Array of segment ion temperature profile f values. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ti_af_id    = 70
+      INTEGER, PARAMETER :: vmec_pp_ti_af_id    = 72
 !>  1D Array of function zeff profile parameters. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ze_b_id     = 71
+      INTEGER, PARAMETER :: vmec_pp_ze_b_id     = 73
 !>  1D Array of segment zeff profile s poitions. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ze_as_id    = 72
+      INTEGER, PARAMETER :: vmec_pp_ze_as_id    = 74
 !>  1D Array of segment zeff profile f values. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ze_af_id    = 73
+      INTEGER, PARAMETER :: vmec_pp_ze_af_id    = 75
 
 !  Derived Parameters
 !>  Internal inducance. Defined in @ref v3f_vmec_comm. Computed in @ref eqfor.
-      INTEGER, PARAMETER :: vmec_vvc_smaleli_id = 74
+      INTEGER, PARAMETER :: vmec_vvc_smaleli_id = 76
 !>  Mean elongation. Defined in @ref v3f_vmec_comm. Computed in @ref eqfor.
-      INTEGER, PARAMETER :: vmec_vvc_kappa_p_id = 75
+      INTEGER, PARAMETER :: vmec_vvc_kappa_p_id = 77
 !>  Total Beta. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_betatot_id     = 76
+      INTEGER, PARAMETER :: vmec_betatot_id     = 78
 !>  Poloidal Beta. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_betapol_id     = 77
+      INTEGER, PARAMETER :: vmec_betapol_id     = 79
 !>  Toroidal Beta. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_betator_id     = 78
+      INTEGER, PARAMETER :: vmec_betator_id     = 80
 !>  Beta on axis. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_betaxis_id     = 79
+      INTEGER, PARAMETER :: vmec_betaxis_id     = 81
 !>  Poloidal current density. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_jcuru_id       = 80
+      INTEGER, PARAMETER :: vmec_jcuru_id       = 82
 !>  Toroidal current density. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_jcurv_id       = 81
+      INTEGER, PARAMETER :: vmec_jcurv_id       = 83
 !>  Current density in direction of b field. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_jdotb_id       = 82
+      INTEGER, PARAMETER :: vmec_jdotb_id       = 84
 
 !>  Plasma Phi offset. This is a parameter to allow changing the phi angle of a
 !>  quasi helical state in an RFP. Defined in @ref vmec_equilibrium.
-      INTEGER, PARAMETER :: vmec_phi_offset_id  = 83
+      INTEGER, PARAMETER :: vmec_phi_offset_id  = 85
 !>  Plasma z offset. This is a parameter to allow changing the vertical shift of
 !>  the plasma
-      INTEGER, PARAMETER :: vmec_z_offset_id    = 84
+      INTEGER, PARAMETER :: vmec_z_offset_id    = 86
 
 !>  Virtual casing grid points for vacuum field measurements.
       INTEGER, PARAMETER :: magnetic_cache_vc_min_grid_points = 101
@@ -1015,11 +1023,14 @@
      &                      ai, ai_aux_s, ai_aux_f,                            &
      &                      am, am_aux_s, am_aux_f,                            &
      &                      extcur, curtor, phiedge, pres_scale,               &
-     &                      bloat, lfreeb, aphi
+     &                      bloat, lfreeb, aphi, rhoc, rhos,                   &
+     &                      raxis_cc, raxis_cs, zaxis_cc, zaxis_cs,            &
+     &                      ntor, mpol
       USE xstuff, only: xc, xcdot
       USE vmec_main, only: irzloff, currv, ivac
       USE stel_constants, only: mu0
       USE model_state
+      USE rho_bndy
 
       IMPLICIT NONE
 
@@ -1036,6 +1047,7 @@
       REAL (rprec)                     :: phiedge_ratio
       INTEGER                          :: error
       REAL (rprec)                     :: start_time
+      CLASS (rho_bndy_class), POINTER  :: bndy => null()
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -1075,6 +1087,40 @@
          CASE (vmec_zbc_id)
             state_flags = IBSET(state_flags, model_state_vmec_flag)
             zbc(i_index, j_index) = value
+            IF (.not.lfreeb) THEN
+               CALL vmec_reset_boundary(this)
+               CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
+            ELSE
+               CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
+            END IF
+
+         CASE (vmec_rhoc_id)
+            state_flags = IBSET(state_flags, model_state_vmec_flag)
+            rhoc(i_index, j_index) = value
+
+!  Convert from rho to rz harmonics.
+            bndy => rho_bndy_class(mpol)
+            CALL bndy%to_rz(mpol, ntor, rhoc, raxis_cc, zaxis_cs, rbc,         &
+     &                      zbs, rho_bndy_sym)
+            DEALLOCATE(bndy)
+
+            IF (.not.lfreeb) THEN
+               CALL vmec_reset_boundary(this)
+               CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
+            ELSE
+               CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
+            END IF
+
+         CASE (vmec_rhos_id)
+            state_flags = IBSET(state_flags, model_state_vmec_flag)
+            rhos(i_index, j_index) = value
+
+!  Convert from rho to rz harmonics.
+            bndy => rho_bndy_class(mpol)
+            CALL bndy%to_rz(mpol, ntor, rhos, raxis_cs, zaxis_cc, rbs,         &
+     &                      zbc, rho_bndy_asym)
+            DEALLOCATE(bndy)
+
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
                CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
@@ -2100,6 +2146,12 @@
          CASE ('zbc')
             vmec_get_param_id = vmec_zbc_id
 
+         CASE ('rhoc')
+            vmec_get_param_id = vmec_rhoc_id
+
+         CASE ('rhos')
+            vmec_get_param_id = vmec_rhos_id
+
          CASE ('extcur')
             vmec_get_param_id = vmec_extcur_id
 
@@ -2292,7 +2344,7 @@
 !>  @returns The value of the parameter.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_get_param_value(this, id, i_index, j_index)
-      USE vmec_input, only: rbc, zbs, rbs, zbc,                                &
+      USE vmec_input, only: rbc, zbs, rbs, zbc, rhoc, rhos,                    &
      &                      ac, ac_aux_s, ac_aux_f,                            &
      &                      ai, ai_aux_s, ai_aux_f,                            &
      &                      am, am_aux_s, am_aux_f,                            &
@@ -2366,6 +2418,12 @@
 
          CASE (vmec_zbc_id)
             vmec_get_param_value = zbc(i_index, j_index)
+
+         CASE (vmec_rhoc_id)
+            vmec_get_param_value = rhoc(i_index, j_index)
+
+         CASE (vmec_rhos_id)
+            vmec_get_param_value = rhos(i_index, j_index)
 
          CASE (vmec_extcur_id)
             vmec_get_param_value = extcur(i_index)
@@ -2611,6 +2669,12 @@
 
          CASE (vmec_zbc_id)
             vmec_get_param_name = 'zbc'
+
+         CASE (vmec_rhoc_id)
+            vmec_get_param_name = 'rhoc'
+
+         CASE (vmec_rhos_id)
+            vmec_get_param_name = 'rhos'
 
          CASE (vmec_extcur_id)
             vmec_get_param_name = 'extcur'
@@ -5080,6 +5144,7 @@
       SELECT CASE (id)
 
          CASE (vmec_rbc_id, vmec_zbs_id, vmec_rbs_id, vmec_zbc_id,             &
+     &         vmec_rhoc_id, vmec_rhos_id,                                     &
      &         vmec_rmnc_id, vmec_zmns_id, vmec_lmns_id, vmec_gmnc_id,         &
      &         vmec_bsubumnc_id, vmec_bsubvmnc_id,                             &
      &         vmec_bsubsmns_id, vmec_bsupumnc_id, vmec_bsupvmnc_id,           &
@@ -5126,6 +5191,7 @@
       SELECT CASE (id)
 
          CASE (vmec_rbc_id, vmec_zbs_id, vmec_rbs_id, vmec_zbc_id,             &
+     &         vmec_rhoc_id, vmec_rhos_id,                                     &
      &         vmec_ac_id, vmec_ac_aux_s_id, vmec_ac_aux_f_id,                 &
      &         vmec_ai_id, vmec_ai_aux_s_id, vmec_ai_aux_f_id,                 &
      &         vmec_am_id, vmec_am_aux_s_id, vmec_am_aux_f_id,                 &
@@ -5718,20 +5784,20 @@
 
 !  Local variables
       INTEGER                       :: status
-      INTEGER                       :: vmec_nextcur_dim_id
-      INTEGER                       :: vmec_boundary_m_dim_id
-      INTEGER                       :: vmec_boundary_n_dim_id
-      INTEGER                       :: vmec_extcur_id
-      INTEGER                       :: vmec_curtor_id
-      INTEGER                       :: vmec_pres_scale_id
-      INTEGER                       :: vmec_rbc_id
-      INTEGER                       :: vmec_rbs_id
-      INTEGER                       :: vmec_zbc_id
-      INTEGER                       :: vmec_zbs_id
-      INTEGER                       :: vmec_l_sub_i_id
-      INTEGER                       :: vmec_kappa_p_id
-      INTEGER                       :: vmec_xc_id
-      INTEGER                       :: vmec_xc_dim_id
+      INTEGER                       :: vmec_nextcur_dim_nc_id
+      INTEGER                       :: vmec_boundary_m_dim_nc_id
+      INTEGER                       :: vmec_boundary_n_dim_nc_id
+      INTEGER                       :: vmec_extcur_nc_id
+      INTEGER                       :: vmec_curtor_nc_id
+      INTEGER                       :: vmec_pres_scale_nc_id
+      INTEGER                       :: vmec_rbc_nc_id
+      INTEGER                       :: vmec_rbs_nc_id
+      INTEGER                       :: vmec_zbc_nc_id
+      INTEGER                       :: vmec_zbs_nc_id
+      INTEGER                       :: vmec_l_sub_i_nc_id
+      INTEGER                       :: vmec_kappa_p_nc_id
+      INTEGER                       :: vmec_xc_nc_id
+      INTEGER                       :: vmec_xc_dim_nc_id
       REAL (rprec)                  :: start_time
 
 !  Start of executable code
@@ -5739,68 +5805,73 @@
 
 !  Define dimensions.
       status = nf_def_dim(result_ncid, 'vmec_xc_dim', SIZE(xc),                &
-     &                    vmec_xc_dim_id)
+     &                    vmec_xc_dim_nc_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       IF (nextcur .gt. 0) THEN
          status = nf_def_dim(result_ncid, 'vmec_nextcur', nextcur,             &
-     &                       vmec_nextcur_dim_id)
+     &                       vmec_nextcur_dim_nc_id)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
       END IF
 
       status = nf_def_dim(result_ncid, 'vmec_boundary_m', mpol1 + 1,           &
-     &                    vmec_boundary_m_dim_id)
+     &                    vmec_boundary_m_dim_nc_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       status = nf_def_dim(result_ncid, 'vmec_boundary_n', 2*ntor + 1,          &
-     &                    vmec_boundary_n_dim_id)
+     &                    vmec_boundary_n_dim_nc_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
 !  Define variables.
       status = nf_def_var(result_ncid, 'vmec_xc', nf_double, 1,                &
-     &                    (/ vmec_xc_dim_id /), vmec_xc_id)
+     &                    (/ vmec_xc_dim_nc_id /), vmec_xc_nc_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       IF (nextcur .gt. 0) THEN
          status = nf_def_var(result_ncid, 'vmec_extcur', nf_double, 1,         &
-     &                       (/ vmec_nextcur_dim_id /), vmec_extcur_id)
+     &                       (/ vmec_nextcur_dim_nc_id /),                     &
+     &                       vmec_extcur_nc_id)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
       END IF
 
       status = nf_def_var(result_ncid, 'vmec_curtor', nf_double, 0, 0,         &
-     &                    vmec_curtor_id)
+     &                    vmec_curtor_nc_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       status = nf_def_var(result_ncid, 'vmec_pres_scale', nf_double, 0,        &
-     &                    0, vmec_pres_scale_id)
+     &                    0, vmec_pres_scale_nc_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       status = nf_def_var(result_ncid, 'vmec_rbc', nf_double, 2,               &
-     &                    (/ vmec_boundary_n_dim_id,                           &
-     &                       vmec_boundary_m_dim_id /), vmec_rbc_id)
+     &                    (/ vmec_boundary_n_dim_nc_id,                        &
+     &                       vmec_boundary_m_dim_nc_id /),                     &
+     &                    vmec_rbc_nc_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       status = nf_def_var(result_ncid, 'vmec_rbs', nf_double, 2,               &
-     &                    (/ vmec_boundary_n_dim_id,                           &
-     &                       vmec_boundary_m_dim_id /), vmec_rbs_id)
+     &                    (/ vmec_boundary_n_dim_nc_id,                        &
+     &                       vmec_boundary_m_dim_nc_id /),                     &
+     &                    vmec_rbs_nc_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       status = nf_def_var(result_ncid, 'vmec_zbc', nf_double, 2,               &
-     &                    (/ vmec_boundary_n_dim_id,                           &
-     &                       vmec_boundary_m_dim_id /), vmec_zbc_id)
+     &                    (/ vmec_boundary_n_dim_nc_id,                        &
+     &                       vmec_boundary_m_dim_nc_id /),                     &
+     &                    vmec_zbc_nc_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       status = nf_def_var(result_ncid, 'vmec_zbs', nf_double, 2,               &
-     &                    (/ vmec_boundary_n_dim_id,                           &
-     &                       vmec_boundary_m_dim_id /), vmec_zbs_id)
+     &                    (/ vmec_boundary_n_dim_nc_id,                        &
+     &                       vmec_boundary_m_dim_nc_id /),                     &
+     &                    vmec_zbs_nc_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       status = nf_def_var(result_ncid, 'vmec_l_sub_i', nf_double, 1,           &
-     &                    (/ maxnsetps_dim_id /), vmec_l_sub_i_id)
+     &                    (/ maxnsetps_dim_id /), vmec_l_sub_i_nc_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       status = nf_def_var(result_ncid, 'vmec_kappa_p', nf_double, 1,           &
-     &                    (/ maxnsetps_dim_id /), vmec_kappa_p_id)
+     &                    (/ maxnsetps_dim_id /), vmec_kappa_p_nc_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       CALL profiler_set_stop_time('vmec_def_result', start_time)
@@ -5831,13 +5902,13 @@
 !  Local variables
       INTEGER                       :: status
       INTEGER, DIMENSION(2)         :: boundary_size
-      INTEGER                       :: vmec_extcur_id
-      INTEGER                       :: vmec_curtor_id
-      INTEGER                       :: vmec_pres_scale_id
-      INTEGER                       :: vmec_rbc_id
-      INTEGER                       :: vmec_rbs_id
-      INTEGER                       :: vmec_zbc_id
-      INTEGER                       :: vmec_zbs_id
+      INTEGER                       :: vmec_extcur_nc_id
+      INTEGER                       :: vmec_curtor_nc_id
+      INTEGER                       :: vmec_pres_scale_nc_id
+      INTEGER                       :: vmec_rbc_nc_id
+      INTEGER                       :: vmec_rbs_nc_id
+      INTEGER                       :: vmec_zbc_nc_id
+      INTEGER                       :: vmec_zbs_nc_id
       REAL (rprec)                  :: start_time
 
 !  Start of executable code
@@ -5845,53 +5916,54 @@
 
       IF (nextcur .gt. 0) THEN
          status = nf_inq_varid(result_ncid, 'vmec_extcur',                     &
-     &                         vmec_extcur_id)
+     &                         vmec_extcur_nc_id)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
-         status = nf_put_var_double(result_ncid, vmec_extcur_id,               &
+         status = nf_put_var_double(result_ncid, vmec_extcur_nc_id,            &
      &                           extcur(1:nextcur))
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
       END IF
 
-      status = nf_inq_varid(result_ncid, 'vmec_curtor', vmec_curtor_id)
+      status = nf_inq_varid(result_ncid, 'vmec_curtor',                        &
+     &                      vmec_curtor_nc_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
-      status = nf_put_var_double(result_ncid, vmec_curtor_id,                  &
+      status = nf_put_var_double(result_ncid, vmec_curtor_nc_id,               &
      &                           curtor)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       status = nf_inq_varid(result_ncid, 'vmec_pres_scale',                    &
-     &                      vmec_pres_scale_id)
+     &                      vmec_pres_scale_nc_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
-      status = nf_put_var_double(result_ncid, vmec_pres_scale_id,              &
+      status = nf_put_var_double(result_ncid, vmec_pres_scale_nc_id,           &
      &                           pres_scale)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       boundary_size(1) = 2*ntor + 1
       boundary_size(2) = mpol1 + 1
 
-      status = nf_inq_varid(result_ncid, 'vmec_rbc', vmec_rbc_id)
+      status = nf_inq_varid(result_ncid, 'vmec_rbc', vmec_rbc_nc_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
-      status = nf_put_vara_double(result_ncid, vmec_rbc_id,                    &
+      status = nf_put_vara_double(result_ncid, vmec_rbc_nc_id,                 &
      &                            (/ 1, 1 /), boundary_size,                   &
      &                            rbc(-ntor:ntor,0:mpol1))
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
-      status = nf_inq_varid(result_ncid, 'vmec_rbs', vmec_rbs_id)
+      status = nf_inq_varid(result_ncid, 'vmec_rbs', vmec_rbs_nc_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
-      status = nf_put_vara_double(result_ncid, vmec_rbs_id,                    &
+      status = nf_put_vara_double(result_ncid, vmec_rbs_nc_id,                 &
      &                            (/ 1, 1 /), boundary_size,                   &
      &                            rbs(-ntor:ntor,0:mpol1))
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
-      status = nf_inq_varid(result_ncid, 'vmec_zbc', vmec_zbc_id)
+      status = nf_inq_varid(result_ncid, 'vmec_zbc', vmec_zbc_nc_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
-      status = nf_put_vara_double(result_ncid, vmec_zbc_id,                    &
+      status = nf_put_vara_double(result_ncid, vmec_zbc_nc_id,                 &
      &                            (/ 1, 1 /), boundary_size,                   &
      &                            zbc(-ntor:ntor,0:mpol1))
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
-      status = nf_inq_varid(result_ncid, 'vmec_zbs', vmec_zbs_id)
+      status = nf_inq_varid(result_ncid, 'vmec_zbs', vmec_zbs_nc_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
-      status = nf_put_vara_double(result_ncid, vmec_zbs_id,                    &
+      status = nf_put_vara_double(result_ncid, vmec_zbs_nc_id,                 &
      &                            (/ 1, 1 /), boundary_size,                   &
      &                            zbs(-ntor:ntor,0:mpol1))
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
@@ -5925,31 +5997,31 @@
 
 !  Local variables
       INTEGER                       :: status
-      INTEGER                       :: vmec_l_sub_i_id
-      INTEGER                       :: vmec_kappa_p_id
-      INTEGER                       :: vmec_xc_id
+      INTEGER                       :: vmec_l_sub_i_nc_id
+      INTEGER                       :: vmec_kappa_p_nc_id
+      INTEGER                       :: vmec_xc_nc_id
       REAL (rprec)                  :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      status = nf_inq_varid(result_ncid, 'vmec_xc', vmec_xc_id)
+      status = nf_inq_varid(result_ncid, 'vmec_xc', vmec_xc_nc_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
-      status = nf_put_vara_double(result_ncid, vmec_xc_id,                     &
+      status = nf_put_vara_double(result_ncid, vmec_xc_nc_id,                  &
      &                            (/ 1 /), (/ SIZE(xc) /), xc)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       status = nf_inq_varid(result_ncid, 'vmec_l_sub_i',                       &
-     &                      vmec_l_sub_i_id)
+     &                      vmec_l_sub_i_nc_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
-      status = nf_put_var1_double(result_ncid, vmec_l_sub_i_id,                &
+      status = nf_put_var1_double(result_ncid, vmec_l_sub_i_nc_id,             &
      &                            current_step, vvc_smaleli)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       status = nf_inq_varid(result_ncid, 'vmec_kappa_p',                       &
-     &                      vmec_kappa_p_id)
+     &                      vmec_kappa_p_nc_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
-      status = nf_put_var1_double(result_ncid, vmec_kappa_p_id,                &
+      status = nf_put_var1_double(result_ncid, vmec_kappa_p_nc_id,             &
      &                            current_step, vvc_kappa_p)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
@@ -5980,31 +6052,31 @@
 
 !  Local variables
       INTEGER                       :: status
-      INTEGER                       :: vmec_l_sub_i_id
-      INTEGER                       :: vmec_kappa_p_id
-      INTEGER                       :: vmec_xc_id
+      INTEGER                       :: vmec_l_sub_i_nc_id
+      INTEGER                       :: vmec_kappa_p_nc_id
+      INTEGER                       :: vmec_xc_nc_id
       REAL (rprec)                  :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      status = nf_inq_varid(result_ncid, 'vmec_xc', vmec_xc_id)
+      status = nf_inq_varid(result_ncid, 'vmec_xc', vmec_xc_nc_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
-      status = nf_get_vara_double(result_ncid, vmec_xc_id,                     &
+      status = nf_get_vara_double(result_ncid, vmec_xc_nc_id,                  &
      &                            (/ 1 /), (/ SIZE(xc) /), xc)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       status = nf_inq_varid(result_ncid, 'vmec_l_sub_i',                       &
-     &                      vmec_l_sub_i_id)
+     &                      vmec_l_sub_i_nc_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
-      status = nf_get_var1_double(result_ncid, vmec_l_sub_i_id,                &
+      status = nf_get_var1_double(result_ncid, vmec_l_sub_i_nc_id,             &
      &                            current_step, vvc_smaleli)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       status = nf_inq_varid(result_ncid, 'vmec_kappa_p',                       &
-     &                      vmec_kappa_p_id)
+     &                      vmec_kappa_p_nc_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
-      status = nf_get_var1_double(result_ncid, vmec_kappa_p_id,                &
+      status = nf_get_var1_double(result_ncid, vmec_kappa_p_nc_id,             &
      &                            current_step, vvc_kappa_p)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 

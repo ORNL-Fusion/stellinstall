@@ -20,6 +20,8 @@
       INTEGER, DIMENSION(nbcoilsp,nbsetsp) :: indxbfld
       REAL(rprec), DIMENSION(-ntord:ntord,0:mpol1d) ::
      1   rbs, zbc, rbc, zbs
+      REAL(rprec), DIMENSION(-ntord:ntord,0:mpol1d) :: rhoc
+      REAL(rprec), DIMENSION(-ntord:ntord,0:mpol1d) :: rhos
       REAL(rprec) :: time_slice, curtor, delt, ftol, tcon0,
      1   gamma, phiedge, phidiam, sigma_current, sigma_delphid, tensi,
      2   tensp, tensi2, fpolyi, presfac, mseangle_offset, pres_offset,
@@ -67,26 +69,27 @@
       CHARACTER(len=100) :: input_extension
 
       NAMELIST /indata/ mgrid_file, time_slice, nfp, ncurr, nsin,
-     1   niter, nstep, nvacskip, delt, ftol, gamma, am, ai, ac, aphi,
-     1   pcurr_type, pmass_type, piota_type,
-     1   am_aux_s, am_aux_f, ai_aux_s, ai_aux_f, ac_aux_s, ac_aux_f,  ! J Hanson 2010-03-16
-     1   ah, at, bcrit,                                               ! WAC (anisotropic pres)
-     2   rbc, zbs, rbs, zbc, spres_ped, pres_scale, raxis_cc, zaxis_cs, 
-     3   raxis_cs, zaxis_cc, mpol, ntor, ntheta, nzeta, mfilter_fbdy,
-     3   nfilter_fbdy, niter_array,
-     4   ns_array, ftol_array, tcon0, precon_type, prec2d_threshold,
-     4   curtor, sigma_current, extcur, omp_num_threads,
-     5   phiedge, psa, pfa, isa, ifa, imatch_phiedge, iopt_raxis, 
-     6   tensi, tensp, mseangle_offset, mseangle_offsetm, imse, 
-     7   isnodes, rstark, datastark, sigma_stark, itse, ipnodes, 
-     8   presfac, pres_offset, rthom, datathom, sigma_thom, phidiam, 
-     9   sigma_delphid, tensi2, fpolyi, nflxs, indxflx, dsiobt, 
-     A   sigma_flux, nbfld, indxbfld, bloat, raxis, zaxis,
-     A   bbc, sigma_b, lpofr, lforbal, lfreeb, lmove_axis, lrecon, lmac, 
-     B   lasym, ledge_dump, lspectrum_dump, loptim, lrfp,
-     C   loldout, lwouttxt, ldiagno, lfull3d1out, max_main_iterations,     ! J Geiger 2010-05-04
-     D   lgiveup,fgiveup,                                                  ! M.Drevlak 2012-05-10
-     E   lbsubs                                                            ! 2014-01-12 See jxbforce
+     &   niter, nstep, nvacskip, delt, ftol, gamma, am, ai, ac, aphi,
+     &   pcurr_type, pmass_type, piota_type,
+     &   am_aux_s, am_aux_f, ai_aux_s, ai_aux_f, ac_aux_s, ac_aux_f,  ! J Hanson 2010-03-16
+     &   ah, at, bcrit,                                               ! WAC (anisotropic pres)
+     &   rhoc, rhos,
+     &   rbc, zbs, rbs, zbc, spres_ped, pres_scale, raxis_cc, zaxis_cs,
+     &   raxis_cs, zaxis_cc, mpol, ntor, ntheta, nzeta, mfilter_fbdy,
+     &   nfilter_fbdy, niter_array,
+     &   ns_array, ftol_array, tcon0, precon_type, prec2d_threshold,
+     &   curtor, sigma_current, extcur, omp_num_threads,
+     &   phiedge, psa, pfa, isa, ifa, imatch_phiedge, iopt_raxis,
+     &   tensi, tensp, mseangle_offset, mseangle_offsetm, imse,
+     &   isnodes, rstark, datastark, sigma_stark, itse, ipnodes,
+     &   presfac, pres_offset, rthom, datathom, sigma_thom, phidiam,
+     &   sigma_delphid, tensi2, fpolyi, nflxs, indxflx, dsiobt,
+     &   sigma_flux, nbfld, indxbfld, bloat, raxis, zaxis,
+     &   bbc, sigma_b, lpofr, lforbal, lfreeb, lmove_axis, lrecon, lmac,
+     &   lasym, ledge_dump, lspectrum_dump, loptim, lrfp,
+     &   loldout, lwouttxt, ldiagno, lfull3d1out, max_main_iterations,     ! J Geiger 2010-05-04
+     &   lgiveup,fgiveup,                                                  ! M.Drevlak 2012-05-10
+     &   lbsubs                                                            ! 2014-01-12 See jxbforce
 
       NAMELIST /mseprofile/ mseprof
 
