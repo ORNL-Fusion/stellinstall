@@ -5,22 +5,28 @@
       USE vacmod
       USE safe_open_mod
       USE parallel_include_module
+      USE rho_bndy
+
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
-      INTEGER ier_flag, iunit
-      CHARACTER(LEN=*) :: in_file
+      CHARACTER (len=*), INTENT(in)    :: in_file
+      INTEGER, INTENT(out)             :: ier_flag
+      INTEGER, INTENT(out)             :: iunit
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
-      INTEGER :: ireadseq, iosnml
+      INTEGER                          :: ireadseq
+      INTEGER                          :: iosnml
+      CLASS (rho_bndy_class), POINTER  :: bndy => null()
+
 C-----------------------------------------------
       iunit = indata0+rank
       CALL safe_open (iunit, ireadseq, in_file, 'old', 'formatted')
       IF (ireadseq .ne. 0) THEN
          WRITE (6, '(3a,i4)') ' In VMEC, error opening input file: ',
-     1   TRIM(in_file), '. Iostat = ', ireadseq
+     &   TRIM(in_file), '. Iostat = ', ireadseq
          ier_flag = input_error_flag
          RETURN
       ENDIF
@@ -28,7 +34,7 @@ C-----------------------------------------------
       CALL read_namelist (iunit, iosnml, 'indata')
       IF (iosnml .ne. 0) THEN
          WRITE (6, '(a,i4)') 
-     1   ' In VMEC, indata NAMELIST error: iostat = ', iosnml
+     &   ' In VMEC, indata NAMELIST error: iostat = ', iosnml
          ier_flag = input_error_flag
          RETURN
       ENDIF
@@ -71,6 +77,18 @@ C-----------------------------------------------
       nf1 = 2*nf+1
       mnpd = mf1*nf1
       nfper = nfp
+
+!  Set rb* zb* values from rho boundary.
+      IF (ANY(rhoc .ne. 0)) THEN
+         bndy => rho_bndy_class(mpol)
+         CALL bndy%to_rz(mpol, ntor, rhoc, raxis_cc, zaxis_cs, rbc,            &
+     &                   zbs, rho_bndy_sym)
+         IF (lasym) THEN
+            CALL bndy%to_rz(mpol, ntor, rhos, raxis_cs, zaxis_cc, rbs,         &
+     &                      zbc, rho_bndy_asym)
+         END IF
+         DEALLOCATE(bndy)
+      END IF
 
 !
 !     INDEXING FOR PACKED-ARRAY STRUCTURE OF XC, GC 

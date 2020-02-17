@@ -160,6 +160,9 @@
       at(0) = 1;  at(1:) = 0
       ah = 0
 
+      rhoc = 0
+      rhos = 0
+
 !
 !     BACKWARDS COMPATIBILITY
 !
