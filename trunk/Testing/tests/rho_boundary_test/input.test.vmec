@@ -10,9 +10,9 @@ NS_ARRAY = 15,
 FTOL_ARRAY = 1.0E-20,
 NITER = 25000,
 NSTEP = 200,
-NTOR = 0,
-MPOL = 2,
-NZETA = 1,
+NTOR = 2,
+MPOL = 3,
+NZETA = -1,
 NVACSKIP = 9,
 LASYM = F,
 OMP_NUM_THREADS = 1,
@@ -23,10 +23,25 @@ PHIEDGE = -0.05,
 BLOAT = 1.0,
 
 ! Initial Position.
-RAXIS_CC(0) = 1.0,
-ZAXIS_CS(0) = 0.0,
+RHO_RAXIS_CC(0) = 1.0,
+RHO_ZAXIS_CS(0) = 0.0,
+RHO_RAXIS_CC(1) = 0.1,
+RHO_ZAXIS_CS(1) = 0.05,
+RHO_RAXIS_CC(2) = 0.01,
+RHO_ZAXIS_CS(2) = 0.005,
 RHOC(0,0) = 0.25
-RHOC(0,1) = 0.0
+!RHOC(1,0) = 0.01
+!RHOC(2,0) = 0.001
+!RHOC(-2,1) = 0.005
+!RHOC(-1,1) = -0.05
+!RHOC(0,1) = 0.003
+!RHOC(1,1) = 0.1
+!RHOC(2,1) = 0.01
+!RHOC(-2,2) = 0.0
+!RHOC(-1,2) = 0.0
+!RHOC(0,2) = 0.0
+!RHOC(1,2) = 0.0
+!RHOC(2,2) = 0.0
 
 ! Plasma current parameters.
 NCURR = 1,

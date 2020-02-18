@@ -1024,7 +1024,8 @@
      &                      am, am_aux_s, am_aux_f,                            &
      &                      extcur, curtor, phiedge, pres_scale,               &
      &                      bloat, lfreeb, aphi, rhoc, rhos,                   &
-     &                      raxis_cc, raxis_cs, zaxis_cc, zaxis_cs,            &
+     &                      rho_raxis_cc, rho_raxis_cs,                        &
+     &                      rho_zaxis_cc, rho_zaxis_cs,                        &
      &                      ntor, mpol
       USE xstuff, only: xc, xcdot
       USE vmec_main, only: irzloff, currv, ivac
@@ -1101,7 +1102,7 @@
 !  Convert from rho to rz harmonics.
             bndy => rho_bndy_class(mpol)
             CALL bndy%to_rz(mpol, ntor, rhoc(-ntor:ntor,0:mpol-1),             &
-     &                      raxis_cc(0:ntor), zaxis_cs(0:ntor),                &
+     &                      rho_raxis_cc(0:ntor), rho_zaxis_cs(0:ntor),        &
      &                      rbc(-ntor:ntor,0:mpol-1),                          &
      &                      zbs(-ntor:ntor,0:mpol-1), rho_bndy_sym)
             DEALLOCATE(bndy)
@@ -1120,7 +1121,7 @@
 !  Convert from rho to rz harmonics.
             bndy => rho_bndy_class(mpol)
             CALL bndy%to_rz(mpol, ntor, rhos(-ntor:ntor,0:mpol-1),             &
-     &                      raxis_cs(0:ntor), zaxis_cc(0:ntor),                &
+     &                      rho_raxis_cs(0:ntor), rho_zaxis_cc(0:ntor),        &
      &                      rbs(-ntor:ntor,0:mpol-1),                          &
      &                      zbc(-ntor:ntor,0:mpol-1), rho_bndy_asym)
             DEALLOCATE(bndy)
