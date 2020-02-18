@@ -89,55 +89,52 @@
 
 !  Auxiliary Model Parameters
 !>  1D Array of function density profile parameters. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_ne_b_id     = 59
+      INTEGER, PARAMETER :: siesta_pp_ne_b_id     = 65
 !>  1D Array of segment density profile s poitions. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_ne_as_id    = 60
+      INTEGER, PARAMETER :: siesta_pp_ne_as_id    = 66
 !>  1D Array of segment density profile f values. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_ne_af_id    = 61
+      INTEGER, PARAMETER :: siesta_pp_ne_af_id    = 67
 !>  1D Array of function sxrem profile parameters. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_sxrem_b_id  = 62
+      INTEGER, PARAMETER :: siesta_pp_sxrem_b_id  = 68
 !>  1D Array of segment sxrem profile s poitions. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_sxrem_as_id = 63
+      INTEGER, PARAMETER :: siesta_pp_sxrem_as_id = 69
 !>  1D Array of segment sxrem profile f values. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_sxrem_af_id = 64
+      INTEGER, PARAMETER :: siesta_pp_sxrem_af_id = 70
 !>  1D Array of function electron temperature profile parameters. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_te_b_id     = 65
+      INTEGER, PARAMETER :: siesta_pp_te_b_id     = 71
 !>  1D Array of segment electron temperature profile s poitions. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_te_as_id    = 66
+      INTEGER, PARAMETER :: siesta_pp_te_as_id    = 72
 !>  1D Array of segment electron temperature profile f values. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_te_af_id    = 67
+      INTEGER, PARAMETER :: siesta_pp_te_af_id    = 73
 !>  1D Array of function ion temperature profile parameters. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_ti_b_id     = 68
+      INTEGER, PARAMETER :: siesta_pp_ti_b_id     = 74
 !>  1D Array of segment ion temperature profile s poitions. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_ti_as_id    = 69
+      INTEGER, PARAMETER :: siesta_pp_ti_as_id    = 75
 !>  1D Array of segment ion temperature profile f values. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_ti_af_id    = 70
-!>  1D Array of function zeff profile parameters. Defined in
-!>  @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_ze_b_id     = 71
-!>  1D Array of segment zeff profile s poitions. Defined in
-!>  @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_ze_as_id    = 72
-!>  1D Array of segment zeff profile f values. Defined in
-!>  @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_ze_af_id    = 73
+      INTEGER, PARAMETER :: siesta_pp_ti_af_id    = 76
+!>  1D Array of function zeff profile parameters. Defined in @ref pprofile_T.
+      INTEGER, PARAMETER :: siesta_pp_ze_b_id     = 77
+!>  1D Array of segment zeff profile s poitions. Defined in @ref pprofile_T.
+      INTEGER, PARAMETER :: siesta_pp_ze_as_id    = 78
+!>  1D Array of segment zeff profile f values. Defined in @ref pprofile_T.
+      INTEGER, PARAMETER :: siesta_pp_ze_af_id    = 79
 
-!  Skip 74-82 since these parameters have a VMEC value but not a SIESTA analog.
+!  Skip 80-88 since these parameters have a VMEC value but not a SIESTA analog.
 !>  Plasma Phi offset. This is a parameter to allow changing the phi angle of a
 !>  quasi helical state in an RFP. Defined in @ref vmec_equilibrium.
-      INTEGER, PARAMETER :: siesta_phi_offset_id  = 83
+      INTEGER, PARAMETER :: siesta_phi_offset_id  = 89
 !>  Plasma z offset. This is a parameter to allow changing the vertical shift of
 !>  the plasma
-      INTEGER, PARAMETER :: siesta_z_offset_id    = 84
+      INTEGER, PARAMETER :: siesta_z_offset_id    = 90
 
 !>  Helical perturbation parameter.
-      INTEGER, PARAMETER :: siesta_helpert_id     = 85
+      INTEGER, PARAMETER :: siesta_helpert_id     = 91
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS

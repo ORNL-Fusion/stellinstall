@@ -14,7 +14,7 @@ cut_dg2 = 0.0,
 astep_max = 100.0,
 step_type = 'seg',
 
-n_rp = 8,
+n_rp = 13,
 
 rp_type(1) = 'rhoc',
 rp_vrnc(1) = 0.01,
@@ -55,6 +55,30 @@ rp_type(8) = 'rhoc',
 rp_vrnc(8) = 0.0001,
 rp_index(8) = 2,
 rp_index2(8) = 1,
+
+rp_type(9) = 'rho_raxis_cc',
+rp_vrnc(9) = 0.01,
+rp_index(9) = 0,
+
+rp_type(10) = 'rho_raxis_cc',
+rp_vrnc(10) = 0.001,
+rp_index(10) = 1,
+rp_index2(10) = 1,
+
+rp_type(11) = 'rho_raxis_cc',
+rp_vrnc(11) = 0.0001,
+rp_index(11) = 2,
+rp_index2(11) = 1,
+
+rp_type(12) = 'rho_zaxis_cs',
+rp_vrnc(12) = 0.0001,
+rp_index(12) = 1,
+rp_index2(12) = 1,
+
+rp_type(13) = 'rho_zaxis_cs',
+rp_vrnc(13) = 0.00001,
+rp_index(13) = 2,
+rp_index2(13) = 1,
 
 n_prior = 25
 
