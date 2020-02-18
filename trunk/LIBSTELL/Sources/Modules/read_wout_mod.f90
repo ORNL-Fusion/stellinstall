@@ -18,7 +18,8 @@
 !                         for the computed equilibrium
 !
 
-      USE vmec_input, ONLY: lrfp, lmove_axis, nbfld
+      USE vmec_input, ONLY: lrfp, lmove_axis, nbfld, long_name,                &
+     &                      short_name
       USE mgrid_mod
 
       IMPLICIT NONE
@@ -243,8 +244,8 @@
          anglemse, rmid, qmid, shear, presmid, alfa, curmid, rstark,    &
          qmeas, datastark, rthom, datathom, dsiobt      
       LOGICAL :: lasym, lthreed, lwout_opened=.false.
-      CHARACTER :: mgrid_file*200, input_extension*100
-      CHARACTER :: pmass_type*20, pcurr_type*20, piota_type*20
+      CHARACTER (len=long_name):: mgrid_file, input_extension
+      CHARACTER (len=short_name):: pmass_type, pcurr_type, piota_type
 
       INTEGER, PARAMETER :: norm_term_flag=0,                           &
          bad_jacobian_flag=1, more_iter_flag=2, jac75_flag=4
