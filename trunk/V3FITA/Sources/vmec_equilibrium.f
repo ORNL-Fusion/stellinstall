@@ -1100,8 +1100,10 @@
 
 !  Convert from rho to rz harmonics.
             bndy => rho_bndy_class(mpol)
-            CALL bndy%to_rz(mpol, ntor, rhoc, raxis_cc, zaxis_cs, rbc,         &
-     &                      zbs, rho_bndy_sym)
+            CALL bndy%to_rz(mpol, ntor, rhoc(-ntor:ntor,0:mpol-1),             &
+     &                      raxis_cc(0:ntor), zaxis_cs(0:ntor),                &
+     &                      rbc(-ntor:ntor,0:mpol-1),                          &
+     &                      zbs(-ntor:ntor,0:mpol-1), rho_bndy_sym)
             DEALLOCATE(bndy)
 
             IF (.not.lfreeb) THEN
@@ -1117,8 +1119,10 @@
 
 !  Convert from rho to rz harmonics.
             bndy => rho_bndy_class(mpol)
-            CALL bndy%to_rz(mpol, ntor, rhos, raxis_cs, zaxis_cc, rbs,         &
-     &                      zbc, rho_bndy_asym)
+            CALL bndy%to_rz(mpol, ntor, rhos(-ntor:ntor,0:mpol-1),             &
+     &                      raxis_cs(0:ntor), zaxis_cc(0:ntor),                &
+     &                      rbs(-ntor:ntor,0:mpol-1),                          &
+     &                      zbc(-ntor:ntor,0:mpol-1), rho_bndy_asym)
             DEALLOCATE(bndy)
 
             IF (.not.lfreeb) THEN
