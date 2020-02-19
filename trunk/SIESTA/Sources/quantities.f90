@@ -252,7 +252,7 @@
 !  UTILITY SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  @brief intialize quantities.
+!>  @brief Intialize quantities.
 !-------------------------------------------------------------------------------
       SUBROUTINE init_quantities
       USE descriptor_mod, ONLY: LSCALAPACK

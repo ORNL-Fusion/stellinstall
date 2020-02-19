@@ -1,7 +1,14 @@
-!>  \brief Module contained subroutines for updating (from t to t+delta_t) the magnetic field and pressure as part of the SIESTA project.
-!!  Stores updated values of JPMN?H, JBSUBXMN?H in Quantities Module
-!!  \author S. P. Hirshman and R. Sanchez
-!!  \date Sep 15, 2006
+!*******************************************************************************
+!>  @file utilities.f90
+!>  @brief Contains module @ref utilities.
+!
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
+!
+!>  This file contains subroutines for aupdating from t to t + delta_t the
+!>  magnetic field and pressure as part of the SIESTA project. Stores updated
+!>  values of JPMN*H, JBSUBXMN*H in Quantities Module.
+!*******************************************************************************
       MODULE siesta_state
 #define DUMP_STATE
       USE stel_kinds
@@ -19,7 +26,11 @@
 
       IMPLICIT NONE
 
-      LOGICAL, PUBLIC :: lfirst=.TRUE.
+!*******************************************************************************
+!  Module variables
+!*******************************************************************************
+!>  Flag to indicate that this was the first run.
+      LOGICAL, PUBLIC :: lfirst = .true.
 
       CONTAINS
 
@@ -129,7 +140,7 @@
              ' (J*B)/|JxB| (rms): ', 1pe11.3,' (J_par)/|J_tot| (rms): ',       &
              1pe11.3,'   DIV-J (rms): ',1pe11.3)
 
-      END SUBROUTINE update_state
+      END SUBROUTINE
 
 !-------------------------------------------------------------------------------
 !>  @brief Update the magentic and pressure for the current SIESTA state.

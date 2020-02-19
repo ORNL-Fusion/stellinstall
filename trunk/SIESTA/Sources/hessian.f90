@@ -72,7 +72,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL(dp), DIMENSION(neqs), INTENT(inout) :: buffer
+      REAL(dp), DIMENSION(:), INTENT(inout) :: buffer
 
 !  Start of executable code
       IF (PARSOLVER) THEN
@@ -93,7 +93,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL(dp), DIMENSION(mblk_size,ns), INTENT(inout) :: buffer
+      REAL(dp), DIMENSION(:,:), INTENT(inout) :: buffer
 
 !  Start of executable code
       IF (PARSOLVER) THEN
@@ -115,7 +115,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(inout) :: buffer
+      REAL (dp), DIMENSION(:,:,:), INTENT(inout) :: buffer
 
 !  Start of executable code
       IF (PARSOLVER) THEN

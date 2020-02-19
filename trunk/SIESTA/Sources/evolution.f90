@@ -1,88 +1,129 @@
-!>  \brief Module for controlling iteration ("time") evolution of MHD convergence sequence.
-!!  Updates the CONTRAVARIANT Fourier components of the "velocity" field (displacement X delt)
+!*******************************************************************************
+!>  @file utilities.f90
+!>  @brief Contains module @ref utilities.
+!
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
+!
+!>  This file contains subroutines for controlling iteration ("time") evolution
+!>  of MHD convergence sequence. Updates the contravariant components of the
+!>  velocity field (displacement x delt).
+!*******************************************************************************
       MODULE evolution
       USE v3_utilities, ONLY: assert
       USE stel_kinds
       USE stel_constants
       USE shared_data
       USE shared_functions
-      USE island_params, mpol=>mpol_i, ntor=>ntor_i, ns=>ns_i,          &
+      USE island_params, mpol=>mpol_i, ntor=>ntor_i, ns=>ns_i,                 &
           nfp=>nfp_i, mnmax=>mnmax_i, hs=>hs_i
       USE timer_mod
       USE siesta_namelist, ONLY: eta_factor
       USE descriptor_mod, ONLY: iam, nprocs
-      USE nscalingtools, ONLY: SKSDBG, PARSOLVER, PARFUNCTISL, MPI_ERR, &
+      USE nscalingtools, ONLY: SKSDBG, PARSOLVER, PARFUNCTISL, MPI_ERR,        &
                                startglobrow, endglobrow, rcounts, disp
       USE mpi_inc
+
+
       IMPLICIT NONE
 
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      INTEGER, PARAMETER :: n_bsupu_full=1
-      INTEGER, PARAMETER :: ndamp = 20              !<number smoothing steps for conj grad
-      INTEGER, PARAMETER :: ncongrad_steps = 100    !<max number of conj grad steps
-      LOGICAL            :: l_EPAR                  !<=TRUE when applying parallel tearing perturbations 
-      LOGICAL            :: l_Gmres                 !<=TRUE performs GMRES iterations 
-      LOGICAL            :: l_conjmin               !<=TRUE if conjugate gradient lowers fsq_min
+!*******************************************************************************
+!  Module Parameters
+!*******************************************************************************
+!>  Number smoothing steps for conj grad. FIXME: This is redefined below.
+      INTEGER, PARAMETER :: ndamp          = 20
+!>  Max number of conj grad steps.
+      INTEGER, PARAMETER :: ncongrad_steps = 100
+!>  Number of steps before print out.
+      INTEGER, PARAMETER :: nprint_step    = 1
 
-      INTEGER            :: nprint_step=1
-      INTEGER            :: nfun_calls              !<average number of funct_island calls per processor
-      INTEGER            :: js, moff, noff
+!*******************************************************************************
+!  Module variables
+!*******************************************************************************
+!>  Apply parallel tearing perturbation.
+      LOGICAL                              :: l_EPAR
+!>  GMRES iteration.
+      LOGICAL                              :: l_Gmres
+!>  Conjugate gradient iteration.
+      LOGICAL                              :: l_conjmin
 
-      REAL(dp)           :: tau_damp, delt_cg=1
-      REAL(dp)           :: fsqprev, fsqprev1, levm_loc
-      REAL(dp)           :: fsq_min, fsq_ratio, fsq_ratio1 
-      REAL(dp)           :: otau(ndamp)
-      REAL(dp), DIMENSION(:), ALLOCATABLE :: xcdot
-            
-#if defined(PETSC_OPT)
-      INTEGER(KIND=SELECTED_INT_KIND(10)) Apc
-      INTEGER(KIND=SELECTED_INT_KIND(10)) subApc(1048)
-      INTEGER(KIND=SELECTED_INT_KIND(10)) ksp
-      INTEGER(KIND=SELECTED_INT_KIND(10)) subksp(1048)
-#endif
-!-----------------------------------------------
+!>  Average number of funct_island calls per process.
+      INTEGER                              :: nfun_calls
+
+!>  Change in conjugate gradient. FIXME: Shouldn't initalize variables here.
+      REAL (dp)                            :: delt_cg = 1
+!>  Previous force squared residule.
+      REAL (dp)                            :: fsqprev
+!>  Working previous force squared residule.
+      REAL (dp)                            :: fsqprev1
+!>  Local levenburg mutliplier.
+      REAL (dp)                            :: levm_loc
+!>  Force squared residule minimum.
+      REAL (dp)                            :: fsq_min
+!>  Force squared residule ratio.
+      REAL (dp)                            :: fsq_ratio
+!>  Working force squared residule ratio.
+      REAL (dp)                            :: fsq_ratio1
+!>  Damping work array.
+      REAL (dp), DIMENSION(ndamp)          :: otau
+!>  SIESTA state change.
+      REAL (dp), DIMENSION(:), ALLOCATABLE :: xcdot
+
       CONTAINS
-      
 
-!>  \brief Performs initial convergence of force residuals using diagonal preconditioner only.
-!!  Terminates when the force residual stops changing by more than a factor of 2
-      SUBROUTINE converge_diagonal (wout_file, ftol)
-      USE siesta_namelist, ONLY: ladd_pert, l_output_alliter   !R. Sanchez, added Jul '10: L_OUTPUT_ALLITER Dump info on file at each timestep
+!*******************************************************************************
+!  UTILITY SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Performs initial convergence of force residuals using diagonal
+!>         preconditioner only.
+!>
+!>  Terminates when the force residual stops changing by more than a factor of
+!>  2 or the number of iterations exceeds a specified value (niter_max).
+!>
+!>  @param[in] wout_file Name of VMEC wout file that SIESTA reads.
+!>  @param[in] ftol      Force residual tolerance.
+!-------------------------------------------------------------------------------
+      SUBROUTINE converge_diagonal(wout_file, ftol)
+      USE siesta_namelist, ONLY: ladd_pert, l_output_alliter
       USE perturbation, ONLY: add_perturb, niter_max
       USE dumping_mod, ONLY: write_output
 
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      CHARACTER*(*), INTENT(IN) :: wout_file  !<name of VMEC wout file that SIESTA reads
-      REAL(dp), INTENT(IN)      :: ftol       !<force residual tolerance
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      REAL(dp),PARAMETER :: fsq_prec = 1.E-10_dp !<threshold force for turning on block preconditioner
-      LOGICAL            :: l_iterate            !<call evolve until fsq_ratio stops decreasing
-      REAL(dp)           :: fsq_block, t1, t2
-!-----------------------------------------------
-!
-!     Written by S.P.Hirshman 060308
-!
+      IMPLICIT NONE
 
-!Test tri-diag structure
-!     CALL TriDiag_Test (xc, gc, 1.E-8_dp)
+!  Declare Arguments
+      CHARACTER (len=*), INTENT(in) :: wout_file
+      REAL(dp), INTENT(IN)          :: ftol
 
+!  Local Variables
+      LOGICAL                       :: l_iterate
+      REAL (dp)                     :: fsq_block
+      REAL (dp)                     :: t1
+      REAL (dp)                     :: t2
+
+!  Local Parameters
+      REAL (dp),PARAMETER           :: fsq_prec = 1.E-10_dp
+
+
+!  Start of executable code.
       fsq_block = MAX(ftol, fsq_prec)
-      l_iterate = .TRUE.
-      l_Gmres   = .TRUE.
-      nprecon_type = PREDIAG
-      IF (nprecon .NE. 0) nprecon_type = PREBLOCK
-      niter = 1
-      levm_scale = 1    !MRC
-      in_hess_nfunct=0; out_hess_nfunct=0
-      
-!Use column-scaled fsq_total here      
 
+!  Call evolve until fsq_ratio stops decreasing.
+      l_iterate = .true.
+      l_Gmres   = .true.
+      nprecon_type = PREDIAG
+
+      IF (nprecon .ne. 0) THEN
+         nprecon_type = PREBLOCK
+      END IF
+      niter = 1
+
+!  Need to reset for reconstruction purposes.
+      levm_scale = 1
+      in_hess_nfunct = 0
+      out_hess_nfunct = 0
+      
+!  Use column-scaled fsq_total here.
       DO WHILE (l_iterate)
          CALL second0(t1)
          CALL evolve
@@ -90,55 +131,62 @@
          diag_evolve_time=diag_evolve_time+(t2-t1)
 
          IF (l_output_alliter) THEN
-            CALL write_output (wout_file, niter, .FALSE.)   !MRC Do not close wout_file
+!  Do not close wout_file. This session could be run from inside a
+!  reconstruction instance.
+            CALL write_output(wout_file, niter, .false.)
          END IF
 
          l_iterate = fsq_ratio1 .le. 0.5_dp    .and.                           &
                      fsq_total1 .gt. fsq_block .and.                           &
-                     niter .lt. niter_max
+                     niter      .lt. niter_max
 
-         IF (ladd_pert .AND. fsq_total1.lt.100*fsq_block) THEN
-            l_init_state=.TRUE.
+         IF (ladd_pert .and. fsq_total1.lt.100*fsq_block) THEN
+            l_init_state = .true.
             CALL second0(t1)
             CALL add_perturb(xc, getwmhd)
             CALL second0(t2)
             diag_add_pert_time=diag_add_pert_time+(t2-t1)
             ladd_pert = .FALSE.
          END IF
-         niter = niter+1
+         niter = niter + 1
       END DO
 
-      END SUBROUTINE converge_diagonal
+      END SUBROUTINE
 
-
-!>  \brief Performs convergence of force residuals using block preconditioner.
-!!  Terminates when the force residual drops below ftol or the number of
-!!  iterations exceeds a specified value (niter_max)
-!!  Applies an external island perturbation if not previously done.
-      SUBROUTINE converge_blocks (wout_file, ftol)
+!-------------------------------------------------------------------------------
+!>  @brief Performs convergence of force residuals using block preconditioner.
+!>
+!>  Terminates when the force residual drops below ftol or the number of
+!>  iterations exceeds a specified value (niter_max). Applies an external
+!>  island perturbation if not previously done.
+!>
+!>  @param[in] wout_file Name of VMEC wout file that SIESTA reads.
+!>  @param[in] ftol      Force residual tolerance.
+!-------------------------------------------------------------------------------
+      SUBROUTINE converge_blocks(wout_file, ftol)
       USE siesta_namelist, ONLY: l_output_alliter, ladd_pert
-      USE perturbation, ONLY: add_perturb, niter_max   ! R. Sanchez, added Jul '10: Dump info on file at each timestep
+      USE perturbation, ONLY: add_perturb, niter_max
       USE dumping_mod, ONLY: write_output
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      CHARACTER*(*), INTENT(IN)  :: wout_file  !<name of VMEC wout file that SIESTA reads
-      REAL(dp), INTENT(IN)       :: ftol       !<force residual tolerance
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      INTEGER :: nrow
-      REAL(dp),PARAMETER :: fsq_prec = 1.E-10_dp !<threshold force for turning on block preconditioner
-      LOGICAL            :: l_iterate            !<controls iteration sequence
-      REAL(dp)           :: t1, t2
-!-----------------------------------------------
-!
-!     Written by S.P.Hirshman 060308
-!
+
+!  Declare Arguments
+      CHARACTER (len=*), INTENT(in) :: wout_file
+      REAL (dp), INTENT(in)         :: ftol
+
+!  Local Variables
+      INTEGER                       :: nrow
+      LOGICAL                       :: l_iterate
+      REAL (dp)                     :: t1
+      REAL (dp)                     :: t2
+
+!  Local Parameters
+      REAL (dp),PARAMETER           :: fsq_prec = 1.E-10_dp
+
+!  Start of executable code.
       l_Gmres   = .FALSE.
       nprecon_type = PREBLOCK
       nprecon = 1
-!      niter_max = niter+niter_max   ! FIXME: MRC REMOVE LATER
+!      niter_max = niter + niter_max   ! FIXME: MRC REMOVE LATER
+!  Controls iteration sequence.
       l_iterate = (niter.LT.niter_max) .AND. (fsq_total1.GT.ftol) 
       nrow = 0
 
@@ -146,129 +194,158 @@
          CALL second0(t1)
          CALL evolve
          CALL second0(t2)
-         block_evolve_time=block_evolve_time+(t2-t1)
+         block_evolve_time = block_evolve_time + (t2 - t1)
 
-         IF (l_output_alliter) CALL write_output (wout_file, niter, .FALSE.)   !MRC Do not close wout_file
+         IF (l_output_alliter) THEN
+!  Do not close wout_file. This session could be run from inside a
+!  reconstruction instance.
+            CALL write_output (wout_file, niter, .false.)
+         END IF
 
-         l_iterate = (niter.LT.niter_max) .AND. (fsq_total1.GT.ftol) 
+         l_iterate = niter      .lt. niter_max .and.                           &
+                     fsq_total1 .gt. ftol
 
-         IF (.NOT.l_conjmin .AND. .NOT.l_gmres) THEN
-            IF (IAM .EQ. 0) PRINT *,'CONJ GRADIENT UNABLE TO MAKE PROGRESS'
-            l_iterate=.FALSE.
-         ELSE IF (nprecon.GT.3 .AND. fsq_ratio.GT.1.E5_dp) THEN
-!            IF (IAM.EQ.0 .AND. lverbose) PRINT 100, fsq_ratio1
+         IF (.not.l_conjmin .and. .not.l_gmres) THEN
+            IF (iam .eq. 0 .and. lverbose) THEN
+               WRITE (*,1000)
+            END IF
+            l_iterate = .false.
+!         ELSE IF (nprecon .gt. 3 .and. fsq_ratio .gt 1.E5_dp) THEN
+!  FIXME: Disabled for not so we can test convergence.
+!            IF (iam .eq. 0 .and. lverbose) THEN
+!               WRITE(*,1001), fsq_ratio1
+!            END IF
 !            l_iterate=.FALSE.
          END IF
-!STOP IF LACK OF PROGRESS
-         IF (nprecon.GT.2 .AND. ABS(1 - fsq_ratio1).LT.1.E-2_dp) THEN
+
+!  Stop is lack of progress.
+         IF (nprecon .gt. 2 .and. ABS(1 - fsq_ratio1) .lt. 1.E-2_dp) THEN
             levm_scale = levm_scale/3
-            nrow = nrow+1
-            IF (nrow.EQ.3 .AND. l_iterate) THEN
-!               l_iterate=.FALSE.
-!               IF (IAM.EQ.0 .AND. lverbose) PRINT 100, fsq_ratio1
+            nrow = nrow + 1
+            IF (nrow.EQ.3 .and. l_iterate) THEN
+!               IF (iam .eq. 0 .and. lverbose) THEN
+!                  WRITE(*,1001), fsq_ratio1
+!               END IF
+!               l_iterate = .false.
             END IF
          ELSE 
             nrow = 0
          END IF
-!In case we didn't add it in diag loop
-         IF (ladd_pert .AND. fsq_total1.LT.100*fsq_prec) THEN
-           l_init_state=.TRUE.
+
+!  In case we didn't add it in diag loop.
+         IF (ladd_pert .and. fsq_total1 .lt. 100*fsq_prec) THEN
+           l_init_state = .true.
            CALL second0(t1)
            CALL add_perturb(xc, getwmhd)
            CALL second0(t2)
-           block_add_pert_time=block_add_pert_time+(t2-t1)
+           block_add_pert_time = block_add_pert_time + (t2 - t1)
            ladd_pert = .FALSE.
-!TO OUTPUT RIGHT AFTER PERT IS APPLIED, SET l_iterate=.FALSE. HERE
+!  To output right after pert is applied, set l_iterate = .false. here.
          END IF
+
          nprecon = nprecon + 1
          niter = niter + 1
       END DO
 
-100   FORMAT (' FSQ RATIO: ',1p,e10.2, ' SIESTA CAN NOT CONVERGE FURTHER!')
+1000  FORMAT(' CONJ GRADIENT UNABLE TO MAKE PROGRESS')
+1001  FORMAT(' FSQ RATIO: ',1p,e10.2, ' SIESTA CAN NOT CONVERGE FURTHER!')
 
-      END SUBROUTINE converge_blocks
+      END SUBROUTINE
 
-!>   \brief  Initializes variables and pointers prior to calling evolve
+!-------------------------------------------------------------------------------
+!>  @brief Initializes variables and pointers prior to calling evolve.
+!-------------------------------------------------------------------------------
       SUBROUTINE init_evolution
       USE hessian, ONLY: levmarq_param0, levmarq_param, l_Compute_Hessian
-      USE quantities, ONLY: jvsupsmncf,jvsupumnsf,jvsupvmnsf,           &
-                            jvsupsmnsf,jvsupumncf,jvsupvmncf,           &
-                            fsubsmncf, fsubumnsf, fsubvmnsf,            &
-                            fsubsmnsf, fsubumncf, fsubvmncf,            &
-                            fsupsmncf, fsupumnsf, fsupvmnsf,            &
+      USE quantities, ONLY: jvsupsmncf,jvsupumnsf,jvsupvmnsf,                  &
+                            jvsupsmnsf,jvsupumncf,jvsupvmncf,                  &
+                            fsubsmncf, fsubumnsf, fsubvmnsf,                   &
+                            fsubsmnsf, fsubumncf, fsubvmncf,                   &
+                            fsupsmncf, fsupumnsf, fsupvmnsf,                   &
                             fsupsmnsf, fsupumncf, fsupvmncf
       USE shared_functions, ONLY: init_ptrs
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      INTEGER :: istat, n1
-!-----------------------------------------------
 
-!     "natural" boundary condition at origin
-!     l_push_s/l_push_u can't both be .TRUE. (linearly dependent => 0 eigenvalue in Hessian)
-!     control evolve displacements (m=1 for s,u; m=0 for v) at s=0
-      l_push_s = .FALSE.
-      l_push_u = .FALSE.
-      l_push_v = .FALSE.
+      IMPLICIT NONE
 
-      IF (l_push_u) l_push_s = .FALSE.                                    !avoid linear dependency
-      l_push_edge=.TRUE.
-!      l_push_edge=.FALSE.
+!  Local Variables
+      INTEGER :: istat
+      INTEGER :: n1
+
+!  Start of executable code.
+!  Natural boundary condition at origin. l_push_s and l_push_u can't both be
+!  true. This causes a linearly dependent => 0 eigenvalue in the Hessian.
+!  Control evolve displacements (m=1 for s,u; m=0 for v) at s=0.
+      l_push_s = .false.
+      l_push_u = .false.
+      l_push_v = .false.
+
+!avoid linear dependency
+      IF (l_push_u) THEN
+         l_push_s = .false.
+      END IF
+      l_push_edge = .true.
 
       scale_s = hs
       scale_u = SQRT(scale_s)
 
       ste = 0
-      l_EPAR = .FALSE.
+      l_EPAR = .false.
 
       nfun_calls = 0
       fsqprev = -1;  fsqprev1 = -1
       fsq_min = 1.E20_dp
       niter    = 0
       wtotal0  = -1
-      etak_tol = 1.E-01_dp                                                !initial Newton tolerance parameter
+!  Initial Newton tolerance parameter.
+      etak_tol = 1.E-01_dp
       delta_t = 1.0
-      l_linearize = .FALSE.
-      l_getfsq = .TRUE.
-      l_getwmhd= .FALSE.                                                  !set in getwmhd function
+      l_linearize = .false.
+      l_getfsq = .true.
+!  Set in getwmhd function.
+      l_getwmhd = .false.
       levmarq_param = levmarq_param0
       fsq_total = 1
-      fsq_total1= 1
+      fsq_total1 = 1
 
-      CALL ASSERT(ndims.EQ.3 .OR. ndims.EQ.6,'WRONG ndims!')
-      CALL ASSERT(mnmax.EQ.(1+mpol)*(2*ntor+1),'WRONG mnmax!')
+      CALL ASSERT(ndims .eq. 3 .or. ndims .eq. 6,'WRONG ndims!')
+      CALL ASSERT(mnmax .eq. (1 + mpol)*(2*ntor + 1),'WRONG mnmax!')
 
       n1 = ns*mnmax
       neqs = ndims*n1
-!      PRINT *,"neqs: ", neqs, __LINE__, __FILE__, ndims
 
       ALLOCATE(xc(neqs), col_scale(0:mpol,-ntor:ntor,ndims,ns), stat=istat)
       CALL ASSERT(istat.eq.0,'Allocate xc failed!')
       xc = 0
       col_scale = 1
-      CALL init_ptrs (xc, jvsupsmncf, jvsupumnsf, jvsupvmnsf,           &
-                          jvsupsmnsf, jvsupumncf, jvsupvmncf)
+      CALL init_ptrs(xc, jvsupsmncf, jvsupumnsf, jvsupvmnsf,                   &
+                         jvsupsmnsf, jvsupumncf, jvsupvmncf)
 
       ALLOCATE(gc(neqs), gc_sup(neqs), stat=istat)
       CALL ASSERT(istat.eq.0,'Allocate gc failed!')
       gc = 0
-      CALL init_ptrs (gc_sup, fsupsmncf, fsupumnsf, fsupvmnsf,          &
-                              fsupsmnsf, fsupumncf, fsupvmncf)
-      CALL init_ptrs (gc,     fsubsmncf, fsubumnsf, fsubvmnsf,          &
-                              fsubsmnsf, fsubumncf, fsubvmncf)
+      CALL init_ptrs(gc_sup, fsupsmncf, fsupumnsf, fsupvmnsf,                  &
+                             fsupsmnsf, fsupumncf, fsupvmncf)
+      CALL init_ptrs(gc,     fsubsmncf, fsubumnsf, fsubvmnsf,                  &
+                             fsubsmnsf, fsubumncf, fsubvmncf)
                               
-      l_Compute_Hessian = .FALSE.
+      l_Compute_Hessian = .false.
      
       col_scale(:,:,1,:) = scale_s
       col_scale(:,:,2,:) = scale_u
       IF (lasym) THEN
-      col_scale(:,:,4,:) = scale_s
-      col_scale(:,:,5,:) = scale_u
+         col_scale(:,:,4,:) = scale_s
+         col_scale(:,:,5,:) = scale_u
       END IF
 
-      END SUBROUTINE init_evolution
+      END SUBROUTINE
 
-!>   \brief Evolves one step toward MHD equilibrium
+!-------------------------------------------------------------------------------
+!>  @brief Evolves one step toward MHD equilibrium.
+!>
+!>  Update covariant Fourier components of velocity field. This is the time-step
+!>  algorithm. It is eddentially a conjugate gradient method, without the line
+!>  searches (Fletcher-Reeves), based on a method by P. Garabedian.
+!-------------------------------------------------------------------------------
       SUBROUTINE evolve
       USE quantities, ONLY: jvsupsmncf, jvsupumnsf, jvsupvmnsf,                &
                             jvsupsmnsf, jvsupumncf, jvsupvmncf,                &
@@ -286,297 +363,335 @@
       USE timer_mod, ONLY: gmres_time
       USE restart_mod, ONLY: restart_write
 
-!
-!     Evolves the equilibrium equations one time step and updates delta_t
-!     
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      REAL(dp), PARAMETER :: levscan(1) = (/ 0.25_dp /) 
-      REAL(dp)    :: skston, skstoff
-      INTEGER     :: iprint, m1, i, n1, n2
-      REAL(dp)    :: v2tot, f1, f2
-      REAL(dp)    :: t1, t2, lm0
-      LOGICAL     :: lprint, ldiagonal, lblock
-      INTEGER, DIMENSION (2) :: tnum_funct
-      CHARACTER(LEN=20)    :: str_resistive
-!-----------------------------------------------
-!
-!     Update COVARIANT Fourier components of velocity field
-!
-!     THIS IS THE TIME-STEP ALGORITHM. IT IS ESSENTIALLY A CONJUGATE
-!     GRADIENT METHOD, WITHOUT THE LINE SEARCHES (FLETCHER-REEVES),
-!     BASED ON A METHOD BY P. GARABEDIAN
-!
-      l_init_state = .TRUE.
-      IF (niter .LE. 1) levm_loc = 1 ! MRC needed to reset levm_loc
-!     l_Gmres = (nprecon_type .EQ. PREDIAG)  ! Turn on CG after initial diagonal preconditioner
-!      l_Gmres = l_Gmres .OR. fsq_total1.LT.1.E-9_dp   ! Turn on Gmres after CG reduces residue
-      l_Gmres = .TRUE.    !TURNS OFF CONJ-GRAD ALWAYS
-!
-!     Determine levenberg and mu|| parameter guesses based on ||F||
-!
-!       IF (nprecon.GE.1 .AND. (fsq_total1.LT.1.E-8_dp .OR. .NOT.l_Gmres)) THEN
-      IF (fsq_total1 .LT. 1.E-6_dp) THEN
-!      IF (fsq_total1.LT.1.E-8_dp) THEN
-!        PSEUDO-TRANSIENT CONTINUATION: TURN OFF FOR CONSTANT levmarq_param, muPar option
-         f2 = fsq_total1*1.E12_dp
-!THIS WORKS FOR BOTH LASYM = T/F         
-!         f1 = MIN(one, f2)         
+      IMPLICIT NONE
 
-!ASYM WORKS BETTER LIKE THIS - DON'T KNOW WHY
-         f2 = one/(one+f2)
-         IF (lasym) f2 = f2/4
+!  Local Variables.
+      REAL (dp)                          :: skston
+      REAL (dp)                          :: skstoff
+      INTEGER                            :: iprint
+      INTEGER                            :: m1
+      INTEGER                            :: i
+      INTEGER                            :: n1
+      INTEGER                            :: n2
+      REAL (dp)                          :: v2tot
+      REAL (dp)                          :: f1
+      REAL (dp)                          :: f2
+      REAL (dp)                          :: t1
+      REAL (dp)                          :: t2
+      REAL (dp)                          :: lm0
+      LOGICAL                            :: lprint
+      LOGICAL                            :: ldiagonal
+      LOGICAL                            :: lblock
+      INTEGER, DIMENSION(2)              :: tnum_funct
+      CHARACTER(LEN=20)                  :: str_resistive
+
+!  Local Parameters
+      REAL (dp), DIMENSION(1), PARAMETER :: levscan = (/ 0.25_dp /)
+
+!  Start of executable code.
+      l_init_state = .true.
+
+!  When running under a reconstruction context need to reset this parameter.
+      IF (niter .le. 1) THEN
+         levm_loc = 1
+      END IF
+
+!  Turns off conjugate gradient always.
+      l_Gmres = .true.
+
+!  Determine levenberg and mu|| parameter guesses based on ||F||.
+      IF (fsq_total1 .lt. 1.E-6_dp) THEN
+!      IF (fsq_total1 .lt. 1.E-8_dp) THEN
+
+!  Pseudo-transient continuation: Turn ogg for constant levmarq_param, muPar
+!  option.
+         f2 = fsq_total1*1.E12_dp
+
+!  NOTE: Asym runs work better like this.
+         f2 = one/(one + f2)
+         IF (lasym) THEN
+            f2 = f2/4
+         END IF
          f1 = fsq_total1**f2
 
          f2 = 1
-         IF (fsq_ratio1.GT.0.25_dp .AND. fsq_ratio1.LT.1.5_dp) f2 = 0.5_dp
-         IF (fsq_ratio1.GT.1.5_dp) f2 = 1.5_dp
-         IF (fsq_ratio1.GT.10._dp) f2 = 3
-         levm_loc = MAX(0.1_dp,MIN(10._dp,f2*levm_loc))
+         IF (fsq_ratio1 .gt. 0.25_dp .and.                                     &
+             fsq_ratio1 .lt. 1.5_dp) THEN
+            f2 = 0.5_dp
+         END IF
+         IF (fsq_ratio1 .gt. 1.5_dp) THEN
+            f2 = 1.5_dp
+         END IF
+         IF (fsq_ratio1 .gt. 10._dp) THEN
+            f2 = 3
+         END IF
+         levm_loc = MAX(0.1_dp, MIN(10._dp, f2*levm_loc))
 
-!         f1 = MIN(one, f1*levm_scale)
          f1 = MIN(one, f1*levm_scale*levm_loc)
 
          levmarq_param = (levmarq_param0 - levm_ped)*f1 + levm_ped
-         IF (levmarq_param0 .EQ. zero) levmarq_param = 0
+         IF (levmarq_param0 .eq. zero) THEN
+            levmarq_param = 0
+         END IF
          muPar = (muPar0-mu_ped)*f1 + mu_ped
-         IF (muPar0 .EQ. zero) muPar=0
+         IF (muPar0 .eq. zero) THEN
+            muPar=0
+         END IF
 
       ELSE
          levmarq_param = MAX(0.3_dp, levmarq_param0)
          muPar = muPar0
       END IF
 
-!
-!     EXCEPT FOR THE INITIAL STEP (WHERE ONLY INITIAL UNPRECONDITIONED FORCES
-!     ARE NEEDED) COMPUTE FULL (OR DIAGONAL APPROXIMATION) HESSIAN
-!
-      IF (niter .GT. 1) THEN
-         l_linearize = .TRUE.
-         l_getfsq = .FALSE.
-         l_ApplyPrecon = .FALSE.
-         l_getwmhd = .FALSE.
-         ldiagonal = (nprecon_type.EQ.PREDIAG .AND. niter.EQ.2)
-         lblock    = (nprecon_type .EQ. PREBLOCK)
+!  Except for the initial step where only initial unpreconditioned forces are
+!  need, compute full or diagonal approximate hessian.
+      IF (niter .gt. 1) THEN
+         l_linearize = .true.
+         l_getfsq = .false.
+         l_ApplyPrecon = .false.
+         l_getwmhd = .false.
+         ldiagonal = nprecon_type .eq. PREDIAG .and. niter .eq. 2
+         lblock    = nprecon_type .eq. PREBLOCK
 
          IF (ldiagonal .OR. lblock) THEN
 
             CALL second0(skston)
-            CALL Compute_Hessian_Blocks (funct_island, ldiagonal)
+            CALL Compute_Hessian_Blocks(funct_island, ldiagonal)
             CALL second0(skstoff)
-            IF (ldiagonal) comp_diag_elements_time=comp_diag_elements_time+(skstoff-skston)
-            IF (lblock)    compute_hessian_time=compute_hessian_time+(skstoff-skston)
-            
+            IF (ldiagonal) THEN
+               comp_diag_elements_time = comp_diag_elements_time               &
+                                       + (skstoff - skston)
+            END IF
+            IF (lblock) THEN
+               compute_hessian_time = compute_hessian_time + (skstoff - skston)
+            END IF
          END IF
 
       END IF
 
-!
-!     Reset run-control logicals
-!     (may have been reset to false in Compute_Hessian=>funct_island call)
-
-      l_init_state = .TRUE.   
-      l_ApplyPrecon = .FALSE.
-      l_linearize = .FALSE.
-      l_getfsq = .TRUE.
+!  Reset run-control logicals. These may have been reset to false in
+!  Compute_Hessian => funct_island call.
+      l_init_state = .true.
+      l_ApplyPrecon = .false.
+      l_linearize = .false.
+      l_getfsq = .true.
       fsq_lin = -1
 
-!
-!     Choose time-stepping algorithm
-!     Update COVARIANT Fourier components the forces to evolve the contravariant components of the displacement
-!
-      IF (niter .EQ. 1) THEN
-         l_init_state=.TRUE.
-         l_getwmhd=.TRUE.
+!  Choose time-stepping algorithm. Update covariant Fourier components the
+!  forces to evolve the contravariant components of the displacement.
+      IF (niter .eq. 1) THEN
+         l_init_state = .true.
+         l_getwmhd = .true.
          CALL second0(skston)
          CALL funct_island
          CALL second0(skstoff)
-         evolve_funct_island_time=evolve_funct_island_time+(skstoff-skston)
-         l_getwmhd=.FALSE.
+         evolve_funct_island_time = evolve_funct_island_time                   &
+                                  + (skstoff - skston)
+         l_getwmhd = .false.
 
       ELSE IF (l_Gmres) THEN
         CALL second0(skston)
         IF (nprecon .NE. 1) THEN
            etak_tol = MIN(0.1_dp, 1.E8_dp*fsq_total)
-           IF (fsq_total <= 0) etak_tol = 0.1_dp
+           IF (fsq_total <= 0) THEN
+              etak_tol = 0.1_dp
+           END IF
         END IF
         CALL gmres_fun
         CALL second0(skstoff)
-        gmres_time=gmres_time+(skstoff-skston)
+        gmres_time = gmres_time + (skstoff - skston)
       END IF
 
-      IF (.NOT.l_Gmres .AND. niter.GT.1) THEN
+      IF (.not.l_Gmres .and. niter .gt. 1) THEN
          CALL second0(skston)
          lm0 = levmarq_param
-         DO i = 1, 1
-!TURN OFF UNTIL RefactorHessian PROVIDED FOR LSCALAPACK=T
-!         DO i = 1, 1+SIZE(levscan)
+! FIXME: Turn off until RefactorHessian provided for LSCALAPACK = T
+         DO i = 1, 1 !1 + SIZE(levscan)
             IF (i .GT. 1) THEN 
-               levmarq_param = levscan(i-1)*lm0
-               IF (levmarq_param .GT. levmarq_param0) levmarq_param = levmarq_param0*1.E-2_dp
-               IF (levmarq_param .LE. levm_ped) levmarq_param = 100*levm_ped
-               IF (iam .EQ. 0 .and. lverbose) PRINT 930,' Refactoring Hessian: LM = ',levmarq_param
+               levmarq_param = levscan(i - 1)*lm0
+               IF (levmarq_param .gt. levmarq_param0) THEN
+                  levmarq_param = levmarq_param0*1.E-2_dp
+               END IF
+               IF (levmarq_param .le. levm_ped) THEN
+                  levmarq_param = 100*levm_ped
+               END IF
+               IF (iam .EQ. 0 .and. lverbose) THEN
+                  WRITE (*,1000) levmarq_param
+               END IF
                CALL RefactorHessian(levmarq_param)
             END IF
 
             CALL Conjugate_Grad(ftol)
             IF (l_conjmin) THEN
-               IF (i .GT. 1) levm_scale = levm_scale*levmarq_param/lm0
+               IF (i .gt. 1) THEN
+                  levm_scale = levm_scale*levmarq_param/lm0
+               END IF
                EXIT
-            ENDIF 
+            END IF
          END DO
          CALL second0(skstoff)
-         conj_grad_time=conj_grad_time+(skstoff-skston)
+         conj_grad_time = conj_grad_time + (skstoff - skston)
       END IF
- 930  FORMAT (/,a,1pe12.3)
+
       v2tot = SQRT(hs*SUM(xc*xc))
-!      IF (v2tot.lt.1.E-5_dp .and. .not.l_Gmres .and. niter.gt.1) THEN
-!      END IF
         
-      lprint = MOD(niter, nprint_step).EQ.0 .OR. niter.EQ.1
-      l_update_state = .TRUE.
+      lprint = MOD(niter, nprint_step) .eq. 0 .or. niter .eq. 1
+      l_update_state = .true.
       CALL update_state(lprint, fsq_total1, zero)
-      l_update_state=.FALSE.
+      l_update_state = .false.
         
-!
-!     Compute force component residues  |Fsubi|**2
-!
-      IF (fsq_total.LT.zero .AND. iam.EQ.0)                             &
-         PRINT *, 'Fsq_Total = ', fsq_total,' < 0!'
-      IF (fsqprev .GT. zero) THEN
-         fsq_ratio=fsq_total/fsqprev;  fsq_ratio1=fsq_total1/fsqprev1
-      ELSE
-         fsq_ratio=0;  fsq_ratio1=0;
+!  Compute force component residues  |Fsubi|**2.
+      IF (fsq_total .lt. zero .and. iam .eq. 0) THEN
+         WRITE (*,1001) fsq_total
       END IF
-      fsqprev=fsq_total; fsqprev1=fsq_total1
+      IF (fsqprev .gt. zero) THEN
+         fsq_ratio = fsq_total/fsqprev
+         fsq_ratio1 = fsq_total1/fsqprev1
+      ELSE
+         fsq_ratio = 0
+         fsq_ratio1 = 0
+      END IF
+      fsqprev = fsq_total
+      fsqprev1 = fsq_total1
 
-!     IF v-step is too large, recompute Hessian
-!      IF (v2tot*delta_t .ge. one) fsq_ratio = 1
-
-!
-!     Convert output to REAL (VMEC) units, divide B-fields by b_factor
-!     p by p_factor, WMHD by p_factor
+!  Convert output to REAL (VMEC) units, divide B-fields by b_factor, p by
+!  p_factor, and WMHD by p_factor
 
 #if defined(MPI_OPT)   
-      tnum_funct(1)=in_hess_nfunct; tnum_funct(2)=out_hess_nfunct
+      tnum_funct(1) = in_hess_nfunct
+      tnum_funct(2) = out_hess_nfunct
       CALL MPI_ALLREDUCE(MPI_IN_PLACE, tnum_funct, 2, MPI_INTEGER,             &
                          MPI_MAX, SIESTA_COMM, MPI_ERR)
-      nfun_calls=(tnum_funct(1) + tnum_funct(2))
+      nfun_calls = (tnum_funct(1) + tnum_funct(2))
 #else 
-      nfun_calls=(in_hess_nfunct + out_hess_nfunct)
+      nfun_calls = (in_hess_nfunct + out_hess_nfunct)
 #endif
 
-     IF (niter .EQ. 1) THEN
-        CALL bgradp(startglobrow, endglobrow)
-        CALL tflux
-     END IF
+      IF (niter .eq. 1) THEN
+         CALL bgradp(startglobrow, endglobrow)
+         CALL tflux
+      END IF
 
+      IF (lprint) THEN
+!  Needed to compute maximum forces for printout.
+         CALL gather_array(gc)
 
-     IF (lprint) THEN
-     
-        CALL gather_array(gc)                                            !Needed to compute maximum forces for printout
+         IF (niter .gt. 1 .and. iam .eq. 0) THEN
+            DO iprint = 6, unit_out, unit_out - 6
+               IF (.not.lverbose .and. iprint .eq. 6) THEN
+                  CYCLE
+               END IF
+               WRITE (iprint,1002)
+            END DO
+            CALL WRITE_BOUNDS(jvsupsmncf, fsubsmncf, 'X^S-max:', 'F_S-max:')
+            CALL WRITE_BOUNDS(jvsupumnsf, fsubumnsf, 'X^U-max:', 'F_U-max:')
+            CALL WRITE_BOUNDS(jvsupvmnsf, fsubvmnsf, 'X^V-max:', 'F_V-max:')
+            IF (lasym) THEN
+               DO iprint = 6, unit_out, unit_out - 6
+                  IF (.not.lverbose .and. iprint .eq. 6) THEN
+                     CYCLE
+                  END IF
+                  WRITE (iprint,1003)
+               END DO
+               CALL WRITE_BOUNDS(jvsupsmnsf, fsubsmnsf, 'X^S-max:', 'F_S-max:')
+               CALL WRITE_BOUNDS(jvsupumncf, fsubumncf, 'X^U-max:', 'F_U-max:')
+               CALL WRITE_BOUNDS(jvsupvmncf, fsubvmncf, 'X^V-max:', 'F_V-max:')
+            END IF
 
-        IF (niter.GT.1 .AND. iam.EQ.0) THEN
-          DO iprint = 6, unit_out, unit_out-6
-             IF (.NOT.lverbose .AND. iprint.EQ.6) CYCLE
-             WRITE(iprint,*)'SYMMETRIC DISPLACEMENTS AND FORCES'
-          END DO
-          CALL WRITE_BOUNDS(jvsupsmncf, fsubsmncf, 'X^S-max:', 'F_S-max:')
-          CALL WRITE_BOUNDS(jvsupumnsf, fsubumnsf, 'X^U-max:', 'F_U-max:')
-          CALL WRITE_BOUNDS(jvsupvmnsf, fsubvmnsf, 'X^V-max:', 'F_V-max:')
-          IF (lasym) THEN
-             DO iprint = 6, unit_out, unit_out-6
-                IF (.NOT.lverbose .AND. iprint.EQ.6) CYCLE
-                WRITE(iprint,*)'ASYMMETRIC DISPLACEMENTS AND FORCES'
-             END DO
-             CALL WRITE_BOUNDS(jvsupsmnsf, fsubsmnsf, 'X^S-max:', 'F_S-max:')
-             CALL WRITE_BOUNDS(jvsupumncf, fsubumncf, 'X^U-max:', 'F_U-max:')
-             CALL WRITE_BOUNDS(jvsupvmncf, fsubvmncf, 'X^V-max:', 'F_V-max:')
-          END IF
+            IF (lverbose) THEN
+               WRITE (*,1004) bsbu_ratio_s, jsju_ratio_s,                      &
+                              (bs0(i), i=2,6), (bu0(i), i=2,6)
+               IF (lasym) THEN
+                  WRITE (*,1005) bsbu_ratio_a, jsju_ratio_a,                     &
+                                 (bs0(i), i=8,12), (bu0(i), i=8,12)
+               END IF
+               WRITE (*,*)
+            END IF
+         END IF
 
-          IF (lverbose) THEN
-             PRINT 110, bsbu_ratio_s, jsju_ratio_s,                     &
-                       (bs0(i), i=2,6), (bu0(i), i=2,6) 
-             IF (lasym)                                                 &
-             PRINT 112, bsbu_ratio_a, jsju_ratio_a,                     &
-                       (bs0(i), i=8,12), (bu0(i), i=8,12) 
-             PRINT *," "
-          END IF
-        END IF
-
-        DO iprint = 6, unit_out, unit_out-6
-           IF ((.NOT.lverbose .AND. iprint.EQ.6) .OR. iam.NE.0) CYCLE
-           IF (niter .EQ. 1) THEN
-              IF (lresistive) THEN
-                 str_resistive = "RESISTIVE RUN "
-              ELSE
-                 str_resistive = "NON-RESISTIVE RUN "
-              END IF
-              WRITE (iprint, 55) str_resistive, eta_factor, lasym,      &
-                                 l_push_s, l_push_u, l_push_v, l_push_edge
-              WRITE (iprint, 60) delta_t, etak_tol, l_Hess_sym
-              WRITE (iprint, 65) levmarq_param0, mupar0
-              WRITE (iprint, 70) neqs, ns, mpol, ntor, nu_i, nv_i,      &
-                                 ngmres_steps
-           END IF
+         DO iprint = 6, unit_out, unit_out - 6
+            IF ((.not.lverbose .and. iprint .eq. 6) .or. iam .ne. 0) THEN
+               CYCLE
+            END IF
+            IF (niter .EQ. 1) THEN
+               IF (lresistive) THEN
+                  str_resistive = "RESISTIVE RUN "
+               ELSE
+                  str_resistive = "NON-RESISTIVE RUN "
+               END IF
+               WRITE (iprint, 1006) str_resistive, eta_factor, lasym,          &
+                                    l_push_s, l_push_u, l_push_v, l_push_edge
+               WRITE (iprint, 60) delta_t, etak_tol, l_Hess_sym
+               WRITE (iprint, 65) levmarq_param0, mupar0
+               WRITE (iprint, 70) neqs, ns, mpol, ntor, nu_i, nv_i,      &
+                                  ngmres_steps
+            END IF
            
-           IF (fsq_lin .EQ. -1) THEN
-              WRITE (iprint, 100)                                       &
-                              niter, (wtotal-wtotal0)*1.E6_dp/wtotal0,  &
-                              fsq_total1, fsqvs, fsqvu,                 &
-                              fsqvv, v2tot*delta_t, nfun_calls
-           ELSE
-              WRITE (iprint, 102)                                       &
-                              niter, (wtotal-wtotal0)*1.E6_dp/wtotal0,  &
-                              fsq_total1, fsq_lin, fsqvs, fsqvu,        &
-                              fsqvv, v2tot*delta_t, nfun_calls
-           END IF
-        END DO
-     END IF
+            IF (fsq_lin .EQ. -1) THEN
+               WRITE (iprint, 100)                                       &
+                               niter, (wtotal-wtotal0)*1.E6_dp/wtotal0,  &
+                               fsq_total1, fsqvs, fsqvu,                 &
+                               fsqvv, v2tot*delta_t, nfun_calls
+            ELSE
+               WRITE (iprint, 102)                                       &
+                               niter, (wtotal-wtotal0)*1.E6_dp/wtotal0,  &
+                               fsq_total1, fsq_lin, fsqvs, fsqvu,        &
+                               fsqvv, v2tot*delta_t, nfun_calls
+            END IF
+         END DO
+      END IF
 
- 50  FORMAT(' WMHD: ', 1pe13.6,' <BETA>: ',1pe11.4,                     &
+      CALL second0(skston)
+      IF (fsq_total1 .LT. fsq_min) THEN
+         fsq_min = fsq_total1
+         CALL restart_write(restart_ext, wout_file)
+      END IF
+      CALL second0(skstoff)
+      evolve_restart_file_time=evolve_restart_file_time+(skstoff-skston)
+
+!    Add resistive part of B perturbation
+      CALL second0(skston)
+      IF (lresistive .AND. nprecon.GE.1 .AND. fsq_total1.GT.fsq_res) THEN
+         l_getfsq = .FALSE.
+         CALL add_resistive_E
+      END IF
+      CALL second0(skstoff)
+      evolve_add_resistive_E_time=evolve_add_resistive_E_time+(skstoff-skston)
+
+1000  FORMAT(/,' Refactoring Hessian: LM = ',1pe12.3)
+1001  FORMAT('Fsq_Total = ', 1pe12.3,' < 0!')
+1002  FORMAT('SYMMETRIC DISPLACEMENTS AND FORCES')
+1003  FORMAT('ASYMMETRIC DISPLACEMENTS AND FORCES')
+1004  FORMAT(' |B^s-r12*B^u|/|B^s+r12*B^u| (m=1,r->0,  sym) : ',1pe10.3,/,     &
+             ' |J^s-r12*J^u|/|J^s+r12*J^u| (m=1,r->0,  sym) : ',1pe10.3,/,     &
+             ' JBSUPSH(JS=2-6,M=1)/r12  (sym): ',1p5e10.3,/,                   &
+             ' JBSUPUH(JS=2-6,M=1)           : ',1p5e10.3)
+1005  FORMAT(' |B^s+r12*B^u|/|B^s-r12*B^u| (m=1,r->0, asym) : ',1pe10.3,/,     &
+             ' |J^s+r12*J^u|/|J^s-r12*J^u| (m=1,r->0, asym) : ',1pe10.3,/,     &
+             '-JBSUPSH(JS=2-6,M=1)/r12 (asym): ',1p5e10.3,/,                   &
+             ' JBSUPUH(JS=2-6,M=1)           : ',1p5e10.3)
+1006  FORMAT(1x, a,' ETA_FACTOR: ',1pe10.2,' LASYM: ',l1,                      &
+             ' L_PUSH_S: ',l1,' L_PUSH_U: ',l1,' L_PUSH_V: ',l1,               &
+             ' L_PUSH_EDGE: ',l1)
+
+50   FORMAT(' WMHD: ', 1pe13.6,' <BETA>: ',1pe11.4,                     &
             ' TFLUX: ',1pe11.4,' B.GRAD-P (rms): ', 1pe11.4,/,21('-'))
- 55  FORMAT(1x, a,' ETA_FACTOR: ', 1pe10.2,' LASYM: ',l1,               &
-            ' L_PUSH_S: ',l1, ' L_PUSH_U: ',l1,' L_PUSH_V: ',l1,        &
-			' L_PUSH_EDGE: ',l1)
- 60  FORMAT(' DELTA_T: ',1pe10.2,' ETA_K: ',                            &
-             1pe10.2,' HESSIAN SYM: ', l1)
- 65  FORMAT(' LEVMARQ_PARAM: ',1pe10.2,' MU_PAR: ',1pe10.2)
- 70  FORMAT(' NEQS: ', i6,' NS: ',i4,' MPOL: ',i4,' NTOR: ',i4,         &
-             ' NTHETA: ', i4,' NZETA: ',i4, ' NGMRES-STEPS: ', i4,//,   &
-             ' NITER (W-W0)/W0*1E6    F2(MHD)    F2(LIN)',              &
-             '    F2SUBS     F2SUBU     F2SUBV     |V|rms     NCALLS')
- 100 FORMAT(1x,i5,1x, 1pe12.4, 2x, 1x,1pe10.3, 2x,9 ('-'),              &
-           4(1x,1pe10.3),i9)
- 102 FORMAT(1x,i5,1x, 1pe12.4, 2x, 6(1x,1pe10.3),i9)
- 110 FORMAT(' |B^s-r12*B^u|/|B^s+r12*B^u| (m=1,r->0,  sym) : ',1pe10.3,/, &
-            ' |J^s-r12*J^u|/|J^s+r12*J^u| (m=1,r->0,  sym) : ',1pe10.3,/, &
-            ' JBSUPSH(JS=2-6,M=1)/r12  (sym): ',1p5e10.3,/,             &
-            ' JBSUPUH(JS=2-6,M=1)           : ',1p5e10.3)
- 112 FORMAT(' |B^s+r12*B^u|/|B^s-r12*B^u| (m=1,r->0, asym) : ',1pe10.3,/, &
+60   FORMAT(' DELTA_T: ',1pe10.2,' ETA_K: ',                            &
+            1pe10.2,' HESSIAN SYM: ', l1)
+65   FORMAT(' LEVMARQ_PARAM: ',1pe10.2,' MU_PAR: ',1pe10.2)
+70   FORMAT(' NEQS: ', i6,' NS: ',i4,' MPOL: ',i4,' NTOR: ',i4,         &
+            ' NTHETA: ', i4,' NZETA: ',i4, ' NGMRES-STEPS: ', i4,//,   &
+            ' NITER (W-W0)/W0*1E6    F2(MHD)    F2(LIN)',              &
+            '    F2SUBS     F2SUBU     F2SUBV     |V|rms     NCALLS')
+100  FORMAT(1x,i5,1x, 1pe12.4, 2x, 1x,1pe10.3, 2x,9 ('-'),              &
+            4(1x,1pe10.3),i9)
+102  FORMAT(1x,i5,1x, 1pe12.4, 2x, 6(1x,1pe10.3),i9)
+112  FORMAT(' |B^s+r12*B^u|/|B^s-r12*B^u| (m=1,r->0, asym) : ',1pe10.3,/, &
             ' |J^s+r12*J^u|/|J^s-r12*J^u| (m=1,r->0, asym) : ',1pe10.3,/, &
             '-JBSUPSH(JS=2-6,M=1)/r12 (asym): ',1p5e10.3,/,             &
             ' JBSUPUH(JS=2-6,M=1)           : ',1p5e10.3)
 
-     CALL second0(skston)
-     IF (fsq_total1 .LT. fsq_min) THEN
-        fsq_min = fsq_total1
-        CALL restart_write(restart_ext, wout_file)
-     END IF
-     CALL second0(skstoff)
-     evolve_restart_file_time=evolve_restart_file_time+(skstoff-skston)
-
-!    Add resistive part of B perturbation
-     CALL second0(skston)
-     IF (lresistive .AND. nprecon.GE.1 .AND. fsq_total1.GT.fsq_res) THEN
-        l_getfsq = .FALSE.
-        CALL add_resistive_E
-     END IF
-     CALL second0(skstoff)
-     evolve_add_resistive_E_time=evolve_add_resistive_E_time+(skstoff-skston)
-
-     END SUBROUTINE evolve
+      END SUBROUTINE
 
 
 !>  \brief Writes maximum values for velocity/forces and radial,m,n, locations
