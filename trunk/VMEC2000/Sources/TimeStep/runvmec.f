@@ -9,7 +9,6 @@
       USE realspace
       USE vmec_params, ONLY: ntmax
       USE vacmod, ONLY: nuv, nuv3
-      USE vsvd
       USE timer_sub
       USE parallel_include_module
       USE parallel_vmec_module, ONLY: MyEnvVariables
@@ -239,7 +238,6 @@ C-----------------------------------------------
          GOTO 1000
       END IF
 
-      imovephi = 0
       jacob_off = 0
 
       IF (IAND(ictrl_flag, timestep_flag) .EQ. 0) GOTO 1000
@@ -342,7 +340,6 @@ C-----------------------------------------------
             niter = niter_store
          END IF
 
-         IF (imatch_phiedge .eq. 3) imovephi = 1
          IF (ier_flag .ne. norm_term_flag       .and.
      &       ier_flag .ne. successful_term_flag .and.
      &       ier_flag .ne. more_iter_flag) EXIT
