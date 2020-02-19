@@ -362,6 +362,7 @@
       USE blocktridiagonalsolver_s, ONLY: RefactorHessian      
       USE timer_mod, ONLY: gmres_time
       USE restart_mod, ONLY: restart_write
+      USE vmec_info, ONLY: vmec_curtor
 
       IMPLICIT NONE
 
@@ -390,6 +391,7 @@
 
 !  Start of executable code.
       l_init_state = .true.
+      siesta_curtor = 0.0
 
 !  When running under a reconstruction context need to reset this parameter.
       IF (niter .le. 1) THEN
@@ -576,6 +578,11 @@
 !  Needed to compute maximum forces for printout.
          CALL gather_array(gc)
 
+#if defined(MPI_OPT)
+         CALL MPI_ALLREDUCE(MPI_IN_PLACE, siesta_curtor, 1, MPI_REAL8,         &
+                            MPI_SUM, SIESTA_COMM, MPI_ERR)
+#endif
+
          IF (niter .gt. 1 .and. iam .eq. 0) THEN
             DO iprint = 6, unit_out, unit_out - 6
                IF (.not.lverbose .and. iprint .eq. 6) THEN
@@ -607,6 +614,13 @@
                END IF
                WRITE (*,*)
             END IF
+
+            DO iprint = 6, unit_out, unit_out - 6
+               IF (.not.lverbose .and. iprint .eq. 6) THEN
+                  CYCLE
+               END IF
+               WRITE (iprint,1007) siesta_curtor, vmec_curtor
+            END DO
          END IF
 
          DO iprint = 6, unit_out, unit_out - 6
@@ -690,6 +704,7 @@
             ' |J^s+r12*J^u|/|J^s-r12*J^u| (m=1,r->0, asym) : ',1pe10.3,/, &
             '-JBSUPSH(JS=2-6,M=1)/r12 (asym): ',1p5e10.3,/,             &
             ' JBSUPUH(JS=2-6,M=1)           : ',1p5e10.3)
+1007  FORMAT(' SIESTA Curtor : ',e12.4,' VMEC Curtor : 'e12.4,/)
 
       END SUBROUTINE
 

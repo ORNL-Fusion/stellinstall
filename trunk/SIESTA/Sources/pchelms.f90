@@ -74,8 +74,9 @@
 !>  @brief Run the pchelms code to solve for inital jbsup values.
 !-------------------------------------------------------------------------------
       SUBROUTINE run_pchelms
-      USE shared_data, ONLY: lverbose
+      USE shared_data, ONLY: lverbose, siesta_curtor
       USE diagnostics_mod, ONLY: divb, divb_rms
+      USE vmec_info, ONLY: vmec_curtor
 
       IMPLICIT NONE
 
@@ -91,6 +92,8 @@
       REAL (dp), PARAMETER        :: levmarq_param_inital = 1.E-6_dp
 
 !  Start of executable code
+      siesta_curtor = 0.0
+
 !  Turn of column scaling. Save the value of the column scaling flag so it can
 !  be reset afterwards.
       lcolscale_save = lcolscale
@@ -135,9 +138,14 @@
       nsmin = startglobrow
       nsmax = MIN(ns, endglobrow + 1)
       CALL divb(nsmin, nsmax)
-    
+
+#if defined(MPI_OPT)
+      CALL MPI_ALLREDUCE(MPI_IN_PLACE, siesta_curtor, 1, MPI_REAL8, MPI_SUM,   &
+                         SIESTA_COMM, MPI_ERR)
+#endif
+
       IF (lverbose .and. iam .EQ. 0) THEN
-         WRITE (*,1003) divb_rms
+         WRITE (*,1003) divb_rms, siesta_curtor, vmec_curtor
       END IF
 
       CALL CHECK_CURRENT
@@ -153,6 +161,7 @@
              ' PCHELMS HESSIAN COMPUTATION TIME: ',f10.1,'s')
 1002  FORMAT(' PCHELMS HESSIAN SOLVER TIME: ',f10.1,'s')
 1003  FORMAT(/,' |DivB| (normed) = ',1p,e12.3,/,                               &
+             /,' SIESTA Curtor : ',e12.4,' VMEC Curtor : 'e12.4,               &
              /,'-----------------------------------------------',              &
              /,'ENDING PCHELMS',                                               &
              /,'-----------------------------------------------')
@@ -264,9 +273,10 @@
 !>  @param[in]    bsupsmnh Contravariant current and jacobian in the v direction
 !>                         on the half grid.
 !>  @param[in]    iparity  Parity flag to indicate stellaratory symmetry.
+!>  @param[inout] curtor   Current enclosed at the boundary.
 !-------------------------------------------------------------------------------
       SUBROUTINE CURLB_PCHELMS(ksupsmnf, ksupumnf, ksupvmnf, asubsmnf,         &
-                               bsupsmnh, iparity)
+                               bsupsmnh, iparity, curtor)
       USE utilities, ONLY: CURL_HtoF, GradientHalf, set_bndy_fouier_m0
 !  Declare Arguments
       REAL(dp), POINTER, DIMENSION(:,:,:)                 :: ksupsmnf
@@ -275,6 +285,7 @@
       REAL(dp), POINTER, DIMENSION(:,:,:)                 :: asubsmnf
       REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(IN) :: bsupsmnh
       INTEGER, INTENT(IN)                                 :: iparity
+      REAL (dp), INTENT(inout)                            :: curtor
 
 !  Local variables
       INTEGER                                             :: fours
@@ -332,7 +343,7 @@
 
       CALL CURL_HtoF(bsubsmnh, bsubumnh, bsubvmnh,                             &
                      Ksupsmnf, Ksupumnf, Ksupvmnf,                             &
-                     iparity, nmin, nmax, .False.)
+                     iparity, nmin, nmax, .False., curtor)
 
       nmax = endglobrow
       DEALLOCATE (bsubsmnh, bsubumnh, bsubvmnh, stat=istat)   
@@ -1020,8 +1031,6 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE CHECK_CURRENT
       USE metrics, ONLY: jsupvdotA
-      USE vmec_info, ONLY: Itor
-      USE quantities, ONLY: b_factor
 
       IMPLICIT NONE
 
@@ -1033,13 +1042,10 @@
 !  Average over toroidal angle too (should not dependent on toroidal angle)
       IF (endglobrow .eq. ns) THEN
          currv_int = hs*(SUM(jcurrvmnc(0,0,1:ns - 1)) + jcurrvmnc(0,0,ns)/2)
-
-         WRITE (*,1000) -twopi*line_Bu*orthonorm(0,0)/mu0, Itor
-         WRITE (*,1001) line_bu, currv_int, jsupvdotA
+         WRITE (*,1000) line_bu, currv_int, jsupvdotA
       END IF
 
-1000  FORMAT(' Toroidal Current (SIESTA): '1p,e12.4,'    (VMEC): ',1p,e12.4)
-1001  FORMAT(' Line Integral B_u: ',1p,e12.4,4x,                               &
+1000  FORMAT(' Line Integral B_u: ',1p,e12.4,4x,                               &
              ' Surface-integrated current: ',1p,e12.4,4x,                      &
              ' VMEC Surface-integrated current: ',1p,e12.4)
 
@@ -1139,10 +1145,11 @@
 !>  @param(in) lNLinear Use Non linear equations.
 !-------------------------------------------------------------------------------
       SUBROUTINE COMPUTE_FORCES(lNLinear)
-      USE shared_data, ONLY: asubsmnsf, asubumncf, asubvmncf,           &
-                             fsupsmnsf, fsupumncf, fsupvmncf,           &
-                             asubsmncf, asubumnsf, asubvmnsf,           &
-                             fsupsmncf, fsupumnsf, fsupvmnsf, neqs
+      USE shared_data, ONLY: asubsmnsf, asubumncf, asubvmncf,                  &
+                             fsupsmnsf, fsupumncf, fsupvmncf,                  &
+                             asubsmncf, asubumnsf, asubvmnsf,                  &
+                             fsupsmncf, fsupumnsf, fsupvmnsf, neqs,            &
+                             siesta_curtor
       USE bmw_run, ONLY: bmw_exec
       USE siesta_namelist, ONLY: wout_file, mgrid_file
 
@@ -1250,10 +1257,14 @@
       nsmin = startglobrow
       nsmax = MIN(ns, endglobrow + 1)
       CALL CURLB_PCHELMS(Fsupsmnsf, Fsupumncf, Fsupvmncf, Asubsmnsf,           &
-                         jbsupsmnsh, f_sin)
+                         jbsupsmnsh, f_sin, siesta_curtor)
       IF (lasym) THEN
          CALL CURLB_PCHELMS(Fsupsmncf, Fsupumnsf, Fsupvmnsf, Asubsmncf,        &
-                            jbsupsmnch, f_cos)
+                            jbsupsmnch, f_cos, siesta_curtor)
+      END IF
+
+      IF (nsmax .eq. ns) THEN
+         siesta_curtor = -orthonorm(m0,n0)*siesta_curtor
       END IF
 
       nsmax = endglobrow

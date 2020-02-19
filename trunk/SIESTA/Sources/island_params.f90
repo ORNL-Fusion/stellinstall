@@ -1,5 +1,17 @@
+!*******************************************************************************
+!>  @file island_params.f90
+!>  @brief Contains module @ref island_params.
+!
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
+!
+!>  This file contains fix parameters related to the computational grids.
+!*******************************************************************************
       MODULE island_params
       USE stel_kinds
+
+      IMPLICIT NONE
+
 !
 !     CONTAINS VARIABLE DECLARATIONS FOR (ISLAND) CODE
 !     THAT WILL BE SHARED THROUGHOUT THE PROJECT

@@ -1,21 +1,45 @@
-MODULE grid_extension
-  USE vmec_info, ONLY: jcurrumnc, jcurrvmnc
-  USE stel_kinds
-  USE stel_constants
-  USE shared_data, ONLY: lasym, r1_i, z1_i, ru_i, zu_i, rv_i, zv_i, nsp
-  USE island_params, ns=>ns_i, mpol=>mpol_i, ntor=>ntor_i, &
-    ntheta=>nu_i, nzeta=>nv_i, mnmax=>mnmax_i, nsv=>ns_v, ohs=>ohs_i
-  USE island_params, ONLY: phipf_i, chipf_i, presf_i, nsh
-  USE fourier, ONLY: f_none, f_cos, f_sin, f_sum, f_du, f_dv,           &
-    cosmui, vtoijsp, orthonorm
-  USE v3_utilities, ONLY: assert
-  USE siesta_namelist, ONLY: l_vessel
-  USE descriptor_mod, ONLY: iam
+!*******************************************************************************
+!>  @file grid_extension.f90
+!>  @brief Contains module @ref grid_extension.
+!
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
+!
+!>  This file contains utilities for extending the vmec grid.
+!*******************************************************************************
+      MODULE grid_extension
+      USE vmec_info, ONLY: jcurrumnc, jcurrvmnc
+      USE stel_kinds
+      USE stel_constants
+      USE shared_data, ONLY: lasym, r1_i, z1_i, ru_i, zu_i, rv_i, zv_i, nsp
+      USE island_params, ns=>ns_i, mpol=>mpol_i, ntor=>ntor_i, &
+                         ntheta=>nu_i, nzeta=>nv_i, mnmax=>mnmax_i, nsv=>ns_v, &
+                         ohs=>ohs_i
+      USE island_params, ONLY: phipf_i, chipf_i, presf_i, nsh
+      USE fourier, ONLY: f_none, f_cos, f_sin, f_sum, f_du, f_dv,              &
+                         cosmui, vtoijsp, orthonorm
+      USE v3_utilities, ONLY: assert
+      USE siesta_namelist, ONLY: l_vessel
+      USE descriptor_mod, ONLY: iam
 
-  IMPLICIT NONE
+      IMPLICIT NONE
 
-  ! Vessel information
-  INTEGER, PARAMETER :: LIN=1, QUAD=2, CUB=3
+!*******************************************************************************
+!  grid extension module parameters.
+!*******************************************************************************
+!>  Linear extension type.
+      INTEGER, PARAMETER   :: LIN = 1
+!>  Quadtratic extension type.
+      INTEGER, PARAMETER   :: QUAD = 2
+!>  Cubic extension type.
+      INTEGER, PARAMETER   :: CUB = 3
+!>  Divide by two constant.
+      REAL (dp), PARAMETER :: p5 = 0.5_dp
+
+!*******************************************************************************
+!  grid extension module variables.
+!*******************************************************************************
+!>
   INTEGER :: interp_type
   INTEGER :: nse
 
@@ -48,7 +72,6 @@ MODULE grid_extension
 
   REAL(dp), DIMENSION(:,:,:), ALLOCATABLE  :: sqrtg_full
 
-  REAL(dp), PARAMETER :: p5 = 0.5_dp
   REAL(dp)            :: s_edge, ming, maxg
 
 CONTAINS
@@ -112,14 +135,14 @@ CONTAINS
     rmnc_v = rmnc_v/orthonorm(0:mpol_v,-ntor_v:ntor_v)
     zmns_v = zmns_v/orthonorm(0:mpol_v,-ntor_v:ntor_v)
 
-    CALL vtoijsp (rmnc_v, r1_ves, f_none, f_cos)
-    CALL vtoijsp (zmns_v, z1_ves, f_none, f_sin)
+    CALL vtoijsp(rmnc_v, r1_ves, f_none, f_cos)
+    CALL vtoijsp(zmns_v, z1_ves, f_none, f_sin)
 
-    CALL vtoijsp (rmnc_v, ru_ves, f_du, f_cos)
-    CALL vtoijsp (zmns_v, zu_ves, f_du, f_sin)
+    CALL vtoijsp(rmnc_v, ru_ves, f_du, f_cos)
+    CALL vtoijsp(zmns_v, zu_ves, f_du, f_sin)
 
-    CALL vtoijsp (rmnc_v, rv_ves, f_dv, f_cos)
-    CALL vtoijsp (zmns_v, zv_ves, f_dv, f_sin)
+    CALL vtoijsp(rmnc_v, rv_ves, f_dv, f_cos)
+    CALL vtoijsp(zmns_v, zv_ves, f_dv, f_sin)
 
     !Compute extended "s" coordinate for s>1, assuming Vp(s) = Vp(s=1)*s
     !where Vp(s=1) is obtained from extrapolating VMEC values. Results is
@@ -203,15 +226,14 @@ CONTAINS
     rv_full(:,:,1:ns) = rv_i; rv_full(:,:,ns+1:nse) = rv_ext
     zv_full(:,:,1:ns) = zv_i; zv_full(:,:,ns+1:nse) = zv_ext
 
-!    CALL PLOTRZ (device, chfit)
     nse = MIN(ns + nsin_ext, nse)
 
     IF (lverbose .and. iam .eq. 0) THEN
        WRITE (*,1000) nse, ns, nsin_ext
     END IF
-1000 FORMAT('Using ',i4,' Total Surfaces.',/,                                  &
-            'Number of VMEC surfaces ',i4,/,                                   &
-            'Number of extended surfaces ',i4)
+1000  FORMAT('Using ',i4,' Total Surfaces.',/,                                 &
+             'Number of VMEC surfaces ',i4,/,                                  &
+             'Number of extended surfaces ',i4)
 
     !REASSIGN THE NEW VALUE OF NS
     nsp = ns

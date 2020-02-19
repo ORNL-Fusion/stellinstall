@@ -235,4 +235,7 @@
 !>  Equilibrate matrix with col 1-norm
       LOGICAL :: lequi1 = .true.
 
+!>  Total toroidal current
+      REAL (dp) :: siesta_curtor = 0.0
+
       END MODULE shared_data

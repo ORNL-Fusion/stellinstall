@@ -472,11 +472,13 @@
 !>  @param[in]    nsmin     Minimum radial index.
 !>  @param[in]    nsmax     Maximum radial index.
 !>  @param[in]    extend    Extend the radial index of the curl.
+!>  @param[inout] curtor    Current enclosed at the boundary.
 !-------------------------------------------------------------------------------
       SUBROUTINE curl_htof(asubsmnh, asubumnh, asubvmnh,                       &
                            jbsupsmnf, jbsupumnf, jbsupvmnf, iparity,           &
-                           nsmin, nsmax, extend)
+                           nsmin, nsmax, extend, curtor)
       USE nscalingtools, ONLY: endglobrow
+      USE stel_constants
 
       IMPLICIT NONE
 
@@ -491,6 +493,7 @@
       INTEGER, INTENT(in)                                  :: nsmin
       INTEGER, INTENT(in)                                  :: nsmax
       LOGICAL, INTENT(in)                                  :: extend
+      REAL (dp), INTENT(inout)                             :: curtor
 
 !  Local variables
       INTEGER                                              :: m
@@ -540,6 +543,11 @@
 !  FIXME: CHECK Boundary Conditions. asubs,subu,subv don't match older version.
       CALL set_bndy_half_to_full(asubsmnh, asubvmnh, nsmin, iparity,           &
                                  asubsmnf, asubumnf, asubvmnf)
+
+!  Store the total enclosed current to check against the orginal VMEC current.
+      IF (iparity .eq. f_sin .and. nsmax .eq. ns) THEN
+         curtor = twopi*asubumnf(m0,n0,ns)/mu0
+      END IF
 
 !  Compute sqrt(g)B^X == A^X contravariant current components in Fourier space.
       ALLOCATE(da_uds(0:mpol,-ntor:ntor,nsmin:nsmax),                          &
@@ -611,10 +619,11 @@
 !>  @param[in]    nsmin     Minimum radial index.
 !>  @param[in]    nsmax     Maximum radial index.
 !>  @param[in]    extend    Extend the radial index of the curl.
+!>  @param[inout] curtor    Current enclosed at the boundary.
 !-------------------------------------------------------------------------------
       SUBROUTINE curl_htof_targ(asubsmnh, asubumnh, asubvmnh,                  &
                                 jbsupsmnf, jbsupumnf, jbsupvmnf,               &
-                                iparity, nsmin, nsmax, extend)
+                                iparity, nsmin, nsmax, extend, curtor)
 
 !  Declare Arguments
       REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(in) :: asubsmnh
@@ -630,6 +639,7 @@
       INTEGER, INTENT(IN)                                  :: nsmin
       INTEGER, INTENT(IN)                                  :: nsmax
       LOGICAL, INTENT(in)                                  :: extend
+      REAL (dp), INTENT(inout)                             :: curtor
 
 !  Local variables
       REAL (dp), POINTER, DIMENSION(:,:,:)                 :: jbsp
@@ -641,7 +651,8 @@
       jbup => jbsupumnf
       jbvp => jbsupvmnf
       CALL curl_htof(asubsmnh, asubumnh, asubvmnh,                             &
-                     jbsp, jbup, jbvp, iparity, nsmin, nsmax, extend)
+                     jbsp, jbup, jbvp, iparity, nsmin, nsmax, extend,          &
+                     curtor)
 
       END SUBROUTINE
 

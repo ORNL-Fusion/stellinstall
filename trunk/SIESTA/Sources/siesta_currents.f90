@@ -68,6 +68,7 @@
       USE timer_mod
       USE mpi_inc
       USE descriptor_mod, ONLY: SIESTA_COMM
+      USE shared_data, ONLY: siesta_curtor
 
       IMPLICIT NONE
 
@@ -165,12 +166,17 @@
       CALL CURLB(ksupsmnsf, ksupumncf, ksupvmncf,                              &
                  bsubsijh, bsubuijh, bsubvijh,                                 &
                  bs_filter, bu_filter, bv_filter, edge_cur,                    &
-                 jsju_ratio_s, f_sin, lcurr, nsmax, nsmin)
+                 jsju_ratio_s, f_sin, lcurr, nsmax, nsmin, siesta_curtor)
       IF (lasym) THEN
          CALL CURLB(ksupsmncf, ksupumnsf, ksupvmnsf,                           &
                     bsubsijh, bsubuijh, bsubvijh,                              &
                     bs_filter, bu_filter, bv_filter, edge_cur,                 &
-                    jsju_ratio_a, f_cos, lcurr, nsmax, nsmin)
+                    jsju_ratio_a, f_cos, lcurr, nsmax, nsmin,                  &
+                    siesta_curtor)
+      END IF
+
+      IF (nsmax .eq. ns) THEN
+         siesta_curtor = -orthonorm(m0,n0)*siesta_curtor/b_factor
       END IF
 
       IF (lcurr) THEN
@@ -270,7 +276,7 @@
 !>                           jacobian.
 !>  @param[in]    bsubsijh   Covariant s component of the magnetic field.
 !>  @param[in]    bsubuijh   Covariant u component of the magnetic field.
-!>  @param[] bsubvijh   Covariant v component of the magnetic field.
+!>  @param[inout] bsubvijh   Covariant v component of the magnetic field.
 !>  @param[inout] bs_filter
 !>  @param[inout] bu_filter
 !>  @param[inout] bv_filter
@@ -280,11 +286,12 @@
 !>  @param[in]    lcurr      UNKNOWN
 !>  @param[in]    nsmax      Maximum radial index.
 !>  @param[in]    nsmin      Minimum radial index.
+!>  @param[inout] curtor     Current enclosed at the boundary.
 !-------------------------------------------------------------------------------
       SUBROUTINE CURLB(ksupsmnf, ksupumnf, ksupvmnf,                           &
                        bsubsijh, bsubuijh, bsubvijh,                           &
                        bs_filter, bu_filter, bv_filter, edge_cur,              &
-                       jsju_ratio, iparity, lcurr, nsmax, nsmin)
+                       jsju_ratio, iparity, lcurr, nsmax, nsmin, curtor)
       USE utilities, ONLY: curl_htof
 
       IMPLICIT NONE
@@ -301,10 +308,11 @@
       REAL (dp), DIMENSION(:,:,:), INTENT(inout)              :: bv_filter
       REAL (dp), INTENT(inout)                                :: edge_cur
       REAL (dp), INTENT(out)                                  :: jsju_ratio
-      INTEGER, INTENT(IN)                                     :: iparity
-      LOGICAL, INTENT(IN)                                     :: lcurr !  FIXME: CHECK THIS
-      INTEGER, INTENT(IN)                                     :: nsmax
-      INTEGER, INTENT(IN)                                     :: nsmin
+      INTEGER, INTENT(in)                                     :: iparity
+      LOGICAL, INTENT(in)                                     :: lcurr !  FIXME: CHECK THIS
+      INTEGER, INTENT(in)                                     :: nsmax
+      INTEGER, INTENT(in)                                     :: nsmin
+      REAL (dp), INTENT(inout)                                :: curtor
 
 !  local variables
       INTEGER                                                 :: fours
@@ -347,7 +355,7 @@
 
       CALL CURL_HtoF(bsubsmnh, bsubumnh, bsubvmnh,                             &
                      ksupsmnf, ksupumnf, ksupvmnf,                             &
-                     iparity, nsmin, nsmax, lcurr)
+                     iparity, nsmin, nsmax, lcurr, curtor)
 
 !  Diagnostics
       DIAGNO: IF (l_update_state) THEN

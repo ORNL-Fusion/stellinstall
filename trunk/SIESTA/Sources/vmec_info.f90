@@ -16,7 +16,8 @@
                          phipf_vmec=>phipf, presf_vmec=>presf, nfp_vmec=>nfp,  &
                          wb_vmec=>wb, wp_vmec=>wp, gamma_vmec=>gamma,          &
                          volume_vmec=>volume, raxis_vmec=>raxis,               &
-                         lasym_vmec=>lasym, iasym_vmec=>iasym
+                         lasym_vmec=>lasym, iasym_vmec=>iasym,                 &
+                         vmec_curtor=>Itor
       USE fourier, ONLY: f_cos, f_sin
 
       IMPLICIT NONE
