@@ -8,7 +8,6 @@ list (APPEND vmec_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/free_mem_funct3d.f
 	${CMAKE_CURRENT_SOURCE_DIR}/free_mem_ns.f
 	${CMAKE_CURRENT_SOURCE_DIR}/free_mem_nunv.f
-	${CMAKE_CURRENT_SOURCE_DIR}/free_mem_recon.f
 	${CMAKE_CURRENT_SOURCE_DIR}/free_persistent_mem.f
 	${CMAKE_CURRENT_SOURCE_DIR}/guess_axis.f
 	${CMAKE_CURRENT_SOURCE_DIR}/heading.f

@@ -1552,12 +1552,12 @@
 
       END SUBROUTINE
 
-      SUBROUTINE Compute_Currents(bsubsmnc_, bsubsmns_,                          &
-     &                            bsubumnc_, bsubumns_,                          &
-     &                            bsubvmnc_, bsubvmns_,                          &
-     &                            xm_nyq_, xn_nyq_, mnmax_nyq_,                  &
-     &                            lasym_, ns_,     &
-     &                            currumnc_, currvmnc_,                          &
+      SUBROUTINE Compute_Currents(bsubsmnc_, bsubsmns_,                        &
+     &                            bsubumnc_, bsubumns_,                        &
+     &                            bsubvmnc_, bsubvmns_,                        &
+     &                            xm_nyq_, xn_nyq_, mnmax_nyq_,                &
+     &                            lasym_, ns_,                                 &
+     &                            currumnc_, currvmnc_,                        &
      &                            currumns_, currvmns_)
       USE stel_constants, ONLY: mu0
       IMPLICIT NONE
