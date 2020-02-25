@@ -14,10 +14,8 @@
       USE shared_data, ONLY: lasym, r1_i, z1_i, ru_i, zu_i, rv_i, zv_i, nsp
       USE island_params, ns=>ns_i, mpol=>mpol_i, ntor=>ntor_i, &
                          ntheta=>nu_i, nzeta=>nv_i, mnmax=>mnmax_i, nsv=>ns_v, &
-                         ohs=>ohs_i
+                         ohs=>ohs_i, nfp=>nfp_i
       USE island_params, ONLY: phipf_i, chipf_i, presf_i, nsh
-      USE fourier, ONLY: f_none, f_cos, f_sin, f_sum, f_du, f_dv,              &
-                         cosmui, vtoijsp, orthonorm
       USE v3_utilities, ONLY: assert
       USE siesta_namelist, ONLY: l_vessel
       USE descriptor_mod, ONLY: iam
@@ -77,14 +75,14 @@
 CONTAINS
 
   SUBROUTINE grid_extender(wout_file, itype, istat)
-    USE fourier, ONLY: toijsp, f_cos, f_sin,                            &
-      f_none, f_sum, f_du, f_dv, tomnsp
+    USE fourier, ONLY: f_cos, f_sin, f_none, f_sum, f_du, f_dv
     USE v3_utilities, ONLY: assert
     USE vmec_info, ONLY: rmnc_i, rmns_i, zmns_i, zmnc_i,                &
                          jcurrumnc, jcurrvmnc, jcurrumns, jcurrvmns
     USE descriptor_mod, ONLY: SIESTA_COMM
     USE siesta_namelist, ONLY: nsin_ext
     USE shared_data, ONLY: lverbose
+    USE island_params, ONLY: fourier_context
 
     IMPLICIT NONE
 
@@ -101,6 +99,8 @@ CONTAINS
     REAL(dp), DIMENSION(:), ALLOCATABLE  :: vp 
     REAL(dp), DIMENSION(:,:,:), ALLOCATABLE  :: tmp, tmp2
     REAL(dp), DIMENSION(:), ALLOCATABLE  :: tmp1 
+
+    CLASS (fourier_class), POINTER :: four => null()
 
     IF (.NOT.l_vessel) RETURN
 
@@ -127,22 +127,28 @@ CONTAINS
     END IF
 
     ALLOCATE(ri(ntheta,nzeta),zi(ntheta,nzeta))
-    ALLOCATE(r1_ves(ntheta,nzeta),z1_ves(ntheta,nzeta), &
-      ru_ves(ntheta,nzeta), zu_ves(ntheta,nzeta), &
-      rv_ves(ntheta,nzeta), zv_ves(ntheta,nzeta))
+    ALLOCATE(r1_ves(ntheta,nzeta),z1_ves(ntheta,nzeta),  &
+             ru_ves(ntheta,nzeta), zu_ves(ntheta,nzeta), &
+             rv_ves(ntheta,nzeta), zv_ves(ntheta,nzeta))
+
+!  FIXME: The vessel file could have a different periodicity than the equilbirum.
+    four => fourier_class(mpol_v, ntor_v, ntheta, nzeta, nfp, .true.)
 
     !Set internal normalization
-    rmnc_v = rmnc_v/orthonorm(0:mpol_v,-ntor_v:ntor_v)
-    zmns_v = zmns_v/orthonorm(0:mpol_v,-ntor_v:ntor_v)
+    rmnc_v = rmnc_v/four%orthonorm
+    zmns_v = zmns_v/four%orthonorm
 
-    CALL vtoijsp(rmnc_v, r1_ves, f_none, f_cos)
-    CALL vtoijsp(zmns_v, z1_ves, f_none, f_sin)
+!  FIXME: What about non stellarator symmetric vessels?
+    CALL four%toijsp(rmnc_v, r1_ves, f_none, f_cos)
+    CALL four%toijsp(zmns_v, z1_ves, f_none, f_sin)
 
-    CALL vtoijsp(rmnc_v, ru_ves, f_du, f_cos)
-    CALL vtoijsp(zmns_v, zu_ves, f_du, f_sin)
+    CALL four%toijsp(rmnc_v, ru_ves, f_du, f_cos)
+    CALL four%toijsp(zmns_v, zu_ves, f_du, f_sin)
 
-    CALL vtoijsp(rmnc_v, rv_ves, f_dv, f_cos)
-    CALL vtoijsp(zmns_v, zv_ves, f_dv, f_sin)
+    CALL four%toijsp(rmnc_v, rv_ves, f_dv, f_cos)
+    CALL four%toijsp(zmns_v, zv_ves, f_dv, f_sin)
+
+    DEALLOCATE(four)
 
     !Compute extended "s" coordinate for s>1, assuming Vp(s) = Vp(s=1)*s
     !where Vp(s=1) is obtained from extrapolating VMEC values. Results is
@@ -270,11 +276,15 @@ CONTAINS
        ALLOCATE(rmnc_i(0:mpol,-ntor:ntor,ns),                           &
                 zmns_i(0:mpol,-ntor:ntor,ns), stat=istat)
        rmnc_i(:,:,1:nsp) = tmp(:,:,1:nsp); zmns_i(:,:,1:nsp) = tmp2(:,:,1:nsp)
-       CALL tomnsp(r1_i(:,:,nsp1:ns), rmnc_i(:,:,nsp1:ns), f_cos)
-       CALL tomnsp(z1_i(:,:,nsp1:ns), zmns_i(:,:,nsp1:ns), f_sin)
+       CALL fourier_context%tomnsp(r1_i(:,:,nsp1:ns), rmnc_i(:,:,nsp1:ns),     &
+                                   f_cos)
+       CALL fourier_context%tomnsp(z1_i(:,:,nsp1:ns), zmns_i(:,:,nsp1:ns),     &
+                                   f_sin)
        DO js = nsp1, ns
-          rmnc_i(:,:,js) = rmnc_i(:,:,js)/orthonorm(0:mpol,-ntor:ntor)
-          zmns_i(:,:,js) = zmns_i(:,:,js)/orthonorm(0:mpol,-ntor:ntor)
+          rmnc_i(:,:,js) = rmnc_i(:,:,js)                                      &
+                         / fourier_context%orthonorm(0:mpol,-ntor:ntor)
+          zmns_i(:,:,js) = zmns_i(:,:,js)                                      &
+                         / fourier_context%orthonorm(0:mpol,-ntor:ntor)
        END DO
 
 ! PUT PROFILES ONTO EXTENDED MESH
@@ -313,16 +323,22 @@ CONTAINS
        DEALLOCATE(tmp1)
 
        IF (lasym) THEN
-          tmp(:,:,1:nsp) = rmns_i; tmp2(:,:,1:nsp) = zmnc_i
+          tmp(:,:,1:nsp) = rmns_i
+          tmp2(:,:,1:nsp) = zmnc_i
           DEALLOCATE(rmns_i, zmnc_i)
           ALLOCATE(rmns_i(0:mpol,-ntor:ntor,ns),                        &
                    zmnc_i(0:mpol,-ntor:ntor,ns), stat=istat)
-          rmns_i(:,:,1:nsp) = tmp(:,:,1:nsp); zmnc_i(:,:,1:nsp) = tmp2(:,:,1:nsp)
-          CALL tomnsp(r1_i(:,:,nsp1:ns), rmns_i(:,:,nsp1:ns), f_sin)
-          CALL tomnsp(z1_i(:,:,nsp1:ns), zmnc_i(:,:,nsp1:ns), f_cos)
+          rmns_i(:,:,1:nsp) = tmp(:,:,1:nsp)
+          zmnc_i(:,:,1:nsp) = tmp2(:,:,1:nsp)
+          CALL fourier_context%tomnsp(r1_i(:,:,nsp1:ns), rmns_i(:,:,nsp1:ns),  &
+                                      f_sin)
+          CALL fourier_context%tomnsp(z1_i(:,:,nsp1:ns), zmnc_i(:,:,nsp1:ns),  &
+                                      f_cos)
           DO js = nsp1, ns
-             rmns_i(:,:,js) = rmns_i(:,:,js)/orthonorm(0:mpol,-ntor:ntor)
-             zmnc_i(:,:,js) = zmnc_i(:,:,js)/orthonorm(0:mpol,-ntor:ntor)
+             rmns_i(:,:,js) = rmns_i(:,:,js)                                   &
+                            / fourier_context%orthonorm(0:mpol,-ntor:ntor)
+             zmnc_i(:,:,js) = zmnc_i(:,:,js)                                   &
+                            / fourier_context%orthonorm(0:mpol,-ntor:ntor)
           END DO
 
           tmp = 0
@@ -767,7 +783,7 @@ CONTAINS
       END FUNCTION
 
   SUBROUTINE SurfAvgLocal(average, q3d, nsmin, nsmax)
-    USE island_params, ONLY: cosmui 
+    USE island_params, ONLY: fourier_context
     IMPLICIT NONE
 
     INTEGER, INTENT(IN)   :: nsmin, nsmax
@@ -780,7 +796,7 @@ CONTAINS
     ALLOCATE(wint(ntheta,nzeta,nsmin:nsmax))
 
     DO l = 1, ntheta
-      wint(l,:,:) = cosmui(l,0)
+      wint(l,:,:) = fourier_context%cosmui(l,0)
     END DO         
     DO js = nsmin, nsmax
       average(js) = SUM(q3d(:,:,js)*wint(:,:,js))

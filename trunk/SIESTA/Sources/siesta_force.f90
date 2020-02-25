@@ -40,7 +40,7 @@
       USE v3_utilities, ONLY: assert
       USE descriptor_mod, ONLY: SIESTA_COMM, iam, nprocs
       USE fourier 
-      USE island_params, ONLY: nu_i, hs_i, dnorm_i
+      USE island_params, ONLY: nu_i, hs_i
       USE timer_mod
       USE shared_data, ONLY: l_linearize, l_getwmhd, lverbose, l_pedge
       USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
@@ -229,7 +229,10 @@
       SUBROUTINE IncFields(jbsupsmnh, jbsupumnh, jbsupvmnh, jpmnh,             &
                            djbsupsmnh, djbsupumnh, djbsupvmnh, djpmnh,         &
                            jbsupsijh, jbsupuijh, jbsupvijh, jpijh,             &
-                           iparity)
+                           parity)
+      USE island_params, ONLY: fourier_context
+
+      IMPLICIT NONE
 
 !  Declare Arguments
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in) :: jbsupsmnh
@@ -244,7 +247,7 @@
       REAL (dp), DIMENSION(:,:,:), INTENT(out)             :: jbsupuijh
       REAL (dp), DIMENSION(:,:,:), INTENT(out)             :: jbsupvijh
       REAL (dp), DIMENSION(:,:,:), INTENT(out)             :: jpijh
-      INTEGER, INTENT(in)                                  :: iparity
+      INTEGER, INTENT(in)                                  :: parity
 
 !  local variables
       INTEGER                                              :: fours
@@ -262,7 +265,7 @@
       nsmin = MAX(1, startglobrow)
       nsmax = MIN(ns, endglobrow + 1)
 
-      IF (iparity .EQ. f_sin) THEN
+      IF (parity .EQ. f_sin) THEN
          fcomb = f_none
          fours = f_sin
          fouruv = f_cos
@@ -306,10 +309,10 @@
       END IF
 
 !  Calculate real-space jbsup*ihh and jpijh half mesh.
-      CALL toijsp(jbsupsmnh_i, jbsupsijh, fcomb, fours)
-      CALL toijsp(jbsupumnh_i, jbsupuijh, fcomb, fouruv)
-      CALL toijsp(jbsupvmnh_i, jbsupvijh, fcomb, fouruv)
-      CALL toijsp(jpmnh_i, jpijh, fcomb, fouruv)
+      CALL fourier_context%toijsp(jbsupsmnh_i, jbsupsijh, fcomb, fours)
+      CALL fourier_context%toijsp(jbsupumnh_i, jbsupuijh, fcomb, fouruv)
+      CALL fourier_context%toijsp(jbsupvmnh_i, jbsupvijh, fcomb, fouruv)
+      CALL fourier_context%toijsp(jpmnh_i, jpijh, fcomb, fouruv)
 
       DEALLOCATE(jbsupsmnh_i, jbsupumnh_i, jbsupvmnh_i, jpmnh_i)
 
@@ -420,7 +423,7 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE GetMHDForce(fsubsmnf, fsubumnf, fsubvmnf, pijh,               &
                              KxBsij, KxBuij, KxBvij, pardamp, iparity)
-      USE island_params, ONLY: ohs=>ohs_i
+      USE island_params, ONLY: ohs=>ohs_i, fourier_context
       USE utilities, ONLY: set_bndy_half_to_full, set_bndy_half_to_full_ds,    &
                            set_bndy_full_origin
 
@@ -474,16 +477,16 @@
       END IF
 
 !  Harmonics of covariant Lorentz force components on full grid.
-      CALL tomnsp(KxBsij, fsubsmnf(:,:,nsmin:nsmax), fours)
-      CALL tomnsp(KxBuij, fsubumnf(:,:,nsmin:nsmax), fouruv)
-      CALL tomnsp(KxBvij, fsubvmnf(:,:,nsmin:nsmax), fouruv)
+      CALL fourier_context%tomnsp(KxBsij, fsubsmnf(:,:,nsmin:nsmax), fours)
+      CALL fourier_context%tomnsp(KxBuij, fsubumnf(:,:,nsmin:nsmax), fouruv)
+      CALL fourier_context%tomnsp(KxBvij, fsubvmnf(:,:,nsmin:nsmax), fouruv)
 
       IF (nsmin .eq. 1) THEN
          CALL set_bndy_full_origin(fsubsmnf, fsubumnf, fsubvmnf)
       END IF
 
 !  Harmonics of true pressure. The jacobian factor has been divided out of pijh.
-      CALL tomnsp(pijh, pmnh, fours)
+      CALL fourier_context%tomnsp(pijh, pmnh, fours)
       CALL to_full_mesh(pmnh, pmnf)
       CALL set_bndy_half_to_full(pmnh, pmnf, nsmin, fours)
 

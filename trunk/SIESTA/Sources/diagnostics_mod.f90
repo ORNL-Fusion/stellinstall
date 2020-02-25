@@ -1,7 +1,6 @@
       MODULE diagnostics_mod
       USE v3_utilities, ONLY: assert
-      USE fourier, ONLY: tomnsp, toijsp, tomnsp, toijsp,        &
-                   f_sum, f_cos, f_sin, f_none, f_du, f_dv
+      USE fourier, ONLY: f_sum, f_cos, f_sin, f_none, f_du, f_dv
       USE descriptor_mod, ONLY: iam, nprocs, SIESTA_COMM
       USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
       USE timer_mod
@@ -11,7 +10,10 @@
 #if defined(MPI_OPT)
       USE mpi_inc
 #endif
+      USE island_params, ONLY: fourier_context
+
       IMPLICIT NONE
+
       INTEGER, PRIVATE  :: unit35=35, unit36=36, nsmin, nsmax
       REAL(dp) :: divb_rms, avbeta, bdotj_rms, divj_rms, bdotj2_rms
       REAL(dp) :: toroidal_flux, toroidal_flux0=0, bgradp_rms, wbgradp
@@ -163,38 +165,38 @@
         CALL WRITE_SPECTRA(pijf0, pmnh, f_cos, f_sin, ifull, 'p', fsq_total)
 
 !BSUPS
-        CALL WRITE_SPECTRA (bsupsijf0, pmnh, f_sin, f_cos, ifull, 'B^s', fsq_total)
+        CALL WRITE_SPECTRA(bsupsijf0, pmnh, f_sin, f_cos, ifull, 'B^s', fsq_total)
 
 !BSUPU
-        CALL WRITE_SPECTRA (bsupuijf0, pmnh, f_cos, f_sin, ifull, 'B^u', fsq_total)
+        CALL WRITE_SPECTRA(bsupuijf0, pmnh, f_cos, f_sin, ifull, 'B^u', fsq_total)
 
 !BSUPV
-        CALL WRITE_SPECTRA (bsupvijf0, pmnh, f_cos, f_sin, ifull, 'B^v', fsq_total)
+        CALL WRITE_SPECTRA(bsupvijf0, pmnh, f_cos, f_sin, ifull, 'B^v', fsq_total)
 
 !KSUPS CRCook
         pijh = ksupsijf0/jacobf
-        CALL WRITE_SPECTRA (pijh, pmnh, f_sin, f_cos, ifull, 'J^s', fsq_total)
+        CALL WRITE_SPECTRA(pijh, pmnh, f_sin, f_cos, ifull, 'J^s', fsq_total)
 
 !KSUPU CRCook
         pijh = ksupuijf0/jacobf
-        CALL WRITE_SPECTRA (pijh, pmnh, f_cos, f_sin, ifull, 'J^u', fsq_total)
+        CALL WRITE_SPECTRA(pijh, pmnh, f_cos, f_sin, ifull, 'J^u', fsq_total)
 
 !KSUPV CRCook
         pijh = ksupvijf0/jacobf
-        CALL WRITE_SPECTRA (pijh, pmnh, f_cos, f_sin, ifull, 'J^v', fsq_total)
+        CALL WRITE_SPECTRA(pijh, pmnh, f_cos, f_sin, ifull, 'J^v', fsq_total)
 
 !K|| = (J*B)/B**2 (SPH:040915)
         CALL bdotj(bdotjijh)
         pijh = bdotjijh*jacobh
         DEALLOCATE(bdotjijh)
-        CALL WRITE_SPECTRA (pijh, pmnh, f_cos, f_sin, ihalf, 'K||', fsq_total)
+        CALL WRITE_SPECTRA(pijh, pmnh, f_cos, f_sin, ihalf, 'K||', fsq_total)
 
 
 !<K||-nonaxi> : RWILCOX metric in PEST coordinates
 !need to extend this to lasym=T
-        CALL tomnsp(pijh, pmnh, f_cos)
+        CALL fourier_context%tomnsp(pijh, pmnh, f_cos)
         pmnh(:,0,:) = 0
-        CALL toijsp(pmnh, pijh, f_none, f_cos)
+        CALL fourier_context%toijsp(pmnh, pijh, f_none, f_cos)
         CALL SurfAverage(average, ABS(pijh), 1, ns)
         WRITE (unit36, *) 
         WRITE (unit36, *) '<ABS(K||) - nonaxisymmetric>'
@@ -203,14 +205,14 @@
         END DO
         
 !Displacements X jac (SPH:052114)
-        CALL siesta_profiles (unit35, jvsupsmncf, 'vel^s_cosmn;  fsq_total: ', fsq_total)
-        IF (lasym) CALL siesta_profiles (unit35, jvsupsmnsf, 'vel^s_sinmn;  fsq_total: ', fsq_total)
-        CALL siesta_profiles (unit35, jvsupumnsf, 'vel^u_sinmn;  fsq_total: ', fsq_total)
-        IF (lasym) CALL siesta_profiles (unit35, jvsupumncf, 'vel^u_cosmn;  fsq_total: ', fsq_total)
-        CALL siesta_profiles (unit35, jvsupvmnsf, 'vel^v_sinmn;  fsq_total: ', fsq_total)
+        CALL siesta_profiles(unit35, jvsupsmncf, 'vel^s_cosmn;  fsq_total: ', fsq_total)
+        IF (lasym) CALL siesta_profiles(unit35, jvsupsmnsf, 'vel^s_sinmn;  fsq_total: ', fsq_total)
+        CALL siesta_profiles(unit35, jvsupumnsf, 'vel^u_sinmn;  fsq_total: ', fsq_total)
+        IF (lasym) CALL siesta_profiles(unit35, jvsupumncf, 'vel^u_cosmn;  fsq_total: ', fsq_total)
+        CALL siesta_profiles(unit35, jvsupvmnsf, 'vel^v_sinmn;  fsq_total: ', fsq_total)
         IF (lasym) CALL siesta_profiles (unit35, jvsupvmncf, 'vel^v_cosmn;  fsq_total: ', fsq_total)
 
-        DEALLOCATE (pijh, pmnh)
+        DEALLOCATE(pijh, pmnh)
 
         CLOSE (unit35)
         CLOSE (unit36)
@@ -233,7 +235,6 @@
 !>  @param[in]    fsq_total
 !>------------------------------------------------------------------------------
       SUBROUTINE write_spectra(xij, xmn, fsym, fasym, igrid, label, fsq_total)
-      USE fourier, ONLY: tomnsp_pest
       USE vmec_info, ONLY:  lmns => lmns_i, lmnc => lmnc_i
       USE siesta_namelist, ONLY: l_vessel
       USE utilities, ONLY: to_full_mesh
@@ -267,10 +268,10 @@
          WRITE (mylabel,1001) TRIM(LABEL)
       END IF
       
-      CALL tomnsp(xij, xmn, fsym)
+      CALL fourier_context%tomnsp(xij, xmn, fsym)
       CALL siesta_profiles(unit35, xmn, TRIM(mylabel), fsq_total)
       IF (.not.l_vessel) THEN
-         CALL tomnsp_pest(xij, xmn, lmns, lmnc, fsym)
+         CALL fourier_context%tomnsp(xij, xmn, lmns, lmnc, fsym, lasym)
          CALL siesta_profiles(unit36, xmn, TRIM(mylabel), fsq_total)
       END IF
       IF (lasym) THEN
@@ -281,10 +282,10 @@
             WRITE (mylabel,1001) TRIM(LABEL)
          END IF
 
-         CALL tomnsp(xij, xmn, fasym)
+         CALL fourier_context%tomnsp(xij, xmn, fasym)
          CALL siesta_profiles(unit35, xmn, TRIM(mylabel), fsq_total)
          IF (.not.l_vessel) THEN
-            CALL tomnsp_pest(xij, xmn, lmns, lmnc, fasym)
+            CALL fourier_context%tomnsp(xij, xmn, lmns, lmnc, fasym, lasym)
             CALL siesta_profiles(unit36, xmn, TRIM(mylabel), fsq_total)
          END IF
       END IF
@@ -677,10 +678,10 @@
         tnorm2= MAX(tnorm2,EPSILON(tnorm2))
         bdotj2_rms = SQRT(ABS(bdotj_rms))/tnorm2                           ! RMS of bdotj/|J|*|B|  
         bdotj_rms  = SQRT(ABS(bdotj_rms))/tnorm                            ! RMS of bdotj/|JxB|  
-        CALL tomnsp(bdotjijhA, bdotjmnch, f_cos)                  ! Keep harmonics of BDOTJ for output
+        CALL fourier_context%tomnsp(bdotjijhA, bdotjmnch, f_cos)                  ! Keep harmonics of BDOTJ for output
         bdotjmnch = bdotjmnch/tnorm
         IF (lasym) THEN
-        CALL tomnsp(bdotjijhA, bdotjmnsh, f_cos)                  ! Keep harmonics of BDOTJ for output
+        CALL fourier_context%tomnsp(bdotjijhA, bdotjmnsh, f_cos)                  ! Keep harmonics of BDOTJ for output
         bdotjmnsh = bdotjmnsh/tnorm
         END IF
         CALL second0(toff)
@@ -691,6 +692,9 @@
         END SUBROUTINE bdotj
 
       SUBROUTINE bdotj_par
+      USE island_params, ONLY: fourier_context
+
+      IMPLICIT NONE
 
 !     
 !     WRITTEN 08-20-07 BY R. SANCHEZ AS PART OF THE ORNL SIESTA PROJECT (c)
@@ -722,13 +726,19 @@
                  bsupvijh(ntheta,nzeta,nsmin:nsmax), stat=istat)
         CALL ASSERT(istat.EQ.0,'Allocation #1 failed in BDOTJ_PAR')
 
-        CALL toijsp(jbsupsmnsh(:,:,nsmin:nsmax), bsupsijh, f_none, f_sin)
-        CALL toijsp(jbsupumnch(:,:,nsmin:nsmax), bsupuijh, f_none, f_cos)
-        CALL toijsp(jbsupvmnch(:,:,nsmin:nsmax), bsupvijh, f_none, f_cos)
+        CALL fourier_context%toijsp(jbsupsmnsh(:,:,nsmin:nsmax), bsupsijh,     &
+       &                            f_none, f_sin)
+        CALL fourier_context%toijsp(jbsupumnch(:,:,nsmin:nsmax), bsupuijh,     &
+                                    f_none, f_cos)
+        CALL fourier_context%toijsp(jbsupvmnch(:,:,nsmin:nsmax), bsupvijh,     &
+                                    f_none, f_cos)
         IF (lasym) THEN
-        CALL toijsp(jbsupsmnch(:,:,nsmin:nsmax), bsupsijh, f_sum, f_cos)
-        CALL toijsp(jbsupumnsh(:,:,nsmin:nsmax), bsupuijh, f_sum, f_sin)
-        CALL toijsp(jbsupvmnsh(:,:,nsmin:nsmax), bsupvijh, f_sum, f_sin)
+           CALL fourier_context%toijsp(jbsupsmnch(:,:,nsmin:nsmax), bsupsijh,  &
+                                       f_sum, f_cos)
+           CALL fourier_context%toijsp(jbsupumnsh(:,:,nsmin:nsmax), bsupuijh,  &
+                                       f_sum, f_sin)
+           CALL fourier_context%toijsp(jbsupvmnsh(:,:,nsmin:nsmax), bsupvijh,  &
+                                       f_sum, f_sin)
         END IF
 
         bsupsijh = bsupsijh/jacobh(:,:,nsmin:nsmax)
@@ -875,9 +885,9 @@
 
         bdotjijh = bdotjijh/tnorm
         
-        CALL tomnsp(bdotjijh, bdotjmnch, f_cos)                       ! Keep harmonics of BDOTJ for output
+        CALL fourier_context%tomnsp(bdotjijh, bdotjmnch, f_cos)                       ! Keep harmonics of BDOTJ for output
         IF (lasym) THEN
-        CALL tomnsp(bdotjijh, bdotjmnsh, f_sin)                       ! Keep harmonics of BDOTJ for output
+           CALL fourier_context%tomnsp(bdotjijh, bdotjmnsh, f_sin)                       ! Keep harmonics of BDOTJ for output
         END IF
 
         DEALLOCATE (bdotjijh)

@@ -178,15 +178,17 @@
 !>                           direction.
 !>  @param[in]    esubvijf   Covariant real space electric field in the s
 !>                           direction.
-!>  @param[in]    iparity    Fourier parity control flag.
+!>  @param[in]    parity     Fourier parity control flag.
 !>  @param[in]    nsmin      Minimum radial index.
 !>  @param[in]    nsmax      Maximum radial index.
 !-------------------------------------------------------------------------------
       SUBROUTINE Faraday(djbsupsmnh, djbsupumnh, djbsupvmnh,                   &
-                         esubsijf, esubuijf, esubvijf, iparity, nsmin, nsmax)
+                         esubsijf, esubuijf, esubvijf, parity, nsmin, nsmax)
       USE shared_data, ONLY: l_natural, delta_t
       USE hessian, ONLY: l_compute_hessian
       USE utilities, ONLY: Curl_FtoH, set_bndy_full_origin
+      USE island_params, ONLY: mpol => mpol_i, ntor => ntor_i, fourier_context
+
       IMPLICIT NONE
 
 !  Declare Arguments
@@ -196,7 +198,7 @@
       REAL (dp), DIMENSION(:,:,:), INTENT(in)                 :: esubsijf
       REAL (dp), DIMENSION(:,:,:), INTENT(in)                 :: esubuijf
       REAL (dp), DIMENSION(:,:,:), INTENT(in)                 :: esubvijf
-      INTEGER, INTENT(in)                                     :: iparity
+      INTEGER, INTENT(in)                                     :: parity
       INTEGER, INTENT(in)                                     :: nsmin
       INTEGER, INTENT(in)                                     :: nsmax
 
@@ -210,7 +212,7 @@
       REAL (dp), DIMENSION(:,:,:), POINTER                    :: esubvmnf
 
 !  Start of executable code
-      IF (iparity .EQ. f_sin) THEN
+      IF (parity .EQ. f_sin) THEN
 !  e_s (sin), e_u (cos), e_v (cos)
          fours = f_sin
          fouruv = f_cos
@@ -228,9 +230,9 @@
                esubvmnf(0:mpol,-ntor:ntor,nsmin:nsmax))
 
 !  Calculate harmonics of electric field
-      CALL tomnsp(esubsijf, esubsmnf, fours)
-      CALL tomnsp(esubuijf, esubumnf, fouruv)
-      CALL tomnsp(esubvijf, esubvmnf, fouruv)
+      CALL fourier_context%tomnsp(esubsijf, esubsmnf, fours)
+      CALL fourier_context%tomnsp(esubuijf, esubumnf, fouruv)
+      CALL fourier_context%tomnsp(esubvijf, esubvmnf, fouruv)
 
 !  Impose boundary consition at first half-grid point.
       IF (startglobrow .EQ. 1) THEN
@@ -253,7 +255,7 @@
 !  dB = -Curl(E)
       CALL curl_ftoh(esubsmnf, esubumnf, esubvmnf,                             &
                      djbsupsmnh, djbsupumnh, djbsupvmnh,                       &
-                     iparity, nsmin, nsmax)
+                     parity, nsmin, nsmax)
 
       DEALLOCATE(esubsmnf, esubumnf, esubvmnf)
 

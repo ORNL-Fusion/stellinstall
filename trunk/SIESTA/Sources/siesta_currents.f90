@@ -61,14 +61,14 @@
       SUBROUTINE cv_currents(bsupsijh, bsupuijh, bsupvijh,                     &
                              ksupsijf, ksupuijf, ksupvijf,                     &
                              lmagen, lcurr)
-      USE island_params, ONLY: nu_i, rmajor_i
+      USE island_params, ONLY: nu_i, rmajor_i, fourier_context
       USE Hessian, ONLY: mupar_norm
       USE descriptor_mod, ONLY: iam
       USE quantities, ONLY: bsq
       USE timer_mod
       USE mpi_inc
       USE descriptor_mod, ONLY: SIESTA_COMM
-      USE shared_data, ONLY: siesta_curtor
+      USE shared_data, ONLY: siesta_curtor, unit_out
 
       IMPLICIT NONE
 
@@ -93,7 +93,6 @@
       INTEGER                                                :: nsmax
       INTEGER                                                :: nmin
       INTEGER                                                :: nmax
-      INTEGER                                                :: ns_span
       REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)               :: bsubsijh
       REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)               :: bsubuijh
       REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)               :: bsubvijh
@@ -154,21 +153,20 @@
       END IF
 
 !  Calculate BsubXmnh and KsupXmnf harmonics. Deallocated in calling routine.
-      ns_span = nsmax - nsmin
       IF (l_update_state) THEN
-         ALLOCATE(bs_filter(ntheta,nzeta,ns_span),                             &
-                  bu_filter(ntheta,nzeta,ns_span),                             &
-                  bv_filter(ntheta,nzeta,ns_span), stat=istat)
+         ALLOCATE(bs_filter(ntheta,nzeta,nsmin:nsmax),                         &
+                  bu_filter(ntheta,nzeta,nsmin:nsmax),                         &
+                  bv_filter(ntheta,nzeta,nsmin:nsmax), stat=istat)
          CALL assert_eq(0, istat, 'Allocation2 failed in CURLB')
       END IF
 
       edge_cur = 0.0
-      CALL CURLB(ksupsmnsf, ksupumncf, ksupvmncf,                              &
+      CALL curlb(ksupsmnsf, ksupumncf, ksupvmncf,                              &
                  bsubsijh, bsubuijh, bsubvijh,                                 &
                  bs_filter, bu_filter, bv_filter, edge_cur,                    &
                  jsju_ratio_s, f_sin, lcurr, nsmax, nsmin, siesta_curtor)
       IF (lasym) THEN
-         CALL CURLB(ksupsmncf, ksupumnsf, ksupvmnsf,                           &
+         CALL curlb(ksupsmncf, ksupumnsf, ksupvmnsf,                           &
                     bsubsijh, bsubuijh, bsubvijh,                              &
                     bs_filter, bu_filter, bv_filter, edge_cur,                 &
                     jsju_ratio_a, f_cos, lcurr, nsmax, nsmin,                  &
@@ -176,7 +174,8 @@
       END IF
 
       IF (nsmax .eq. ns) THEN
-         siesta_curtor = -orthonorm(m0,n0)*siesta_curtor/b_factor
+         siesta_curtor = -fourier_context%orthonorm(m0,n0)*siesta_curtor       &
+                       / b_factor
       END IF
 
       IF (lcurr) THEN
@@ -187,10 +186,10 @@
 
 !  Calculate full mesh, contravariant real-space current components
 !  KsupXF = sqrt(g)*JsupXF.
-      CALL GETCV(ksupsmnsf, ksupumncf, ksupvmncf,                              &
+      CALL getcv(ksupsmnsf, ksupumncf, ksupvmncf,                              &
                  ksupsijf, ksupuijf, ksupvijf, f_sin, nsmax, nmin)
       IF (lasym) THEN
-         CALL GETCV(ksupsmncf, ksupumnsf, ksupvmnsf,                           &
+         CALL getcv(ksupsmncf, ksupumnsf, ksupvmnsf,                           &
                     ksupsijf, ksupuijf, ksupvijf, f_cos, nsmax, nmin)
       END IF
 
@@ -241,15 +240,21 @@
                        (bv_filter - bsubvijh(:,:,nmin:nmax))**2)
          temp(6) = SUM(wint(:,:,nmin:nmax) *                                   &
                        (bv_filter + bsubvijh(:,:,nmin:nmax))**2)
-         IF (PARSOLVER) THEN
 #if defined(MPI_OPT)
+         IF (PARSOLVER) THEN
             CALL MPI_ALLREDUCE(MPI_IN_PLACE, temp, 6, MPI_REAL8, MPI_SUM,      &
                                SIESTA_COMM, MPI_ERR)
-#endif
          END IF
-         IF (temp(2) .NE. zero) ste(2) = SQRT(temp(1)/temp(2))
-         IF (temp(4) .NE. zero) ste(3) = SQRT(temp(3)/temp(4))
-         IF (temp(6) .NE. zero) ste(4) = SQRT(temp(5)/temp(6))
+#endif
+         IF (temp(2) .ne. zero) THEN
+            ste(2) = SQRT(temp(1)/temp(2))
+         END IF
+         IF (temp(4) .ne. zero) THEN
+            ste(3) = SQRT(temp(3)/temp(4))
+         END IF
+         IF (temp(6) .ne. zero) THEN
+            ste(4) = SQRT(temp(5)/temp(6))
+         END IF
          DEALLOCATE (bs_filter, bu_filter, bv_filter)
       END IF DIAGNO
 
@@ -288,11 +293,12 @@
 !>  @param[in]    nsmin      Minimum radial index.
 !>  @param[inout] curtor     Current enclosed at the boundary.
 !-------------------------------------------------------------------------------
-      SUBROUTINE CURLB(ksupsmnf, ksupumnf, ksupvmnf,                           &
+      SUBROUTINE curlb(ksupsmnf, ksupumnf, ksupvmnf,                           &
                        bsubsijh, bsubuijh, bsubvijh,                           &
                        bs_filter, bu_filter, bv_filter, edge_cur,              &
                        jsju_ratio, iparity, lcurr, nsmax, nsmin, curtor)
       USE utilities, ONLY: curl_htof
+      USE island_params, ONLY: fourier_context
 
       IMPLICIT NONE
 
@@ -349,9 +355,9 @@
       CALL assert_eq(0, istat, 'Allocation1 failed in CURLB')
 
 !  Compute bsubxmnh
-      CALL tomnsp(bsubsijh, bsubsmnh, fours)
-      CALL tomnsp(bsubuijh, bsubumnh, fouruv)
-      CALL tomnsp(bsubvijh, bsubvmnh, fouruv)
+      CALL fourier_context%tomnsp(bsubsijh, bsubsmnh, fours)
+      CALL fourier_context%tomnsp(bsubuijh, bsubumnh, fouruv)
+      CALL fourier_context%tomnsp(bsubvijh, bsubvmnh, fouruv)
 
       CALL CURL_HtoF(bsubsmnh, bsubumnh, bsubvmnh,                             &
                      ksupsmnf, ksupumnf, ksupvmnf,                             &
@@ -359,23 +365,26 @@
 
 !  Diagnostics
       DIAGNO: IF (l_update_state) THEN
-         IF (nmax .EQ. ns) THEN
+         IF (nmax .eq. ns) THEN
             edge_cur = edge_cur + SUM(ksupsmnf(:,:,ns)*ksupsmnf(:,:,ns))
          END IF
 
-         CALL toijsp(bsubsmnh(:,:,nmin:nmax), bs_filter, fcomb, fours)
-         CALL toijsp(bsubumnh(:,:,nmin:nmax), bu_filter, fcomb, fouruv)
-         CALL toijsp(bsubvmnh(:,:,nmin:nmax), bv_filter, fcomb, fouruv)
-	     IF (nmin .EQ. 1) THEN
+         CALL fourier_context%toijsp(bsubsmnh(:,:,nmin:nmax), bs_filter,       &
+                                     fcomb, fours)
+         CALL fourier_context%toijsp(bsubumnh(:,:,nmin:nmax), bu_filter,       &
+                                     fcomb, fouruv)
+         CALL fourier_context%toijsp(bsubvmnh(:,:,nmin:nmax), bv_filter,       &
+                                     fcomb, fouruv)
+	     IF (nmin .eq. 1) THEN
             bv_filter(:,:,1) = bv_filter(:,:,2)
             bsubvijh(:,:,1) = bsubvijh(:,:,2)
          END IF
 
 !  K^s-r12*K^u at origin BEFORE bc applied
-         IF (nsmin .EQ. 1) THEN
+         IF (nsmin .eq. 1) THEN
             temp = ksupsmnf(m1,:,1) + r12*ksupumnf(m1,:,1)
             jsju_ratio = SUM(temp*temp)
-            IF (jsju_ratio .GT. zero) THEN
+            IF (jsju_ratio .gt. zero) THEN
                temp = ksupsmnf(m1,:,1) - r12*ksupumnf(m1,:,1)
                jsju_ratio = SUM(temp*temp)/jsju_ratio
                jsju_ratio = SQRT(jsju_ratio)
@@ -397,12 +406,15 @@
 !>  @param[inout] ksupsmnf Contravariant real space current in the s direction.
 !>  @param[inout] ksupumnf Contravariant real space current in the u direction.
 !>  @param[inout] ksupvmnf Contravariant real space current in the v direction.
-!>  @param[in]    iparity  Partity flag fourier components.
+!>  @param[in]    parity   Partity flag fourier components.
 !>  @param[in]    nsmax    Maximum radial index.
 !>  @param[in]    nsmin    Minimum radial index.
 !-------------------------------------------------------------------------------
-      SUBROUTINE GETCV(ksupsmnf, ksupumnf, ksupvmnf,                           &
-                       ksupsijf, ksupuijf, ksupvijf, iparity, nsmax, nsmin)
+      SUBROUTINE getcv(ksupsmnf, ksupumnf, ksupvmnf,                           &
+                       ksupsijf, ksupuijf, ksupvijf, parity, nsmax, nsmin)
+      USE island_params, ONLY: fourier_context
+
+      IMPLICIT NONE
 
 !  Declare Arguments
       REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in)    :: ksupsmnf
@@ -411,7 +423,7 @@
       REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: ksupsijf
       REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: ksupuijf
       REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: ksupvijf
-      INTEGER, INTENT(IN)                                    :: iparity
+      INTEGER, INTENT(IN)                                    :: parity
       INTEGER, INTENT(IN)                                    :: nsmax
       INTEGER, INTENT(IN)                                    :: nsmin
 
@@ -421,7 +433,7 @@
       INTEGER                                                :: fcomb
 
 !  Start of executable code
-      IF (iparity .EQ. f_sin) THEN
+      IF (parity .EQ. f_sin) THEN
          fcomb = f_none
          fours = f_sin
          fouruv = f_cos
@@ -431,9 +443,12 @@
          fouruv = f_sin
       END IF
 
-      CALL toijsp(ksupsmnf(:,:,nsmin:nsmax), ksupsijf, fcomb, fours)
-      CALL toijsp(ksupumnf(:,:,nsmin:nsmax), ksupuijf, fcomb, fouruv)
-      CALL toijsp(ksupvmnf(:,:,nsmin:nsmax), ksupvijf, fcomb, fouruv)
+      CALL fourier_context%toijsp(ksupsmnf(:,:,nsmin:nsmax), ksupsijf, fcomb,  &
+                                  fours)
+      CALL fourier_context%toijsp(ksupumnf(:,:,nsmin:nsmax), ksupuijf, fcomb,  &
+                                  fouruv)
+      CALL fourier_context%toijsp(ksupvmnf(:,:,nsmin:nsmax), ksupvijf, fcomb,  &
+                                  fouruv)
 
       END SUBROUTINE
 

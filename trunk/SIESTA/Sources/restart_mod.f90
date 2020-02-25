@@ -167,12 +167,13 @@
                             b_factor, p_factor, alloc_quantities
       USE island_params, ONLY: chipf => chipf_i, phipf => phipf_i,             &
      &                         wb => wb_i, wp => wp_i, nfp_i, gamma,           &
-     &                         gnorm => gnorm_i, rmajor => rmajor_i
+     &                         gnorm => gnorm_i, rmajor => rmajor_i,           &
+     &                         fourier_context, nu_i, nv_i
       USE vmec_info, ONLY: rmnc => rmnc_i, zmns => zmns_i,                     &
      &                     rmns => rmns_i, zmnc => zmnc_i,                     &
      &                     vmec_info_construct_island
       USE metrics, ONLY: LoadGrid
-      USE fourier, ONLY: orthonorm, init_fourier, m0, m1
+      USE fourier, ONLY: m0, m1, fourier_class
 
       IMPLICIT NONE
 
@@ -319,14 +320,14 @@
 
       CALL cdf_close(ncid)
 
-      CALL init_fourier
+      fourier_context => fourier_class(mpolin, ntorin, nu_i, nv_i, nfpin, lasym)
 
       DO s = 1, nsin
-         rmnc(:,:,s) = rmnc(:,:,s)/orthonorm
-         zmns(:,:,s) = zmns(:,:,s)/orthonorm
+         rmnc(:,:,s) = rmnc(:,:,s)/fourier_context%orthonorm
+         zmns(:,:,s) = zmns(:,:,s)/fourier_context%orthonorm
          IF (lasym) THEN
-            rmns(:,:,s) = rmns(:,:,s)/orthonorm
-            zmnc(:,:,s) = zmnc(:,:,s)/orthonorm
+            rmns(:,:,s) = rmns(:,:,s)/fourier_context%orthonorm
+            zmnc(:,:,s) = zmnc(:,:,s)/fourier_context%orthonorm
          END IF
       END DO
 
@@ -362,12 +363,15 @@
                             jbsupvmnsh, jbsupvmnch,                            &
                             jpmnsh,     jpmnch,                                &
                             b_factor,   p_factor, jacobh
-      USE fourier
+      USE fourier, ONLY: f_cos, f_sin, f_sum, f_none
       USE island_params, ONLY: nfp => nfp_i, chipf => chipf_i,                 &
                                phipf => phipf_i, wb => wb_i, wp => wp_i,       &
-                               rmajor => rmajor_i
+                               rmajor => rmajor_i, fourier_context,            &
+                               mpol=>mpol_i, ntor=>ntor_i, ns=>ns_i,           &
+                               ntheta=>nu_i, nzeta=>nv_i
       USE shared_data, ONLY: r1_i, z1_i
       USE utilities, ONLY: set_bndy_half_to_full, set_bndy_half_to_full_ds
+      USE stel_constants, ONLY: one
 
       IMPLICIT NONE
 
@@ -375,7 +379,7 @@
       CHARACTER (len=*), INTENT(in)            :: restart_ext
       CHARACTER (len=*), INTENT(in)            :: wout_file
 
-!  local variables
+!  Local Variables
       INTEGER                                  :: flags
       INTEGER                                  :: ncid
       INTEGER                                  :: nblock
@@ -406,7 +410,7 @@
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: tempmn_w
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: pijh
 
-!  Start of executable code
+!  Start of executable code.
       CALL cdf_open(ncid, 'siesta_' // TRIM(restart_ext) // '.nc', 'w', status)
       CALL assert_eq(0, status, 'Failed to write restart file.')
 
@@ -501,15 +505,11 @@
       CALL cdf_write(ncid, vn_chipf, chipf)
       CALL cdf_write(ncid, vn_phipf, phipf)
 
-      CALL tomnsp(r1_i, tempmn_w, f_cos)
-      DO s = 1, ns
-         tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)
-      END DO
+      CALL fourier_context%tomnsp(r1_i, tempmn_w, f_cos)
+      CALL restart_denormalize(tempmn_w, one)
       CALL cdf_write(ncid, vn_rmnc, tempmn_w)
-      CALL tomnsp(z1_i, tempmn_w, f_sin)
-      DO s = 1, ns
-         tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)
-      END DO
+      CALL fourier_context%tomnsp(z1_i, tempmn_w, f_sin)
+      CALL restart_denormalize(tempmn_w, one)
       CALL cdf_write(ncid, vn_zmns, tempmn_w)
 
       IF (lasym) THEN
@@ -518,15 +518,11 @@
          CALL cdf_write(ncid, vn_jbsupvs, jbsupvmnsh)
          CALL cdf_write(ncid, vn_jpress,  jpmnsh)
 
-         CALL tomnsp(r1_i, tempmn_w, f_sin)
-         DO s = 1, ns
-            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)
-         END DO
+         CALL fourier_context%tomnsp(r1_i, tempmn_w, f_sin)
+         CALL restart_denormalize(tempmn_w, one)
          CALL cdf_write(ncid, vn_rmns, tempmn_w)
-         CALL tomnsp(z1_i, tempmn_w, f_cos)
-         DO s = 1, ns
-            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)
-         END DO
+         CALL fourier_context%tomnsp(z1_i, tempmn_w, f_cos)
+         CALL restart_denormalize(tempmn_w, one)
          CALL cdf_write(ncid, vn_zmnc, tempmn_w)
       END IF
 
@@ -545,19 +541,19 @@
          bsupvijh = 0
          pijh = 0
 
-         CALL toijsp(jbsupsmnsh, bsupsijh, f_none, f_sin)
-         CALL toijsp(jbsupumnch, bsupuijh, f_none, f_cos)
-         CALL toijsp(jbsupvmnch, bsupvijh, f_none, f_cos)
-         CALL toijsp(jpmnch, pijh, f_none, f_cos)
+         CALL fourier_context%toijsp(jbsupsmnsh, bsupsijh, f_none, f_sin)
+         CALL fourier_context%toijsp(jbsupumnch, bsupuijh, f_none, f_cos)
+         CALL fourier_context%toijsp(jbsupvmnch, bsupvijh, f_none, f_cos)
+         CALL fourier_context%toijsp(jpmnch, pijh, f_none, f_cos)
 
          CALL cdf_write(ncid, vn_p_factor, p_factor)
          CALL cdf_write(ncid, vn_b_factor, b_factor)
 
          IF (lasym) THEN
-            CALL toijsp(jbsupsmnch, bsupsijh, f_sum, f_cos)
-            CALL toijsp(jbsupumnsh, bsupuijh, f_sum, f_sin)
-            CALL toijsp(jbsupvmnsh, bsupvijh, f_sum, f_sin)
-            CALL toijsp(jpmnsh, pijh, f_sum, f_sin)
+            CALL fourier_context%toijsp(jbsupsmnch, bsupsijh, f_sum, f_cos)
+            CALL fourier_context%toijsp(jbsupumnsh, bsupuijh, f_sum, f_sin)
+            CALL fourier_context%toijsp(jbsupvmnsh, bsupvijh, f_sum, f_sin)
+            CALL fourier_context%toijsp(jpmnsh, pijh, f_sum, f_sin)
          END IF
 
          bsupsijh(:,:,1) = 0
@@ -579,33 +575,21 @@
          tempmn_w = 0
 
 !  Remove the orthonorm and b_factor so these quantities can be directly summed.
-         CALL tomnsp(bsupsijh, tempmn_w, f_sin)
-         DO s = 1, ns
-            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)     &
-                            / b_factor
-         END DO
+         CALL fourier_context%tomnsp(bsupsijh, tempmn_w, f_sin)
+         CALL restart_denormalize(tempmn_w, b_factor)
          CALL cdf_write(ncid, vn_bsupsmns, tempmn_w)
 
-         CALL tomnsp(bsupuijh, tempmn_w, f_cos)
-         DO s = 1, ns
-            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)     &
-                            / b_factor
-         END DO
+         CALL fourier_context%tomnsp(bsupuijh, tempmn_w, f_cos)
+         CALL restart_denormalize(tempmn_w, b_factor)
          CALL cdf_write(ncid, vn_bsupumnc, tempmn_w)
 
-         CALL tomnsp(bsupvijh, tempmn_w, f_cos)
-         DO s = 1, ns
-            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)     &
-                            / b_factor
-         END DO
+         CALL fourier_context%tomnsp(bsupvijh, tempmn_w, f_cos)
+         CALL restart_denormalize(tempmn_w, b_factor)
          CALL cdf_write(ncid, vn_bsupvmnc, tempmn_w)
 
 !  Remove the orthonorm and p_factor so this quantity can be directly summed.
-         CALL tomnsp(pijh, tempmn_w, f_cos)
-         DO s = 1, ns
-            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)     &
-                            / (p_factor*mu0)
-         END DO
+         CALL fourier_context%tomnsp(pijh, tempmn_w, f_cos)
+         CALL restart_denormalize(tempmn_w, p_factor*mu0)
          CALL cdf_write(ncid, vn_pmnc, tempmn_w)
 
          ALLOCATE(bsubsijh(ntheta,nzeta,ns))
@@ -621,25 +605,16 @@
          ALLOCATE(bsubvmnh(0:mpol,-ntor:ntor,ns))
 
 !  Remove the orthonorm and b_factor so these quantities can be directly summed.
-         CALL tomnsp(bsubsijh, bsubsmnh, f_sin)
-         DO s = 1, ns
-            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*bsubsmnh(:,:,s)     &
-                            / b_factor
-         END DO
+         CALL fourier_context%tomnsp(bsubsijh, bsubsmnh, f_sin)
+         CALL restart_denormalize(tempmn_w, b_factor)
          CALL cdf_write(ncid, vn_bsubsmns, tempmn_w)
 
-         CALL tomnsp(bsubuijh, bsubumnh, f_cos)
-         DO s = 1, ns
-            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*bsubumnh(:,:,s)     &
-                            / b_factor
-         END DO
+         CALL fourier_context%tomnsp(bsubuijh, bsubumnh, f_cos)
+         CALL restart_denormalize(tempmn_w, b_factor)
          CALL cdf_write(ncid, vn_bsubumnc, tempmn_w)
 
-         CALL tomnsp(bsubvijh, bsubvmnh, f_cos)
-         DO s = 1, ns
-            tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*bsubvmnh(:,:,s)     &
-                            / b_factor
-         END DO
+         CALL fourier_context%tomnsp(bsubvijh, bsubvmnh, f_cos)
+         CALL restart_denormalize(tempmn_w, b_factor)
          CALL cdf_write(ncid, vn_bsubvmnc, tempmn_w)
 
 !  Need full mesh values to compute currents on the full mesh.
@@ -672,11 +647,13 @@
                jksupsmnf(m,n,:) = -m*    bsubvmnf(m,n,:) + n*nfp*bsubumnf(m,n,:)
                jksupumnf(m,n,:) =  n*nfp*bsubsmnf(m,n,:) - dbvds(m,n,:)
                jksupvmnf(m,n,:) =  dbuds(m,n,:)          - m*    bsubsmnf(m,n,:)
-               jksupsmnf(m,n,:) =  orthonorm(m,n)*jksupsmnf(m,n,:)/b_factor
-               jksupumnf(m,n,:) =  orthonorm(m,n)*jksupumnf(m,n,:)/b_factor
-               jksupvmnf(m,n,:) =  orthonorm(m,n)*jksupvmnf(m,n,:)/b_factor
+               CALL restart_denormalize(tempmn_w, b_factor)
             END DO
          END DO
+
+         CALL restart_denormalize(jksupsmnf, b_factor)
+         CALL restart_denormalize(jksupumnf, b_factor)
+         CALL restart_denormalize(jksupvmnf, b_factor)
 
          CALL cdf_write(ncid, vn_jksupsmns, jksupsmnf)
          CALL cdf_write(ncid, vn_jksupumnc, jksupumnf)
@@ -684,55 +661,34 @@
 
          IF (lasym) THEN
 !  Remove the orthonorm and b_factor so these quantities can be directly summed.
-            CALL tomnsp(bsupsijh, tempmn_w, f_cos)
-            DO s = 1, ns
-               tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)  &
-                               / b_factor
-            END DO
+            CALL fourier_context%tomnsp(bsupsijh, tempmn_w, f_cos)
+            CALL restart_denormalize(tempmn_w, b_factor)
             CALL cdf_write(ncid, vn_bsupsmnc, tempmn_w)
 
-            CALL tomnsp(bsupuijh, tempmn_w, f_sin)
-            DO s = 1, ns
-               tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)  &
-                               / b_factor
-            END DO
+            CALL fourier_context%tomnsp(bsupuijh, tempmn_w, f_sin)
+            CALL restart_denormalize(tempmn_w, b_factor)
             CALL cdf_write(ncid, vn_bsupumns, tempmn_w)
 
-            CALL tomnsp(bsupvijh, tempmn_w, f_sin)
-            DO s = 1, ns
-               tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)  &
-                               / b_factor
-            END DO
+            CALL fourier_context%tomnsp(bsupvijh, tempmn_w, f_sin)
+            CALL restart_denormalize(tempmn_w, b_factor)
             CALL cdf_write(ncid, vn_bsupvmns, tempmn_w)
 
 !  Remove the orthonorm and p_factor so this quantity can be directly summed.
-            CALL tomnsp(pijh, tempmn_w, f_sin)
-            DO s = 1, ns
-               tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*tempmn_w(:,:,s)  &
-                               / (p_factor*mu0)
-            END DO
+            CALL fourier_context%tomnsp(pijh, tempmn_w, f_sin)
+            CALL restart_denormalize(tempmn_w, p_factor*mu0)
             CALL cdf_write(ncid, vn_pmns, tempmn_w)
 
 !  Remove the orthonorm and b_factor so these quantities can be directly summed.
-            CALL tomnsp(bsubsijh, bsubsmnh, f_cos)
-            DO s = 1, ns
-               tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*bsubsmnh(:,:,s)  &
-                               / b_factor
-            END DO
+            CALL fourier_context%tomnsp(bsubsijh, bsubsmnh, f_cos)
+            CALL restart_denormalize(tempmn_w, b_factor)
             CALL cdf_write(ncid, vn_bsubsmnc, tempmn_w)
 
-            CALL tomnsp(bsubuijh, bsubumnh, f_sin)
-            DO s = 1, ns
-               tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*bsubumnh(:,:,s)  &
-                               / b_factor
-            END DO
+            CALL fourier_context%tomnsp(bsubuijh, bsubumnh, f_sin)
+            CALL restart_denormalize(tempmn_w, b_factor)
             CALL cdf_write(ncid, vn_bsubumns, tempmn_w)
 
-            CALL tomnsp(bsubvijh, bsubvmnh, f_sin)
-            DO s = 1, ns
-               tempmn_w(:,:,s) = orthonorm(0:mpol,-ntor:ntor)*bsubvmnh(:,:,s)  &
-                               / b_factor
-            END DO
+            CALL fourier_context%tomnsp(bsubvijh, bsubvmnh, f_sin)
+            CALL restart_denormalize(tempmn_w, b_factor)
             CALL cdf_write(ncid, vn_bsubvmns, tempmn_w)
 
             CALL to_full_mesh(bsubsmnh, bsubsmnf)
@@ -753,11 +709,12 @@
                   jksupsmnf(m,n,:) = m*bsubvmnf(m,n,:) - n*nfp*bsubumnf(m,n,:)
                   jksupumnf(m,n,:) = -n*nfp*bsubsmnf(m,n,:) - dbvds(m,n,:)
                   jksupvmnf(m,n,:) = dbuds(m,n,:) + m*bsubsmnf(m,n,:)
-                  jksupsmnf(m,n,:) = orthonorm(m,n)*jksupsmnf(m,n,:)/b_factor
-                  jksupumnf(m,n,:) = orthonorm(m,n)*jksupumnf(m,n,:)/b_factor
-                  jksupvmnf(m,n,:) = orthonorm(m,n)*jksupvmnf(m,n,:)/b_factor
                END DO
             END DO
+
+            CALL restart_denormalize(jksupsmnf, b_factor)
+            CALL restart_denormalize(jksupumnf, b_factor)
+            CALL restart_denormalize(jksupvmnf, b_factor)
 
             CALL cdf_write(ncid, vn_jksupsmnc, jksupsmnf)
             CALL cdf_write(ncid, vn_jksupumns, jksupumnf)
@@ -960,6 +917,35 @@
       DEALLOCATE(temp_y)
       DEALLOCATE(temp_x)
       DEALLOCATE(temp)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Denormalize a quantity so the value written to the restart file can
+!>         be summed directly.
+!>
+!>  This removes the orthonorm and energy scale factors for a fourier quantity.
+!>
+!>  @param[inout] xmn    Fourier quantity to denormalize.
+!>  @param[in]    factor Energy scale factor.
+!-------------------------------------------------------------------------------
+      SUBROUTINE restart_denormalize(xmn, factor)
+      USE island_params, ONLY: fourier_context, mpol=>mpol_i, ntor=>ntor_i
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp), DIMENSION(:,:,:) :: xmn
+      REAL (dp)                   :: factor
+
+!  Local Variables
+      INTEGER                     :: s
+
+!  Start of executable code.
+      DO s = 1, SIZE(xmn,3)
+         xmn(:,:,s) = fourier_context%orthonorm(0:mpol,-ntor:ntor)*xmn(:,:,s)  &
+                    / factor
+      END DO
 
       END SUBROUTINE
 

@@ -254,7 +254,6 @@
       USE island_params
       USE stel_constants, ONLY: twopi, zero, mu0
       USE island_params, hs=>hs_i, ns=>ns_i
-      USE fourier, ONLY: init_fourier
       USE shared_data, ONLY: lasym, torflux, polflux
 
       IMPLICIT NONE
@@ -293,7 +292,8 @@
       ns = ns_in
       nsh = ns_in - 1
 
-      CALL init_fourier ! Requires the number of field periods to be set.
+      fourier_context => fourier_class(mpol_in, ntor_in, nu_i, nv_i, nfp_in,   &
+                                       lasym)
 
 !  Spline r, z, and l Fourier components in s from original vmec mesh (s ~ phi,
 !  ns_vmec points) to a "polar" mesh s ~ sqrt(phi) for better axis resolution.
@@ -579,9 +579,9 @@
       SUBROUTINE vmec_info_repack(rmn, zmn, lmn, currumn, currvmn,             &
                                   rmn_spl, zmn_spl, lmn_spl,                   &
                                   currumn_spl, currvmn_spl, parity)
-      USE fourier, ONLY: orthonorm, m0, m1, n0, n1
+      USE fourier, ONLY: m0, m1, n0, n1
       USE island_params, ONLY: mpol=>mpol_i, ntor=>ntor_i, ns=>ns_i,           &
-     &                         nfp=>nfp_i, hs=>hs_i
+     &                         nfp=>nfp_i, hs=>hs_i, fourier_context
       USE descriptor_mod, ONLY: iam
       USE shared_data, ONLY: lverbose
 
@@ -662,21 +662,24 @@
 !  Divide out the orthonorm factor used by the Fourier routines. mu0 is already
 !  multipled into the current in vmec_info_set_RZL_splines.
       DO js = 1, ns
-         lmn(:,:,js) = lmn(:,:,js)/orthonorm(0:mpol,-ntor:ntor)
-         rmn(:,:,js) = rmn(:,:,js)/orthonorm(0:mpol,-ntor:ntor)
-         zmn(:,:,js) = zmn(:,:,js)/orthonorm(0:mpol,-ntor:ntor)
+         lmn(:,:,js) = lmn(:,:,js)/fourier_context%orthonorm(0:mpol,-ntor:ntor)
+         rmn(:,:,js) = rmn(:,:,js)/fourier_context%orthonorm(0:mpol,-ntor:ntor)
+         zmn(:,:,js) = zmn(:,:,js)/fourier_context%orthonorm(0:mpol,-ntor:ntor)
 !         IF (js .eq. 1) THEN
-!            currumn(:,:,js) = currumn(:,:,js)/orthonorm(0:mpol,-ntor:ntor)
-!            currvmn(:,:,js) = currvmn(:,:,js)/orthonorm(0:mpol,-ntor:ntor)
+!            currumn(:,:,js) = currumn(:,:,js)                                 &
+!                            / fourier_context%orthonorm(0:mpol,-ntor:ntor)
+!            currvmn(:,:,js) = currvmn(:,:,js)                                 &
+!                            / fourier_context%orthonorm(0:mpol,-ntor:ntor)
 !         ELSE
-            currumn(:,:,js) = 2*hs*(js - 1)*currumn(:,:,js)                       &
-                            / orthonorm(0:mpol,-ntor:ntor)
-            currvmn(:,:,js) = 2*hs*(js - 1)*currvmn(:,:,js)                       &
-                            / orthonorm(0:mpol,-ntor:ntor)
+            currumn(:,:,js) = 2*hs*(js - 1)*currumn(:,:,js)                    &
+                            / fourier_context%orthonorm(0:mpol,-ntor:ntor)
+            currvmn(:,:,js) = 2*hs*(js - 1)*currvmn(:,:,js)                    &
+                            / fourier_context%orthonorm(0:mpol,-ntor:ntor)
 !         END IF
       END DO
 
-      lmn(:,:,ns + 1) = lmn(:,:,ns + 1)/orthonorm(0:mpol,-ntor:ntor)
+      lmn(:,:,ns + 1) = lmn(:,:,ns + 1)                                        &
+                      / fourier_context%orthonorm(0:mpol,-ntor:ntor)
 
 !      lmn(m1:,:,1) = 0
       rmn(m1:,:,1) = 0

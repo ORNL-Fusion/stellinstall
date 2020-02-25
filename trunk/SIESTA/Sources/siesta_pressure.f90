@@ -57,11 +57,12 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE update_pres
       USE timer_mod, ONLY: time_update_pres
-      USE fourier, ONLY: tomnsp, toijsp, f_cos, f_sin, f_sum, f_du, f_dv
+      USE fourier, ONLY: f_cos, f_sin, f_sum, f_du, f_dv
       USE quantities, ONLY: gvsupumnsf => fsupumnsf, gvsupvmnsf => fsupvmnsf,  &
                             gvsupumncf => fsupumncf, gvsupvmncf => fsupvmncf
       USE utilities, ONLY: set_bndy_fouier_m0, m0
       USE shared_data, ONLY: delta_t
+      USE island_params, ONLY: fourier_context
 
       IMPLICIT NONE
 
@@ -135,8 +136,10 @@
       CALL set_bndy_fouier_m0(workmn4, f_sin)
       CALL set_bndy_fouier_m0(workmn5, f_sin)
 
-      CALL toijsp(workmn4(:,:,nsmin:nsmax), workij2(:,:,nsmin:nsmax), f_du, f_sin)
-      CALL toijsp(workmn5(:,:,nsmin:nsmax), workij3(:,:,nsmin:nsmax), f_dv, f_sin)
+      CALL fourier_context%toijsp(workmn4(:,:,nsmin:nsmax),                    &
+                                  workij2(:,:,nsmin:nsmax), f_du, f_sin)
+      CALL fourier_context%toijsp(workmn5(:,:,nsmin:nsmax),                    &
+                                  workij3(:,:,nsmin:nsmax), f_dv, f_sin)
       IF (lasym) THEN
          CALL to_half_mesh(gvsupumncf, workmn4)
          CALL to_half_mesh(gvsupvmncf, workmn5)
@@ -144,10 +147,12 @@
          CALL set_bndy_fouier_m0(workmn4, f_cos)
          CALL set_bndy_fouier_m0(workmn5, f_cos)
 
-         CALL toijsp(workmn4(:,:,nsmin:nsmax), workij2(:,:,nsmin:nsmax),       &
-                     IOR(f_du, f_sum), f_cos)
-         CALL toijsp(workmn5(:,:,nsmin:nsmax), workij3(:,:,nsmin:nsmax),       &
-                     IOR(f_dv, f_sum), f_cos)
+         CALL fourier_context%toijsp(workmn4(:,:,nsmin:nsmax),                 &
+                                     workij2(:,:,nsmin:nsmax),                 &
+                                     IOR(f_du, f_sum), f_cos)
+         CALL fourier_context%toijsp(workmn5(:,:,nsmin:nsmax),                 &
+                                     workij3(:,:,nsmin:nsmax),                 &
+                                     IOR(f_dv, f_sum), f_cos)
       END IF
 
       nsmin = MAX(2, startglobrow)
@@ -166,10 +171,12 @@
                                - workij1(:,:,nsmin:nsmax)
 
 !  Convert to Fourier space.
-      CALL tomnsp(workij1(:,:,nsmin:nsmax), djpmnch(:,:,nsmin:nsmax), f_cos)
+      CALL fourier_context%tomnsp(workij1(:,:,nsmin:nsmax),                    &
+                                  djpmnch(:,:,nsmin:nsmax), f_cos)
       djpmnch(:,:,nsmin:nsmax) = delta_t*djpmnch(:,:,nsmin:nsmax)
       IF (lasym) THEN
-         CALL tomnsp(workij1(:,:,nsmin:nsmax), djpmnsh(:,:,nsmin:nsmax), f_sin)
+         CALL fourier_context%tomnsp(workij1(:,:,nsmin:nsmax),                 &
+                                     djpmnsh(:,:,nsmin:nsmax), f_sin)
          djpmnsh(:,:,nsmin:nsmax) = delta_t*djpmnsh(:,:,nsmin:nsmax)
       END IF
 

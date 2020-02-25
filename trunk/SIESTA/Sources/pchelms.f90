@@ -186,6 +186,9 @@
       SUBROUTINE CURLA_PCHELMS(Asubsmnf,  Asubumnf,  Asubvmnf,                 &
                                jbsupsmnh, jbsupumnh, jbsupvmnh, iparity)
       USE utilities, ONLY: CURL_FtoH, set_bndy_fouier_m0, set_bndy_full_origin
+      USE island_params, ONLY: fourier_context
+
+      IMPLICIT NONE
 
 !  Declare Arguments
       REAL (dp), DIMENSION(:,:,:), POINTER                    :: Asubsmnf
@@ -252,9 +255,12 @@
       nmin = startglobrow
 
 !  Convert to real space.
-      CALL toijsp(jbsupsmnh(:,:,nmin:nsmax), Bsupsijh, fcomb, fours)
-      CALL toijsp(jbsupumnh(:,:,nmin:nsmax), Bsupuijh, fcomb, fouruv)
-      CALL toijsp(jbsupvmnh(:,:,nmin:nsmax), Bsupvijh, fcomb, fouruv)
+      CALL fourier_context%toijsp(jbsupsmnh(:,:,nmin:nsmax), Bsupsijh, fcomb,  &
+                                  fours)
+      CALL fourier_context%toijsp(jbsupumnh(:,:,nmin:nsmax), Bsupuijh, fcomb,  &
+                                  fouruv)
+      CALL fourier_context%toijsp(jbsupvmnh(:,:,nmin:nsmax), Bsupvijh, fcomb,  &
+                                  fouruv)
 
       END SUBROUTINE
       
@@ -278,6 +284,11 @@
       SUBROUTINE CURLB_PCHELMS(ksupsmnf, ksupumnf, ksupvmnf, asubsmnf,         &
                                bsupsmnh, iparity, curtor)
       USE utilities, ONLY: CURL_HtoF, GradientHalf, set_bndy_fouier_m0
+      USE v3_utilities, ONLY: assert_eq
+      USE island_params, ONLY: fourier_context
+
+      IMPLICIT NONE
+
 !  Declare Arguments
       REAL(dp), POINTER, DIMENSION(:,:,:)                 :: ksupsmnf
       REAL(dp), POINTER, DIMENSION(:,:,:)                 :: ksupumnf
@@ -330,9 +341,9 @@
                bsubvmnh(0:mpol,-ntor:ntor,nmin:nmax), stat=istat)   
       CALL ASSERT(istat .eq. 0,'Allocation1 failed in CURLB_PCHELMS')
 
-      CALL tomnsp(bsubsijh, bsubsmnh(:,:,nmin:nmax), fours)          ! Compute BSUBXMNH
-      CALL tomnsp(bsubuijh, bsubumnh(:,:,nmin:nmax), fouruv)
-      CALL tomnsp(bsubvijh, bsubvmnh(:,:,nmin:nmax), fouruv)
+      CALL fourier_context%tomnsp(bsubsijh, bsubsmnh(:,:,nmin:nmax), fours)          ! Compute BSUBXMNH
+      CALL fourier_context%tomnsp(bsubuijh, bsubumnh(:,:,nmin:nmax), fouruv)
+      CALL fourier_context%tomnsp(bsubvijh, bsubvmnh(:,:,nmin:nmax), fouruv)
 
       CALL set_bndy_fouier_m0(bsubsmnh, bsubumnh, bsubvmnh, fours)
 
@@ -478,11 +489,12 @@
 !>                        direction on the full grid.
 !>  @param[out]   A_v     Contravariant fourier vector potential in the v
 !>                        direction on the full grid.
-!>  @param[in]    iparity Parity flag to indicate stellaratory symmetry.
+!>  @param[in]    parity Parity flag to indicate stellaratory symmetry.
 !-------------------------------------------------------------------------------
-      SUBROUTINE INIT_A(cA_s, cA_u, cA_v, A_s, A_u, A_v, iparity)
+      SUBROUTINE INIT_A(cA_s, cA_u, cA_v, A_s, A_u, A_v, parity)
       USE metrics, ONLY: phipf_i, chipf_i
       USE utilities, ONLY: set_bndy_fouier_m0, set_bndy_full_origin
+      USE island_params, ONLY: fourier_context
 
       IMPLICIT NONE
 
@@ -493,7 +505,7 @@
       REAL (dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(out) :: A_s
       REAL (dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(out) :: A_u
       REAL (dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(out) :: A_v
-      INTEGER, INTENT(IN)                                     :: iparity
+      INTEGER, INTENT(IN)                                     :: parity
 
 !  Local variables
       INTEGER                                                 :: js
@@ -512,7 +524,7 @@
       A_u = 0
       A_v = 0
 
-      IF (iparity .EQ. f_sin) THEN
+      IF (parity .EQ. f_sin) THEN
 !  e_s (sin), e_u (cos), e_v (cos)
          fours = f_sin
          fouruv = f_cos
@@ -522,9 +534,9 @@
          fouruv = f_sin
       END IF
 
-      CALL tomnsp(cA_s, A_s(:,:,ns:ns), fours)
-      CALL tomnsp(cA_u, A_u(:,:,ns:ns), fouruv)
-      CALL tomnsp(cA_v, A_v(:,:,ns:ns), fouruv)
+      CALL fourier_context%tomnsp(cA_s, A_s(:,:,ns:ns), fours)
+      CALL fourier_context%tomnsp(cA_u, A_u(:,:,ns:ns), fouruv)
+      CALL fourier_context%tomnsp(cA_v, A_v(:,:,ns:ns), fouruv)
 
 !  Extapolate the vector potential from the edge to the center.
       nmatch = 0
@@ -635,6 +647,8 @@
 !>  @param[in]  iparity  Parity flag to indicate stellaratory symmetry.
 !-------------------------------------------------------------------------------
       SUBROUTINE COMPARE_CURRENT(Fsupumn, Fsupvmn, jcurrumn, jcurrvmn)
+      USE island_params, ONLY: fourier_context
+      USE v3_utilities, ONLY: assert_eq
 
       IMPLICIT NONE
 
@@ -668,7 +682,7 @@
          noff = n + ntor + LBOUND(fsupumn,2)
          DO m = 0, mpol
             moff = m + LBOUND(fsupumn,1)
-            t1 = orthonorm(m, n)
+            t1 = fourier_context%orthonorm(m, n)
             WRITE (1000 + iam, 1001) m, n,                                     &
                                      jcurrumn(moff,noff,ns_mid)*t1,            &
                                      -Fsupumn(moff,noff,ns_mid)*t1,            &
@@ -690,6 +704,7 @@
 !>  @param[in] iunit File unit to write to.
 !-------------------------------------------------------------------------------
       SUBROUTINE DUMP_A(js, iunit)
+      USE shared_data, ONLY: lasym
 
       IMPLICIT NONE
 
@@ -730,9 +745,12 @@
                WRITE(iunit + 10, 1001) n, m
                DO is = 1, ns
                   WRITE(iunit + 10,1002) is,                                   &
-                                         Asubsmnsf(mp,np,is)*orthonorm(m,n),   &
-                                         Asubumncf(mp,np,is)*orthonorm(m,n),   &
-                                         Asubvmncf(mp,np,is)*orthonorm(m,n)
+                                         Asubsmnsf(mp,np,is) *                 &
+                                         fourier_context%orthonorm(m,n),       &
+                                         Asubumncf(mp,np,is) *                 &
+                                         fourier_context%orthonorm(m,n),       &
+                                         Asubvmncf(mp,np,is) *                 &
+                                         fourier_context%orthonorm(m,n)
                END DO
             END DO
             WRITE(iunit + 10,*)
@@ -744,17 +762,27 @@
          np = n + ntor + noff
          DO m = 0, mpol
             mp = m + moff
-            WRITE(iunit, 1004) m, n, Asubsmnsf(mp,np,js)*orthonorm(m,n),       &
-                                     Asubumncf(mp,np,js)*orthonorm(m,n),       &
-                                     Asubvmncf(mp,np,js)*orthonorm(m,n),       &
-                                     jcurrumnc(m,n,js)*orthonorm(m,n),         &
-                                     jcurrvmnc(m,n,js)*orthonorm(m,n)
-            IF (.NOT.lasym) CYCLE
-            WRITE(iunit + 100, 1004) m, n, Asubsmncf(mp,np,js)*orthonorm(m,n), &
-                                           Asubumnsf(mp,np,js)*orthonorm(m,n), &
-                                           Asubvmnsf(mp,np,js)*orthonorm(m,n), &
-                                           jcurrumns(m,n,js)*orthonorm(m,n),   &
-                                           jcurrvmns(m,n,js)*orthonorm(m,n)
+            WRITE(iunit, 1004) m, n, Asubsmnsf(mp,np,js) *                     &
+                                     fourier_context%orthonorm(m,n),           &
+                                     Asubumncf(mp,np,js) *                     &
+                                     fourier_context%orthonorm(m,n),           &
+                                     Asubvmncf(mp,np,js) *                     &
+                                     fourier_context%orthonorm(m,n),           &
+                                     jcurrumnc(m,n,js) *                       &
+                                     fourier_context%orthonorm(m,n),           &
+                                     jcurrvmnc(m,n,js) *                       &
+                                     fourier_context%orthonorm(m,n)
+            IF (.not.lasym) CYCLE
+            WRITE(iunit + 100, 1004) m, n, Asubsmncf(mp,np,js) *               &
+                                           fourier_context%orthonorm(m,n),     &
+                                           Asubumnsf(mp,np,js) *               &
+                                           fourier_context%orthonorm(m,n),     &
+                                           Asubvmnsf(mp,np,js) *               &
+                                           fourier_context%orthonorm(m,n),     &
+                                           jcurrumns(m,n,js) *                 &
+                                           fourier_context%orthonorm(m,n),     &
+                                           jcurrvmns(m,n,js) *                 &
+                                           fourier_context%orthonorm(m,n)
          END DO
       END DO
 
@@ -781,6 +809,8 @@
       USE hessian, ONLY: gather_array
       USE siesta_namelist, ONLY: nsin
       USE vmec_info
+      USE shared_data, ONLY: lasym
+      USE island_params, ONLY: fourier_context
 
       IMPLICIT NONE
 
@@ -809,10 +839,10 @@
 
       IF (js .EQ. 1) THEN
          ALLOCATE(jacobmnch(0:mpol,-ntor:ntor,ns))
-         CALL tomnsp(jacobh, jacobmnch, f_cos)
+         CALL fourier_context%tomnsp(jacobh, jacobmnch, f_cos)
          IF (lasym) THEN
             ALLOCATE(jacobmnsh(0:mpol,-ntor:ntor,ns))
-            CALL tomnsp(jacobh, jacobmnsh, f_sin)
+            CALL fourier_context%tomnsp(jacobh, jacobmnsh, f_sin)
          END IF
  
          CALL Gather_Array(jbsupsmnsh)
@@ -831,7 +861,7 @@
             DO m = 0, mpol
                DO n = -ntor, ntor
                   IF (n.lt.0 .AND. m.eq.0) CYCLE
-                  t1 = -orthonorm(m,n)
+                  t1 = -fourier_context%orthonorm(m,n)
                   WRITE(iunit + 10, 1001) m, n,                                &
                                           (1.5_dp*jbsupsmnsh(m,n,is) -         &
                                            0.5_dp*jbsupsmnsh(m,n,is - 1))*t1,  &
@@ -846,7 +876,7 @@
             DO n = -1,1
                DO m = 0, 1
                   IF (n.LT.0 .AND. m.EQ.0) CYCLE
-                  t1 = -orthonorm(m,n)
+                  t1 = -fourier_context%orthonorm(m,n)
                   WRITE(iunit + 10,1003) n, m
                   DO is = 2, ns
                      WRITE(iunit + 10, 1004)  is, jbsupsmnsh(m,n,is)*t1,       &
@@ -873,7 +903,7 @@
 
          DO n = -ntor, ntor
             DO m = 0, mpol
-               t1 = -orthonorm(m,n)
+               t1 = -fourier_context%orthonorm(m,n)
                WRITE(iunit, 1008) m, n, jbsupsmnsh(m,n,js)*t1,                 &
                                         jbsupumnch(m,n,js)*t1,                 &
                                         jbsupvmnch(m,n,js)*t1,                 &
@@ -917,8 +947,9 @@
          rbsupv = 0
          DO n = -ntor, ntor
             DO m = 0, mpol
-               rjac = rjac + jacobmnch(m,n,ns)*orthonorm(m,n)
-               rbsupv = rbsupv + jbsupvmnch(m,n,ns)*orthonorm(m,n)
+               rjac = rjac + jacobmnch(m,n,ns)*fourier_context%orthonorm(m,n)
+               rbsupv = rbsupv                                                 &
+                      + jbsupvmnch(m,n,ns)*fourier_context%orthonorm(m,n)
             END DO
          END DO
 
@@ -974,7 +1005,7 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE GETFSQ_PCHELMS
       USE shared_data, ONLY: fsupsmnsf, fsupumncf, fsupvmncf,                  &
-                             fsupsmncf, fsupumnsf, fsupvmnsf
+                             fsupsmncf, fsupumnsf, fsupvmnsf, lasym
       USE mpi_inc
 
       IMPLICIT NONE
@@ -1004,6 +1035,7 @@
 !>  @brief Deallocate arrays.
 !-------------------------------------------------------------------------------
       SUBROUTINE CLEANUP
+      USE shared_data, ONLY: lasym
 
       IMPLICIT NONE
 
@@ -1056,6 +1088,8 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE COMPUTE_FORCES_LIN
 
+      IMPLICIT NONE
+
 !  Start of executable code
       lHessian = .TRUE.
       CALL COMPUTE_FORCES(.FALSE.)
@@ -1069,6 +1103,7 @@
       SUBROUTINE BACKSLV
       USE metrics, ONLY: r1_i
       USE hessian, ONLY: gather_array
+      USE shared_data, ONLY: lasym
 
       IMPLICIT NONE
 
@@ -1104,6 +1139,7 @@
       USE descriptor_mod, ONLY: iam, nprocs
       USE nscalingtools, ONLY: initRemap
       USE shared_functions, ONLY: init_ptrs
+      USE shared_data, ONLY: lasym
 
       IMPLICIT NONE
 
@@ -1149,9 +1185,11 @@
                              fsupsmnsf, fsupumncf, fsupvmncf,                  &
                              asubsmncf, asubumnsf, asubvmnsf,                  &
                              fsupsmncf, fsupumnsf, fsupvmnsf, neqs,            &
-                             siesta_curtor
+                             siesta_curtor, lasym
       USE bmw_run, ONLY: bmw_exec
       USE siesta_namelist, ONLY: wout_file, mgrid_file
+      USE island_params, ONLY: fourier_context
+      USE v3_utilities, ONLY: assert_eq
 
       IMPLICIT NONE
 
@@ -1264,7 +1302,7 @@
       END IF
 
       IF (nsmax .eq. ns) THEN
-         siesta_curtor = -orthonorm(m0,n0)*siesta_curtor
+         siesta_curtor = -fourier_context%orthonorm(m0,n0)*siesta_curtor
       END IF
 
       nsmax = endglobrow
@@ -1465,6 +1503,7 @@
 !>  @param[in]  ndim Number of dimensiona.
 !-------------------------------------------------------------------------------
       SUBROUTINE MatVec_PCHELMS (p, Ap, ndim)
+      USE v3_utilities, ONLY: assert_eq
 
       IMPLICIT NONE
 
@@ -1492,6 +1531,7 @@
       SUBROUTINE MatVec_par_PCHELMS (ploc, Ap, nloc)
       USE hessian, ONLY: eps_factor
       USE blocktridiagonalsolver_s, ONLY: ParMatVec, PadSides 
+      USE v3_utilities, ONLY: assert_eq
 
       IMPLICIT NONE
 

@@ -146,8 +146,10 @@
 
       SUBROUTINE add_perturb (xc, getwmhd)
       USE siesta_error
-      USE fourier, ONLY: tomnsp, f_cos, f_sin, f_none
+      USE fourier, ONLY: f_cos, f_sin, f_none
       USE siesta_namelist, ONLY: HelPert, HelPertA, eta_factor, lresistive, mres
+      USE island_params, ONLY: fourier_context
+
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -209,9 +211,9 @@
       CALL ASSERT(istat.eq.0,'ISTAT != 0 IN ADD_PERT')
       
       bmns_res = 0
-      CALL tomnsp(jdotb, bmnc_res, f_cos)
+      CALL fourier_context%tomnsp(jdotb, bmnc_res, f_cos)
       IF (lasym) THEN
-         CALL tomnsp(jdotb, bmns_res, f_sin)
+         CALL fourier_context%tomnsp(jdotb, bmns_res, f_sin)
       END IF
 #endif      
 
@@ -371,8 +373,12 @@
 
       SUBROUTINE GetResPert(irscale, isign1, mres0, nres0, rad,                &
                             HelPert0, HelPert0A, chip0, phip0, p_width)
-      USE fourier, ONLY: toijsp, toijsp2, f_cos, f_sin, f_sum, f_none
+      USE fourier, ONLY: f_cos, f_sin, f_sum, f_none
       USE siesta_namelist, ONLY: mpolin, ntorin
+      USE island_params, ONLY: fourier_context
+
+      IMPLICIT NONE
+
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -424,14 +430,15 @@
       rho = MAX(MAXVAL(ABS(bmnc_res(mres0,nres0,:))),                   &
                 MAXVAL(ABS(bmns_res(mres0,nres0,:))))
 
-      resc = 0; ress = 0
+      resc = 0
+      ress = 0
       resc(mres0,nres0,:) = HelP_local*bmnc_res(mres0,nres0,:)
       
-      CALL toijsp(resc, buv_res, f_none, f_cos)
+      CALL fourier_context%toijsp(resc, buv_res, f_none, f_cos)
       
       IF (lasym) THEN
          ress(mres0,nres0,:) = HelPA_local*bmns_res(mres0,nres0,:)
-         CALL toijsp(ress, buv_res, f_sum, f_sin)
+         CALL fourier_context%toijsp(ress, buv_res, f_sum, f_sin)
       END IF
       
       IF (rho .NE. zero) buv_res = buv_res/rho
@@ -448,13 +455,13 @@
       bmn_res = 0
          
       bmn_res(mres0,nres0) = HelP_local
-      CALL toijsp2(bmn_res, buv_res, f_cos, f_none, nsmin)
+      CALL fourier_context%toijsp(bmn_res, buv_res(:,:,nsmin), f_cos, f_none)
       
       IF (lasym) THEN
          bmn_res(mres0,nres0) = HelPA_local
-         CALL toijsp2(bmn_res, buv_res, f_sin, f_sum, nsmin)
+         CALL fourier_context%toijsp(bmn_res, buv_res(:,:,nsmin), f_sin, f_sum)
       END IF
-      DO js = nsmin+1, nsmax
+      DO js = nsmin + 1, nsmax
          buv_res(:,:,js) = buv_res(:,:,nsmin)*pert_prof(js)
       END DO
 

@@ -88,13 +88,12 @@
 !>  @param[in]    Fourier iparity   Parity of the displacements.
 !-------------------------------------------------------------------------------
       SUBROUTINE InitDisplacement(gvsupsmnf, gvsupumnf, gvsupvmnf, iparity)
-      USE fourier, ONLY: toijsp, f_cos, f_sin, f_none, f_sum, m0, m1, m2
+      USE fourier, ONLY: f_cos, f_sin, f_none, f_sum, m0, m1, m2
       USE quantities, ONLY: jvsupsijf, jvsupuijf, jvsupvijf, mpol, ntor
       USE shared_data, ONLY: l_push_s, l_push_u, l_push_v, l_pedge,     &
                              l_push_edge, col_scale
       USE v3_utilities, ONLY: assert_eq
-
-      USE descriptor_mod, ONLY: iam
+      USE island_params, ONLY: fourier_context
       USE utilities, ONLY: set_bndy_fouier_m0, set_bndy_full_origin
 
       IMPLICIT NONE
@@ -164,12 +163,12 @@
       END IF
 
 !  Calculate contravariant (SUP) velocities in real space on full mesh
-      CALL toijsp(gvsupsmnf(:,:,nsmin:nsmax),                                  &
-                  jvsupsijf(:,:,nsmin:nsmax), fcomb, fours)
-      CALL toijsp(gvsupumnf(:,:,nsmin:nsmax),                                  &
-                  jvsupuijf(:,:,nsmin:nsmax), fcomb, fouruv)
-      CALL toijsp(gvsupvmnf(:,:,nsmin:nsmax),                                  &
-                  jvsupvijf(:,:,nsmin:nsmax), fcomb, fouruv)
+      CALL fourier_context%toijsp(gvsupsmnf(:,:,nsmin:nsmax),                  &
+                                  jvsupsijf(:,:,nsmin:nsmax), fcomb, fours)
+      CALL fourier_context%toijsp(gvsupumnf(:,:,nsmin:nsmax),                  &
+                                  jvsupuijf(:,:,nsmin:nsmax), fcomb, fouruv)
+      CALL fourier_context%toijsp(gvsupvmnf(:,:,nsmin:nsmax),                  &
+                                  jvsupvijf(:,:,nsmin:nsmax), fcomb, fouruv)
 
       END SUBROUTINE
       

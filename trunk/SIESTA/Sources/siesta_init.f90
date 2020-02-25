@@ -11,8 +11,8 @@
       USE v3_utilities, ONLY: assert, assert_eq
       USE stel_kinds
       USE descriptor_mod, ONLY: SIESTA_COMM, iam
-      USE fourier, ONLY: toijsp, tomnsp, f_none, f_sin, f_cos, &
-                          f_du, f_dv, f_sum, orthonorm, m0, m1
+      USE fourier, ONLY: f_none, f_sin, f_cos, f_du, f_dv, f_sum, m0, m1
+      USE island_params, ONLY: fourier_context
       USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
       USE quantities
       USE shared_data, ONLY: l_update_state, l_pedge
@@ -437,10 +437,13 @@
          fouruvp = f_sin
       END IF
 
-      CALL toijsp(jbsupsmnh(:,:,nsmin:nsmax), bsupsijh0, fcomb, fours)
-      CALL toijsp(jbsupumnh(:,:,nsmin:nsmax), bsupuijh0, fcomb, fouruvp)
-      CALL toijsp(jbsupvmnh(:,:,nsmin:nsmax), bsupvijh0, fcomb, fouruvp)
-      CALL toijsp(jpmnh(:,:,nsmin:nsmax), pijh0, fcomb, fouruvp)
+      CALL fourier_context%toijsp(jbsupsmnh(:,:,nsmin:nsmax), bsupsijh0,       &
+                                  fcomb, fours)
+      CALL fourier_context%toijsp(jbsupumnh(:,:,nsmin:nsmax), bsupuijh0,       &
+                                  fcomb, fouruvp)
+      CALL fourier_context%toijsp(jbsupvmnh(:,:,nsmin:nsmax), bsupvijh0,       &
+                                  fcomb, fouruvp)
+      CALL fourier_context%toijsp(jpmnh(:,:,nsmin:nsmax), pijh0, fcomb, fouruvp)
 
       END SUBROUTINE
 
@@ -450,14 +453,15 @@
 !>  Pressure is filtered by Fourier tranforming to mn space then back to ij
 !>  space. Angles derivatives with respect to u and v are also compute here.
 !>
-!>  @param[in] iparity Fourier parity of the pressure.
+!>  @param[in] parity Fourier parity of the pressure.
 !-------------------------------------------------------------------------------
-       SUBROUTINE FilterPressure(iparity)
+       SUBROUTINE FilterPressure(parity)
+       USE island_params, ONLY: fourier_context
 
        IMPLICIT NONE
 
 !  Declare Arguments
-       INTEGER, INTENT(in)                      :: iparity
+       INTEGER, INTENT(in)                      :: parity
 
 !  local variables
        INTEGER                                  :: fcomb
@@ -465,7 +469,7 @@
        REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: pmnh
 
 !  Start of executable code
-       IF (iparity .EQ. f_cos) THEN
+       IF (parity .EQ. f_cos) THEN
           fcomb = f_none
        ELSE
           fcomb = f_sum
@@ -476,18 +480,18 @@
        ALLOCATE(pmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
        CALL assert_eq(0, istat, 'Allocation error in FilterPressure')
 
-       CALL tomnsp(pijh0, pmnh, iparity)
+       CALL fourier_context%tomnsp(pijh0, pmnh, parity)
        
-       IF (iparity .eq. f_cos .and. nsmax .eq. ns) THEN
-          pedge = pmnh(m0,0,ns)*orthonorm(0,0)
+       IF (parity .eq. f_cos .and. nsmax .eq. ns) THEN
+          pedge = pmnh(m0,0,ns)*fourier_context%orthonorm(0,0)
        END IF
 
 !  Spectrally filtered angle derivatives of p in real space (half mesh).
-       CALL toijsp(pmnh, pijh0_du, IOR(f_du, fcomb), iparity)
-       CALL toijsp(pmnh, pijh0_dv, IOR(f_dv, fcomb), iparity)
+       CALL fourier_context%toijsp(pmnh, pijh0_du, IOR(f_du, fcomb), parity)
+       CALL fourier_context%toijsp(pmnh, pijh0_dv, IOR(f_dv, fcomb), parity)
        
        IF (l_update_state) THEN
-          CALL toijsp(pmnh, pfilter, fcomb, iparity)
+          CALL fourier_context%toijsp(pmnh, pfilter, fcomb, parity)
        END IF
 
        DEALLOCATE(pmnh)

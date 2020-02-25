@@ -51,6 +51,7 @@
          MODULE PROCEDURE curl_htof, curl_htof_targ
       END INTERFACE
 
+!  FIXME: Move to fourier
 !-------------------------------------------------------------------------------
 !>  Interface to set the boundary conditions on a full mesh quantity converted
 !>  from the half mesh for either a scalar @ref set_bndy_half_to_full or
@@ -60,6 +61,7 @@
          MODULE PROCEDURE set_bndy_half_to_full, set_bndy_half_to_full_vec
       END INTERFACE
 
+!  FIXME: Move to fourier
 !-------------------------------------------------------------------------------
 !>  Interface to set the boundary conditions on a full mesh quantity converted
 !>  from the half mesh for either a scalar @ref set_bndy_half_to_full or
@@ -69,6 +71,7 @@
          MODULE PROCEDURE set_bndy_half_to_full_ds, set_bndy_half_to_full_uv_ds
       END INTERFACE
 
+!  FIXME: Move to fourier
 !-------------------------------------------------------------------------------
 !>  Interface to set the fouier conditions on a quantity for either scalar
 !>  @ref set_bndy_fouier_m0 or vector @ref set_bndy_fouier_m0_vec quantities.
@@ -325,6 +328,7 @@
 
       END SUBROUTINE
 
+!  FIXME: Move to a new curl module.
 !-------------------------------------------------------------------------------
 !>  @brief Compute curl of the full grid quantity a on the half grid.
 !>
@@ -447,7 +451,7 @@
 
       END SUBROUTINE
 
-
+!  FIXME: Move to a new curl module.
 !-------------------------------------------------------------------------------
 !>  @brief Compute curl of the half grid quantity a on the full grid.
 !>
@@ -603,6 +607,7 @@
 
       END SUBROUTINE
 
+!  FIXME: Move to a new curl module.
 !-------------------------------------------------------------------------------
 !>  @brief Convert allocatable to pointer for use in @ref curl_htof
 !>
@@ -656,6 +661,7 @@
 
       END SUBROUTINE
 
+!  FIXME: Move to fourier
 !-------------------------------------------------------------------------------
 !>  @brief Set fouier boundary conditions for full grid quantity converted from
 !>         half grid.
@@ -693,6 +699,7 @@
 
       END SUBROUTINE
 
+!  FIXME: Move to fourier
 !-------------------------------------------------------------------------------
 !>  @brief Set fouier boundary conditions for full grid vector quantity
 !>         converted from half grid.
@@ -745,6 +752,7 @@
 
       END SUBROUTINE
 
+!  FIXME: Move to fourier
 !-------------------------------------------------------------------------------
 !>  @brief Set fouier boundary conditions for full grid radial derivative
 !>         quantity converted from half grid.
@@ -783,6 +791,7 @@
 
       END SUBROUTINE
 
+!  FIXME: Move to fourier
 !-------------------------------------------------------------------------------
 !>  @brief Set fouier boundary conditions for full grid radial derivative
 !>         quantity converted from half grid for uv vectors.
@@ -831,6 +840,7 @@
 
       END SUBROUTINE
 
+!  FIXME: Move to fourier
 !-------------------------------------------------------------------------------
 !>  @brief Apply origin vector boundary conditions.
 !>
@@ -866,6 +876,7 @@
 
       END SUBROUTINE
 
+!  FIXME: Move to fourier
 !-------------------------------------------------------------------------------
 !>  @brief Set vector fourier conditions.
 !>
@@ -899,6 +910,7 @@
 
       END SUBROUTINE
 
+!  FIXME: Move to fourier
 !-------------------------------------------------------------------------------
 !>  @brief Set vector fourier conditions.
 !>

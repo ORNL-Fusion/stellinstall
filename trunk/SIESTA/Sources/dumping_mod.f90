@@ -675,7 +675,6 @@
      
         SUBROUTINE prepare_quantities
         USE stel_kinds
-        USE fourier, ONLY: tomnsp, toijsp, orthonorm, tomnsp
         USE diagnostics_mod, ONLY: divj, divb, bdotj, lcurr_init,       &
                                    bdotjijh
         USE siesta_namelist, ONLY: lresistive
@@ -688,6 +687,10 @@
           bsubsijf,  bsubuijf, bsubvijf,                                &
           ksubsijf,  ksubuijf, ksubvijf
         USE siesta_init, ONLY: init_state
+        USE island_params, ONLY: fourier_context
+
+        IMPLICIT NONE
+
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -704,24 +707,27 @@
         CALL ASSERT(js.EQ.ns,' rmnc_i NOT allocated on extended mesh!')
         ALLOCATE(rmnc_ih(0:mpol,-ntor:ntor,ns),                         &    
                  zmns_ih(0:mpol,-ntor:ntor,ns), stat=istat)
-        rmnc_ih = zero; zmns_ih = zero
+        rmnc_ih = zero
+        zmns_ih = zero
         
         CALL to_half_mesh(rmnc_i, rmnc_ih)                                 ! We need RMNC and ZMNS on half mesh.
         CALL to_half_mesh(zmns_i, zmns_ih)                                 ! RMNC_i, ZMNS_i from METRIC. Deallocated elsewhere.
         ALLOCATE(jacmnch(0:mpol,-ntor:ntor,ns), stat=istat)                ! Get harmonics of jacobian on half mesh
         CALL ASSERT(istat.eq.0,'Allocation failed in PREPARE_QUANTITIES')
-        CALL tomnsp(jacobh, jacmnch, f_cos); jacmnch(:,:,1)=0
+        CALL fourier_context%tomnsp(jacobh, jacmnch, f_cos)
+        jacmnch(:,:,1) = 0
 
         IF (lasym) THEN
-        ALLOCATE(rmns_ih(0:mpol,-ntor:ntor,ns),                         &
-                 zmnc_ih(0:mpol,-ntor:ntor,ns), stat=istat)
-        rmns_ih = zero; zmnc_ih = zero
+           ALLOCATE(rmns_ih(0:mpol,-ntor:ntor,ns),                         &
+                    zmnc_ih(0:mpol,-ntor:ntor,ns), stat=istat)
+           rmns_ih = zero; zmnc_ih = zero
 
-        CALL to_half_mesh(rmns_i, rmns_ih)                                 ! We need RMNC and ZMNS on half mesh.
-        CALL to_half_mesh(zmnc_i, zmnc_ih)                                 ! RMNS_i, ZMNC_i from METRIC. Deallocated elsewhere.
-        ALLOCATE(jacmnsh(0:mpol,-ntor:ntor,ns), stat=istat)                ! Get harmonics of jacobian on half mesh
-        CALL ASSERT(istat.eq.0,'Allocation failed in PREPARE_QUANTITIES')
-        CALL tomnsp(jacobh, jacmnsh, f_sin); jacmnsh(:,:,1)=0
+           CALL to_half_mesh(rmns_i, rmns_ih)                                 ! We need RMNC and ZMNS on half mesh.
+           CALL to_half_mesh(zmnc_i, zmnc_ih)                                 ! RMNS_i, ZMNC_i from METRIC. Deallocated elsewhere.
+           ALLOCATE(jacmnsh(0:mpol,-ntor:ntor,ns), stat=istat)                ! Get harmonics of jacobian on half mesh
+           CALL ASSERT(istat.eq.0,'Allocation failed in PREPARE_QUANTITIES')
+           CALL fourier_context%tomnsp(jacobh, jacmnsh, f_sin)
+           jacmnsh(:,:,1)=0
         END IF
 
 !
@@ -737,7 +743,7 @@
 
         ALLOCATE(pmnch(0:mpol,-ntor:ntor,ns), stat=istat)                  ! ... and then recompute harmonics
         CALL ASSERT(istat.eq.0,'Allocation failed in DUMP_PRESSURE')       ! which are stored in PMNCH
-        CALL tomnsp(pijh, pmnch, f_cos); pmnch(:,:,1) = zero
+        CALL fourier_context%tomnsp(pijh, pmnch, f_cos); pmnch(:,:,1) = zero
 
         WHERE (pijh .LT. zero) pijh = zero
         CALL ASSERT(SIZE(pmnch,3).EQ.SIZE(pijh,3),                      &
@@ -746,7 +752,7 @@
         IF (lasym) THEN
         ALLOCATE(pmnsh(0:mpol,-ntor:ntor,ns), stat=istat)                  ! ... and then recompute harmonics
         CALL ASSERT(istat.eq.0,'Allocation failed in DUMP_PRESSURE')       ! which are stored in PMNCH
-        CALL tomnsp(pijh, pmnsh, f_sin); pmnsh(:,:,1) = zero
+        CALL fourier_context%tomnsp(pijh, pmnsh, f_sin); pmnsh(:,:,1) = zero
         END IF
 
         IF (l_tracing .OR. l_silo_output) THEN
@@ -758,18 +764,21 @@
                     bsupumnch(0:mpol,-ntor:ntor,ns),                    &
                     bsupvmnch(0:mpol,-ntor:ntor,ns), stat=istat)
           CALL ASSERT(istat.eq.0,'Allocation failed in PREPARE_QUANTITIES')
-          CALL tomnsp(bsupsijh0, bsupsmnsh, f_sin); bsupsmnsh(:,:,1) = zero    ! compute harmonics
-          CALL tomnsp(bsupuijh0, bsupumnch, f_cos); bsupumnch(:,:,1) = zero
-          CALL tomnsp(bsupvijh0, bsupvmnch, f_cos); bsupvmnch(:,:,1) = zero
+          CALL fourier_context%tomnsp(bsupsijh0, bsupsmnsh, f_sin); bsupsmnsh(:,:,1) = zero    ! compute harmonics
+          CALL fourier_context%tomnsp(bsupuijh0, bsupumnch, f_cos); bsupumnch(:,:,1) = zero
+          CALL fourier_context%tomnsp(bsupvijh0, bsupvmnch, f_cos); bsupvmnch(:,:,1) = zero
 
           IF (lasym) THEN
-          ALLOCATE(bsupsmnch(0:mpol,-ntor:ntor,ns),                     &
-                   bsupumnsh(0:mpol,-ntor:ntor,ns),                     &
-                   bsupvmnsh(0:mpol,-ntor:ntor,ns), stat=istat)
-          CALL ASSERT(istat.eq.0,'Allocation failed in PREPARE_QUANTITIES')
-          CALL tomnsp(bsupsijh0, bsupsmnch, f_cos); bsupsmnch(:,:,1) = zero    ! compute harmonics
-          CALL tomnsp(bsupuijh0, bsupumnsh, f_sin); bsupumnsh(:,:,1) = zero
-          CALL tomnsp(bsupvijh0, bsupvmnsh, f_sin); bsupvmnsh(:,:,1) = zero
+             ALLOCATE(bsupsmnch(0:mpol,-ntor:ntor,ns),                     &
+                      bsupumnsh(0:mpol,-ntor:ntor,ns),                     &
+                      bsupvmnsh(0:mpol,-ntor:ntor,ns), stat=istat)
+             CALL ASSERT(istat.eq.0,'Allocation failed in PREPARE_QUANTITIES')
+             CALL fourier_context%tomnsp(bsupsijh0, bsupsmnch, f_cos)
+             bsupsmnch(:,:,1) = zero    ! compute harmonics
+             CALL fourier_context%tomnsp(bsupuijh0, bsupumnsh, f_sin)
+             bsupumnsh(:,:,1) = zero
+             CALL fourier_context%tomnsp(bsupvijh0, bsupvmnsh, f_sin)
+             bsupvmnsh(:,:,1) = zero
           END IF
         END IF
 
@@ -793,12 +802,12 @@
                     ksubumncf(0:mpol,-ntor:ntor,ns),                    &
                     ksubvmncf(0:mpol,-ntor:ntor,ns), stat=istat)
            CALL ASSERT(istat.eq.0,'Allocation failed in DUMPING PREPARE_QUANTITIES')
-           CALL tomnsp(bsubsijh, bsubsmnsh, f_sin)                       ! compute harmonics
-           CALL tomnsp(bsubuijh, bsubumnch, f_cos)
-           CALL tomnsp(bsubvijh, bsubvmnch, f_cos)
-           CALL tomnsp(ksubsijf, ksubsmnsf, f_sin)                       ! compute harmonics
-           CALL tomnsp(ksubuijf, ksubumncf, f_cos)
-           CALL tomnsp(ksubvijf, ksubvmncf, f_cos)
+           CALL fourier_context%tomnsp(bsubsijh, bsubsmnsh, f_sin)                       ! compute harmonics
+           CALL fourier_context%tomnsp(bsubuijh, bsubumnch, f_cos)
+           CALL fourier_context%tomnsp(bsubvijh, bsubvmnch, f_cos)
+           CALL fourier_context%tomnsp(ksubsijf, ksubsmnsf, f_sin)                       ! compute harmonics
+           CALL fourier_context%tomnsp(ksubuijf, ksubumncf, f_cos)
+           CALL fourier_context%tomnsp(ksubvijf, ksubvmncf, f_cos)
 
            IF (lasym) THEN
            ksupsmncf = ksupsmncf/b_factor
@@ -812,12 +821,12 @@
                     ksubumnsf(0:mpol,-ntor:ntor,ns),                    &
                     ksubvmnsf(0:mpol,-ntor:ntor,ns), stat=istat)
            CALL ASSERT(istat.eq.0,'Allocation failed in DUMPING PREPARE_QUANTITIES')
-           CALL tomnsp(bsubsijh, bsubsmnch, f_cos)                       ! compute harmonics
-           CALL tomnsp(bsubuijh, bsubumnsh, f_sin)
-           CALL tomnsp(bsubvijh, bsubvmnsh, f_sin)
-           CALL tomnsp(ksubsijf, ksubsmncf, f_cos)
-           CALL tomnsp(ksubuijf, ksubumnsf, f_sin)
-           CALL tomnsp(ksubvijf, ksubvmnsf, f_sin)
+           CALL fourier_context%tomnsp(bsubsijh, bsubsmnch, f_cos)                       ! compute harmonics
+           CALL fourier_context%tomnsp(bsubuijh, bsubumnsh, f_sin)
+           CALL fourier_context%tomnsp(bsubvijh, bsubvmnsh, f_sin)
+           CALL fourier_context%tomnsp(ksubsijf, ksubsmncf, f_cos)
+           CALL fourier_context%tomnsp(ksubuijf, ksubumnsf, f_sin)
+           CALL fourier_context%tomnsp(ksubvijf, ksubvmnsf, f_sin)
            END IF
 
            DEALLOCATE (bsubsijh, bsubuijh, bsubvijh)
@@ -1127,7 +1136,9 @@
 !       DFLAG= 0b001 NO/YES radial deriv. DFLAG= 0b010 => NO/YES THETA-Deriv. DFLAG= 0b100 => NO/YES ZETA-Deriv.
 !
         USE stel_kinds
-        USE fourier, ONLY: orthonorm, b_ds, b_du, b_dv, b_sum
+        USE fourier, ONLY: b_ds, b_du, b_dv, b_sum
+        USE island_params, ONLY: fourier_context
+
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -1176,18 +1187,18 @@
         CALL ASSERT(istat.eq.0,'Alloc. problem #1 in TOIJSP_1P')
         work0 = zero
                             
-        work0(:,:,1) = orthonorm(0:mpol,-ntor:ntor)*xmn(:,:,ns_in)
-        work0(:,:,2) = orthonorm(0:mpol,-ntor:ntor)*xmn(:,:,ns_out)
+        work0(:,:,1) = fourier_context%orthonorm(0:mpol,-ntor:ntor)*xmn(:,:,ns_in)
+        work0(:,:,2) = fourier_context%orthonorm(0:mpol,-ntor:ntor)*xmn(:,:,ns_out)
         IF (BTEST(dflag, b_ds)) THEN
           IF (ihalf == 0) THEN
             IF (ns_in .GT. 1) work0(:,:,ndum-1) =                       &
-              orthonorm(0:mpol,-ntor:ntor)*xmn(:,:,ns_in-1)                ! ...compute quantity at previous...
+              fourier_context%orthonorm(0:mpol,-ntor:ntor)*xmn(:,:,ns_in-1)                ! ...compute quantity at previous...
           ELSE
             IF (ns_in .GT. 2) work0(:,:,ndum-1) =                       &
-              orthonorm(0:mpol,-ntor:ntor)*xmn(:,:,ns_in-1)          
+              fourier_context%orthonorm(0:mpol,-ntor:ntor)*xmn(:,:,ns_in-1)
           ENDIF
           IF (ns_out .LT. ns) work0(:,:,ndum) =                         &
-            orthonorm(0:mpol,-ntor:ntor)*xmn(:,:,ns_out+1)                 ! ...and next surfaces as well
+            fourier_context%orthonorm(0:mpol,-ntor:ntor)*xmn(:,:,ns_out+1)                 ! ...and next surfaces as well
         ENDIF
                    
         ALLOCATE(work1(-ntor:ntor,ndum),                                &

@@ -256,8 +256,8 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE init_quantities
       USE descriptor_mod, ONLY: LSCALAPACK
-      USE fourier, ONLY: getorigin, tomnsp, toijsp, f_none, f_cos,             &
-                         f_sin, f_sum, Test_Fourier, m0
+      USE island_params, ONLY: fourier_context
+      USE fourier, ONLY: f_none, f_cos, f_sin, f_sum, m0
       USE metrics, ONLY: sqrtg
       USE shared_data, ONLY: mblk_size, ndims, lasym
 #if defined(MPI_OPT)        
@@ -286,11 +286,6 @@
          endglobrow = ns
       END IF
 
-#if !defined(NDEBUG)
-!  Test orthogonality AFTER mpi is initialized
-      CALL Test_Fourier
-#endif
-
       IF (.not.lrestart) THEN
 !  Allocate and initialize dependent variables
          CALL alloc_quantities
@@ -305,17 +300,17 @@
 
 !AVOID DIVIDE BY ZERO AND STORE AVERAGED VALUE (OVER THETA) 
 !AT FIRST 1/2 GRID PT AT ORIGIN IN JACOBH(1)
-      CALL getorigin(jacobh, m0)
+      CALL fourier_context%get_origin(jacobh, m0, lasym)
       signjac = jacobh(1,1,2)/ABS(jacobh(1,1,2))
 
 !  Filter jacobian ro preserve the unperturbed (constant in s) part of the
 !  pressure.
       ALLOCATE(tempmn(0:mpol,-ntor:ntor,SIZE(jacobh,3)))
-      CALL tomnsp(jacobh, tempmn, f_cos)
-      CALL toijsp(tempmn, jacobh, f_none, f_cos)
+      CALL fourier_context%tomnsp(jacobh, tempmn, f_cos)
+      CALL fourier_context%toijsp(tempmn, jacobh, f_none, f_cos)
       IF (lasym) THEN
-         CALL tomnsp(jacobh, tempmn, f_sin)
-         CALL toijsp(tempmn, jacobh, f_sum, f_sin)
+         CALL fourier_context%tomnsp(jacobh, tempmn, f_sin)
+         CALL fourier_context%toijsp(tempmn, jacobh, f_sum, f_sin)
       END IF
       DEALLOCATE(tempmn)
 
@@ -334,7 +329,7 @@
       jacobf(:,:,ns)= jacobh(:,:,ns)
 
       DO l = 1, ntheta
-         wint(l,:,:) = cosmui(l,m0)
+         wint(l,:,:) = fourier_context%cosmui(l,m0)
       END DO
 
       ALLOCATE (vp_f(ns), stat=istat)
@@ -363,7 +358,8 @@
 !>  false otherwise data is read directly from the restart file.
 !-------------------------------------------------------------------------------
         SUBROUTINE Init_Fields
-        USE fourier, ONLY: orthonorm, tomnsp, f_sin, f_cos, m0, m1
+        USE island_params, ONLY: fourier_context
+        USE fourier, ONLY: f_sin, f_cos, m0, m1
         USE vmec_info, ONLY: lmns_i, lmnc_i, iflipj
         USE metrics, ONLY: sqrtg
         USE mpi_inc
@@ -395,9 +391,10 @@
         phiph(1) = 0
         chiph(1) = 0
 
-        IF (.NOT.l_vessel) THEN
-          CALL ReCompute_Lambda(lmns_i, lmnc_i, jacobh, orthonorm,             &
-                                phiph, chiph, nsmin, nsmax)
+        IF (.not.l_vessel) THEN
+          CALL ReCompute_Lambda(lmns_i, lmnc_i, jacobh,                        &
+                                fourier_context%orthonorm, phiph, chiph,       &
+                                nsmin, nsmax)
         END IF
          
   		CALL Init_Bfield(jbsupsmnsh, jbsupumnch, jbsupvmnch,                   &
@@ -427,11 +424,13 @@
        &   presih(:,:,nsmin:nsmax)*jacobh(:,:,nsmin:nsmax)
 
 !  Initialize internal pressure harmonics (half mesh)
-        CALL tomnsp(presih(:,:,nsmin:nsmax), jpmnch(:,:,nsmin:nsmax), f_cos)
+        CALL fourier_context%tomnsp(presih(:,:,nsmin:nsmax),                   &
+                                    jpmnch(:,:,nsmin:nsmax), f_cos)
         jpmnch(:,:,1) = 0
         jpmnch(m0,:,1) = jpmnch(m0,:,2)
         IF (lasym) THEN
-           CALL tomnsp(presih(:,:,nsmin:nsmax), jpmnsh(:,:,nsmin:nsmax), f_sin)
+           CALL fourier_context%tomnsp(presih(:,:,nsmin:nsmax),                &
+                                       jpmnsh(:,:,nsmin:nsmax), f_sin)
            jpmnsh(:,:,1) = 0
            jpmnsh(m0,:,1) = jpmnsh(m0,:,2)
         END IF
@@ -460,9 +459,10 @@
 !-------------------------------------------------------------------------------
         SUBROUTINE Init_Bfield(jbsupsmnh, jbsupumnh, jbsupvmnh,                &
                                lmn, phiph, chiph, nsmin, nsmax, iparity)
-        USE fourier, ONLY: orthonorm, m0, m1, f_sin
+        USE fourier, ONLY: m0, m1, f_sin
         USE siesta_namelist, ONLY: l_vessel
         USE utilities, ONLY: set_bndy_fouier_m0
+        USE island_params, ONLY: fourier_context
 #if defined(MPI_OPT)        
         USE mpi_inc
 #endif        
@@ -508,8 +508,10 @@
            END DO
 
            IF (iparity .EQ. f_sin) THEN
-              jbsupumnh(m0,0,nsmin:nsmax) = chiph(nsmin:nsmax)/orthonorm(0,0)
-              jbsupvmnh(m0,0,nsmin:nsmax) = phiph(nsmin:nsmax)/orthonorm(0,0)
+              jbsupumnh(m0,0,nsmin:nsmax) = chiph(nsmin:nsmax)                 &
+                                          / fourier_context%orthonorm(0,0)
+              jbsupvmnh(m0,0,nsmin:nsmax) = phiph(nsmin:nsmax)                 &
+                                          / fourier_context%orthonorm(0,0)
            END IF
         END IF
         
@@ -654,16 +656,24 @@
                DO lu = 1, ntheta
                   lk = lk + 1
 
-                  cosmni(lk,mn) =       cosmui(lu,m)*cosnv(lv,np)              &
-                                - isign*sinmui(lu,m)*sinnv(lv,np)
-                  cosmnp(lk,mn) =       cosmu(lu,m)*cosnv(lv,np)               &
-                                - isign*sinmu(lu,m)*sinnv(lv,np)
+                  cosmni(lk,mn) =       fourier_context%cosmui(lu,m) *         &
+                                        fourier_context%cosnv(lv,np)           &
+                                - isign*fourier_context%sinmui(lu,m) *         &
+                                        fourier_context%sinnv(lv,np)
+                  cosmnp(lk,mn) =       fourier_context%cosmu(lu,m) *          &
+                                        fourier_context%cosnv(lv,np)           &
+                                - isign*fourier_context%sinmu(lu,m) *          &
+                                        fourier_context%sinnv(lv,np)
 
                   IF (lasym) THEN
-                     sinmni(lk,mn) =       sinmui(lu,m)*cosnv(lv,np)           &
-                                   + isign*cosmui(lu,m)*sinnv(lv,np)
-                     sinmnp(lk,mn) =       sinmu(lu,m)*cosnv(lv,np)            &
-                                   + isign*cosmu(lu,m)*sinnv(lv,np)
+                     sinmni(lk,mn) =       fourier_context%sinmui(lu,m) *      &
+                                           fourier_context%cosnv(lv,np)        &
+                                   + isign*fourier_context%cosmui(lu,m) *      &
+                                           fourier_context%sinnv(lv,np)
+                     sinmnp(lk,mn) =       fourier_context%sinmu(lu,m) *       &
+                                           fourier_context%cosnv(lv,np)        &
+                                   + isign*fourier_context%cosmu(lu,m) *       &
+                                           fourier_context%sinnv(lv,np)
                   END IF
                END DO
             END DO
@@ -856,8 +866,9 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE toupper_forces
       USE island_params, ONLY: ntheta=>nu_i, nzeta=>nv_i,                      &
-                               mpol=>mpol_i, ntor=>ntor_i
-      USE fourier, ONLY: toijsp, tomnsp, f_none, f_cos, f_sin, f_sum
+                               mpol=>mpol_i, ntor=>ntor_i,                     &
+                               fourier_context
+      USE fourier, ONLY: f_none, f_cos, f_sin, f_sum
       USE metrics, ONLY: toupper
       USE utilities, ONLY: set_bndy_full_origin
 
@@ -884,14 +895,20 @@
                fsupvijf(ntheta,nzeta,nsmin:nsmax), stat=istat)
       CALL ASSERT(istat.eq.0,' Allocation error in toupper_forces')
 
-      CALL toijsp(fsubsmncf(:,:,nsmin:nsmax), fsubsijf, f_none, f_cos)
-      CALL toijsp(fsubumnsf(:,:,nsmin:nsmax), fsubuijf, f_none, f_sin)
-      CALL toijsp(fsubvmnsf(:,:,nsmin:nsmax), fsubvijf, f_none, f_sin)
+      CALL fourier_context%toijsp(fsubsmncf(:,:,nsmin:nsmax), fsubsijf,        &
+                                  f_none, f_cos)
+      CALL fourier_context%toijsp(fsubumnsf(:,:,nsmin:nsmax), fsubuijf,        &
+                                  f_none, f_sin)
+      CALL fourier_context%toijsp(fsubvmnsf(:,:,nsmin:nsmax), fsubvijf,        &
+                                  f_none, f_sin)
 
       IF (lasym) THEN
-         CALL toijsp(fsubsmnsf(:,:,nsmin:nsmax), fsubsijf, f_sum, f_sin)
-         CALL toijsp(fsubumncf(:,:,nsmin:nsmax), fsubuijf, f_sum, f_cos)
-         CALL toijsp(fsubvmncf(:,:,nsmin:nsmax), fsubvijf, f_sum, f_cos)
+         CALL fourier_context%toijsp(fsubsmnsf(:,:,nsmin:nsmax), fsubsijf,     &
+                                     f_sum, f_sin)
+         CALL fourier_context%toijsp(fsubumncf(:,:,nsmin:nsmax), fsubuijf,     &
+                                     f_sum, f_cos)
+         CALL fourier_context%toijsp(fsubvmncf(:,:,nsmin:nsmax), fsubvijf,     &
+                                     f_sum, f_cos)
       END IF
 
       IF (nsmin .eq. 1) THEN
@@ -903,18 +920,21 @@
                    fsupsijf, fsupuijf, fsupvijf, nsmin, nsmax) 
       DEALLOCATE(fsubsijf, fsubuijf, fsubvijf)
 
-      CALL tomnsp(fsupsijf, fsupsmncf(:,:,nsmin:nsmax), f_cos)
-      CALL tomnsp(fsupuijf, fsupumnsf(:,:,nsmin:nsmax), f_sin)
-      CALL tomnsp(fsupvijf, fsupvmnsf(:,:,nsmin:nsmax), f_sin)
+      CALL fourier_context%tomnsp(fsupsijf, fsupsmncf(:,:,nsmin:nsmax), f_cos)
+      CALL fourier_context%tomnsp(fsupuijf, fsupumnsf(:,:,nsmin:nsmax), f_sin)
+      CALL fourier_context%tomnsp(fsupvijf, fsupvmnsf(:,:,nsmin:nsmax), f_sin)
 
       IF (nsmin .eq. 1) THEN
          CALL set_bndy_full_origin(fsupsmncf, fsupumnsf, fsupvmnsf)
       END IF
 
       IF (lasym) THEN
-         CALL tomnsp(fsupsijf, fsupsmnsf(:,:,nsmin:nsmax), f_sin)
-         CALL tomnsp(fsupuijf, fsupumncf(:,:,nsmin:nsmax), f_cos)
-         CALL tomnsp(fsupvijf, fsupvmncf(:,:,nsmin:nsmax), f_cos)
+         CALL fourier_context%tomnsp(fsupsijf, fsupsmnsf(:,:,nsmin:nsmax),     &
+                                     f_sin)
+         CALL fourier_context%tomnsp(fsupuijf, fsupumncf(:,:,nsmin:nsmax),     &
+                                     f_cos)
+         CALL fourier_context%tomnsp(fsupvijf, fsupvmncf(:,:,nsmin:nsmax),     &
+                                     f_cos)
 
          IF (nsmin .eq. 1) THEN
             CALL set_bndy_full_origin(fsupsmnsf, fsupumncf, fsupvmncf)

@@ -100,7 +100,6 @@
       USE timer_mod, ONLY: init_timers
       USE shared_data, ONLY: torflux, polflux
       USE island_params, hs=>hs_i, ns=>ns_i
-      USE fourier, ONLY: init_fourier
 
       IMPLICIT NONE
 
@@ -123,7 +122,6 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE set_grid_sizes(mpol_in, ntor_in)
       USE island_params
-!      USE fourier, ONLY: init_fourier
       USE shared_data, ONLY: mblk_size, ndims, lasym
 
       IMPLICIT NONE
@@ -143,20 +141,21 @@
 
 !  Set number of points == number of modes for now! (May want mid-points for
 !  flux conservation)
-      nu_i = mpol_i+2
-      nv_i = 2*ntor_i+2
+      nu_i = mpol_i + 2
+      nv_i = 2*ntor_i + 2
 
 !USE 3/2 (ORSZAG) RULE FOR ANTI-ALIASING OF EVOLUTION EQNS
 !Suppresses RADIAL grid separation in pressure
       nu_i = 3*nu_i/2
 !SPH051617      nu_i = nu_i+MOD(nu_i,2)
-      IF (lasym) nu_i = 2*nu_i
-
-!SPH051617
-      IF (.NOT.lasym .AND. MOD(nu_i,2).NE.1) nu_i = nu_i+1
+      IF (lasym) THEN
+         nu_i = 2*nu_i
+      ELSE IF (MOD(nu_i, 2) .ne. 1) THEN
+         nu_i = nu_i + 1
+      END IF
 
       nv_i = 3*nv_i/2
-      nv_i = nv_i+MOD(nv_i,2)
+      nv_i = nv_i + MOD(nv_i, 2)
 
       IF (ntor_i .EQ. 0) THEN
          nv_i = 1
@@ -166,9 +165,6 @@
 
       mblk_size = ndims*mnmax_i
       CALL ASSERT(mblk_size .NE. 0, 'mblk_size = 0 in set_grid_sizes')
-
-!  Now that the grid sizes are determined we can initalize the fourier routines.
-!      CALL init_fourier
 
       END SUBROUTINE
 
@@ -181,7 +177,7 @@
 !>  @param[in]  nsmax   Maximum radial index.
 !-------------------------------------------------------------------------------
       SUBROUTINE SurfAvg(average, q3d, nsmin, nsmax)
-      USE island_params, ONLY: cosmui
+      USE island_params, ONLY: fourier_context
 
       IMPLICIT NONE
 
@@ -199,7 +195,7 @@
 !  Start of executable code
       ALLOCATE(wint(nu_i,nv_i,nsmin:nsmax))
       DO l = 1, nu_i
-         wint(l,:,:) = cosmui(l,0)
+         wint(l,:,:) = fourier_context%cosmui(l,0)
       END DO
       DO js = nsmin, nsmax
          average(js) = SUM(q3d(:,:,js)*wint(:,:,js))
@@ -255,8 +251,8 @@
 !>  @param[in] lasym A symmetric flag.
 !-------------------------------------------------------------------------------
       SUBROUTINE rz_to_ijsp(rmn, zmn, lasym)
-      USE fourier, ONLY: toijsp, init_fourier, f_cos, f_sin, f_none, f_sum,    &
-                         f_du, f_dv
+      USE island_params, ONLY: fourier_context
+      USE fourier, ONLY: f_cos, f_sin, f_none, f_sum, f_du, f_dv
 
       IMPLICIT NONE
 
@@ -285,13 +281,13 @@
       m = IOR(sum, f_du)
       n = IOR(sum, f_dv)
 
-      CALL toijsp(rmn, r1_i, sum, rmode)
-      CALL toijsp(rmn, ru_i, m,   rmode)
-      CALL toijsp(rmn, rv_i, n,   rmode)
+      CALL fourier_context%toijsp(rmn, r1_i, sum, rmode)
+      CALL fourier_context%toijsp(rmn, ru_i, m,   rmode)
+      CALL fourier_context%toijsp(rmn, rv_i, n,   rmode)
 
-      CALL toijsp(zmn, z1_i, sum, zmode)
-      CALL toijsp(zmn, zu_i, m,   zmode)
-      CALL toijsp(zmn, zv_i, n,   zmode)
+      CALL fourier_context%toijsp(zmn, z1_i, sum, zmode)
+      CALL fourier_context%toijsp(zmn, zu_i, m,   zmode)
+      CALL fourier_context%toijsp(zmn, zv_i, n,   zmode)
 
       END SUBROUTINE
 
@@ -640,7 +636,7 @@
 !>  sqrtg is deallocated in @ref init_bcovar and stored in @ref jacob variable
 !-------------------------------------------------------------------------------
       SUBROUTINE cleanup_metric_elements
-      USE fourier, ONLY: dealloc_fourier
+      USE island_params, ONLY: fourier_context
       USE vmec_info
 
       IMPLICIT NONE
@@ -655,7 +651,7 @@
       
       DEALLOCATE (r1_i, z1_i, ru_i, zu_i, rv_i, zv_i)
 
-      CALL dealloc_fourier
+      DEALLOCATE(fourier_context)
       CALL vmec_info_destruct_island
 
       END SUBROUTINE cleanup_metric_elements
