@@ -60,7 +60,7 @@
 !  local variables
       INTEGER                       :: istat
       INTEGER                       :: n1
-      INTEGER                       :: n2
+      INTEGER                       :: n2                 ,i,j,k
       INTEGER                       :: nmax
       INTEGER                       :: endr
       INTEGER                       :: startr
@@ -102,12 +102,24 @@
             CALL GetFields(jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh, f_cos)
          END IF
 
+WRITE (*,*) 'init_state before'
+DO j = LBOUND(bsupuijh0,2), UBOUND(bsupuijh0,2)
+DO i = LBOUND(bsupuijh0,1), UBOUND(bsupuijh0,1)
+WRITE (*,*) i,j,bsupsijh0(i,j,ns),bsupuijh0(i,j,ns),bsupvijh0(i,j,ns)
+END DO
+END DO
 !  Convert jac*bsubXh to bsupXh and jac*pres to presh in real space. On exit,
 !  bsupXf and pf0 ae valid on [nsmin, nsmax - 1]
          CALL bhalftobfull(bsupsijh0, bsupuijh0, bsupvijh0,                    &
                            bsupsijf0, bsupuijf0, bsupvijf0,                    &
                            pijh0, pijf0)
-
+WRITE (*,*) 'init_state after'
+DO j = LBOUND(bsupuijf0,2), UBOUND(bsupuijf0,2)
+DO i = LBOUND(bsupuijf0,1), UBOUND(bsupuijf0,1)
+WRITE (*,*) i,j,bsupsijf0(i,j,ns),bsupuijf0(i,j,ns),bsupvijf0(i,j,ns)
+END DO
+END DO
+PAUSE
 !  Compute and store unperturbed current components on full mesh,
 !  KsupX = sqrt(g)*JsupX
          CALL cv_currents(bsupsijh0, bsupuijh0, bsupvijh0,                     &
@@ -469,7 +481,7 @@
        REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: pmnh
 
 !  Start of executable code
-       IF (parity .EQ. f_cos) THEN
+       IF (parity .eq. f_cos) THEN
           fcomb = f_none
        ELSE
           fcomb = f_sum

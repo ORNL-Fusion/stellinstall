@@ -83,7 +83,7 @@
       LOGICAL, INTENT(in)                                     :: lcurr
 
 !  local variables
-      INTEGER                                                :: istat
+      INTEGER                                                :: istat         ,i,j
       REAL (dp)                                              :: beta
       REAL (dp)                                              :: ton
       REAL (dp)                                              :: toff
@@ -117,6 +117,13 @@
      
       CALL tolowerh(bsupsijh, bsupuijh, bsupvijh,                              &
                     bsubsijh, bsubuijh, bsubvijh, nsmin, nsmax)
+WRITE (*,*) 'tolower'
+DO j = LBOUND(bsubvijh,2), UBOUND(bsubvijh,2)
+DO i = LBOUND(bsubvijh,1), UBOUND(bsubvijh,1)
+WRITE (*,*) i,j,bsupsijh(i,j,ns),bsupuijh(i,j,ns),bsupvijh(i,j,ns)
+END DO
+END DO
+PAUSE
 
 !  Compute parallel damping scaling cofficient <bsupv^2/B.B> ~ k^2
       IF (.not.ALLOCATED(mupar_norm)) THEN
@@ -209,6 +216,12 @@
 !  Compute spectral truncation error measure (Use ksupsijf for temporary
 !  filtered bsubXijh values)
          IF (nsmax .eq. ns) THEN
+WRITE (*,*) 'tmp'
+DO j = LBOUND(bsubvijh,2), UBOUND(bsubvijh,2)
+DO i = LBOUND(bsubvijh,1), UBOUND(bsubvijh,1)
+WRITE (*,*) i,j,bsubuijh(i,j,ns),bsubvijh(i,j,ns),wint(i,j,ns)
+END DO
+END DO
             tmp = SUM(wint(:,:,ns)*(bsubvijh(:,:,ns)*bsubvijh(:,:,ns) +        &
                                     bsubuijh(:,:,ns)*bsubuijh(:,:,ns)))
             IF (tmp .ne. zero) THEN

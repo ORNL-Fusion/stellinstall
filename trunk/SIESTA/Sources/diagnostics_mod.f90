@@ -396,9 +396,7 @@
       INTEGER                                  :: istat
       INTEGER                                  :: n1
       INTEGER                                  :: n2
-      INTEGER                                  :: i
-      INTEGER                                  :: j
-      INTEGER                                  :: k
+INTEGER                                  :: i,j,k
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: dpduijf
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: dpdvijf
       REAL (dp), DIMENSION(2)                  :: temp(2)
@@ -430,6 +428,15 @@
                          + bsupuijf0(:,:,n1:n2)*dpduijf(:,:,n1:n2)             &
                          + bsupvijf0(:,:,n1:n2)*dpdvijf(:,:,n1:n2)
 
+!DO k = LBOUND(bsupsijf0,3), UBOUND(bsupsijf0,3)
+!DO j = LBOUND(bsupsijf0,2), UBOUND(bsupsijf0,2)
+!DO i = LBOUND(bsupsijf0,1), UBOUND(bsupsijf0,1)
+!WRITE (*,*) i,j,k,bsupsijf0(i,j,k),bsupuijf0(i,j,k),bsupvijf0(i,j,k),          &
+!            pijf0_ds(i,j,k),dpduijf(i,j,k),dpdvijf(i,j,k)
+!END DO
+!END DO
+!END DO
+
       tnorm_bgradp = SUM((bsupsijf0(:,:,n1:nsmax)**2 +                         &
                           bsupuijf0(:,:,n1:nsmax)**2 +                         &
                           bsupvijf0(:,:,n1:nsmax)**2)*                         &
@@ -451,6 +458,7 @@
 
       IF (tnorm_bgradp .GT. zero) THEN
          bgradp_rms = SQRT(wbgradp/tnorm_bgradp)
+WRITE (*,*) wbgradp, tnorm_bgradp
          tnorm_bgradp = SQRT(tnorm_bgradp/ns)
 
 !  Ignore first point

@@ -615,16 +615,16 @@
       CALL assert_eq(ns, SIZE(rmn_spl,2),'rmn_spl wrong size2 in REPACK')
       CALL assert_eq(ns + 1, SIZE(lmn_spl,2),'lmn_spl wrong size2 in REPACK')
 
-      IF (parity .EQ. f_cos) THEN
+      IF (parity .eq. f_cos) THEN
          s1 = 1
       ELSE
          s2 = 1
       END IF
 
-      IF (iam .EQ. 0 .AND. lverbose .AND. parity .EQ. f_cos) THEN
+      IF (iam .eq. 0 .and. lverbose .and. parity .eq. f_cos) THEN
          m = INT(MAXVAL(xm_vmec))
          n = INT(MAXVAL(ABS(xn_vmec)))/nfp
-         IF (m.GT.mpol .OR. n.GT.ntor) THEN
+         IF (m .gt. mpol .or. n .gt. ntor) THEN
             WRITE(*,1000) m, n
          END IF
          CALL assert_eq(0, MOD(nfp_vmec, nfp), 'nfpin should be an even ' //   &
@@ -639,9 +639,13 @@
          IF (m .le. mpol .and. n_abs .le. ntor) THEN
 
 !  For m=0 load only the positive n values.
-            IF (m .EQ. 0) THEN
-               IF (parity .EQ. f_cos) s2 = -SIGN(1,n)
-               IF (parity .EQ. f_sin) s1 = -SIGN(1,n)
+            IF (m .eq. 0) THEN
+               IF (parity .eq. f_cos) THEN
+                  s2 = -SIGN(1,n)
+               END IF
+               IF (parity .eq. f_sin) THEN
+                  s1 = -SIGN(1,n)
+               END IF
                rmn(m,n_abs,:) = rmn(m,n_abs,:) + s1*rmn_spl(mn_mode,:)
                zmn(m,n_abs,:) = zmn(m,n_abs,:) + s2*zmn_spl(mn_mode,:)
                lmn(m,n_abs,:) = lmn(m,n_abs,:) + s2*lmn_spl(mn_mode,:)*iflipj
@@ -868,7 +872,7 @@
 !>  @param[out] istat    Error status.
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_info_spline_oned_array(y_vmec, y_spline, istat)
-      USE island_params, hs=>hs_i, ohs=>ohs_i, ns=>ns_i
+      USE island_params, ONLY: hs=>hs_i, ns=>ns_i
 
       IMPLICIT NONE
 
@@ -927,4 +931,4 @@
 
       END SUBROUTINE
 
-      END MODULE vmec_info
+      END MODULE

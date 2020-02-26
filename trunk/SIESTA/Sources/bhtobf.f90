@@ -75,7 +75,6 @@
       bsupuijf = bsupuijf/jacobf(:,:,nsmin:nsmax)
       bsupuijh = bsupuijh/jacobh(:,:,nsmin:nsmax)
 
-      bsupvijh = bsupvijh/jacobh(:,:,nsmin:nsmax)
       CALL to_full_mesh(bsupvijh, bsupvijf)
       IF (nsmin .EQ. 1) THEN
          bsupvijf(:,:,1) = bsupvijh(:,:,1) !  FIXME: This doesnt seem right.
