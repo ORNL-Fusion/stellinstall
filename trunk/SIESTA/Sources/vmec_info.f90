@@ -292,7 +292,7 @@
       ns = ns_in
       nsh = ns_in - 1
 
-      fourier_context => fourier_class(mpol_in, ntor_in, nu_i, nv_i, nfp_in,   &
+      fourier_context => fourier_class(mpol_in, ntor_in, nu_i, nv_i, nfp_i,    &
                                        lasym)
 
 !  Spline r, z, and l Fourier components in s from original vmec mesh (s ~ phi,

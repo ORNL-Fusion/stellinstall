@@ -459,7 +459,7 @@
 
             CALL second0(skston)
             CALL Compute_Hessian_Blocks(funct_island, ldiagonal)
-PAUSE
+!PAUSE
             CALL second0(skstoff)
             IF (ldiagonal) THEN
                comp_diag_elements_time = comp_diag_elements_time               &

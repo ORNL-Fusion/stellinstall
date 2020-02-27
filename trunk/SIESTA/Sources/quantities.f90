@@ -418,7 +418,7 @@
         END DO
 
         CALL to_half_mesh(presif, presih)
-      
+
 !  Initialize (internally) jacob*(real pressure), which is evolved
         presih(:,:,nsmin:nsmax) =                                              &
        &   presih(:,:,nsmin:nsmax)*jacobh(:,:,nsmin:nsmax)
@@ -481,7 +481,7 @@
         INTEGER, INTENT(in)                                     :: iparity
 
 !  local variables
-        INTEGER                                                 :: m      ,i,j,k
+        INTEGER                                                 :: m
         INTEGER                                                 :: n
         INTEGER                                                 :: sparity
         INTEGER                                                 :: mp

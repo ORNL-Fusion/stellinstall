@@ -86,7 +86,7 @@
       REAL (dp), DIMENSION(:,:), ALLOCATABLE   :: pardamp
       INTEGER                                  :: istat
       INTEGER                                  :: n1
-      INTEGER                                  :: n2                  ,i,j
+      INTEGER                                  :: n2
       REAL (dp)                                :: ton
       REAL (dp)                                :: toff
       REAL (dp)                                :: skston
@@ -141,13 +141,6 @@
 
 !  Update full mesh components of bsup* and pressure in real-space by averaging.
 !  This removes the jacobian term.
-WRITE (*,*) 'bhalftobfull'
-DO j = LBOUND(bsupvijh,2), UBOUND(bsupvijh,2)
-DO i = LBOUND(bsupvijh,1), UBOUND(bsupvijh,1)
-WRITE (*,*) i,j,bsupsijh(i,j,ns),bsupuijh(i,j,ns),bsupvijh(i,j,ns)
-END DO
-END DO
-PAUSE
       CALL bhalftobfull(bsupsijh, bsupuijh, bsupvijh,                          &
                         bsupsijf, bsupuijf, bsupvijf, pijh, pijf1)
 
@@ -257,7 +250,7 @@ PAUSE
       INTEGER, INTENT(in)                                  :: parity
 
 !  local variables
-      INTEGER                                              :: fours         ,i,j
+      INTEGER                                              :: fours
       INTEGER                                              :: fouruv
       INTEGER                                              :: fcomb
       INTEGER                                              :: istat
@@ -316,13 +309,6 @@ PAUSE
       END IF
 
 !  Calculate real-space jbsup*ihh and jpijh half mesh.
-WRITE (*,*) 'incfields'
-DO j = LBOUND(jbsupvmnh,2), UBOUND(jbsupvmnh,2)
-DO i = LBOUND(jbsupvmnh,1), UBOUND(jbsupvmnh,1)
-WRITE (*,*) i,j,jbsupsmnh(i,j,ns),jbsupumnh(i,j,ns),jbsupvmnh(i,j,ns)
-END DO
-END DO
-PAUSE
       CALL fourier_context%toijsp(jbsupsmnh_i, jbsupsijh, fcomb, fours)
       CALL fourier_context%toijsp(jbsupumnh_i, jbsupuijh, fcomb, fouruv)
       CALL fourier_context%toijsp(jbsupvmnh_i, jbsupvijh, fcomb, fouruv)

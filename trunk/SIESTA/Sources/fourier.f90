@@ -304,6 +304,8 @@
       TYPE (fourier_class), INTENT(inout) :: this
 
 !  Start of executable code.
+      WRITE (*,*) 'Deallocate'
+
       IF (ASSOCIATED(this%orthonorm)) THEN
          DEALLOCATE(this%orthonorm)
          this%orthonorm => null()
@@ -391,8 +393,8 @@
 !>  real represenetation for each surface. @see fourier_tomnsp_2d
 !>
 !>  @param[inout] this   A @ref fourier_class instance.
-!>  @param[in]    xmn    Fourier space quantity.
-!>  @param[inout] xuv    Real space quantity.
+!>  @param[in]    xuv    Real space quantity.
+!>  @param[out]   xmn    Fourier space quantity.
 !>  @param[in]    parity Fourier parity flag.
 !-------------------------------------------------------------------------------
       SUBROUTINE fourier_tomnsp_3d(this, xuv, xmn, parity)
@@ -433,14 +435,14 @@
 !>  real represenetation for each surface. @see fourier_tomnsp_2d_pest.
 !>
 !>  @param[inout] this   A @ref fourier_class instance.
-!>  @param[in]    xmn    Fourier space quantity.
-!>  @param[inout] xuv    Real space quantity.
+!>  @param[in]    xuv    Real space quantity.
+!>  @param[out]   xmn    Fourier space quantity.
 !>  @param[in]    lmns   Stellarator symmetric lambda.
 !>  @param[in]    lmnc   Stellarator asymmetric lambda.
 !>  @param[in]    parity Fourier parity flag.
 !>  @param[in]    asym   Add stellarator asymmetric terms.
 !-------------------------------------------------------------------------------
-      SUBROUTINE fourier_tomnsp_3d_pest(this, xmn, xuv, lmns, lmnc,       &
+      SUBROUTINE fourier_tomnsp_3d_pest(this, xuv, xmn, lmns, lmnc,            &
                                         parity, asym)
 
       IMPLICIT NONE
@@ -519,7 +521,8 @@
 !>  @param[out]   xmn    Real space quantity.
 !>  @param[in]    parity Fourier parity flag.
 !-------------------------------------------------------------------------------
-      PURE SUBROUTINE fourier_tomnsp_2d(this, xuv, xmn, parity)
+!      PURE
+SUBROUTINE fourier_tomnsp_2d(this, xuv, xmn, parity)
 
       IMPLICIT NONE
 
@@ -551,7 +554,8 @@
 !>  @param[in]    parity Fourier parity flag.
 !>  @param[in]    asym   Add stellarator asymmetric terms.
 !-------------------------------------------------------------------------------
-      PURE SUBROUTINE fourier_tomnsp_2d_pest(this, xuv, xmn, lambda, dupdu,    &
+!      PURE
+SUBROUTINE fourier_tomnsp_2d_pest(this, xuv, xmn, lambda, dupdu,    &
                                              parity, asym)
 
       IMPLICIT NONE
@@ -583,7 +587,8 @@
 !>  @param[inout] this A @ref fourier_class instance.
 !>  @param[in]    xuv  Fourier space quantity.
 !-------------------------------------------------------------------------------
-      PURE SUBROUTINE fourier_tomnsp_2d_u(this, xuv)
+!      PURE
+SUBROUTINE fourier_tomnsp_2d_u(this, xuv)
 
       IMPLICIT NONE
 
@@ -592,23 +597,19 @@
       REAL (dp), DIMENSION(:,:), INTENT(in) :: xuv
 
 !  Local Variables
-      INTEGER                               :: i
       INTEGER                               :: j
       INTEGER                               :: m
 
 !  Start of executable code.
+!WRITE (*,*) '-----------------------------------------------'  !  FIXME: Remove
 !  First, add over poloidal collocation angles. Note use of cosmui/sinmui
 !  include normalization factors.
       DO j = 1, SIZE(xuv, 2) !  nzeta
          DO m = m0, UBOUND(this%cosmu, 2) !  mpol
-            this%workmj1(m,j) = 0
-            this%workmj2(m,j) = 0
-            DO i = 1, SIZE(xuv, 1) !  ntheta
-               this%workmj1(m,j) = this%workmj1(m,j)                           &
-                                 + xuv(i,j)*this%cosmui(i,m)
-               this%workmj2(m,j) = this%workmj2(m,j)                           &
-                                 + xuv(i,j)*this%sinmui(i,m)
-            END DO
+            this%workmj1(m,j) = DOT_PRODUCT(xuv(:,j), this%cosmui(:,m))
+            this%workmj2(m,j) = DOT_PRODUCT(xuv(:,j), this%sinmui(:,m))
+!  FIXME: Remove
+!WRITE (*,*) m,j,this%workmj1(m,j),this%workmj2(m,j)
          END DO
       END DO
 
@@ -709,7 +710,8 @@
 !>  @param[out] xmn    Real space quantity.
 !>  @param[in]  parity Fourier parity flag.
 !-------------------------------------------------------------------------------
-      PURE SUBROUTINE fourier_tomnsp_2d_v(this, xmn, parity)
+     ! PURE
+SUBROUTINE fourier_tomnsp_2d_v(this, xmn, parity)
 
       IMPLICIT NONE
 
@@ -728,6 +730,7 @@
       INTEGER                                 :: noff
 
 !  Start of executable code.
+!WRITE (*,*) '-----------------------------------------------'  !  FIXME: Remove
       moff = LBOUND(xmn,1)
       noff = LBOUND(xmn,2) + UBOUND(this%cosnv,2)
 
@@ -743,16 +746,18 @@
                   xmn(m + moff,n + noff) = xmn(m + moff,n + noff)              &
                                          + workcos - worksin
 
-                  IF (n .gt. n0 .and. m .gt. m0) THEN
+                  IF (n .ne. n0 .and. m .ne. m0) THEN
                      xmn(m + moff,-n + noff) = xmn(m + moff,-n + noff)         &
                                              + workcos + worksin
                   END IF
-               ELSE IF (.not.(n .eq. n0 .and. m .eq. m0)) THEN
+!WRITE (*,*) m,j,n,this%workmj1(m,j),this%workmj2(m,j),this%cosnv(j,n),this%sinnv(j,n),&
+!            xmn(m + moff,n + noff),xmn(m + moff,-n + noff)!  FIXME: Remove
+               ELSE
                   workcos = this%workmj2(m,j)*this%cosnv(j,n)
                   worksin = this%workmj1(m,j)*this%sinnv(j,n)
                   xmn(m + moff,n + noff) = xmn(m + moff,n + noff)              &
                                          + workcos + worksin
-                  IF (n .gt. n0 .and. m .gt. m0) THEN
+                  IF (n .ne. n0) THEN
                      xmn(m + moff,-n + noff) = xmn(m + moff,-n + noff)         &
                                              + workcos - worksin
                   END IF
@@ -760,6 +765,12 @@
             END DO
          END DO
       END DO
+
+      IF (parity .eq. f_cos) THEN
+         xmn(m0 + moff,:-n1 + noff) = zero                                             ! Redundant: To avoid counting (0,-n) for non-zero n.
+      ELSE
+         xmn(m0 + moff,:n0 + noff) = zero
+      END IF
 
       xmn = this%orthonorm*xmn
 
@@ -824,7 +835,8 @@
 !>  @param[in]    dflag  Derivative and sum control flags.
 !>  @param[in]    parity Fourier parity flag.
 !-------------------------------------------------------------------------------
-      PURE SUBROUTINE fourier_toijsp_2d(this, xmn, xuv, dflag, parity)
+!      PURE
+      SUBROUTINE fourier_toijsp_2d(this, xmn, xuv, dflag, parity)
 
       IMPLICIT NONE
 
@@ -866,6 +878,19 @@
          msign = 1
       END IF
 
+      this%workin1 = 0
+      this%workin2 = 0
+
+!  Sum over poloidal angles.
+      DO n = LBOUND(this%workin1, 2), UBOUND(this%workin1, 2) !  -ntor:ntor
+         DO m = 0, UBOUND(this%cosmu, 2) !  mpol
+            workmn = this%orthonorm(m,n)*xmn(m + moff,n + noff)
+
+            this%workin1(:,n) = this%workin1(:,n) + msign*workmn*anglem1(:,m)
+            this%workin2(:,n) = this%workin2(:,n) + workmn*anglem2(:,m)
+         END DO
+      END DO
+
       IF (parity .eq. f_cos) THEN
          nsign3 = 1
          IF (BTEST(dflag, b_dv)) THEN
@@ -893,18 +918,6 @@
             nsign2 = 1
          END IF
       END IF
-
-      this%workin1(:,:) = 0
-      this%workin2(:,:) = 0
-
-      DO n = LBOUND(this%workin1, 2), UBOUND(this%workin1, 2) !  -ntor:ntor
-         DO m = 0, UBOUND(this%cosmu, 2) !  mpol
-            workmn = this%orthonorm(m,n)*xmn(m + moff,n + noff)
-
-            this%workin1(:,n) = this%workin1(:,n) + msign*workmn*anglem1(:,m)
-            this%workin2(:,n) = this%workin2(:,n) + workmn*anglem2(:,m)
-         END DO
-      END DO
 
       IF (.not.BTEST(dflag, b_sum)) THEN
          xuv(:,:) = 0

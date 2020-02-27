@@ -396,7 +396,6 @@
       INTEGER                                  :: istat
       INTEGER                                  :: n1
       INTEGER                                  :: n2
-INTEGER                                  :: i,j,k
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: dpduijf
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: dpdvijf
       REAL (dp), DIMENSION(2)                  :: temp(2)
@@ -418,7 +417,8 @@ INTEGER                                  :: i,j,k
                dpdvijf(ntheta,nzeta,nsmin:nsmax), stat=istat)
       CALL assert_eq(0, istat, 'Allocation failed in get_bgradp')
 
-      CALL GetPressure(dpduijf, dpdvijf)
+      CALL to_full_mesh(pijh0_du, dpduijf)
+      CALL to_full_mesh(pijh0_dv, dpdvijf)
 
       nsmax = MIN(endglobrow, ns)
       n1 = MAX(2, nsmin)
@@ -427,15 +427,6 @@ INTEGER                                  :: i,j,k
       bgradpf(:,:,n1:n2) = bsupsijf0(:,:,n1:n2)*pijf0_ds(:,:,n1:n2)            &
                          + bsupuijf0(:,:,n1:n2)*dpduijf(:,:,n1:n2)             &
                          + bsupvijf0(:,:,n1:n2)*dpdvijf(:,:,n1:n2)
-
-!DO k = LBOUND(bsupsijf0,3), UBOUND(bsupsijf0,3)
-!DO j = LBOUND(bsupsijf0,2), UBOUND(bsupsijf0,2)
-!DO i = LBOUND(bsupsijf0,1), UBOUND(bsupsijf0,1)
-!WRITE (*,*) i,j,k,bsupsijf0(i,j,k),bsupuijf0(i,j,k),bsupvijf0(i,j,k),          &
-!            pijf0_ds(i,j,k),dpduijf(i,j,k),dpdvijf(i,j,k)
-!END DO
-!END DO
-!END DO
 
       tnorm_bgradp = SUM((bsupsijf0(:,:,n1:nsmax)**2 +                         &
                           bsupuijf0(:,:,n1:nsmax)**2 +                         &
@@ -458,7 +449,6 @@ INTEGER                                  :: i,j,k
 
       IF (tnorm_bgradp .GT. zero) THEN
          bgradp_rms = SQRT(wbgradp/tnorm_bgradp)
-WRITE (*,*) wbgradp, tnorm_bgradp
          tnorm_bgradp = SQRT(tnorm_bgradp/ns)
 
 !  Ignore first point
@@ -487,41 +477,15 @@ WRITE (*,*) wbgradp, tnorm_bgradp
       time_bgradp = time_bgradp + (toff - ton)
 
       END SUBROUTINE
-      
 
-      SUBROUTINE GetPressure (dpduijf, dpdvijf)
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE :: dpduijf, dpdvijf
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      INTEGER  :: istat, n2
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: ph0_du, ph0_dv
-!-----------------------------------------------
-    
-      n2 = MIN(ns,endglobrow+1)
-      
-      ALLOCATE(ph0_du(ntheta,nzeta,nsmin:n2),                           &
-               ph0_dv(ntheta,nzeta,nsmin:n2), stat=istat)
-      CALL ASSERT(istat.EQ.0,'Allocation error in GetPressure_par')               
-      ph0_du(:,:,nsmin:n2) = pijh0_du(:,:,nsmin:n2)
-      ph0_dv(:,:,nsmin:n2) = pijh0_dv(:,:,nsmin:n2)
-
-      CALL to_full_mesh(ph0_du, dpduijf)
-      CALL to_full_mesh(ph0_dv, dpdvijf)
-      
-      DEALLOCATE(ph0_du, ph0_dv, stat=istat)
-      CALL ASSERT(istat.EQ.0,'Deallocation error in GetPressure_par')               
-
-      END SUBROUTINE GetPressure
-
+!-------------------------------------------------------------------------------
+!>  @brief Plasma beta.
+!-------------------------------------------------------------------------------
       SUBROUTINE BETA
 
-        avbeta = wp/wb
+      avbeta = wp/wb
  
-      END SUBROUTINE BETA
+      END SUBROUTINE
  
       
       SUBROUTINE TFLUX
@@ -920,7 +884,7 @@ WRITE (*,*) wbgradp, tnorm_bgradp
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-        INTEGER              :: m, n, istat, n1, n2
+        INTEGER              :: m, n, istat, n1, n2                   ,i,j,k  !  FIXME: Remove
         REAL(dp), DIMENSION(:,:,:), ALLOCATABLE ::  temp1, temp2
         REAL(dp)             :: tnorm, temp(2), ton, toff
 !-----------------------------------------------
@@ -943,6 +907,15 @@ WRITE (*,*) wbgradp, tnorm_bgradp
 !
 !  Compute divergence of J. It is a SINE parity quantity.
 !
+!  FIXME: REMOVE
+!DO k = LBOUND(ksupumncf,3), UBOUND(ksupumncf,3)
+!DO j = LBOUND(ksupumncf,2), UBOUND(ksupumncf,2)
+!DO i = LBOUND(ksupumncf,1), UBOUND(ksupumncf,1)
+!WRITE (*,*) i,j,k,ksupsmnsf(i,j,k),ksupumncf(i,j,k),ksupvmncf(i,j,k)
+!END DO
+!END DO
+!END DO
+!PAUSE
         n1 = MAX(3, nsmin); n2 = MIN(ns-1, nsmax)
         DO m = 0, mpol
            DO n = -ntor,ntor
@@ -980,6 +953,15 @@ WRITE (*,*) wbgradp, tnorm_bgradp
 
         DEALLOCATE(temp1, temp2, stat=istat)
 
+!  FIXME: REMOVE
+!DO k = LBOUND(divjmnsh,3), UBOUND(divjmnch,3)
+!DO j = LBOUND(divjmnsh,2), UBOUND(divjmnch,2)
+!DO i = LBOUND(divjmnsh,1), UBOUND(divjmnch,1)
+!WRITE (*,*) i,j,k,divjmnsh(i,j,k),divjmnsh(i,j,k)
+!END DO
+!END DO
+!END DO
+!PAUSE
         divj_rms = SUM(divjmnsh(:,:,n1:n2)**2                           &
                  +     divjmnch(:,:,n1:n2)**2)
 #if defined(MPI_OPT)
@@ -993,6 +975,9 @@ WRITE (*,*) wbgradp, tnorm_bgradp
         IF (tnorm .GE. zero) THEN
            divjmnsh = divjmnsh/SQRT(tnorm)
            divjmnch = divjmnch/SQRT(tnorm)
+!  FIXME: REMOVE
+!WRITE (*,*) divj_rms, tnorm
+!PAUSE
            divj_rms = SQRT(divj_rms/tnorm)
         END IF
 
@@ -1003,16 +988,27 @@ WRITE (*,*) wbgradp, tnorm_bgradp
 
         END SUBROUTINE divj
 
-       SUBROUTINE dealloc_diagnostics
+      SUBROUTINE dealloc_diagnostics
 
-       IF (ALLOCATED(divbmnsf)) DEALLOCATE(divbmnsf)
-       IF (ALLOCATED(divbmncf)) DEALLOCATE(divbmncf)
-       IF (ALLOCATED(divjmnsh)) DEALLOCATE(divjmnsh)
-       IF (ALLOCATED(divjmnch)) DEALLOCATE(divjmnch)
-       IF (ALLOCATED(bdotjmnch)) DEALLOCATE(bdotjmnch)
-       IF (ALLOCATED(bdotjmnsh)) DEALLOCATE(bdotjmnsh)
+      IF (ALLOCATED(divbmnsf)) THEN
+         DEALLOCATE(divbmnsf)
+      END IF
+      IF (ALLOCATED(divbmncf)) THEN
+         DEALLOCATE(divbmncf)
+      END IF
+      IF (ALLOCATED(divjmnsh)) THEN
+         DEALLOCATE(divjmnsh)
+      END IF
+      IF (ALLOCATED(divjmnch)) THEN
+         DEALLOCATE(divjmnch)
+      END IF
+      IF (ALLOCATED(bdotjmnch)) THEN
+         DEALLOCATE(bdotjmnch)
+      END IF
+      IF (ALLOCATED(bdotjmnsh)) THEN
+         DEALLOCATE(bdotjmnsh)
+      END IF
 
-       END SUBROUTINE dealloc_diagnostics
+      END SUBROUTINE
 
-
-      END MODULE diagnostics_mod
+      END MODULE

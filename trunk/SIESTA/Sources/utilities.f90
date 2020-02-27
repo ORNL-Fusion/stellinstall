@@ -349,12 +349,12 @@
 !>                          jacobian factor half grid.
 !>  @param[inout] jbsubsmnh Contravariant vector in the v direction with
 !>                          jacobian factor half grid.
-!>  @param[in]    iparity   Parity flag.
+!>  @param[in]    parity    Parity flag.
 !>  @param[in]    nsmin     Minimum radial index.
 !>  @param[in]    nsmax     Maximum radial index.
 !-------------------------------------------------------------------------------
       SUBROUTINE curl_ftoh(asubsmnf, asubumnf, asubvmnf,                       &
-                           jbsupsmnh, jbsupumnh, jbsupvmnh, iparity,           &
+                           jbsupsmnh, jbsupumnh, jbsupvmnh, parity,            &
                            nsmin, nsmax)
       USE nscalingtools, ONLY: startglobrow
 
@@ -367,7 +367,7 @@
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jbsupsmnh
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jbsupumnh
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jbsupvmnh
-      INTEGER, INTENT(IN)                                     :: iparity
+      INTEGER, INTENT(IN)                                     :: parity
       INTEGER, INTENT(IN)                                     :: nsmin
       INTEGER, INTENT(IN)                                     :: nsmax
 
@@ -389,7 +389,7 @@
 !  Start of executable code
       CALL assert(nsmax .le. UBOUND(jbsupsmnh,3), 'UBOUND wrong in curl_ftoh')
 
-      IF (iparity .EQ. f_sin) THEN
+      IF (parity .EQ. f_sin) THEN
          sparity = 1
          fouruv = f_cos
       ELSE
@@ -406,7 +406,7 @@
       CALL to_half_mesh(asubumnf, asubumnh)
       CALL to_half_mesh(asubvmnf, asubvmnh)
 
-      CALL set_bndy_fouier_m0(asubsmnh, asubumnh, asubvmnh, iparity)
+      CALL set_bndy_fouier_m0(asubsmnh, asubumnh, asubvmnh, parity)
 
 !  Compute sqrt(g)B^X contravariant B-field components in Fourier space
       ALLOCATE(da_uds(0:mpol,-ntor:ntor,nsmin:nsmax),                     &
@@ -447,7 +447,7 @@
          jbsupvmnh(:,:,1) = 0
       END IF
 
-      CALL set_bndy_fouier_m0(jbsupsmnh, jbsupumnh, jbsupvmnh, iparity)
+      CALL set_bndy_fouier_m0(jbsupsmnh, jbsupumnh, jbsupvmnh, parity)
 
       END SUBROUTINE
 
@@ -472,14 +472,14 @@
 !>                          jacobian factor full grid.
 !>  @param[inout] jBsubsmnf Contravariant vector in the v direction with
 !>                          jacobian factor full grid.
-!>  @param[in]    iparity   Parity flag.
+!>  @param[in]    parity    Parity flag.
 !>  @param[in]    nsmin     Minimum radial index.
 !>  @param[in]    nsmax     Maximum radial index.
 !>  @param[in]    extend    Extend the radial index of the curl.
 !>  @param[inout] curtor    Current enclosed at the boundary.
 !-------------------------------------------------------------------------------
       SUBROUTINE curl_htof(asubsmnh, asubumnh, asubvmnh,                       &
-                           jbsupsmnf, jbsupumnf, jbsupvmnf, iparity,           &
+                           jbsupsmnf, jbsupumnf, jbsupvmnf, parity,            &
                            nsmin, nsmax, extend, curtor)
       USE nscalingtools, ONLY: endglobrow
       USE stel_constants
@@ -493,7 +493,7 @@
       REAL (dp), DIMENSION(:,:,:), POINTER                 :: jbsupsmnf
       REAL (dp), DIMENSION(:,:,:), POINTER                 :: jbsupumnf
       REAL (dp), DIMENSION(:,:,:), POINTER                 :: jbsupvmnf
-      INTEGER, INTENT(in)                                  :: iparity
+      INTEGER, INTENT(in)                                  :: parity
       INTEGER, INTENT(in)                                  :: nsmin
       INTEGER, INTENT(in)                                  :: nsmax
       LOGICAL, INTENT(in)                                  :: extend
@@ -522,7 +522,7 @@
 !  Start of executable code
       CALL assert(nsmin .ge. LBOUND(jbsupsmnf,3), 'LBOUND wrong in curl_htof')
 
-      IF (iparity .eq. f_sin) THEN
+      IF (parity .eq. f_sin) THEN
          sparity = 1
          fours = f_sin
          fouruv = f_cos
@@ -545,11 +545,11 @@
       CALL to_full_mesh(asubvmnh, asubvmnf)
 
 !  FIXME: CHECK Boundary Conditions. asubs,subu,subv don't match older version.
-      CALL set_bndy_half_to_full(asubsmnh, asubvmnh, nsmin, iparity,           &
+      CALL set_bndy_half_to_full(asubsmnh, asubvmnh, nsmin, parity,            &
                                  asubsmnf, asubumnf, asubvmnf)
 
 !  Store the total enclosed current to check against the orginal VMEC current.
-      IF (iparity .eq. f_sin .and. nsmax .eq. ns) THEN
+      IF (parity .eq. f_sin .and. nsmax .eq. ns) THEN
          curtor = twopi*asubumnf(m0,n0,ns)/mu0
       END IF
 
@@ -600,7 +600,7 @@
       jbsupumnf(:,:,LBOUND(jbsupsmnf,3):nsmin-1) = 0
       jbsupvmnf(:,:,LBOUND(jbsupsmnf,3):nsmin-1) = 0
 
-      CALL set_bndy_fouier_m0(jbsupsmnf, jbsupumnf, jbsupvmnf, iparity)
+      CALL set_bndy_fouier_m0(jbsupsmnf, jbsupumnf, jbsupvmnf, parity)
       IF (nsmin .eq. 1) THEN
          CALL set_bndy_full_origin(jbsupsmnf, jbsupumnf, jbsupvmnf)
       END IF
@@ -620,7 +620,7 @@
 !>                          jacobian factor full grid.
 !>  @param[inout] jBsubsmnf Contravariant vector in the v direction with
 !>                          jacobian factor full grid.
-!>  @param[in]    iparity   Parity flag.
+!>  @param[in]    parity    Parity flag.
 !>  @param[in]    nsmin     Minimum radial index.
 !>  @param[in]    nsmax     Maximum radial index.
 !>  @param[in]    extend    Extend the radial index of the curl.
@@ -628,7 +628,7 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE curl_htof_targ(asubsmnh, asubumnh, asubvmnh,                  &
                                 jbsupsmnf, jbsupumnf, jbsupvmnf,               &
-                                iparity, nsmin, nsmax, extend, curtor)
+                                parity, nsmin, nsmax, extend, curtor)
 
 !  Declare Arguments
       REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(in) :: asubsmnh
@@ -640,7 +640,7 @@
          jbsupumnf
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, TARGET, INTENT(inout) ::       &
          jbsupvmnf
-      INTEGER, INTENT(IN)                                  :: iparity
+      INTEGER, INTENT(IN)                                  :: parity
       INTEGER, INTENT(IN)                                  :: nsmin
       INTEGER, INTENT(IN)                                  :: nsmax
       LOGICAL, INTENT(in)                                  :: extend
@@ -656,7 +656,7 @@
       jbup => jbsupumnf
       jbvp => jbsupvmnf
       CALL curl_htof(asubsmnh, asubumnh, asubvmnh,                             &
-                     jbsp, jbup, jbvp, iparity, nsmin, nsmax, extend,          &
+                     jbsp, jbup, jbvp, parity, nsmin, nsmax, extend,           &
                      curtor)
 
       END SUBROUTINE
@@ -673,9 +673,9 @@
 !>  @param[in]    amnh    Half grid fourier quantity.
 !>  @param[inout] amnf    Full grid fourier quantity.
 !>  @param[in]    nsmin   Minimum radial index.
-!>  @param[in]    iparity Parity flag.
+!>  @param[in]    parity Parity flag.
 !-------------------------------------------------------------------------------
-      PURE SUBROUTINE set_bndy_half_to_full(amnh, amnf, nsmin, iparity)
+      PURE SUBROUTINE set_bndy_half_to_full(amnh, amnf, nsmin, parity)
 
       IMPLICIT NONE
 
@@ -683,7 +683,7 @@
       REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(in)    :: amnh
       REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: amnf
       INTEGER, INTENT(IN)                                     :: nsmin
-      INTEGER, INTENT(in)                                     :: iparity
+      INTEGER, INTENT(in)                                     :: parity
 
 !  Start of executable code
       IF (nsmin .eq. 1) THEN
@@ -691,7 +691,7 @@
          amnf(m0,:,1) = amnh(m0,:,2)
       END IF
 
-      IF (iparity .eq. f_cos) THEN
+      IF (parity .eq. f_cos) THEN
          amnf(m0,-ntor:-n1,:) = 0.0
       ELSE
          amnf(m0,-ntor:n0,:) = 0.0

@@ -83,7 +83,7 @@
       LOGICAL, INTENT(in)                                     :: lcurr
 
 !  local variables
-      INTEGER                                                :: istat         ,i,j
+      INTEGER                                                :: istat     ,i,j,k !  FIXME: Remove
       REAL (dp)                                              :: beta
       REAL (dp)                                              :: ton
       REAL (dp)                                              :: toff
@@ -117,13 +117,6 @@
      
       CALL tolowerh(bsupsijh, bsupuijh, bsupvijh,                              &
                     bsubsijh, bsubuijh, bsubvijh, nsmin, nsmax)
-WRITE (*,*) 'tolower'
-DO j = LBOUND(bsubvijh,2), UBOUND(bsubvijh,2)
-DO i = LBOUND(bsubvijh,1), UBOUND(bsubvijh,1)
-WRITE (*,*) i,j,bsupsijh(i,j,ns),bsupuijh(i,j,ns),bsupvijh(i,j,ns)
-END DO
-END DO
-PAUSE
 
 !  Compute parallel damping scaling cofficient <bsupv^2/B.B> ~ k^2
       IF (.not.ALLOCATED(mupar_norm)) THEN
@@ -179,6 +172,18 @@ PAUSE
                     jsju_ratio_a, f_cos, lcurr, nsmax, nsmin,                  &
                     siesta_curtor)
       END IF
+!
+!  Compute divergence of J. It is a SINE parity quantity.
+!
+!  FIXME: REMOVE
+!DO k = LBOUND(ksupumncf,3), UBOUND(ksupumncf,3)
+!DO j = LBOUND(ksupumncf,2), UBOUND(ksupumncf,2)
+!DO i = LBOUND(ksupumncf,1), UBOUND(ksupumncf,1)
+!WRITE (*,*) i,j,k,ksupsmnsf(i,j,k),ksupumncf(i,j,k),ksupvmncf(i,j,k)
+!END DO
+!END DO
+!END DO
+!PAUSE
 
       IF (nsmax .eq. ns) THEN
          siesta_curtor = -fourier_context%orthonorm(m0,n0)*siesta_curtor       &
@@ -216,12 +221,6 @@ PAUSE
 !  Compute spectral truncation error measure (Use ksupsijf for temporary
 !  filtered bsubXijh values)
          IF (nsmax .eq. ns) THEN
-WRITE (*,*) 'tmp'
-DO j = LBOUND(bsubvijh,2), UBOUND(bsubvijh,2)
-DO i = LBOUND(bsubvijh,1), UBOUND(bsubvijh,1)
-WRITE (*,*) i,j,bsubuijh(i,j,ns),bsubvijh(i,j,ns),wint(i,j,ns)
-END DO
-END DO
             tmp = SUM(wint(:,:,ns)*(bsubvijh(:,:,ns)*bsubvijh(:,:,ns) +        &
                                     bsubuijh(:,:,ns)*bsubuijh(:,:,ns)))
             IF (tmp .ne. zero) THEN
@@ -334,7 +333,7 @@ END DO
       REAL (dp), INTENT(inout)                                :: curtor
 
 !  local variables
-      INTEGER                                                 :: fours
+      INTEGER                                                 :: fours         ,i,j,k !  FIXME: REMOVE
       INTEGER                                                 :: fouruv
       INTEGER                                                 :: fcomb
       INTEGER                                                 :: nmin
@@ -366,11 +365,31 @@ END DO
                bsubumnh(0:mpol,-ntor:ntor,nsmin:nsmax),                        &
                bsubvmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)   
       CALL assert_eq(0, istat, 'Allocation1 failed in CURLB')
+!  FIXME: REMOVE
+!DO k = LBOUND(bsubsijh,3), UBOUND(bsubsijh,3)
+!DO j = LBOUND(bsubsijh,2), UBOUND(bsubsijh,2)
+!DO i = LBOUND(bsubsijh,1), UBOUND(bsubsijh,1)
+!WRITE (*,*) i,j,k,bsubsijh(i,j,k),bsubuijh(i,j,k),bsubvijh(i,j,k)
+!END DO
+!END DO
+!END DO
+!PAUSE
 
 !  Compute bsubxmnh
       CALL fourier_context%tomnsp(bsubsijh, bsubsmnh, fours)
       CALL fourier_context%tomnsp(bsubuijh, bsubumnh, fouruv)
+!WRITE (*,*) '--------------------------------------'!  FIXME: REMOVE
       CALL fourier_context%tomnsp(bsubvijh, bsubvmnh, fouruv)
+!PAUSE!  FIXME: REMOVE
+!  FIXME: REMOVE
+!DO k = LBOUND(bsubsmnh,3), UBOUND(bsubsmnh,3)
+!DO j = LBOUND(bsubsmnh,2), UBOUND(bsubsmnh,2)
+!DO i = LBOUND(bsubsmnh,1), UBOUND(bsubsmnh,1)
+!WRITE (*,*) i,j,k,bsubsmnh(i,j,k),bsubumnh(i,j,k),bsubvmnh(i,j,k)
+!END DO
+!END DO
+!END DO
+!PAUSE
 
       CALL CURL_HtoF(bsubsmnh, bsubumnh, bsubvmnh,                             &
                      ksupsmnf, ksupumnf, ksupvmnf,                             &
