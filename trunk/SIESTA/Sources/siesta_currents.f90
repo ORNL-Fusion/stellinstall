@@ -365,31 +365,11 @@
                bsubumnh(0:mpol,-ntor:ntor,nsmin:nsmax),                        &
                bsubvmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)   
       CALL assert_eq(0, istat, 'Allocation1 failed in CURLB')
-!  FIXME: REMOVE
-!DO k = LBOUND(bsubsijh,3), UBOUND(bsubsijh,3)
-!DO j = LBOUND(bsubsijh,2), UBOUND(bsubsijh,2)
-!DO i = LBOUND(bsubsijh,1), UBOUND(bsubsijh,1)
-!WRITE (*,*) i,j,k,bsubsijh(i,j,k),bsubuijh(i,j,k),bsubvijh(i,j,k)
-!END DO
-!END DO
-!END DO
-!PAUSE
 
 !  Compute bsubxmnh
       CALL fourier_context%tomnsp(bsubsijh, bsubsmnh, fours)
       CALL fourier_context%tomnsp(bsubuijh, bsubumnh, fouruv)
-!WRITE (*,*) '--------------------------------------'!  FIXME: REMOVE
       CALL fourier_context%tomnsp(bsubvijh, bsubvmnh, fouruv)
-!PAUSE!  FIXME: REMOVE
-!  FIXME: REMOVE
-!DO k = LBOUND(bsubsmnh,3), UBOUND(bsubsmnh,3)
-!DO j = LBOUND(bsubsmnh,2), UBOUND(bsubsmnh,2)
-!DO i = LBOUND(bsubsmnh,1), UBOUND(bsubsmnh,1)
-!WRITE (*,*) i,j,k,bsubsmnh(i,j,k),bsubumnh(i,j,k),bsubvmnh(i,j,k)
-!END DO
-!END DO
-!END DO
-!PAUSE
 
       CALL CURL_HtoF(bsubsmnh, bsubumnh, bsubvmnh,                             &
                      ksupsmnf, ksupumnf, ksupvmnf,                             &

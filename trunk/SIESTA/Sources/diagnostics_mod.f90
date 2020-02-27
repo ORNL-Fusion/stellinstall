@@ -254,7 +254,7 @@
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE                :: xijf
       CHARACTER (LEN=128)                                     :: mylabel
 
-!  Start of executable code
+!  Start of executable code.
       IF (igrid .EQ. 1) THEN
          ALLOCATE(xijf(SIZE(xij,1), SIZE(xij,2), SIZE(xij,3)))
          CALL to_full_mesh(xij, xijf)
@@ -869,125 +869,125 @@
 
         END SUBROUTINE bdotj_par
       
+!-------------------------------------------------------------------------------
+!>  @brief Compute the divergence of J.
+!>
+!>  Computes divergence of the current normalized to the total current on the
+!>  half mesh.
+!>
+!>  @param[in] ns_min Lower radial index.
+!>  @param[in] ns_max Upper radial index.
+!-------------------------------------------------------------------------------
+      SUBROUTINE divj(ns_min, ns_max)
+      USE island_params, ONLY: ohs=>ohs_i
 
-        SUBROUTINE divj(ns_min, ns_max)
-        USE island_params, ONLY: ohs=>ohs_i
-!     
-!     WRITTEN 03-18-13 BY S. HIRSHMAN AS PART OF THE ORNL SIESTA PROJECT (c)
-!     
-!     PURPOSE: Computes divergence of the current normalized to the total current on the half mesh
-!
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t
-!-----------------------------------------------
-        INTEGER, INTENT(IN)  :: ns_min, ns_max
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-        INTEGER              :: m, n, istat, n1, n2                   ,i,j,k  !  FIXME: Remove
-        REAL(dp), DIMENSION(:,:,:), ALLOCATABLE ::  temp1, temp2
-        REAL(dp)             :: tnorm, temp(2), ton, toff
-!-----------------------------------------------
-!
-!     COMPUTE divJ ON HALF MESH POINTS
-!
-        CALL second0(ton)
+      IMPLICIT NONE
 
-        CALL ASSERT(lcurr_init,'MUST CALL init_state(.TRUE.) BEFORE divJ_par')
+!  Declare Arguments
+      INTEGER, INTENT(in)                     :: ns_min
+      INTEGER, INTENT(in)                     :: ns_max
 
-        nsmin=ns_min; nsmax = ns_max
+!  Local variables
+      INTEGER                                 :: m
+      INTEGER                                 :: n
+      INTEGER                                 :: istat
+      INTEGER                                 :: n1
+      INTEGER                                 :: n2
+      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE :: temp1
+      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE :: temp2
+      REAL(dp)                                :: tnorm
+      REAL(dp), DIMENSION(2)                  :: temp
+      REAL(dp)                                :: ton
+      REAL(dp)                                :: toff
 
-        IF (ALLOCATED(divjmnsh)) DEALLOCATE(divjmnsh)
-        IF (ALLOCATED(divjmnch)) DEALLOCATE(divjmnch)
-        ALLOCATE(divjmnsh(0:mpol,-ntor:ntor,nsmin:nsmax),               &
-                 divjmnch(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat) 
-        CALL ASSERT(istat.EQ.0,'Allocation failed in DIVJ')
-        divjmnsh = 0; divjmnch = 0
+!  Start of executable code.
+      CALL second0(ton)
 
-!
+      CALL ASSERT(lcurr_init,'MUST CALL init_state(.TRUE.) BEFORE divJ_par')
+
+      nsmin = ns_min
+      nsmax = ns_max
+
+      IF (ALLOCATED(divjmnsh)) THEN
+         DEALLOCATE(divjmnsh)
+      END IF
+      IF (ALLOCATED(divjmnch)) THEN
+         DEALLOCATE(divjmnch)
+      END IF
+      ALLOCATE(divjmnsh(0:mpol,-ntor:ntor,nsmin:nsmax),                        &
+               divjmnch(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
+      CALL assert_eq(istat, 0, 'Allocation failed in DIVJ')
+      divjmnsh = 0
+      divjmnch = 0
+
 !  Compute divergence of J. It is a SINE parity quantity.
-!
-!  FIXME: REMOVE
-!DO k = LBOUND(ksupumncf,3), UBOUND(ksupumncf,3)
-!DO j = LBOUND(ksupumncf,2), UBOUND(ksupumncf,2)
-!DO i = LBOUND(ksupumncf,1), UBOUND(ksupumncf,1)
-!WRITE (*,*) i,j,k,ksupsmnsf(i,j,k),ksupumncf(i,j,k),ksupvmncf(i,j,k)
-!END DO
-!END DO
-!END DO
-!PAUSE
-        n1 = MAX(3, nsmin); n2 = MIN(ns-1, nsmax)
-        DO m = 0, mpol
-           DO n = -ntor,ntor
-             divjmnsh(m,n,n1:n2) =                                      &
-               -m*(ksupumncf(m,n,n1:n2)+ksupumncf(m,n,n1-1:n2-1))/2     &
-           -n*nfp*(ksupvmncf(m,n,n1:n2)+ksupvmncf(m,n,n1-1:n2-1))/2     &
-           + ohs *(ksupsmnsf(m,n,n1:n2)-ksupsmnsf(m,n,n1-1:n2-1))
-             IF (lasym) THEN
-             divjmnch(m,n,n1:n2) =                                      &
-                m*(ksupumnsf(m,n,n1:n2)+ksupumnsf(m,n,n1-1:n2-1))/2     &
-           +n*nfp*(ksupvmnsf(m,n,n1:n2)+ksupvmnsf(m,n,n1-1:n2-1))/2     &
-           + ohs *(ksupsmncf(m,n,n1:n2)-ksupsmncf(m,n,n1-1:n2-1))
-             END IF
-           END DO
-        END DO
+      n1 = MAX(3, nsmin)
+      n2 = MIN(ns-1, nsmax)
+      DO m = 0, mpol
+         DO n = -ntor,ntor
+            divjmnsh(m,n,n1:n2) =                                              &
+                    -m*(ksupumncf(m,n,n1:n2) + ksupumncf(m,n,n1-1:n2-1))/2     &
+               - n*nfp*(ksupvmncf(m,n,n1:n2) + ksupvmncf(m,n,n1-1:n2-1))/2     &
+               +   ohs*(ksupsmnsf(m,n,n1:n2) - ksupsmnsf(m,n,n1-1:n2-1))
+            IF (lasym) THEN
+                divjmnch(m,n,n1:n2) =                                          &
+                         m*(ksupumnsf(m,n,n1:n2) + ksupumnsf(m,n,n1-1:n2-1))/2 &
+                   + n*nfp*(ksupvmnsf(m,n,n1:n2) + ksupvmnsf(m,n,n1-1:n2-1))/2 &
+                   +   ohs*(ksupsmncf(m,n,n1:n2) - ksupsmncf(m,n,n1-1:n2-1))
+            END IF
+         END DO
+      END DO
 !
 !    Compute covariant components of current (times jacobian). Used for normalization. 
 !  
-        nsmin=MAX(1,startglobrow-1); nsmax=MIN(endglobrow+1,ns)
-        ALLOCATE(temp1(ntheta,nzeta,nsmin:nsmax),                       &
-                 temp2(ntheta,nzeta,nsmin:nsmax), stat=istat)                     
-        CALL ASSERT(istat.EQ.0,'Allocation failed in DIVJ')
-        temp1 = 0; temp2 = 0
+      nsmin = MAX(1, startglobrow - 1)
+      nsmax = MIN(endglobrow + 1, ns)
+      ALLOCATE(temp1(ntheta,nzeta,nsmin:nsmax),                                &
+               temp2(ntheta,nzeta,nsmin:nsmax), stat=istat)
+      CALL assert_eq(istat, 0, 'Allocation failed in DIVJ')
+      temp1 = 0
+      temp2 = 0
 
-        temp1 = ksupsijf0(:,:,nsmin:nsmax)*ksubsijf(:,:,nsmin:nsmax)    &
-              + ksupuijf0(:,:,nsmin:nsmax)*ksubuijf(:,:,nsmin:nsmax)    & ! Norm: |J|^2
-              + ksupvijf0(:,:,nsmin:nsmax)*ksubvijf(:,:,nsmin:nsmax)
+!  Norm: |J|^2
+      temp1 = ksupsijf0(:,:,nsmin:nsmax)*ksubsijf(:,:,nsmin:nsmax)             &
+            + ksupuijf0(:,:,nsmin:nsmax)*ksubuijf(:,:,nsmin:nsmax)             &
+            + ksupvijf0(:,:,nsmin:nsmax)*ksubvijf(:,:,nsmin:nsmax)
 
-        CALL to_half_mesh(temp1, temp2)
+      CALL to_half_mesh(temp1, temp2)
 
-        temp2 = temp2/jacobh(:,:,nsmin:nsmax)**2
+      temp2 = temp2/jacobh(:,:,nsmin:nsmax)*jacobh(:,:,nsmin:nsmax)
 
-        nsmin=MAX(1,startglobrow); nsmax=MIN(endglobrow,ns)
-        tnorm = SUM(temp2(:,:,nsmin:nsmax))
+      nsmin = MAX(1, startglobrow)
+      nsmax = MIN(endglobrow, ns)
+      tnorm = SUM(temp2(:,:,nsmin:nsmax))
 
-        DEALLOCATE(temp1, temp2, stat=istat)
+      DEALLOCATE(temp1, temp2, stat=istat)
 
-!  FIXME: REMOVE
-!DO k = LBOUND(divjmnsh,3), UBOUND(divjmnch,3)
-!DO j = LBOUND(divjmnsh,2), UBOUND(divjmnch,2)
-!DO i = LBOUND(divjmnsh,1), UBOUND(divjmnch,1)
-!WRITE (*,*) i,j,k,divjmnsh(i,j,k),divjmnsh(i,j,k)
-!END DO
-!END DO
-!END DO
-!PAUSE
-        divj_rms = SUM(divjmnsh(:,:,n1:n2)**2                           &
-                 +     divjmnch(:,:,n1:n2)**2)
+      divj_rms = SUM(divjmnsh(:,:,n1:n2)**2                                    &
+               +     divjmnch(:,:,n1:n2)**2)
 #if defined(MPI_OPT)
-        temp(1) = divj_rms; temp(2) = tnorm
-        CALL MPI_ALLREDUCE(MPI_IN_PLACE,temp,2,MPI_REAL8, MPI_SUM,             &
-                           SIESTA_COMM,MPI_ERR)
-        divj_rms=temp(1);   tnorm = temp(2)
+      temp(1) = divj_rms
+      temp(2) = tnorm
+      CALL MPI_ALLREDUCE(MPI_IN_PLACE,temp,2,MPI_REAL8, MPI_SUM,               &
+                         SIESTA_COMM,MPI_ERR)
+      divj_rms = temp(1)
+      tnorm = temp(2)
 #endif   
- !   Compute rms of divergence of J
- !     
-        IF (tnorm .GE. zero) THEN
-           divjmnsh = divjmnsh/SQRT(tnorm)
-           divjmnch = divjmnch/SQRT(tnorm)
-!  FIXME: REMOVE
-!WRITE (*,*) divj_rms, tnorm
-!PAUSE
-           divj_rms = SQRT(divj_rms/tnorm)
-        END IF
+!  Compute rms of divergence of J
+      IF (tnorm .ge. zero) THEN
+         divjmnsh = divjmnsh/SQRT(tnorm)
+         divjmnch = divjmnch/SQRT(tnorm)
+         divj_rms = SQRT(divj_rms/tnorm)
+      END IF
 
-!        IF (iam .EQ. 0) WRITE(3100,*)'DIVJ_PAR: tnorm=',SQRT(tnorm),' divj_rms: ',divj_rms
+      CALL second0(toff)
+      time_divj = time_divj + (toff - ton)
 
-        CALL second0(toff)
-        time_divj = time_divj+(toff-ton)
+      END SUBROUTINE
 
-        END SUBROUTINE divj
-
+!-------------------------------------------------------------------------------
+!>  @brief Deallocate diagnostic buffers.
+!-------------------------------------------------------------------------------
       SUBROUTINE dealloc_diagnostics
 
       IF (ALLOCATED(divbmnsf)) THEN

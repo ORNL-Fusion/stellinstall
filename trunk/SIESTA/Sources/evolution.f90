@@ -211,7 +211,7 @@
             END IF
             l_iterate = .false.
 !         ELSE IF (nprecon .gt. 3 .and. fsq_ratio .gt 1.E5_dp) THEN
-!  FIXME: Disabled for not so we can test convergence.
+!  FIXME: Disabled for now so we can test convergence.
 !            IF (iam .eq. 0 .and. lverbose) THEN
 !               WRITE(*,1001), fsq_ratio1
 !            END IF

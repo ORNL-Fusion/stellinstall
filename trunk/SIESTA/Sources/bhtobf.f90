@@ -63,21 +63,21 @@
 
       CALL to_full_mesh(bsupsijh, bsupsijf)
       IF (nsmin .EQ. 1) THEN
-         bsupsijf(:,:,1) = bsupsijh(:,:,1) !  FIXME: This doesnt seem right.
+         bsupsijf(:,:,1) = bsupsijh(:,:,1)
       END IF
       bsupsijf = bsupsijf/jacobf(:,:,nsmin:nsmax)
       bsupsijh = bsupsijh/jacobh(:,:,nsmin:nsmax)
 
       CALL to_full_mesh(bsupuijh, bsupuijf)
       IF (nsmin .EQ. 1) THEN
-         bsupuijf(:,:,1) = bsupuijh(:,:,1) !  FIXME: This doesnt seem right.
+         bsupuijf(:,:,1) = bsupuijh(:,:,1)
       END IF
       bsupuijf = bsupuijf/jacobf(:,:,nsmin:nsmax)
       bsupuijh = bsupuijh/jacobh(:,:,nsmin:nsmax)
 
       CALL to_full_mesh(bsupvijh, bsupvijf)
       IF (nsmin .EQ. 1) THEN
-         bsupvijf(:,:,1) = bsupvijh(:,:,1) !  FIXME: This doesnt seem right.
+         bsupvijf(:,:,1) = bsupvijh(:,:,1)
       END IF
       bsupvijf = bsupvijf/jacobf(:,:,nsmin:nsmax)
       bsupvijh = bsupvijh/jacobh(:,:,nsmin:nsmax)
@@ -85,7 +85,7 @@
       CALL assert_eq(SIZE(bsupsijh,3), SIZE(pijh,3), 'bhtobf pijh SIZE WRONG')
       CALL to_full_mesh(pijh, pijf)
       IF (nsmin .EQ. 1) THEN
-         pijf(:,:,1) = pijh(:,:,1) !  FIXME: This doesn't seem right.
+         pijf(:,:,1) = pijh(:,:,1)
       END IF
       pijf = pijf/jacobf(:,:,nsmin:nsmax)
       pijh = pijh/jacobh(:,:,nsmin:nsmax)

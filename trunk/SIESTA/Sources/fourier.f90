@@ -304,8 +304,6 @@
       TYPE (fourier_class), INTENT(inout) :: this
 
 !  Start of executable code.
-      WRITE (*,*) 'Deallocate'
-
       IF (ASSOCIATED(this%orthonorm)) THEN
          DEALLOCATE(this%orthonorm)
          this%orthonorm => null()
@@ -483,7 +481,7 @@
 !  Transform from up to u
       dupdu = 1 + dupdu
 
-!  Interpolate to the full grid. FIXME: Should use to_full_mesh here.
+!  Interpolate to the full grid.
       lambda(:,:,1) = lambda(:,:,2)
       dupdu(:,:,1) = dupdu(:,:,2)
       DO js = 2, ns - 1
@@ -601,15 +599,13 @@ SUBROUTINE fourier_tomnsp_2d_u(this, xuv)
       INTEGER                               :: m
 
 !  Start of executable code.
-!WRITE (*,*) '-----------------------------------------------'  !  FIXME: Remove
+
 !  First, add over poloidal collocation angles. Note use of cosmui/sinmui
 !  include normalization factors.
       DO j = 1, SIZE(xuv, 2) !  nzeta
          DO m = m0, UBOUND(this%cosmu, 2) !  mpol
             this%workmj1(m,j) = DOT_PRODUCT(xuv(:,j), this%cosmui(:,m))
             this%workmj2(m,j) = DOT_PRODUCT(xuv(:,j), this%sinmui(:,m))
-!  FIXME: Remove
-!WRITE (*,*) m,j,this%workmj1(m,j),this%workmj2(m,j)
          END DO
       END DO
 
@@ -730,7 +726,6 @@ SUBROUTINE fourier_tomnsp_2d_v(this, xmn, parity)
       INTEGER                                 :: noff
 
 !  Start of executable code.
-!WRITE (*,*) '-----------------------------------------------'  !  FIXME: Remove
       moff = LBOUND(xmn,1)
       noff = LBOUND(xmn,2) + UBOUND(this%cosnv,2)
 
@@ -750,8 +745,6 @@ SUBROUTINE fourier_tomnsp_2d_v(this, xmn, parity)
                      xmn(m + moff,-n + noff) = xmn(m + moff,-n + noff)         &
                                              + workcos + worksin
                   END IF
-!WRITE (*,*) m,j,n,this%workmj1(m,j),this%workmj2(m,j),this%cosnv(j,n),this%sinnv(j,n),&
-!            xmn(m + moff,n + noff),xmn(m + moff,-n + noff)!  FIXME: Remove
                ELSE
                   workcos = this%workmj2(m,j)*this%cosnv(j,n)
                   worksin = this%workmj1(m,j)*this%sinnv(j,n)
@@ -826,8 +819,6 @@ SUBROUTINE fourier_tomnsp_2d_v(this, xmn, parity)
 !>  @brief Fourier transform a 2D quantity to real space.
 !>
 !>  Works by reshaping to a 3D array then passing to the normal 3D version.
-!>  FIXME: Do the opposit. The 3D function just transforms 2D slices at a time
-!>  Have the 3D function call the 2D function for each slice.
 !>
 !>  @param[in]    this   A @ref fourier_class instance.
 !>  @param[in]    xmn    Fourier space quantity.
