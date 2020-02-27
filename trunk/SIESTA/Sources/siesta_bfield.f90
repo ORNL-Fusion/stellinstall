@@ -98,13 +98,6 @@
 !  Verify boundary condition: esubu,v(s=1) = 0 (tangential E vanishes at bdy =>
 !  dB^s = 0). FIXME: Does this still hold in free boundary?
       IF (nsmax .eq. ns) THEN
-DO k = LBOUND(esubuijf, 3), LBOUND(esubuijf, 3)
-DO j = LBOUND(esubuijf, 2), LBOUND(esubuijf, 2)
-DO i = LBOUND(esubuijf, 1), LBOUND(esubuijf, 1)
-WRITE (*,*) i, j, k, esubuijf(i,j,k)
-END DO
-END DO
-END DO
          CALL assert(ALL(esubuijf(:,:,ns).EQ.zero),                           &
                      'esubuijf(ns) != 0 in UPDATE_BFIELD')
       END IF
