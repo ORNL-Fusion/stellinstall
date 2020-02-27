@@ -519,8 +519,7 @@
 !>  @param[out]   xmn    Real space quantity.
 !>  @param[in]    parity Fourier parity flag.
 !-------------------------------------------------------------------------------
-!      PURE
-SUBROUTINE fourier_tomnsp_2d(this, xuv, xmn, parity)
+      PURE SUBROUTINE fourier_tomnsp_2d(this, xuv, xmn, parity)
 
       IMPLICIT NONE
 
@@ -552,8 +551,7 @@ SUBROUTINE fourier_tomnsp_2d(this, xuv, xmn, parity)
 !>  @param[in]    parity Fourier parity flag.
 !>  @param[in]    asym   Add stellarator asymmetric terms.
 !-------------------------------------------------------------------------------
-!      PURE
-SUBROUTINE fourier_tomnsp_2d_pest(this, xuv, xmn, lambda, dupdu,    &
+      PURE SUBROUTINE fourier_tomnsp_2d_pest(this, xuv, xmn, lambda, dupdu,    &
                                              parity, asym)
 
       IMPLICIT NONE
@@ -585,8 +583,7 @@ SUBROUTINE fourier_tomnsp_2d_pest(this, xuv, xmn, lambda, dupdu,    &
 !>  @param[inout] this A @ref fourier_class instance.
 !>  @param[in]    xuv  Fourier space quantity.
 !-------------------------------------------------------------------------------
-!      PURE
-SUBROUTINE fourier_tomnsp_2d_u(this, xuv)
+      PURE SUBROUTINE fourier_tomnsp_2d_u(this, xuv)
 
       IMPLICIT NONE
 
@@ -706,8 +703,7 @@ SUBROUTINE fourier_tomnsp_2d_u(this, xuv)
 !>  @param[out] xmn    Real space quantity.
 !>  @param[in]  parity Fourier parity flag.
 !-------------------------------------------------------------------------------
-     ! PURE
-SUBROUTINE fourier_tomnsp_2d_v(this, xmn, parity)
+      PURE SUBROUTINE fourier_tomnsp_2d_v(this, xmn, parity)
 
       IMPLICIT NONE
 
@@ -826,8 +822,7 @@ SUBROUTINE fourier_tomnsp_2d_v(this, xmn, parity)
 !>  @param[in]    dflag  Derivative and sum control flags.
 !>  @param[in]    parity Fourier parity flag.
 !-------------------------------------------------------------------------------
-!      PURE
-      SUBROUTINE fourier_toijsp_2d(this, xmn, xuv, dflag, parity)
+      PURE SUBROUTINE fourier_toijsp_2d(this, xmn, xuv, dflag, parity)
 
       IMPLICIT NONE
 

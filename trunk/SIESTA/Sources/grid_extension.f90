@@ -38,289 +38,297 @@
 !  grid extension module variables.
 !*******************************************************************************
 !>
-  INTEGER :: interp_type
-  INTEGER :: nse
+      INTEGER :: interp_type
+      INTEGER :: nse
 
-  REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: ri, zi
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: ri, zi
 
-  REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: r1_vmec, z1_vmec
-  REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: ru_vmec, zu_vmec
-  REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: rv_vmec, zv_vmec
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: r1_vmec, z1_vmec
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: ru_vmec, zu_vmec
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: rv_vmec, zv_vmec
   
-  REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: r1s_vmec, r1ss_vmec
-  REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: z1s_vmec, z1ss_vmec
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: r1s_vmec, r1ss_vmec
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: z1s_vmec, z1ss_vmec
   
-  REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: r1su_vmec, z1su_vmec
-  REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: r1sv_vmec, z1sv_vmec
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: r1su_vmec, z1su_vmec
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: r1sv_vmec, z1sv_vmec
 
-  REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: rmnc_v, zmns_v
-  REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: rmns_v, zmnc_v
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: rmnc_v, zmns_v
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: rmns_v, zmnc_v
 
-  REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: r_ext, z_ext
-  REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: ru_ext, zu_ext
-  REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: rv_ext, zv_ext
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: r_ext, z_ext
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: ru_ext, zu_ext
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: rv_ext, zv_ext
 
-  REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: r1_ves, z1_ves
-  REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: ru_ves, zu_ves
-  REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: rv_ves, zv_ves
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: r1_ves, z1_ves
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: ru_ves, zu_ves
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: rv_ves, zv_ves
 
-  REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: r_full, z_full
-  REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: ru_full, zu_full
-  REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: rv_full, zv_full
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: r_full, z_full
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: ru_full, zu_full
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: rv_full, zv_full
 
-  REAL(dp), DIMENSION(:,:,:), ALLOCATABLE  :: sqrtg_full
+      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE  :: sqrtg_full
 
-  REAL(dp)            :: s_edge, ming, maxg
+      REAL(dp)            :: s_edge, ming, maxg
 
-CONTAINS
+      CONTAINS
 
-  SUBROUTINE grid_extender(wout_file, itype, istat)
-    USE fourier, ONLY: f_cos, f_sin, f_none, f_sum, f_du, f_dv
-    USE v3_utilities, ONLY: assert
-    USE vmec_info, ONLY: rmnc_i, rmns_i, zmns_i, zmnc_i,                &
-                         jcurrumnc, jcurrvmnc, jcurrumns, jcurrvmns
-    USE descriptor_mod, ONLY: SIESTA_COMM
-    USE siesta_namelist, ONLY: nsin_ext
-    USE shared_data, ONLY: lverbose
-    USE island_params, ONLY: fourier_context
+!*******************************************************************************
+!  UTILITY SUBROUTINES
+!*******************************************************************************
+      SUBROUTINE grid_extender(wout_file, itype, istat)
+      USE fourier, ONLY: f_cos, f_sin, f_none, f_sum, f_du, f_dv
+      USE v3_utilities, ONLY: assert
+      USE vmec_info, ONLY: rmnc_i, rmns_i, zmns_i, zmnc_i,                     &
+                           jcurrumnc, jcurrvmnc, jcurrumns, jcurrvmns
+      USE descriptor_mod, ONLY: SIESTA_COMM
+      USE siesta_namelist, ONLY: nsin_ext
+      USE shared_data, ONLY: lverbose
+      USE island_params, ONLY: fourier_context
 
-    IMPLICIT NONE
+      IMPLICIT NONE
 
-    ! Dummy variables
-    CHARACTER(*), INTENT(IN) :: wout_file,  itype
-    INTEGER, INTENT(OUT) :: istat
+!  Declare Arguments
+      CHARACTER(*), INTENT(in) :: wout_file
+      CHARACTER(*), INTENT(in) :: itype
+      INTEGER, INTENT(out)     :: istat
 
-    CHARACTER(LEN=10)   :: chfit
-    CHARACTER(LEN=100)  :: device
+      CHARACTER(LEN=10)   :: chfit
+      CHARACTER(LEN=100)  :: device
 
-    INTEGER :: j, m, n, u, v, i, k, js, js1, nsp1
-    REAL(dp) :: rho, vol0, vol1, vols, rho1, rho2, rho3, vp1, s_ext, delv
-    REAL(dp), DIMENSION(:,:), ALLOCATABLE  :: r12, rs12, zs12, ru12, zu12
-    REAL(dp), DIMENSION(:), ALLOCATABLE  :: vp 
-    REAL(dp), DIMENSION(:,:,:), ALLOCATABLE  :: tmp, tmp2
-    REAL(dp), DIMENSION(:), ALLOCATABLE  :: tmp1 
+      INTEGER :: j, m, n, u, v, i, k, js, js1, nsp1
+      REAL(dp) :: rho, vol0, vol1, vols, rho1, rho2, rho3, vp1, s_ext, delv
+      REAL(dp), DIMENSION(:,:), ALLOCATABLE  :: r12, rs12, zs12, ru12, zu12
+      REAL(dp), DIMENSION(:), ALLOCATABLE  :: vp
+      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE  :: tmp, tmp2
+      REAL(dp), DIMENSION(:), ALLOCATABLE  :: tmp1
 
-    CLASS (fourier_class), POINTER :: four => null()
+      CLASS (fourier_class), POINTER :: four => null()
 
-    IF (.NOT.l_vessel) RETURN
+      IF (.NOT.l_vessel) RETURN  ! FIXME: This check should be outsize the subroutine
 
-    CALL init_extender
+      CALL init_extender
 
-    i = INDEX(wout_file, '.', BACK=.TRUE.)
-    j = INDEX(wout_file,'_')
-    IF (j .LT. i) THEN
-      device = wout_file(j+1:i-1)
-    ELSE
-      device = wout_file(1:i)
-    END IF
+      i = INDEX(wout_file, '.', BACK=.TRUE.)
+      j = INDEX(wout_file,'_')
+      IF (j .LT. i) THEN
+         device = wout_file(j+1:i-1)
+      ELSE
+         device = wout_file(1:i)
+      END IF
 
-    !chfit = 'quad'
-    !chfit = TRIM(itype)
-    IF (INDEX(itype,'lin').EQ.1 .OR. INDEX(itype,'LIN').EQ.1) THEN
-      interp_type = LIN; chfit = "linear"
-    ELSE IF (INDEX(itype,'quad').EQ.1 .OR. INDEX(itype,'QUAD').EQ.1) THEN
-      interp_type = QUAD; chfit = "quadratic"
-    ELSE IF (INDEX(itype,'cub').EQ.1 .OR. INDEX(itype,'CUB').EQ.1) THEN
-      interp_type = CUB; chfit = "cubic"
-    ELSE
-      CALL ASSERT(.FALSE., 'Unknown interpolation <TYPE> specified')
-    END IF
+!  chfit = 'quad'
+!  chfit = TRIM(itype)
+      IF (INDEX(itype,'lin').EQ.1 .OR. INDEX(itype,'LIN').EQ.1) THEN
+         interp_type = LIN; chfit = "linear"
+      ELSE IF (INDEX(itype,'quad').EQ.1 .OR. INDEX(itype,'QUAD').EQ.1) THEN
+         interp_type = QUAD; chfit = "quadratic"
+      ELSE IF (INDEX(itype,'cub').EQ.1 .OR. INDEX(itype,'CUB').EQ.1) THEN
+         interp_type = CUB; chfit = "cubic"
+      ELSE
+         CALL ASSERT(.FALSE., 'Unknown interpolation <TYPE> specified')
+      END IF
 
-    ALLOCATE(ri(ntheta,nzeta),zi(ntheta,nzeta))
-    ALLOCATE(r1_ves(ntheta,nzeta),z1_ves(ntheta,nzeta),  &
-             ru_ves(ntheta,nzeta), zu_ves(ntheta,nzeta), &
-             rv_ves(ntheta,nzeta), zv_ves(ntheta,nzeta))
+      ALLOCATE(ri(ntheta,nzeta), zi(ntheta,nzeta))
+      ALLOCATE(r1_ves(ntheta,nzeta), z1_ves(ntheta,nzeta),                     &
+               ru_ves(ntheta,nzeta), zu_ves(ntheta,nzeta),                     &
+               rv_ves(ntheta,nzeta), zv_ves(ntheta,nzeta))
 
 !  FIXME: The vessel file could have a different periodicity than the equilbirum.
-    four => fourier_class(mpol_v, ntor_v, ntheta, nzeta, nfp, .true.)
+      four => fourier_class(mpol_v, ntor_v, ntheta, nzeta, nfp, lasym)
 
-    !Set internal normalization
-    rmnc_v = rmnc_v/four%orthonorm
-    zmns_v = zmns_v/four%orthonorm
+!  Set internal normalization
+      rmnc_v = rmnc_v/four%orthonorm
+      zmns_v = zmns_v/four%orthonorm
 
 !  FIXME: What about non stellarator symmetric vessels?
-    CALL four%toijsp(rmnc_v, r1_ves, f_none, f_cos)
-    CALL four%toijsp(zmns_v, z1_ves, f_none, f_sin)
+      CALL four%toijsp(rmnc_v, r1_ves, f_none, f_cos)
+      CALL four%toijsp(zmns_v, z1_ves, f_none, f_sin)
 
-    CALL four%toijsp(rmnc_v, ru_ves, f_du, f_cos)
-    CALL four%toijsp(zmns_v, zu_ves, f_du, f_sin)
+      CALL four%toijsp(rmnc_v, ru_ves, f_du, f_cos)
+      CALL four%toijsp(zmns_v, zu_ves, f_du, f_sin)
 
-    CALL four%toijsp(rmnc_v, rv_ves, f_dv, f_cos)
-    CALL four%toijsp(zmns_v, zv_ves, f_dv, f_sin)
+      CALL four%toijsp(rmnc_v, rv_ves, f_dv, f_cos)
+      CALL four%toijsp(zmns_v, zv_ves, f_dv, f_sin)
 
-    DEALLOCATE(four)
+      DEALLOCATE(four)
 
-    !Compute extended "s" coordinate for s>1, assuming Vp(s) = Vp(s=1)*s
-    !where Vp(s=1) is obtained from extrapolating VMEC values. Results is
-    !      V(s) = Vp*(s^2-1)/2 + V0 => s_edge = SQRT(2(V1-V0)/Vp + 1)
-    !
-    vol0 = Get_Volume(zero)    !rho = 0: s=1 vmec
-    vol1 = Get_Volume(one)     !rho = 1: vessel
+!  Compute extended "s" coordinate for s>1, assuming Vp(s) = Vp(s=1)*s
+!  where Vp(s=1) is obtained from extrapolating VMEC values. Results is
+!    V(s) = Vp*(s^2-1)/2 + V0 => s_edge = SQRT(2(V1-V0)/Vp + 1)
+      vol0 = Get_Volume(zero)    !rho = 0: s=1 vmec
+      vol1 = Get_Volume(one)     !rho = 1: vessel
 
-    CALL GetVP1(vp1)
-    s_edge = SQRT(1+2*(vol1-vol0)/vp1)
+      vp1 = GetVP1()
+      s_edge = SQRT(1 + 2*(vol1 - vol0)/vp1)
 
-    !NOTE: at js=nse, s(js) == (js-1)*hs = s_edge
-    nse = NINT(s_edge*ohs) + 1
-!    print *,"SKS> ns: ", ns, " nse: ",nse, "s_edge: ",s_edge, "vp1: ", vp1
+!  NOTE: at js=nse, s(js) == (js-1)*hs = s_edge
+      nse = NINT(s_edge*ohs) + 1
 
-    nsv = nse - ns
-    s_edge = (nsv - 1)*hs_i + 1
+      nsv = nse - ns
+      s_edge = (nsv - 1)*hs_i + 1
 
-    !rounding discrepancy in volume due to integer nse 
-    delv = vol1 - (vol0 + p5*vp1*(s_edge**2-1))
-    delv = delv/(s_edge-1)**2
+!  Rounding discrepancy in volume due to integer nse
+      delv = vol1 - (vol0 + p5*vp1*(s_edge*s_edge - 1))
+      delv = delv/(s_edge-1)**2
 
-!    print '(a,3i4,1p,3E12.4)'," --- 1]: ", nse, nsv, ns,               &
-!      s_edge, vp1/(2*vol0), delv/vol1
+      ALLOCATE(r_ext (ntheta,nzeta,2:nsv), z_ext (ntheta,nzeta,2:nsv),         &
+               ru_ext(ntheta,nzeta,2:nsv), zu_ext(ntheta,nzeta,2:nsv),         &
+               rv_ext(ntheta,nzeta,2:nsv), zv_ext(ntheta,nzeta,2:nsv),         &
+               stat=istat)
 
-    ALLOCATE(r_ext (ntheta,nzeta,2:nsv), z_ext (ntheta,nzeta,2:nsv),    &
-             ru_ext(ntheta,nzeta,2:nsv), zu_ext(ntheta,nzeta,2:nsv),    &
-             rv_ext(ntheta,nzeta,2:nsv), zv_ext(ntheta,nzeta,2:nsv),    &
-             stat=istat)
+      DO j = 2, nsv
 
-    DO j = 2, nsv
-
-      s_ext = 1 + (j-1)*hs_i    !at j=nsv, s_ext = s_edge
+         s_ext = 1 + (j-1)*hs_i    !at j=nsv, s_ext = s_edge
 
       !V(s) = Vp*(s^2-1)/2 + V0
-      vols = vol0 + p5*vp1*(s_ext**2-1)   !matches vp exactly at s=1
-      vols = vols + delv*(s_ext-1)**2     !matches vol1 exactly at s=s_edge
-      vols = MIN(vols, vol1)
-      CALL remap_radial(rho, vols)
+         vols = vol0 + p5*vp1*(s_ext**2-1)   !matches vp exactly at s=1
+         vols = vols + delv*(s_ext-1)**2     !matches vol1 exactly at s=s_edge
+         vols = MIN(vols, vol1)
+         CALL remap_radial(rho, vols)
 
-      rho1 = 1 - rho
-      IF (interp_type.EQ.LIN) THEN
-        r_ext(:,:,j) = rho1*r1_vmec + rho*r1_ves
-        z_ext(:,:,j) = rho1*z1_vmec + rho*z1_ves
-        ru_ext(:,:,j) = rho1*ru_vmec + rho*ru_ves 
-        zu_ext(:,:,j) = rho1*zu_vmec + rho*zu_ves 
-        rv_ext(:,:,j) = rho1*rv_vmec + rho*rv_ves 
-        zv_ext(:,:,j) = rho1*zv_vmec + rho*zv_ves 
-      ELSE
-        rho2 = rho*rho
-        IF (interp_type .EQ. QUAD) THEN
-          !QUADRATIC (R' match at rho = 0)
-          r_ext(:,:,j) = p5*r1s_vmec*(1 - rho2 - rho1*rho1) + &
-            r1_vmec*(1-rho2) + r1_ves*rho2
-          z_ext(:,:,j) = p5*z1s_vmec*(1 - rho2 - rho1*rho1) + &
-            z1_vmec*(1-rho2) + z1_ves*rho2
-          ru_ext(:,:,j) = p5*r1su_vmec*(1 - rho2 - rho1*rho1) + &
-            ru_vmec*(1-rho2) + ru_ves*rho2
-          zu_ext(:,:,j) = p5*z1su_vmec*(1 - rho2 - rho1*rho1) + &
-            zu_vmec*(1-rho2) + zu_ves*rho2
-          rv_ext(:,:,j) = p5*r1sv_vmec*(1 - rho2 - rho1*rho1) + &
-            rv_vmec*(1-rho2) + rv_ves*rho2
-          zv_ext(:,:,j) = p5*z1sv_vmec*(1 - rho2 - rho1*rho1) + &
-            zv_vmec*(1-rho2) + zv_ves*rho2
-        ELSE IF (interp_type .EQ. CUB) THEN
-          rho3 = rho*rho2
-          CALL ASSERT(.FALSE., 'Unknown interpolation <TYPE> specified')
-        END IF
-      END IF
-    END DO
+         rho1 = 1 - rho
+         IF (interp_type.EQ.LIN) THEN
+            r_ext(:,:,j) = rho1*r1_vmec + rho*r1_ves
+            z_ext(:,:,j) = rho1*z1_vmec + rho*z1_ves
+            ru_ext(:,:,j) = rho1*ru_vmec + rho*ru_ves
+            zu_ext(:,:,j) = rho1*zu_vmec + rho*zu_ves
+            rv_ext(:,:,j) = rho1*rv_vmec + rho*rv_ves
+            zv_ext(:,:,j) = rho1*zv_vmec + rho*zv_ves
+         ELSE
+            rho2 = rho*rho
+            IF (interp_type .eq. QUAD) THEN
+!  QUADRATIC (R' match at rho = 0)
+               r_ext(:,:,j) = p5*r1s_vmec*(1 - rho2 - rho1*rho1)               &
+                            + r1_vmec*(1-rho2) + r1_ves*rho2
+               z_ext(:,:,j) = p5*z1s_vmec*(1 - rho2 - rho1*rho1)               &
+                            + z1_vmec*(1-rho2) + z1_ves*rho2
+               ru_ext(:,:,j) = p5*r1su_vmec*(1 - rho2 - rho1*rho1)             &
+                             + ru_vmec*(1-rho2) + ru_ves*rho2
+               zu_ext(:,:,j) = p5*z1su_vmec*(1 - rho2 - rho1*rho1)             &
+                             + zu_vmec*(1-rho2) + zu_ves*rho2
+               rv_ext(:,:,j) = p5*r1sv_vmec*(1 - rho2 - rho1*rho1)             &
+                             + rv_vmec*(1-rho2) + rv_ves*rho2
+               zv_ext(:,:,j) = p5*z1sv_vmec*(1 - rho2 - rho1*rho1)             &
+                             + zv_vmec*(1-rho2) + zv_ves*rho2
+            ELSE IF (interp_type .eq. CUB) THEN
+               rho3 = rho*rho2
+               CALL ASSERT(.FALSE., 'Unknown interpolation <TYPE> specified')
+            END IF
+         END IF
+      END DO
 
-    nse = nse-1 !Not to double count s=1 surface
-    ALLOCATE(r_full(ntheta,nzeta,nse), z_full(ntheta,nzeta,nse),               &
-             ru_full(ntheta,nzeta,nse), zu_full(ntheta,nzeta,nse),             &
-             rv_full(ntheta,nzeta,nse), zv_full(ntheta,nzeta,nse))
+      nse = nse-1 !Not to double count s=1 surface
+      ALLOCATE(r_full(ntheta,nzeta,nse), z_full(ntheta,nzeta,nse),             &
+               ru_full(ntheta,nzeta,nse), zu_full(ntheta,nzeta,nse),           &
+               rv_full(ntheta,nzeta,nse), zv_full(ntheta,nzeta,nse))
  
-    r_full (:,:,1:ns) = r1_i; r_full (:,:,ns+1:nse) = r_ext
-    z_full (:,:,1:ns) = z1_i; z_full (:,:,ns+1:nse) = z_ext
-    ru_full(:,:,1:ns) = ru_i; ru_full(:,:,ns+1:nse) = ru_ext
-    zu_full(:,:,1:ns) = zu_i; zu_full(:,:,ns+1:nse) = zu_ext
-    rv_full(:,:,1:ns) = rv_i; rv_full(:,:,ns+1:nse) = rv_ext
-    zv_full(:,:,1:ns) = zv_i; zv_full(:,:,ns+1:nse) = zv_ext
+      r_full (:,:,1:ns) = r1_i
+      r_full (:,:,ns + 1:nse) = r_ext
+      z_full (:,:,1:ns) = z1_i
+      z_full (:,:,ns + 1:nse) = z_ext
+      ru_full(:,:,1:ns) = ru_i
+      ru_full(:,:,ns + 1:nse) = ru_ext
+      zu_full(:,:,1:ns) = zu_i
+      zu_full(:,:,ns + 1:nse) = zu_ext
+      rv_full(:,:,1:ns) = rv_i
+      rv_full(:,:,ns + 1:nse) = rv_ext
+      zv_full(:,:,1:ns) = zv_i
+      zv_full(:,:,ns + 1:nse) = zv_ext
 
-    nse = MIN(ns + nsin_ext, nse)
+      nse = MIN(ns + nsin_ext, nse)
 
-    IF (lverbose .and. iam .eq. 0) THEN
-       WRITE (*,1000) nse, ns, nsin_ext
-    END IF
+      IF (lverbose .and. iam .eq. 0) THEN
+         WRITE (*,1000) nse, ns, nsin_ext
+      END IF
 1000  FORMAT('Using ',i4,' Total Surfaces.',/,                                 &
              'Number of VMEC surfaces ',i4,/,                                  &
              'Number of extended surfaces ',i4)
 
-    !REASSIGN THE NEW VALUE OF NS
-    nsp = ns
-    ns = nse
-    nsh = ns - 1
+!  Assign the new value of ns.
+! REASSIGN THE NEW VALUE OF NS
+      nsp = ns
+      ns = nse
+      nsh = ns - 1
 
-    IF (nsp .NE. ns) THEN
-       DEALLOCATE(r1_i);
-       DEALLOCATE(z1_i);
-       DEALLOCATE(ru_i);
-       DEALLOCATE(zu_i);
-       DEALLOCATE(rv_i);
-       DEALLOCATE(zv_i);
-       ALLOCATE(r1_i(ntheta,nzeta,ns), z1_i(ntheta,nzeta,ns),           &
-                ru_i(ntheta,nzeta,ns), zu_i(ntheta,nzeta,ns),           &
-                rv_i(ntheta,nzeta,ns), zv_i(ntheta,nzeta,ns))
-       r1_i=r_full(:,:,1:ns)
-       z1_i=z_full(:,:,1:ns)
-       ru_i=ru_full(:,:,1:ns)
-       zu_i=zu_full(:,:,1:ns)
-       rv_i=rv_full(:,:,1:ns)
-       zv_i=zv_full(:,:,1:ns)
-    END IF
+      IF (nsp .NE. ns) THEN
+         DEALLOCATE(r1_i)
+         DEALLOCATE(z1_i)
+         DEALLOCATE(ru_i)
+         DEALLOCATE(zu_i)
+         DEALLOCATE(rv_i)
+         DEALLOCATE(zv_i)
+         ALLOCATE(r1_i(ntheta,nzeta,ns), z1_i(ntheta,nzeta,ns),                &
+                  ru_i(ntheta,nzeta,ns), zu_i(ntheta,nzeta,ns),                &
+                  rv_i(ntheta,nzeta,ns), zv_i(ntheta,nzeta,ns))
+         r1_i = r_full(:,:,1:ns)
+         z1_i = z_full(:,:,1:ns)
+         ru_i = ru_full(:,:,1:ns)
+         zu_i = zu_full(:,:,1:ns)
+         rv_i = rv_full(:,:,1:ns)
+         zv_i = zv_full(:,:,1:ns)
+      END IF
 
-    DEALLOCATE(r_full,z_full)
-    DEALLOCATE(ru_full,zu_full)
-    DEALLOCATE(rv_full,zv_full)
-    
-    IF (nsp .NE. ns) THEN
-       nsp1 = nsp + 1
-       ALLOCATE(tmp(0:mpol,-ntor:ntor,ns), tmp2(0:mpol,-ntor:ntor, ns))
-       tmp(:,:,1:nsp) = rmnc_i; tmp2(:,:,1:nsp) = zmns_i
-       DEALLOCATE(rmnc_i, zmns_i)
-       ALLOCATE(rmnc_i(0:mpol,-ntor:ntor,ns),                           &
-                zmns_i(0:mpol,-ntor:ntor,ns), stat=istat)
-       rmnc_i(:,:,1:nsp) = tmp(:,:,1:nsp); zmns_i(:,:,1:nsp) = tmp2(:,:,1:nsp)
-       CALL fourier_context%tomnsp(r1_i(:,:,nsp1:ns), rmnc_i(:,:,nsp1:ns),     &
-                                   f_cos)
-       CALL fourier_context%tomnsp(z1_i(:,:,nsp1:ns), zmns_i(:,:,nsp1:ns),     &
-                                   f_sin)
-       DO js = nsp1, ns
-          rmnc_i(:,:,js) = rmnc_i(:,:,js)                                      &
-                         / fourier_context%orthonorm(0:mpol,-ntor:ntor)
-          zmns_i(:,:,js) = zmns_i(:,:,js)                                      &
-                         / fourier_context%orthonorm(0:mpol,-ntor:ntor)
-       END DO
+      DEALLOCATE(r_full, z_full)
+      DEALLOCATE(ru_full, zu_full)
+      DEALLOCATE(rv_full, zv_full)
+
+      IF (nsp .NE. ns) THEN
+         nsp1 = nsp + 1
+         ALLOCATE(tmp(0:mpol,-ntor:ntor,ns), tmp2(0:mpol,-ntor:ntor, ns))
+         tmp(:,:,1:nsp) = rmnc_i
+         tmp2(:,:,1:nsp) = zmns_i
+         DEALLOCATE(rmnc_i, zmns_i)
+         ALLOCATE(rmnc_i(0:mpol,-ntor:ntor,ns),                                &
+                  zmns_i(0:mpol,-ntor:ntor,ns), stat=istat)
+         rmnc_i(:,:,1:nsp) = tmp(:,:,1:nsp)
+         zmns_i(:,:,1:nsp) = tmp2(:,:,1:nsp)
+         CALL fourier_context%tomnsp(r1_i(:,:,nsp1:ns), rmnc_i(:,:,nsp1:ns),   &
+                                     f_cos)
+         CALL fourier_context%tomnsp(z1_i(:,:,nsp1:ns), zmns_i(:,:,nsp1:ns),   &
+                                     f_sin)
+         DO js = nsp1, ns
+            rmnc_i(:,:,js) = rmnc_i(:,:,js)                                    &
+                           / fourier_context%orthonorm(0:mpol,-ntor:ntor)
+            zmns_i(:,:,js) = zmns_i(:,:,js)                                    &
+                           / fourier_context%orthonorm(0:mpol,-ntor:ntor)
+         END DO
 
 ! PUT PROFILES ONTO EXTENDED MESH
-       tmp=0
-       tmp(:,:,1:nsp)=jcurrumnc
-       DEALLOCATE(jcurrumnc)
-       ALLOCATE(jcurrumnc(0:mpol,-ntor:ntor,ns))
-       jcurrumnc=tmp
+         tmp = 0
+         tmp(:,:,1:nsp) = jcurrumnc
+         DEALLOCATE(jcurrumnc)
+         ALLOCATE(jcurrumnc(0:mpol,-ntor:ntor,ns))
+         jcurrumnc = tmp
 
-       tmp=0
-       tmp(:,:,1:nsp)=jcurrvmnc
-       DEALLOCATE(jcurrvmnc)
-       ALLOCATE(jcurrvmnc(0:mpol,-ntor:ntor,ns))
-       jcurrvmnc=tmp
+         tmp = 0
+         tmp(:,:,1:nsp) = jcurrvmnc
+         DEALLOCATE(jcurrvmnc)
+         ALLOCATE(jcurrvmnc(0:mpol,-ntor:ntor,ns))
+         jcurrvmnc = tmp
 
 ! DO THE SAME FOR THE phipf_i, chipf_i AND presf_i
 ! phipf, chipf will be computed in PCHELMS in the vacuum region
-       ALLOCATE(tmp1(ns))
-       tmp1=0
-       tmp1(1:nsp)=phipf_i
-       DEALLOCATE(phipf_i)
-       ALLOCATE(phipf_i(ns))
-       phipf_i=tmp1
+         ALLOCATE(tmp1(ns))
+         tmp1 = 0
+         tmp1(1:nsp) = phipf_i
+         DEALLOCATE(phipf_i)
+         ALLOCATE(phipf_i(ns))
+         phipf_i = tmp1
 
-       tmp1=0
-       tmp1(1:nsp)=chipf_i
-       DEALLOCATE(chipf_i)
-       ALLOCATE(chipf_i(ns))
-       chipf_i=tmp1
+         tmp1 = 0
+         tmp1(1:nsp) = chipf_i
+         DEALLOCATE(chipf_i)
+         ALLOCATE(chipf_i(ns))
+         chipf_i = tmp1
 
-       tmp1(1:nsp)=presf_i
-       tmp1(nsp+1:) = presf_i(nsp)
-       DEALLOCATE(presf_i)
-       ALLOCATE(presf_i(ns))
-       presf_i=tmp1
-       DEALLOCATE(tmp1)
+         tmp1(1:nsp) = presf_i
+         tmp1(nsp + 1:) = presf_i(nsp)
+         DEALLOCATE(presf_i)
+         ALLOCATE(presf_i(ns))
+         presf_i = tmp1
+         DEALLOCATE(tmp1)
 
        IF (lasym) THEN
           tmp(:,:,1:nsp) = rmns_i
@@ -440,179 +448,53 @@ CONTAINS
 
   END SUBROUTINE init_extender
 
+!-------------------------------------------------------------------------------
+!>  @brief UNKNOWN
+!>
+!>  @returns UNKNOWN
+!-------------------------------------------------------------------------------
+      FUNCTION GetVP1()
 
-  SUBROUTINE GetVP1(vp1)
-    REAL(dp), INTENT(OUT) :: vp1
-    INTEGER :: js, js1
-    REAL(dp), DIMENSION(:,:), ALLOCATABLE  :: r12, rs12, zs12, ru12, zu12
-    REAL(dp), DIMENSION(:), ALLOCATABLE    :: vp 
+      IMPLICIT NONE
 
-    ALLOCATE(vp(ns-1:ns), sqrtg_full(ntheta,nzeta,ns-1:ns))
-    ALLOCATE(r12(ntheta,nzeta), ru12(ntheta,nzeta), rs12(ntheta,nzeta), &
-      zu12(ntheta,nzeta), zs12(ntheta,nzeta))
+!  Declare Arguments
+      REAL(dp)                              ::  GetVP1
 
-    !Guess assuming V(s) = V0*s**2:    vp1 = 2*vol0
-    !NOTE: jacobian not computed yet
+!  Local Variables
+      INTEGER                               :: js
+      INTEGER                               :: js1
+      REAL(dp), DIMENSION(:,:), ALLOCATABLE :: r12
+      REAL(dp), DIMENSION(:,:), ALLOCATABLE :: rs12
+      REAL(dp), DIMENSION(:,:), ALLOCATABLE :: zs12
+      REAL(dp), DIMENSION(:,:), ALLOCATABLE :: ru12
+      REAL(dp), DIMENSION(:,:), ALLOCATABLE :: zu12
+      REAL(dp), DIMENSION(:), ALLOCATABLE   :: vp
 
-    DO js = ns-1, ns
-      js1 = js-1
-      r12 = p5*(r1_i(:,:,js) + r1_i(:,:,js1))
-      rs12 = (r1_i(:,:,js) - r1_i(:,:,js1))*ohs
-      zs12 = (z1_i(:,:,js) - z1_i(:,:,js1))*ohs
-      ru12= p5*(ru_i(:,:,js) + ru_i(:,:,js1))
-      zu12= p5*(zu_i(:,:,js) + zu_i(:,:,js1))
-      sqrtg_full(:,:,js) = r12*(ru12*zs12 - rs12*zu12)
-    END DO
+!  Start of executable code.
+      ALLOCATE(vp(ns - 1:ns), sqrtg_full(ntheta,nzeta,ns - 1:ns))
+      ALLOCATE(r12(ntheta,nzeta), ru12(ntheta,nzeta), rs12(ntheta,nzeta),      &
+               zu12(ntheta,nzeta), zs12(ntheta,nzeta))
 
-    CALL SurfAvgLocal(vp,sqrtg_full,ns-1,ns)   
-    vp = twopi**2*ABS(vp)
-    vp1 = p5*(3*vp(ns) - vp(ns-1))
+!  Guess assuming V(s) = V0*s**2:    vp1 = 2*vol0
+!  NOTE: jacobian not computed yet
 
-    DEALLOCATE(vp, sqrtg_full, r12, ru12, rs12, zu12, zs12)
-
-  END SUBROUTINE GetVP1
-
-#if 0
-  SUBROUTINE PlotRZ (device, chfit)
-    IMPLICIT NONE
-    CHARACTER(LEN=*), INTENT(IN) :: device, chfit
-
-    CHARACTER*200 :: plabel
-    INTEGER :: PGOPEN, s, s0, s1, soff, u, v, vr, k, npts, nc, nc0
-    REAL :: rmin, rmax, zmin, zmax, rho, xc
-    REAL, ALLOCATABLE :: X1(:), Y1(:)
-    REAL, ALLOCATABLE :: X2(:,:), Y2(:,:)
-
-    rmin = MINVAL(r_full); rmax = MAXVAL(r_full)
-    zmin = MINVAL(z_full); zmax = MAXVAL(z_full)
-    IF (.NOT.lasym) THEN
-      zmax = MAX(zmax, -zmin)
-      zmin = MIN(-zmax, zmin)
-    ENDIF
-    !Expand viewport a bit
-    rho = 1.1*MAX((rmax-rmin), (zmax-zmin))/2
-    xc = (rmax+rmin)/2
-    rmin = xc - rho;  rmax = xc + rho
-    xc = (zmax+zmin)/2
-    zmin = xc - rho;  zmax = xc + rho
-
-    npts = ntheta+1
-    IF (.NOT.lasym) npts = 2*ntheta
-
-    nc = 0
-    DO s = 1, nse, ns/10
-      nc = nc+1
-    END DO
-    nc0 = nc
-
-    ALLOCATE (x1(npts), y1(npts), x2(nc,npts), y2(nc,npts))
-
-    IF (PGOPEN('?') .LT. 1) STOP
-
-    ! Reverse background/foreground colors
-    CALL PGSCR(1,0.0,0.0,0.0)
-    CALL PGSCR(0,1.0,1.0,1.0)
-
-    PHILOOP: DO v = 1, NZETA
-
-      ! Start new page
-      CALL PGPAGE
-      CALL PGPAP(8.0,1.0)   !Sets Aspect ratio of axis to 1 on 8" page
-
-      ! Erase all graphics from the current page and fill with background color
-      CALL PGERAS
-      !
-      ! Set up window and viewport.
-      !
-      CALL PGSCH(1.0)
-      CALL PGVSTD
-      CALL PGSWIN(rmin,rmax,zmin,zmax)
-      !
-      ! Fill the viewport in a different color.
-      !
-      CALL PGSCI(0)
-      CALL PGRECT(rmin,rmax,zmin,zmax)
-
-      ! Draw thin grid lines
-      ! SET COLOR INDEX (SCI) AND LINE WIDTH (SLW)
-      CALL PGSCI(1)
-      CALL PGSLW(1)
-      CALL PGBOX('G', 0.0, 0, 'G', 0.0, 0)
-
-      ! Draw thick box, axis line
-      CALL PGSCI(1)
-      CALL PGSLW(3)
-      CALL PGSCF(2)
-      CALL PGBOX('BCNST', 0.0, 0, 'BCNSTV', 0.0, 0)
-
-      K = NINT(REAL(360*(V-1))/NZETA)
-      WRITE (plabel,'(3a,i3,a)') '\fr Device: ',TRIM(device),  &
-        ' \fi \gz = ',K,'\u\(0015)'
-      !	         TRIM(chfit),' fit: \fi \(0647) = ',K,'\u\(0015)'
-      CALL PGLAB('\fiR', '\fiZ', TRIM(plabel))
-      WRITE (plabel,'(2a)') '\fr Extended Coordinate: ', &
-        TRIM(chfit)
-      CALL PGMTXT('T',1.0,0.23,0.0,plabel)
-
-      nc = 0
-      soff = nse-1 - (nc0-1)*(ns/10)
-      s1 = 0
-      SURF_LOOP: DO s = 1, nse, ns/10
-
-        CALL PGSCI(4)
-        IF (s .GT. ns) CALL PGSCI(3)
-        CALL PGSLW(3)
-
-        !Plot the outer-most surface thicker, different color
-        s0 = s
-        nc = nc+1
-        IF (soff .GT. 0) THEN
-          soff = soff-1
-          s1 = s1 + 1
-        END IF
-        s0 = s0 + s1
-        IF (nc .EQ. nc0) THEN
-          s0 = nse
-          CALL PGSCI(6)
-          CALL PGSLW(4)
-        ELSE IF (nc .GT. nc0) THEN
-          EXIT
-        END IF
-
-
-        x1(1:ntheta) = r_full(:,v,s0)
-        y1(1:ntheta) = z_full(:,v,s0)
-        IF (lasym) THEN
-          x1(npts) = x1(1)
-          y1(npts) = y1(1)
-        ELSE
-          vr = nzeta - (v-1)          !reflected vr = 2pi-v
-          vr = MOD(vr, nzeta)+1
-          x1(ntheta+1:npts) =  r_full(ntheta:1:-1,vr,s0)
-          y1(ntheta+1:npts) = -z_full(ntheta:1:-1,vr,s0)
-        END IF
-
-        x2(nc,:) = x1;  y2(nc,:) = y1
-
-        CALL PGLINE(npts,x1,y1)    
-
-      END DO SURF_LOOP
-
-      !Plot Angle contours
-      DO u = 1, npts
-        CALL PGSCI(2)
-        CALL PGSLW(2)
-        CALL PGLINE(NC,x2(:,u),y2(:,u))
+      DO js = ns - 1, ns
+         js1 = js - 1
+         r12 = p5*(r1_i(:,:,js) + r1_i(:,:,js1))
+         rs12 = (r1_i(:,:,js) - r1_i(:,:,js1))*ohs
+         zs12 = (z1_i(:,:,js) - z1_i(:,:,js1))*ohs
+         ru12= p5*(ru_i(:,:,js) + ru_i(:,:,js1))
+         zu12= p5*(zu_i(:,:,js) + zu_i(:,:,js1))
+         sqrtg_full(:,:,js) = r12*(ru12*zs12 - rs12*zu12)
       END DO
 
-    END DO PHILOOP
+      CALL SurfAvgLocal(vp, sqrtg_full, ns - 1, ns)
+      vp = twopi*twopi*ABS(vp)
+      GetVP1 = p5*(3*vp(ns) - vp(ns - 1))
 
-    CALL PGEND
+      DEALLOCATE(vp, sqrtg_full, r12, ru12, rs12, zu12, zs12)
 
-    DEALLOCATE(x1, y1, x2, y2)
-
-  END SUBROUTINE PlotRZ
-#endif
+      END FUNCTION
 
   SUBROUTINE remap_radial(rho, vrho)
     IMPLICIT NONE
@@ -720,7 +602,7 @@ CONTAINS
 !  Declare Arguments
       INTEGER   :: read_vessel_file
 
-    ! Local variables
+!  Local variables
       INTEGER   :: m
       INTEGER   :: n
       INTEGER   :: mn
@@ -729,6 +611,7 @@ CONTAINS
       REAL (dp) :: rv1
       REAL (dp) :: zv1
 
+!  Start of executable code.
       mpol_v = 0
       ntor_v = 0
       mnmax_v = 0
@@ -782,27 +665,36 @@ CONTAINS
 
       END FUNCTION
 
-  SUBROUTINE SurfAvgLocal(average, q3d, nsmin, nsmax)
-    USE island_params, ONLY: fourier_context
-    IMPLICIT NONE
+!-------------------------------------------------------------------------------
+!>  @brief Get surface average quantity.
+!-------------------------------------------------------------------------------
+      SUBROUTINE SurfAvgLocal(average, q3d, nsmin, nsmax)
+      USE island_params, ONLY: fourier_context
 
-    INTEGER, INTENT(IN)   :: nsmin, nsmax
-    REAL(dp), INTENT(OUT) :: average(nsmin:nsmax)
-    REAL(dp), INTENT(IN)  :: q3d(ntheta,nzeta,nsmin:nsmax)
+      IMPLICIT NONE
 
-    INTEGER :: l, js
-    REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: wint
+!  Declare Arguments
+      REAL(dp), INTENT(out)             :: average(nsmin:nsmax)
+      REAL(dp), INTENT(in)              :: q3d(ntheta,nzeta,nsmin:nsmax)
+      INTEGER, INTENT(in)               :: nsmin
+      INTEGER, INTENT(in)               :: nsmax
 
-    ALLOCATE(wint(ntheta,nzeta,nsmin:nsmax))
+!  Local Variables
+      INTEGER                                 :: i
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: wint
 
-    DO l = 1, ntheta
-      wint(l,:,:) = fourier_context%cosmui(l,0)
-    END DO         
-    DO js = nsmin, nsmax
-      average(js) = SUM(q3d(:,:,js)*wint(:,:,js))
-    END DO
+!  Start of executable code.
+      ALLOCATE(wint(ntheta,nzeta,nsmin:nsmax))
 
-    DEALLOCATE(wint)
-  END SUBROUTINE SurfAvgLocal
+      DO i = 1, ntheta
+         wint(i,:,:) = fourier_context%cosmui(i,0)
+      END DO
+      DO i = nsmin, nsmax
+         average(i) = SUM(q3d(:,:,i)*wint(:,:,i))
+      END DO
 
-END MODULE grid_extension
+      DEALLOCATE(wint)
+
+      END SUBROUTINE
+
+      END MODULE
