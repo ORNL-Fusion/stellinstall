@@ -688,7 +688,7 @@
 !  Start of executable code
       IF (nsmin .eq. 1) THEN
          amnf(:,:,1) = 0.0
-         amnf(m0,:,1) = amnh(m0,:,2)
+         amnf(m0:m1,:,1) = amnh(m0:m1,:,2)
       END IF
 
       IF (parity .eq. f_cos) THEN
