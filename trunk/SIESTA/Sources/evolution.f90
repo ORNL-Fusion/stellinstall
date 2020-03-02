@@ -344,7 +344,7 @@
 !>  @brief Evolves one step toward MHD equilibrium.
 !>
 !>  Update covariant Fourier components of velocity field. This is the time-step
-!>  algorithm. It is eddentially a conjugate gradient method, without the line
+!>  algorithm. It is esentially a conjugate gradient method, without the line
 !>  searches (Fletcher-Reeves), based on a method by P. Garabedian.
 !-------------------------------------------------------------------------------
       SUBROUTINE evolve
@@ -690,22 +690,22 @@
              ' L_PUSH_S: ',l1,' L_PUSH_U: ',l1,' L_PUSH_V: ',l1,               &
              ' L_PUSH_EDGE: ',l1)
 
-50   FORMAT(' WMHD: ', 1pe13.6,' <BETA>: ',1pe11.4,                     &
-            ' TFLUX: ',1pe11.4,' B.GRAD-P (rms): ', 1pe11.4,/,21('-'))
-60   FORMAT(' DELTA_T: ',1pe10.2,' ETA_K: ',                            &
-            1pe10.2,' HESSIAN SYM: ', l1)
-65   FORMAT(' LEVMARQ_PARAM: ',1pe10.2,' MU_PAR: ',1pe10.2)
-70   FORMAT(' NEQS: ', i6,' NS: ',i4,' MPOL: ',i4,' NTOR: ',i4,         &
-            ' NTHETA: ', i4,' NZETA: ',i4, ' NGMRES-STEPS: ', i4,//,   &
-            ' NITER (W-W0)/W0*1E6    F2(MHD)    F2(LIN)',              &
-            '    F2SUBS     F2SUBU     F2SUBV     |V|rms     NCALLS')
-100  FORMAT(1x,i5,1x, 1pe12.4, 2x, 1x,1pe10.3, 2x,9 ('-'),              &
-            4(1x,1pe10.3),i9)
-102  FORMAT(1x,i5,1x, 1pe12.4, 2x, 6(1x,1pe10.3),i9)
-112  FORMAT(' |B^s+r12*B^u|/|B^s-r12*B^u| (m=1,r->0, asym) : ',1pe10.3,/, &
-            ' |J^s+r12*J^u|/|J^s-r12*J^u| (m=1,r->0, asym) : ',1pe10.3,/, &
-            '-JBSUPSH(JS=2-6,M=1)/r12 (asym): ',1p5e10.3,/,             &
-            ' JBSUPUH(JS=2-6,M=1)           : ',1p5e10.3)
+50    FORMAT(' WMHD: ', 1pe13.6,' <BETA>: ',1pe11.4,                     &
+             ' TFLUX: ',1pe11.4,' B.GRAD-P (rms): ', 1pe11.4,/,21('-'))
+60    FORMAT(' DELTA_T: ',1pe10.2,' ETA_K: ',                            &
+             1pe10.2,' HESSIAN SYM: ', l1)
+65    FORMAT(' LEVMARQ_PARAM: ',1pe10.2,' MU_PAR: ',1pe10.2)
+70    FORMAT(' NEQS: ', i6,' NS: ',i4,' MPOL: ',i4,' NTOR: ',i4,         &
+             ' NTHETA: ', i4,' NZETA: ',i4, ' NGMRES-STEPS: ', i4,//,   &
+             ' NITER (W-W0)/W0*1E6    F2(MHD)    F2(LIN)',              &
+             '    F2SUBS     F2SUBU     F2SUBV     |V|rms     NCALLS')
+100   FORMAT(1x,i5,1x, 1pe12.4, 2x, 1x,1pe10.3, 2x,9 ('-'),              &
+             4(1x,1pe10.3),i9)
+102   FORMAT(1x,i5,1x, 1pe12.4, 2x, 6(1x,1pe10.3),i9)
+112   FORMAT(' |B^s+r12*B^u|/|B^s-r12*B^u| (m=1,r->0, asym) : ',1pe10.3,/, &
+             ' |J^s+r12*J^u|/|J^s-r12*J^u| (m=1,r->0, asym) : ',1pe10.3,/, &
+             '-JBSUPSH(JS=2-6,M=1)/r12 (asym): ',1p5e10.3,/,             &
+             ' JBSUPUH(JS=2-6,M=1)           : ',1p5e10.3)
 1007  FORMAT(' SIESTA Curtor : ',e12.4,' VMEC Curtor : 'e12.4,/)
 
       END SUBROUTINE

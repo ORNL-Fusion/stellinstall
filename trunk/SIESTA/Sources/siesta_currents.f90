@@ -83,23 +83,23 @@
       LOGICAL, INTENT(in)                                     :: lcurr
 
 !  local variables
-      INTEGER                                                :: istat
-      REAL (dp)                                              :: beta
-      REAL (dp)                                              :: ton
-      REAL (dp)                                              :: toff
-      REAL (dp), DIMENSION(6)                                :: temp(6)
-      REAL (dp)                                              :: tmp
-      INTEGER                                                :: nsmin
-      INTEGER                                                :: nsmax
-      INTEGER                                                :: nmin
-      INTEGER                                                :: nmax
-      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)               :: bsubsijh
-      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)               :: bsubuijh
-      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)               :: bsubvijh
-      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)               :: bs_filter
-      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)               :: bu_filter
-      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)               :: bv_filter
-      REAL (dp)                                              :: edge_cur
+      INTEGER                                                 :: istat
+      REAL (dp)                                               :: beta
+      REAL (dp)                                               :: ton
+      REAL (dp)                                               :: toff
+      REAL (dp), DIMENSION(6)                                 :: temp(6)
+      REAL (dp)                                               :: tmp
+      INTEGER                                                 :: nsmin
+      INTEGER                                                 :: nsmax
+      INTEGER                                                 :: nmin
+      INTEGER                                                 :: nmax
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)                :: bsubsijh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)                :: bsubuijh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)                :: bsubvijh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)                :: bs_filter
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)                :: bu_filter
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)                :: bv_filter
+      REAL (dp)                                               :: edge_cur
 
 !  Start of executable code
       CALL second0(ton)
@@ -315,7 +315,7 @@
       REAL (dp), INTENT(inout)                                :: edge_cur
       REAL (dp), INTENT(out)                                  :: jsju_ratio
       INTEGER, INTENT(in)                                     :: iparity
-      LOGICAL, INTENT(in)                                     :: lcurr !  FIXME: CHECK THIS
+      LOGICAL, INTENT(in)                                     :: lcurr
       INTEGER, INTENT(in)                                     :: nsmax
       INTEGER, INTENT(in)                                     :: nsmin
       REAL (dp), INTENT(inout)                                :: curtor

@@ -784,7 +784,7 @@
          moff = LBOUND(amnh, 1)
 
          amnf_ds(:,:,1) = 0.0
-         amnf_ds(m0 + moff,:,1) = 2.0*ohs*amnh(m0 + moff,:,2)
+         amnf_ds(m1 + moff,:,1) = 2.0*ohs*amnh(m1 + moff,:,2)
       END IF
 
       CALL set_bndy_fouier_m0(amnf_ds, parity)
@@ -832,7 +832,6 @@
          aumnf_ds(m0 + moff,:,1) = 2.0*ohs*aumnh(m0 + moff,:,2)
 
          avmnf_ds(:,:,1) = 0.0
-         avmnf_ds(m1 + moff,:,1) = 2.0*ohs*avmnh(m1 + moff,:,2)
       END IF
 
       CALL set_bndy_fouier_m0(aumnf_ds, parity)
@@ -868,7 +867,9 @@
       moff = LBOUND(amnsf, 1)
 
       amnsf(m0 + moff,:,1) = 0
-      amnsf(m2 + moff:,:,1) = 0
+      IF (m2 + moff .lt. UBOUND(amnsf, 1)) THEN
+         amnsf(m2 + moff:,:,1) = 0
+      END IF
 
       amnuf(:,:,1) = 0
 

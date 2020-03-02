@@ -347,6 +347,8 @@
                          ksupsijf, ksupuijf, ksupvijf,                         &
                          KxBsij, KxBuij, KxBvij, fcomb)
 
+      IMPLICIT NONE
+
 !  Declare Arguments
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in)    :: bsupsijf
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in)    :: bsupuijf
@@ -368,7 +370,7 @@
       nsmax = UBOUND(KXBsij, 3)
       
 !  Initialize to avoid NaN errors.
-      IF (fcomb .EQ. f_none) THEN
+      IF (fcomb .eq. f_none) THEN
          KxBsij = 0
          KxBuij = 0
          KxBvij = 0
@@ -499,18 +501,6 @@
          pmnf(m0,0,ns) = pmnh(m0,0,ns)
       END IF
 
-DO istat = nsmin, nsmax
-DO n = -ntor, ntor
-DO m = 0, mpol
-WRITE (*,*) m,n,istat,to_integer(fsubsmnf(m,n,istat)),fsubsmnf(m,n,istat),     &
-                      to_integer(fsubumnf(m,n,istat)),fsubumnf(m,n,istat),     &
-                      to_integer(fsubvmnf(m,n,istat)),fsubvmnf(m,n,istat),     &
-                      to_integer(pmnf_ds(m,n,istat)),pmnf_ds(m,n,istat),       &
-                      to_integer(pmnf(m,n,istat)),pmnf(m,n,istat)
-END DO
-END DO
-END DO
-
 !  Add pressure gradient to the lorentz force.
       fsubsmnf(:,:,nsmin:nsmax) = fsubsmnf(:,:,nsmin:nsmax) - pmnf_ds
       DO m = 0, mpol
@@ -525,6 +515,10 @@ END DO
       END DO
 
       DEALLOCATE(pmnf, pmnf_ds, pmnh)
+
+      IF (nsmin .eq. 1) THEN
+         CALL set_bndy_full_origin(fsubsmnf, fsubumnf, fsubvmnf)
+      END IF
 
       CALL get_force_harmonics(pardamp, fsubsmnf, fsubumnf, fsubvmnf, parity)
 
@@ -593,9 +587,9 @@ END DO
 !>                        direction.
 !>  @param[inout] f_vmnf  Covariant component of the mhd force in the v
 !>                        direction.
-!>  @param[in]    iparity Parity of the fourier components.
+!>  @param[in]    parity  Parity of the fourier components.
 !-------------------------------------------------------------------------------
-      SUBROUTINE get_force_harmonics(pardamp, f_smnf, f_umnf, f_vmnf, iparity)
+      SUBROUTINE get_force_harmonics(pardamp, f_smnf, f_umnf, f_vmnf, parity)
       USE hessian, ONLY: muPar, l_Compute_Hessian
       USE shared_data, ONLY: nprecon, l_PrintOriginForces,                     &
                              l_push_s, l_push_u, l_push_v,                     &
@@ -614,7 +608,7 @@ END DO
       REAL (dp), DIMENSION(:,:,:), INTENT(inout)            :: f_smnf
       REAL (dp), DIMENSION(:,:,:), INTENT(inout)            :: f_umnf
       REAL (dp), DIMENSION(:,:,:), INTENT(inout)            :: f_vmnf
-      INTEGER, INTENT(in)                                   :: iparity
+      INTEGER, INTENT(in)                                   :: parity
 
 !  local variables
       REAL (dp)                                             :: skston
@@ -626,7 +620,7 @@ END DO
       INTEGER                                               :: noff
 
 !  local parameters
-      REAL (dp), PARAMETER                                   :: p5 = 0.5_dp
+      REAL (dp), PARAMETER                                  :: p5 = 0.5_dp
 
 !  Start of executable code
       CALL second0(skston)
@@ -644,7 +638,7 @@ END DO
       CALL assert(ALL(f_vmnf(m0+moff,-ntor+noff:noff-1,nsmin:nsmax) .eq. zero),&
                   'f_vmnf != 0, m=0, n<0')
       IF (ALLOCATED(pardamp)) THEN
-         IF (iparity .EQ. f_cos) THEN
+         IF (parity .eq. f_cos) THEN
             CALL AddParDamping(pardamp,                                        &
                                f_smnf(:,:,nsmin:nsmax),                        &
                                f_umnf(:,:,nsmin:nsmax),                        &
@@ -700,7 +694,7 @@ END DO
 #endif
 
          IF (iam .eq. 0 .and. lverbose) THEN
-            IF (iparity .eq. f_cos) THEN
+            IF (parity .eq. f_cos) THEN
                WRITE (*,1000)
             ELSE
                WRITE (*,1001)
@@ -714,10 +708,8 @@ END DO
       END IF PRINT_O
 
 !  Origin boundary conditions. 1/2 factors below are needed to preserve hessian
-!  symmetry,
-       CALL set_bndy_fouier_m0(f_smnf, f_umnf, f_vmnf, iparity)
+!  symmetry.
        IF (nsmin .eq. 1) THEN
-          CALL set_bndy_full_origin(f_smnf, f_umnf, f_vmnf)
 
           IF (.not.l_push_s) THEN
              f_smnf(m1 + moff,:,1) = 0
@@ -725,16 +717,16 @@ END DO
              f_smnf(m1 + moff,:,1) = p5*f_smnf(m1 + moff,:,1)
           END IF
 
-          IF (.not.l_push_u) THEN
-             f_umnf(m1 + moff,:,1) = 0
-          ELSE
-             f_umnf(m1 + moff,:,1) = p5*f_umnf(m1 + moff,:,1)
-          END IF
+!          IF (.not.l_push_u) THEN
+!             f_umnf(m1 + moff,:,1) = 0
+!          ELSE
+!             f_umnf(m1 + moff,:,1) = p5*f_umnf(m1 + moff,:,1)
+!          END IF
 
           IF (.not.l_push_v) THEN
-             f_vmnf(m0 + moff,:,1) = 0
+             f_vmnf(:m1 + moff,:,1) = 0
           ELSE
-             f_vmnf(m0 + moff,:,1) = p5*f_vmnf(m0 + moff,:,1)
+             f_vmnf(:m1 + moff,:,1) = p5*f_vmnf(:m1 + moff,:,1)
           END IF
        END IF
 
