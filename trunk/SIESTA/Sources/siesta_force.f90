@@ -419,10 +419,10 @@
 !>  @param[inout] KxBvij   Covariant component of the lorentz force in the v
 !>                         direction.
 !>  @param[inout] pardamp  Parallel damping.
-!>  @param[in]    iparity  Parity of the fourier components.
+!>  @param[in]    parity   Parity of the fourier components.
 !-------------------------------------------------------------------------------
       SUBROUTINE GetMHDForce(fsubsmnf, fsubumnf, fsubvmnf, pijh,               &
-                             KxBsij, KxBuij, KxBvij, pardamp, iparity)
+                             KxBsij, KxBuij, KxBvij, pardamp, parity)
       USE island_params, ONLY: ohs=>ohs_i, fourier_context
       USE utilities, ONLY: set_bndy_half_to_full, set_bndy_half_to_full_ds,    &
                            set_bndy_full_origin
@@ -438,7 +438,7 @@
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in)  :: KxBuij
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in)  :: KxBvij
       REAL (dp), DIMENSION(:,:), ALLOCATABLE, INTENT(inout) :: pardamp
-      INTEGER, INTENT(in)                                   :: iparity
+      INTEGER, INTENT(in)                                   :: parity
 
 !  local variables
       INTEGER                                               :: fours
@@ -466,7 +466,7 @@
 
       nsmax = MIN(ns, endglobrow)
 
-      IF (iparity .EQ. f_cos) THEN
+      IF (parity .EQ. f_cos) THEN
          fours = f_cos
          fouruv = f_sin
          sparity = -1
@@ -499,6 +499,18 @@
          pmnf(m0,0,ns) = pmnh(m0,0,ns)
       END IF
 
+DO istat = nsmin, nsmax
+DO n = -ntor, ntor
+DO m = 0, mpol
+WRITE (*,*) m,n,istat,to_integer(fsubsmnf(m,n,istat)),fsubsmnf(m,n,istat),     &
+                      to_integer(fsubumnf(m,n,istat)),fsubumnf(m,n,istat),     &
+                      to_integer(fsubvmnf(m,n,istat)),fsubvmnf(m,n,istat),     &
+                      to_integer(pmnf_ds(m,n,istat)),pmnf_ds(m,n,istat),       &
+                      to_integer(pmnf(m,n,istat)),pmnf(m,n,istat)
+END DO
+END DO
+END DO
+
 !  Add pressure gradient to the lorentz force.
       fsubsmnf(:,:,nsmin:nsmax) = fsubsmnf(:,:,nsmin:nsmax) - pmnf_ds
       DO m = 0, mpol
@@ -514,7 +526,7 @@
 
       DEALLOCATE(pmnf, pmnf_ds, pmnh)
 
-      CALL get_force_harmonics(pardamp, fsubsmnf, fsubumnf, fsubvmnf, iparity)
+      CALL get_force_harmonics(pardamp, fsubsmnf, fsubumnf, fsubvmnf, parity)
 
       END SUBROUTINE
 
