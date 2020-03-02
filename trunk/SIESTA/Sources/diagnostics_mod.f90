@@ -955,7 +955,7 @@
 
       CALL to_half_mesh(temp1, temp2)
 
-      temp2 = temp2/jacobh(:,:,nsmin:nsmax)*jacobh(:,:,nsmin:nsmax)
+      temp2 = temp2/(jacobh(:,:,nsmin:nsmax)*jacobh(:,:,nsmin:nsmax))
 
       nsmin = MAX(1, startglobrow)
       nsmax = MIN(endglobrow, ns)
@@ -972,7 +972,8 @@
                          SIESTA_COMM,MPI_ERR)
       divj_rms = temp(1)
       tnorm = temp(2)
-#endif   
+#endif
+
 !  Compute rms of divergence of J
       IF (tnorm .ge. zero) THEN
          divjmnsh = divjmnsh/SQRT(tnorm)

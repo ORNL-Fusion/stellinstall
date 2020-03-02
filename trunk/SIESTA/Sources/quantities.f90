@@ -455,84 +455,84 @@
 !>  @param[in]    chiph     Radial poloidal flux derivative.
 !>  @param[in]    nsmin     Minimum radial index.
 !>  @param[in]    nsmax     Maximum radial index.
-!>  @param[in]    iparity   Fourier parity.
+!>  @param[in]    parity    Fourier parity.
 !-------------------------------------------------------------------------------
-        SUBROUTINE Init_Bfield(jbsupsmnh, jbsupumnh, jbsupvmnh,                &
-                               lmn, phiph, chiph, nsmin, nsmax, iparity)
-        USE fourier, ONLY: m0, m1, f_sin
-        USE siesta_namelist, ONLY: l_vessel
-        USE utilities, ONLY: set_bndy_fouier_m0
-        USE island_params, ONLY: fourier_context
-#if defined(MPI_OPT)        
-        USE mpi_inc
-#endif        
+      SUBROUTINE Init_Bfield(jbsupsmnh, jbsupumnh, jbsupvmnh,                  &
+                             lmn, phiph, chiph, nsmin, nsmax, parity)
+      USE fourier, ONLY: m0, m1, n0, f_sin
+      USE siesta_namelist, ONLY: l_vessel
+      USE utilities, ONLY: set_bndy_fouier_m0
+      USE island_params, ONLY: fourier_context
 
-        IMPLICIT NONE
+      IMPLICIT NONE
 
 !  Declare Arguments
-        REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: jbsupsmnh
-        REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: jbsupumnh
-        REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: jbsupvmnh
-        REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(in)    :: lmn
-        REAL (dp), DIMENSION(:), INTENT(in)                     :: phiph
-        REAL (dp), DIMENSION(:), INTENT(in)                     :: chiph
-	    INTEGER, INTENT(in)                                     :: nsmin
-        INTEGER, INTENT(in)                                     :: nsmax
-        INTEGER, INTENT(in)                                     :: iparity
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: jbsupsmnh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: jbsupumnh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: jbsupvmnh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(in)    :: lmn
+      REAL (dp), DIMENSION(:), INTENT(in)                     :: phiph
+      REAL (dp), DIMENSION(:), INTENT(in)                     :: chiph
+	  INTEGER, INTENT(in)                                     :: nsmin
+      INTEGER, INTENT(in)                                     :: nsmax
+      INTEGER, INTENT(in)                                     :: parity
 
 !  local variables
-        INTEGER                                                 :: m
-        INTEGER                                                 :: n
-        INTEGER                                                 :: sparity
-        INTEGER                                                 :: mp
-        INTEGER                                                 :: np
+      INTEGER                                                 :: m
+      INTEGER                                                 :: n
+      INTEGER                                                 :: i
+      INTEGER                                                 :: sparity
+      INTEGER                                                 :: mp
+      INTEGER                                                 :: np
 
 !  Start of executable code.
-		IF (iparity .eq. f_sin) THEN
-		   sparity = 1
-		ELSE
-		   sparity = -1
-		END IF
-		
-        IF (.not.l_vessel) THEN
-      
-           DO m = 0, mpol
-	  	      mp = m*sparity
-              DO n = -ntor, ntor
-		         np = n*nfp*sparity
-                 jbsupumnh(m,n,nsmin:nsmax) = phiph(nsmin:nsmax)               &
-                                            * (-np*lmn(m,n,nsmin:nsmax))
-                 jbsupvmnh(m,n,nsmin:nsmax) = phiph(nsmin:nsmax)               &
-                                            * ( mp*lmn(m,n,nsmin:nsmax))
-              END DO
-           END DO
+      IF (parity .eq. f_sin) THEN
+         sparity = 1
+      ELSE
+         sparity = -1
+      END IF
 
-           IF (iparity .EQ. f_sin) THEN
-              jbsupumnh(m0,0,nsmin:nsmax) = chiph(nsmin:nsmax)                 &
-                                          / fourier_context%orthonorm(0,0)
-              jbsupvmnh(m0,0,nsmin:nsmax) = phiph(nsmin:nsmax)                 &
-                                          / fourier_context%orthonorm(0,0)
-           END IF
-        END IF
+      IF (.not.l_vessel) THEN
+
+         DO i = nsmin, nsmax
+            DO n = -ntor, ntor
+               np = n*nfp*sparity
+               DO m = 0, mpol
+                  mp = m*sparity
+                  jbsupumnh(m,n,i) = phiph(i)*(-np*lmn(m,n,i))
+                  jbsupvmnh(m,n,i) = phiph(i)*( mp*lmn(m,n,i))
+               END DO
+            END DO
+
+            IF (parity .eq. f_sin) THEN
+               jbsupumnh(m0,n0,i) = chiph(i)                                      &
+                                  / fourier_context%orthonorm(m0,n0)
+               jbsupvmnh(m0,n0,i) = phiph(i)                                      &
+                                  / fourier_context%orthonorm(m0,n0)
+            END IF
+         END DO
+
+         jbsupsmnh = 0
+      END IF
         
-        jbsupsmnh(:,:,nsmin:nsmax) = b_factor*jbsupsmnh(:,:,nsmin:nsmax)
-        jbsupumnh(:,:,nsmin:nsmax) = b_factor*jbsupumnh(:,:,nsmin:nsmax)
-        jbsupvmnh(:,:,nsmin:nsmax) = b_factor*jbsupvmnh(:,:,nsmin:nsmax)
+      jbsupsmnh(:,:,nsmin:nsmax) = b_factor*jbsupsmnh(:,:,nsmin:nsmax)
+      jbsupumnh(:,:,nsmin:nsmax) = b_factor*jbsupumnh(:,:,nsmin:nsmax)
+      jbsupvmnh(:,:,nsmin:nsmax) = b_factor*jbsupvmnh(:,:,nsmin:nsmax)
 
-        CALL set_bndy_fouier_m0(jbsupsmnh, jbsupumnh, jbsupvmnh, iparity)
+      CALL set_bndy_fouier_m0(jbsupsmnh, jbsupumnh, jbsupvmnh, parity)
 
 !  Store m=0 component of jbsupvmnh (and m=0,1 of jbsupumnh) at origin of
 !  half-grid js=1.
-        IF (nsmin .eq. 1) THEN
-           jbsupsmnh(:,:,1) = 0
-           jbsupsmnh(m1,:,1) = jbsupsmnh(m1,:,2)
-           jbsupumnh(:,:,1) = 0
-           jbsupumnh(m0:m1,:,1) = jbsupumnh(m0:m1,:,2)
-           jbsupvmnh(m0,:,1) = jbsupvmnh(m0,:,2)
-           jbsupvmnh(m1:,:,1) = 0
-        END IF
+      IF (nsmin .eq. 1) THEN
+         jbsupsmnh(:,:,1) = 0
+         jbsupsmnh(m1,:,1) = jbsupsmnh(m1,:,2)
+         jbsupumnh(:,:,1) = 0
+         jbsupumnh(m0:m1,:,1) = jbsupumnh(m0:m1,:,2)
+         jbsupvmnh(m0,:,1) = jbsupvmnh(m0,:,2)
+         jbsupvmnh(m1:,:,1) = 0
+      END IF
 
-		END SUBROUTINE
+      END SUBROUTINE
 
 !-------------------------------------------------------------------------------
 !>  @brief Recompute lambda on the SIESTA mesh.

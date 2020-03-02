@@ -225,7 +225,7 @@
             fourier_construct%cosmu(i, j) = COS(j*arg)
             fourier_construct%sinmu(i, j) = SIN(j*arg)
 
-            CALL fourier_round_trig(fourier_construct%cosmu(i, j),                     &
+            CALL fourier_round_trig(fourier_construct%cosmu(i, j),             &
      &                              fourier_construct%sinmu(i, j))
 
             fourier_construct%cosmum(i, j) = j*fourier_construct%cosmu(i, j)
@@ -256,7 +256,7 @@
             fourier_construct%cosnv(i,j) = COS(j*arg)
             fourier_construct%sinnv(i,j) = SIN(j*arg)
 
-            CALL fourier_round_trig(fourier_construct%cosnv(i,j),                      &
+            CALL fourier_round_trig(fourier_construct%cosnv(i,j),              &
      &                              fourier_construct%sinnv(i,j))
          END DO
 

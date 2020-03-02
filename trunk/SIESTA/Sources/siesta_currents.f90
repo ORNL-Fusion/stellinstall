@@ -83,7 +83,7 @@
       LOGICAL, INTENT(in)                                     :: lcurr
 
 !  local variables
-      INTEGER                                                :: istat     ,i,j,k !  FIXME: Remove
+      INTEGER                                                :: istat
       REAL (dp)                                              :: beta
       REAL (dp)                                              :: ton
       REAL (dp)                                              :: toff
@@ -114,7 +114,7 @@
                bsubuijh(ntheta,nzeta,nsmin:nsmax),                             &
                bsubvijh(ntheta,nzeta,nsmin:nsmax), stat=istat)
       CALL assert_eq(0, istat, 'Allocation1 failed in cv_currents')
-     
+
       CALL tolowerh(bsupsijh, bsupuijh, bsupvijh,                              &
                     bsubsijh, bsubuijh, bsubvijh, nsmin, nsmax)
 
@@ -172,18 +172,6 @@
                     jsju_ratio_a, f_cos, lcurr, nsmax, nsmin,                  &
                     siesta_curtor)
       END IF
-!
-!  Compute divergence of J. It is a SINE parity quantity.
-!
-!  FIXME: REMOVE
-!DO k = LBOUND(ksupumncf,3), UBOUND(ksupumncf,3)
-!DO j = LBOUND(ksupumncf,2), UBOUND(ksupumncf,2)
-!DO i = LBOUND(ksupumncf,1), UBOUND(ksupumncf,1)
-!WRITE (*,*) i,j,k,ksupsmnsf(i,j,k),ksupumncf(i,j,k),ksupvmncf(i,j,k)
-!END DO
-!END DO
-!END DO
-!PAUSE
 
       IF (nsmax .eq. ns) THEN
          siesta_curtor = -fourier_context%orthonorm(m0,n0)*siesta_curtor       &
@@ -333,7 +321,7 @@
       REAL (dp), INTENT(inout)                                :: curtor
 
 !  local variables
-      INTEGER                                                 :: fours         ,i,j,k !  FIXME: REMOVE
+      INTEGER                                                 :: fours
       INTEGER                                                 :: fouruv
       INTEGER                                                 :: fcomb
       INTEGER                                                 :: nmin
