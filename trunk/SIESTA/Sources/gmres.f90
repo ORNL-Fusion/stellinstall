@@ -104,7 +104,9 @@
       CALL funct_island
       xc = -gc
       eps = ABS(levmarq_param)*Dmin
-      IF (.NOT.l_ApplyPrecon) CALL Apply_Precond(xc)
+      IF (.not.l_ApplyPrecon) THEN
+         CALL Apply_Precond(xc)
+      END IF
       xc1 = xc
       DO j = 1, 10
          IF (j .GT. 1) THEN
