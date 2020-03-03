@@ -33,6 +33,7 @@
       USE siesta_displacement, ONLY: update_upperv
       USE siesta_init, ONLY: init_state
       USE quantities, ONLY: wb, wp
+      USE siesta_state, ONLY: Clear_Field_Perts
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -58,15 +59,21 @@
          l_init_state = .FALSE.
       END IF
 
-      CALL update_upperv
-      CALL update_bfield(.FALSE.)
-      CALL update_pres
+      IF (ANY(xc .ne. 0)) THEN
+         CALL update_upperv
+         CALL update_bfield(.FALSE.)
+         CALL update_pres
+      ELSE
+         CALL Clear_Field_Perts
+      END IF
       CALL update_force
 
       CALL ASSERT(gamma.NE.one,'SIESTA REQUIRES gamma != 1')
-      wtotal = wb + wp/(gamma-1)
-      IF (wtotal0 == -1) wtotal0 = wtotal
-      
+      wtotal = wb + wp/(gamma - 1)
+      IF (wtotal0 .eq. -1) THEN
+         wtotal0 = wtotal
+      END IF
+
       gc = gnorm_i*gc
 
 !     CALLED FROM GMRES: ADD BACK INITIAL FORCE gc0 or STORE UNPRECONDITIONED FORCES
@@ -129,7 +136,7 @@
          temp(2) = temp(2) + SUM(fsubumncf(:,:,nsmin:nsmax)**2)
          temp(3) = temp(3) + SUM(fsubvmncf(:,:,nsmin:nsmax)**2)
       END IF
-#if defined(MPI_OPT)         
+#if defined(MPI_OPT)
       IF (PARSOLVER) THEN
          CALL MPI_ALLREDUCE(MPI_IN_PLACE,temp,3,MPI_REAL8,MPI_SUM,             &
                             SIESTA_COMM,MPI_ERR)

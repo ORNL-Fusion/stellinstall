@@ -319,7 +319,7 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!>  @brief Compute covariant (sub) eal-space components of the Lorentz K X B
+!>  @brief Compute covariant (sub) real-space components of the Lorentz K X B
 !>         force.
 !>
 !>  @param[in]    bsupsijf Contravariant component of the B field in the s
@@ -366,8 +366,8 @@
       INTEGER                                                 :: nsmax
 
 !  Start of executable code
-      nsmin = LBOUND(KxBsij, 3)
-      nsmax = UBOUND(KXBsij, 3)
+      nsmin = MAX(1, startglobrow)
+      nsmax = MIN(ns, endglobrow)
       
 !  Initialize to avoid NaN errors.
       IF (fcomb .eq. f_none) THEN
@@ -375,6 +375,7 @@
          KxBuij = 0
          KxBvij = 0
       END IF
+
 
       KxBsij = KxBsij                                                          &
              + ksupuijf(:,:,nsmin:nsmax)*bsupvijf(:,:,nsmin:nsmax)             &

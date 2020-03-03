@@ -362,7 +362,6 @@
         USE fourier, ONLY: f_sin, f_cos, m0, m1
         USE vmec_info, ONLY: lmns_i, lmnc_i, iflipj
         USE metrics, ONLY: sqrtg
-        USE mpi_inc
 
         IMPLICIT NONE
 

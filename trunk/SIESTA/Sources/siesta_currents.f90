@@ -82,7 +82,7 @@
       LOGICAL, INTENT(in)                                     :: lmagen
       LOGICAL, INTENT(in)                                     :: lcurr
 
-!  local variables
+!  Local Variables
       INTEGER                                                 :: istat
       REAL (dp)                                               :: beta
       REAL (dp)                                               :: ton
@@ -187,10 +187,10 @@
 !  Calculate full mesh, contravariant real-space current components
 !  KsupXF = sqrt(g)*JsupXF.
       CALL getcv(ksupsmnsf, ksupumncf, ksupvmncf,                              &
-                 ksupsijf, ksupuijf, ksupvijf, f_sin, nsmax, nmin)
+                 ksupsijf, ksupuijf, ksupvijf, f_sin, nsmin, nsmax)
       IF (lasym) THEN
          CALL getcv(ksupsmncf, ksupumnsf, ksupvmnsf,                           &
-                    ksupsijf, ksupuijf, ksupvijf, f_cos, nsmax, nmin)
+                    ksupsijf, ksupuijf, ksupvijf, f_cos, nsmin, nsmax)
       END IF
 
 !  Covariant K components (with jacob factor still there) in real space needed
@@ -407,11 +407,11 @@
 !>  @param[inout] ksupumnf Contravariant real space current in the u direction.
 !>  @param[inout] ksupvmnf Contravariant real space current in the v direction.
 !>  @param[in]    parity   Partity flag fourier components.
-!>  @param[in]    nsmax    Maximum radial index.
 !>  @param[in]    nsmin    Minimum radial index.
+!>  @param[in]    nsmax    Maximum radial index.
 !-------------------------------------------------------------------------------
       SUBROUTINE getcv(ksupsmnf, ksupumnf, ksupvmnf,                           &
-                       ksupsijf, ksupuijf, ksupvijf, parity, nsmax, nsmin)
+                       ksupsijf, ksupuijf, ksupvijf, parity, nsmin, nsmax)
       USE island_params, ONLY: fourier_context
 
       IMPLICIT NONE
@@ -423,9 +423,9 @@
       REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: ksupsijf
       REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: ksupuijf
       REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: ksupvijf
-      INTEGER, INTENT(IN)                                    :: parity
-      INTEGER, INTENT(IN)                                    :: nsmax
-      INTEGER, INTENT(IN)                                    :: nsmin
+      INTEGER, INTENT(in)                                    :: parity
+      INTEGER, INTENT(in)                                    :: nsmin
+      INTEGER, INTENT(in)                                    :: nsmax
 
 !  local variables
       INTEGER                                                :: fours
@@ -433,7 +433,7 @@
       INTEGER                                                :: fcomb
 
 !  Start of executable code
-      IF (parity .EQ. f_sin) THEN
+      IF (parity .eq. f_sin) THEN
          fcomb = f_none
          fours = f_sin
          fouruv = f_cos

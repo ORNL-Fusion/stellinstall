@@ -1013,7 +1013,7 @@
 !  Start of executable code
       nsmin = startglobrow
       nsmax = endglobrow
-      
+
       fsq_total = SUM(Fsupsmnsf(:,:,nsmin:nsmax)**2 +                          &
                       Fsupumncf(:,:,nsmin:nsmax)**2 +                          &
                       Fsupvmncf(:,:,nsmin:nsmax)**2)

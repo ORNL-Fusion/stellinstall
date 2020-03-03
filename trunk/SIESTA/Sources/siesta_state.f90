@@ -172,8 +172,7 @@
       REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: djbsupvmnh
       REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: djpmnh
 
-!  local variables
-      REAL (dp)                                               :: rho
+!  Local Variables
       INTEGER                                                 :: n1
       INTEGER                                                 :: n2
 

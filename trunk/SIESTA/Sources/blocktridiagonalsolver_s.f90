@@ -5318,8 +5318,6 @@ CALL ASSERT(istat.eq.0,' Allocation error in ApplyParallelScaling')
 
 CALL GetColSum(colpad)
 
-100 CONTINUE
-
 CALL PadSides(colpad, M, 1, 1)
 CALL VectorCopyPar(colpad, colscale)
 CALL ParallelScaling(colpad)

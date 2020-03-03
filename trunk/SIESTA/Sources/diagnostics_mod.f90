@@ -38,91 +38,98 @@
 
       CONTAINS
 
-        SUBROUTINE divb (ns_min, ns_max)
-        USE island_params, ONLY: ohs=>ohs_i
+!*******************************************************************************
+!>  UTILITY SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Compute divergence of B on the full mesh points.
+!>
+!>  @param[in] ns_min Lower radial index.
+!>  @param[in] ns_max Upper radial index.
+!-------------------------------------------------------------------------------
+      SUBROUTINE divb(ns_min, ns_max)
+      USE island_params, ONLY: ohs=>ohs_i
       USE hessian, ONLY: gather_array
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-        INTEGER, INTENT(IN) :: ns_min, ns_max
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-        INTEGER  :: istat, m, n, nl, nh, s
-        REAL(dp) :: tnorm, temp(2), ton, toff
-!-----------------------------------------------
-!
-!     COMPUTE divB ON FULL MESH POINTS
-!
-        CALL second0(ton)
 
-        nsmin = ns_min
-        nsmax = ns_max
-        nl = MAX(2, nsmin)
-        nh = MIN(ns-1, nsmax)
+!  Declare Arguments
+      INTEGER, INTENT(in)     :: ns_min
+      INTEGER, INTENT(in)     :: ns_max
+
+!  Local Variables
+      INTEGER                 :: istat
+      INTEGER                 :: m
+      INTEGER                 :: n
+      INTEGER                 :: nl
+      INTEGER                 :: nh
+      REAL (dp)               :: tnorm
+      REAL (dp), DIMENSION(2) :: temp
+      REAL (dp)               :: ton
+      REAL (dp)               :: toff
+
+!  Start of executable code
+      CALL second0(ton)
+
+      nsmin = ns_min
+      nsmax = ns_max
+      nl = MAX(2, nsmin)
+      nh = MIN(ns - 1, nsmax)
  
-        IF (ALLOCATED(divbmnsf)) DEALLOCATE(divbmnsf)
-        IF (ALLOCATED(divbmncf)) DEALLOCATE(divbmncf)
-        ALLOCATE(divbmnsf(0:mpol,-ntor:ntor,nsmin:nsmax),               &
-                 divbmncf(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
-        CALL ASSERT(istat.EQ.0,'Allocation failed in divb')
+      IF (ALLOCATED(divbmnsf)) THEN
+         DEALLOCATE(divbmnsf)
+      END IF
+      IF (ALLOCATED(divbmncf)) THEN
+         DEALLOCATE(divbmncf)
+      END IF
+      ALLOCATE(divbmnsf(0:mpol,-ntor:ntor,nsmin:nsmax),                      &
+               divbmncf(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
+      CALL ASSERT(istat.EQ.0,'Allocation failed in divb')
         
-        divbmnsf = 0
-        divbmncf = 0
+      divbmnsf = 0
+      divbmncf = 0
 
-        CALL Gather_Array(jbsupsmnsh)
-        CALL Gather_Array(jbsupumnch)
-        CALL Gather_Array(jbsupvmnch)
-        IF (lasym) THEN
-           CALL Gather_Array(jbsupsmnch)
-           CALL Gather_Array(jbsupumnsh)
-           CALL Gather_Array(jbsupvmnsh)
-        END IF
+      DO m = 0, mpol
+         DO n = -ntor, ntor
+            divbmnsf(m,n,nl:nh) =    -m*(jbsupumnch(m,n,nl+1:nh+1) +           &
+                                         jbsupumnch(m,n,nl:nh))*0.5            &
+                                - n*nfp*(jbsupvmnch(m,n,nl+1:nh+1) +           &
+                                         jbsupvmnch(m,n,nl:nh))*0.5            &
+                                +   ohs*(jbsupsmnsh(m,n,nl+1:nh+1) -           &
+                                         jbsupsmnsh(m,n,nl:nh))
+            IF (lasym) THEN
+               divbmncf(m,n,nl:nh) =     m*(jbsupumnsh(m,n,nl+1:nh+1) +        &
+                                            jbsupumnsh(m,n,nl:nh))*0.5         &
+                                   + n*nfp*(jbsupvmnsh(m,n,nl+1:nh+1) +        &
+                                            jbsupvmnsh(m,n,nl:nh))*0.5         &
+                                   +   ohs*(jbsupsmnch(m,n,nl+1:nh+1) -        &
+                                            jbsupsmnch(m,n,nl:nh))
+            END IF
+         END DO
+      END DO
 
-        DO m = 0, mpol
-           DO n = -ntor, ntor
-              divbmnsf(m,n,nl:nh) =    -m*(jbsupumnch(m,n,nl+1:nh+1) +         &
-                                           jbsupumnch(m,n,nl:nh))*0.5          &
-                                  - n*nfp*(jbsupvmnch(m,n,nl+1:nh+1) +         &
-                                           jbsupvmnch(m,n,nl:nh))*0.5          &
-                                  +   ohs*(jbsupsmnsh(m,n,nl+1:nh+1) -         &
-                                           jbsupsmnsh(m,n,nl:nh))
-              IF (lasym) THEN
-                 divbmncf(m,n,nl:nh) =     m*(jbsupumnsh(m,n,nl+1:nh+1) +      &
-                                              jbsupumnsh(m,n,nl:nh))*0.5       &
-                                     + n*nfp*(jbsupvmnsh(m,n,nl+1:nh+1) +      &
-                                              jbsupvmnsh(m,n,nl:nh))*0.5       &
-                                     +   ohs*(jbsupsmnch(m,n,nl+1:nh+1) -      &
-                                              jbsupsmnch(m,n,nl:nh))
-              END IF
-           END DO
-        END DO
-
-
-        tnorm = hs_i*SUM(jbsupumnch(:,:,nsmin:nsmax)**2                 &
-              +          jbsupvmnch(:,:,nsmin:nsmax)**2                 &
-              +          jbsupsmnsh(:,:,nsmin:nsmax)**2)
+      tnorm = hs_i*SUM(jbsupumnch(:,:,nsmin:nsmax)**2                          &
+            +          jbsupvmnch(:,:,nsmin:nsmax)**2                          &
+            +          jbsupsmnsh(:,:,nsmin:nsmax)**2)
        
-        divb_rms = SUM(divbmnsf**2 + divbmncf**2)
+      divb_rms = SUM(divbmnsf**2 + divbmncf**2)
 #if defined(MPI_OPT)        
-        temp(1) = divb_rms; temp(2) = tnorm
-        CALL MPI_ALLREDUCE(MPI_IN_PLACE,temp,2,MPI_REAL8, MPI_SUM,             &
-                           SIESTA_COMM,MPI_ERR)
-        divb_rms=temp(1);   tnorm = temp(2)
+      temp(1) = divb_rms
+      temp(2) = tnorm
+      CALL MPI_ALLREDUCE(MPI_IN_PLACE,temp,2,MPI_REAL8, MPI_SUM,               &
+                         SIESTA_COMM,MPI_ERR)
+      divb_rms = temp(1)
+      tnorm = temp(2)
 #endif
-        IF (tnorm .NE. zero) THEN
-           divb_rms = SQRT(divb_rms/tnorm)
-           divbmnsf = divbmnsf/SQRT(tnorm)
-           divbmncf = divbmncf/SQRT(tnorm)
-        END IF
+      IF (tnorm .NE. zero) THEN
+         divb_rms = SQRT(divb_rms/tnorm)
+         divbmnsf = divbmnsf/SQRT(tnorm)
+         divbmncf = divbmncf/SQRT(tnorm)
+      END IF
 
+      CALL second0(toff)
+      time_divb = time_divb + (toff-ton)
 
-        CALL second0(toff)
-        time_divb = time_divb + (toff-ton)
+      END SUBROUTINE
 
-        END SUBROUTINE divb
-
-         
         SUBROUTINE WRITE_PROFILES(fsq_total)
         USE safe_open_mod
         USE siesta_init, ONLY: init_state

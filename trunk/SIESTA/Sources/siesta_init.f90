@@ -387,10 +387,10 @@
 !>
 !>  All quantities contain a Jacobian term.
 !>
-!>  @param[inout] jbsupsmnh Contravariant B field s component on the half grid.
-!>  @param[inout] jbsupumnh Contravariant B field u component on the half grid.
-!>  @param[inout] jbsupvmnh Contravariant B field v component on the half grid.
-!>  @param[inout] jpmnh     Pressure on the half grid.
+!>  @param[in] jbsupsmnh Contravariant B field s component on the half grid.
+!>  @param[in] jbsupumnh Contravariant B field u component on the half grid.
+!>  @param[in] jbsupvmnh Contravariant B field v component on the half grid.
+!>  @param[in] jpmnh     Pressure on the half grid.
 !>  @param[in]    iparity   Parity of the quantities.
 !-------------------------------------------------------------------------------
       SUBROUTINE GetFields(jbsupsmnh, jbsupumnh, jbsupvmnh, jpmnh, iparity)
@@ -398,16 +398,16 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jbsupsmnh
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jbsupumnh
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jbsupvmnh
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jpmnh
-      INTEGER, INTENT(in)                                     :: iparity
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in) :: jbsupsmnh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in) :: jbsupumnh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in) :: jbsupvmnh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in) :: jpmnh
+      INTEGER, INTENT(in)                                  :: iparity
 
 !  local variables
-      INTEGER                                                 :: fours
-      INTEGER                                                 :: fouruvp
-      INTEGER                                                 :: fcomb
+      INTEGER                                              :: fours
+      INTEGER                                              :: fouruvp
+      INTEGER                                              :: fcomb
 
 !  Start of executable code
 !  Check origin values

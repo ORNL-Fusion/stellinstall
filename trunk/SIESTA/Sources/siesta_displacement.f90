@@ -109,7 +109,7 @@
       INTEGER                                                   :: fouruv
       INTEGER                                                   :: fcomb
       INTEGER                                                   :: nsmin
-      INTEGER                                                   :: nsmax, i,j,k
+      INTEGER                                                   :: nsmax
 
 !  Start of executable code
       nsmin = MAX(1, startglobrow - 1)
