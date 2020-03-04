@@ -59,7 +59,7 @@
          l_init_state = .FALSE.
       END IF
 
-      IF (ANY(xc .ne. 0)) THEN
+      IF (ANY(xc .ne. 0) .or. ALLOCATED(buv_res)) THEN
          CALL update_upperv
          CALL update_bfield(.FALSE.)
          CALL update_pres
