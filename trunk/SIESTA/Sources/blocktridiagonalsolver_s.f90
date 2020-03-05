@@ -748,7 +748,7 @@ SUBROUTINE DetermineMasterSlaveRanks()
   !----------------------------------------------
   ! Local Variables
   !----------------------------------------------
-  LOGICAL, ALLOCATABLE :: send_ammaster(:), recv_ammaster(:), assigned(:)
+  LOGICAL, ALLOCATABLE :: recv_ammaster(:), assigned(:)
   TYPE(MasterToSlaveMapping), ALLOCATABLE :: allmsmaps(:)
   INTEGER :: totmasters, nslavespermaster, adjustednslavespermaster, tempmaster
   INTEGER :: mpi_err, I, J, masterindex
@@ -757,9 +757,7 @@ SUBROUTINE DetermineMasterSlaveRanks()
 
   !----------------------------------------------
   !Initialize temporary data structures used for mapping
-  ALLOCATE( send_ammaster(1:1) )
   ALLOCATE( recv_ammaster(1:nranks) )
-  send_ammaster(1) = pblas%ammaster
   ALLOCATE( assigned(1:nranks) )
   DO I = 1, nranks
     assigned( i ) = .FALSE.
@@ -771,9 +769,9 @@ SUBROUTINE DetermineMasterSlaveRanks()
   END DO
 
   !----------------------------------------------
-  CALL MPI_Allgather( send_ammaster, 1, MPI_LOGICAL, &
-                      recv_ammaster, 1, MPI_LOGICAL, &
-                      SIESTA_COMM, mpi_err )
+  CALL MPI_Allgather(pblas%ammaster, 1, MPI_LOGICAL, &
+                     recv_ammaster, 1, MPI_LOGICAL,  &
+                     SIESTA_COMM, mpi_err)
 
   !----------------------------------------------
   !Figure out total number of masters
@@ -862,7 +860,6 @@ SUBROUTINE DetermineMasterSlaveRanks()
   END DO
   DEALLOCATE( assigned )
   DEALLOCATE( allmsmaps )
-  DEALLOCATE( send_ammaster )
   DEALLOCATE( recv_ammaster )
 
   IF(KPDBG) WRITE(OFU,*) 'DetermineMasterSlaveRanks done'; CALL FL(OFU)
@@ -2872,11 +2869,6 @@ SUBROUTINE GetSolutionVector( globrow, x )
   !-----------------------------------------------------------------------------
   INTEGER, INTENT(IN) :: globrow !<Original/global block-row num in [1..N]
   REAL(dp), INTENT(OUT) :: x(:) !<Solution column corr. to globrow
-  !-----------------------------------------------------------------------------
-  ! Local variables
-  !-----------------------------------------------------------------------------
-  REAL(dp) :: val
-  INTEGER :: i
 
   !-------------------------------------------
   ! Sanity checks on globrow
@@ -2893,10 +2885,7 @@ SUBROUTINE GetSolutionVector( globrow, x )
   !-------------------------------------------
   ! Copy solution into given vector
   !-------------------------------------------
-  DO i = 1, M
-    val = selement(globrow)%x(i)
-    x(i) = val
-  END DO
+  x = selement(globrow)%x
 
 END SUBROUTINE GetSolutionVector
 
@@ -4851,7 +4840,8 @@ END SUBROUTINE CheckConditionNumber
 SUBROUTINE CheckSymmetry (asymIndx)
 
 REAL(dp), INTENT (OUT) :: asymIndx                                       !On Processor 0 only
-REAL(dp) :: diff, partdiff, norm, eij, eji, tdiff, tnorm, summ
+REAL(dp) :: partdiff, eij, eji, summ
+REAL(dp), DIMENSION(2) :: temp
 REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: sendBuf, bottomLeftMatrix
 
 INTEGER :: topNeighbor, bottomNeighbor
@@ -4889,7 +4879,8 @@ CALL MPI_Sendrecv(sendBuf,M*M,MPI_REAL8,topNeighbor,1,                  &
 DEALLOCATE(sendBuf)
 IF (rank.EQ.nranks-1) bottomLeftMatrix=0
 
-summ=0; diff=0; norm=0
+summ = 0
+temp = 0
 
 DO blkrow=1,endglobrow-startglobrow+1
   ! Compute contributions from the main diagonal blocks
@@ -4903,30 +4894,30 @@ DO blkrow=1,endglobrow-startglobrow+1
       IF (i.NE.j) THEN
         ! Contribution from the off-diagonal elements of 
         ! this main diagonal block
-        norm = norm + eij*eij+eji*eji
+        temp(2) = temp(2) + eij*eij + eji*eji
       ELSE
         ! Contributions to the norm from just the diagonal 
         ! elements of this block
-        norm = norm + eij*eij
+        temp(2)  = temp(2) + eij*eij
       END IF
     END DO
   END DO
-  diff=diff+2*partdiff
+  temp(1) = temp(1) + 2*partdiff
 
   ! Compute contributions from off diagonal blocks
-  DO i=1,M
-    DO j=1,M
+  DO i = 1, M
+    DO j = 1, M
       IF (blkrow.NE.endglobrow-startglobrow+1) THEN 
         eij=lelement(1,blkrow)%U(i,j)
         eji=lelement(1,blkrow+1)%L(j,i)
-        diff = diff+(eij-eji)*(eij-eji)
-        norm = norm+eij*eij+eji*eji
+        temp(1) = temp(1) + (eij - eji)*(eij - eji)
+        temp(2) = temp(2) + eij*eij + eji*eji
       ELSE !Local bottom block row
         IF (rank.NE.nranks-1) THEN
           eij=lelement(1,blkrow)%U(i,j)
           eji=bottomLeftMatrix(j,i)
-          diff = diff+(eij-eji)*(eij-eji)
-          norm = norm+eij*eij+eji*eji
+          temp(1) = temp(1) + (eij - eji)*(eij - eji)
+          temp(2) = temp(2) + eij*eij + eji*eji
         END IF
       END IF
     END DO
@@ -4938,10 +4929,13 @@ CALL FLUSH(360+rank)
 
 DEALLOCATE(bottomLeftMatrix)
 
-CALL MPI_Reduce(diff,tdiff,1,MPI_REAL8,MPI_SUM,0,SIESTA_COMM,mpi_err)
-CALL MPI_Reduce(norm,tnorm,1,MPI_REAL8,MPI_SUM,0,SIESTA_COMM,mpi_err)
+IF (rank .eq. 0) THEN
+   CALL MPI_Reduce(MPI_IN_PLACE,temp,2,MPI_REAL8,MPI_SUM,0,SIESTA_COMM,mpi_err)
+ELSE
+   CALL MPI_Reduce(temp,temp,2,MPI_REAL8,MPI_SUM,0,SIESTA_COMM,mpi_err)
+END IF
 IF (rank.EQ.0) THEN 
-  asymIndx=SQRT(tdiff/tnorm)
+  asymIndx=SQRT(temp(1)/temp(2))
   !print *,'New asymIndx:',asymIndx
 END IF
 
@@ -5178,16 +5172,24 @@ END SUBROUTINE ParMatVec
 !-------------------------------------------------------------------------------
 SUBROUTINE GetColSum(cs)
 !-------------------------------------------------------------------------------
-REAL(dp), DIMENSION(M, N), INTENT(OUT) :: cs
+REAL (dp), DIMENSION(M, N), INTENT(OUT) :: cs
 !-------------------------------------------------------------------------------
-INTEGER  :: js
+INTEGER                                 :: js
+REAL (dp)                               :: minScale
+REAL (dp)                               :: eps
 !-------------------------------------------------------------------------------
+IF (lequi1) THEN
+   minScale = 1.0E-5_dp
+ELSE
+   minScale = 1.0E-8_dp
+END IF
 CALL InitScaleFactors
 DO js = startglobrow, endglobrow
-  CALL GetScaleFactors(js,cs(:,js))
-  cs(:,js) = one/SQRT(cs(:,js))
+   CALL GetScaleFactors(js,cs(:,js))
+   eps = minScale*MAXVAL(cs(:,js))
+   CALL ASSERT(eps .gt. zero, ' cs == 0 in GetColSum')
+   cs(:,js) = one/SQRT(MAX(cs(:,js), eps))
 END DO
-
 
 CALL FinalizeScaleFactors
 
@@ -5317,19 +5319,18 @@ ALLOCATE (colpad(M,N), stat=istat)
 CALL ASSERT(istat.eq.0,' Allocation error in ApplyParallelScaling')
 
 CALL GetColSum(colpad)
-
 CALL PadSides(colpad, M, 1, 1)
 CALL VectorCopyPar(colpad, colscale)
 CALL ParallelScaling(colpad)
-CALL GetColSum(colpad)
 
 icount = icount + 1
 !MAXIMUM COLUMN VARIATIONS (like an inverse "Condition number")
-temp(1) = MAXVAL(colpad(:,startglobrow:endglobrow))
+temp(1) = MAXVAL( colpad(:,startglobrow:endglobrow))
 temp(2) = MAXVAL(-colpad(:,startglobrow:endglobrow))
 CALL MPI_ALLREDUCE(MPI_IN_PLACE, temp, 2, MPI_REAL8, MPI_MAX,  SIESTA_COMM,    &
                    MPI_ERR)
-colcnd1 = temp(1); colcnd =-temp(2)
+colcnd1 = temp(1)
+colcnd  = -temp(2)
                 
 IF (colcnd1 .NE. ZERO) THEN
    colcnd = ABS(colcnd/colcnd1)

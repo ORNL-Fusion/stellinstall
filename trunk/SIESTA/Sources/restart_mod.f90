@@ -134,6 +134,8 @@
       CHARACTER (len=*), PARAMETER :: vn_wp = 'wp'
 !>  Name for the restart file rmajor.
       CHARACTER (len=*), PARAMETER :: vn_rmajor = 'rmajor'
+!>  Name for the restart file total toroidal current.
+      CHARACTER (len=*), PARAMETER :: vn_curtor = 'curtor'
 
 !>  Name for the restart file p_max.
       CHARACTER (len=*), PARAMETER :: vn_p_max = 'p_max'
@@ -370,7 +372,7 @@
                                mpol=>mpol_i, ntor=>ntor_i, ns=>ns_i,           &
                                ntheta=>nu_i, nzeta=>nv_i
       USE shared_data, ONLY: r1_i, z1_i
-      USE utilities, ONLY: set_bndy_half_to_full, set_bndy_half_to_full_ds
+      USE utilities, ONLY: curl_htof
       USE stel_constants, ONLY: one
 
       IMPLICIT NONE
@@ -399,14 +401,9 @@
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: bsubsmnh
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: bsubumnh
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: bsubvmnh
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: bsubsmnf
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: bsubumnf
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: bsubvmnf
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: jksupsmnf
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: jksupumnf
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: jksupvmnf
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: dbuds
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: dbvds
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: tempmn_w
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: pijh
 
@@ -473,6 +470,7 @@
          CALL cdf_define(ncid, vn_rmajor,    rmajor)
          CALL cdf_define(ncid, vn_p_max,     b_factor)
          CALL cdf_define(ncid, vn_p_min,     p_factor)
+         CALL cdf_define(ncid, vn_curtor,    tempscalar)
          IF (lasym) THEN
             CALL cdf_define(ncid, vn_bsupsmnc, jbsupsmnch, dimname=restart_dims)
             CALL cdf_define(ncid, vn_bsupumns, jbsupumnsh, dimname=restart_dims)
@@ -606,50 +604,25 @@
 
 !  Remove the orthonorm and b_factor so these quantities can be directly summed.
          CALL fourier_context%tomnsp(bsubsijh, bsubsmnh, f_sin)
-         CALL restart_denormalize(tempmn_w, b_factor)
-         CALL cdf_write(ncid, vn_bsubsmns, tempmn_w)
+         CALL restart_denormalize(bsubsmnh, b_factor)
+         CALL cdf_write(ncid, vn_bsubsmns, bsubsmnh)
 
          CALL fourier_context%tomnsp(bsubuijh, bsubumnh, f_cos)
-         CALL restart_denormalize(tempmn_w, b_factor)
-         CALL cdf_write(ncid, vn_bsubumnc, tempmn_w)
+         CALL restart_denormalize(bsubumnh, b_factor)
+         CALL cdf_write(ncid, vn_bsubumnc, bsubumnh)
 
          CALL fourier_context%tomnsp(bsubvijh, bsubvmnh, f_cos)
-         CALL restart_denormalize(tempmn_w, b_factor)
-         CALL cdf_write(ncid, vn_bsubvmnc, tempmn_w)
+         CALL restart_denormalize(bsubvmnh, b_factor)
+         CALL cdf_write(ncid, vn_bsubvmnc, bsubvmnh)
 
-!  Need full mesh values to compute currents on the full mesh.
-         ALLOCATE(bsubsmnf(0:mpol,-ntor:ntor,ns))
-         ALLOCATE(bsubumnf(0:mpol,-ntor:ntor,ns))
-         ALLOCATE(bsubvmnf(0:mpol,-ntor:ntor,ns))
-
-         CALL to_full_mesh(bsubsmnh, bsubsmnf)
-         CALL to_full_mesh(bsubumnh, bsubumnf)
-         CALL to_full_mesh(bsubvmnh, bsubvmnf)
-
-         CALL set_bndy_half_to_full(bsubsmnh, bsubvmnh, 1, f_sin,              &
-                                    bsubsmnf, bsubumnf, bsubvmnf)
-
+!  Compute currents on the full mesh.
          ALLOCATE(jksupsmnf(0:mpol,-ntor:ntor,ns))
          ALLOCATE(jksupumnf(0:mpol,-ntor:ntor,ns))
          ALLOCATE(jksupvmnf(0:mpol,-ntor:ntor,ns))
-         ALLOCATE(dbuds(0:mpol,-ntor:ntor,ns))
-         ALLOCATE(dbvds(0:mpol,-ntor:ntor,ns))
 
-!  Half grid radial derivatives become full grid.
-         CALL GradientFull(dbuds, bsubumnh)
-         CALL GradientFull(dbvds, bsubvmnh)
-
-         CALL set_bndy_half_to_full_ds(bsubumnh, bsubvmnh,                     &
-                                       dbuds, dbvds, 1, f_cos)
-
-         DO n = -ntor, ntor
-            DO m = 0, mpol
-               jksupsmnf(m,n,:) = -m*    bsubvmnf(m,n,:) + n*nfp*bsubumnf(m,n,:)
-               jksupumnf(m,n,:) =  n*nfp*bsubsmnf(m,n,:) - dbvds(m,n,:)
-               jksupvmnf(m,n,:) =  dbuds(m,n,:)          - m*    bsubsmnf(m,n,:)
-               CALL restart_denormalize(tempmn_w, b_factor)
-            END DO
-         END DO
+         CALL curl_htof(bsubsmnh, bsubumnh, bsubvmnh,                          &
+     &                  jksupsmnf, jksupumnf, jksupvmnf,                       &
+     &                  f_sin, 1, ns, .false., tempscalar)
 
          CALL restart_denormalize(jksupsmnf, b_factor)
          CALL restart_denormalize(jksupumnf, b_factor)
@@ -658,6 +631,8 @@
          CALL cdf_write(ncid, vn_jksupsmns, jksupsmnf)
          CALL cdf_write(ncid, vn_jksupumnc, jksupumnf)
          CALL cdf_write(ncid, vn_jksupvmnc, jksupvmnf)
+
+         CALL cdf_write(ncid, vn_curtor, tempscalar)
 
          IF (lasym) THEN
 !  Remove the orthonorm and b_factor so these quantities can be directly summed.
@@ -691,26 +666,9 @@
             CALL restart_denormalize(tempmn_w, b_factor)
             CALL cdf_write(ncid, vn_bsubvmns, tempmn_w)
 
-            CALL to_full_mesh(bsubsmnh, bsubsmnf)
-            CALL to_full_mesh(bsubumnh, bsubumnf)
-            CALL to_full_mesh(bsubvmnh, bsubvmnf)
-
-            CALL set_bndy_half_to_full(bsubsmnh, bsubvmnh, 1, f_cos,           &
-                                       bsubsmnf, bsubumnf, bsubvmnf)
-
-            CALL GradientFull(dbuds, bsubumnh)
-            CALL GradientFull(dbvds, bsubvmnh)
-
-            CALL set_bndy_half_to_full_ds(bsubumnh, bsubvmnh,                  &
-                                          dbuds, dbvds, 1, f_sin)
-
-            DO n = -ntor, ntor
-               DO m = 0, mpol
-                  jksupsmnf(m,n,:) = m*bsubvmnf(m,n,:) - n*nfp*bsubumnf(m,n,:)
-                  jksupumnf(m,n,:) = -n*nfp*bsubsmnf(m,n,:) - dbvds(m,n,:)
-                  jksupvmnf(m,n,:) = dbuds(m,n,:) + m*bsubsmnf(m,n,:)
-               END DO
-            END DO
+            CALL curl_htof(bsubsmnh, bsubumnh, bsubvmnh,                       &
+     &                     jksupsmnf, jksupumnf, jksupvmnf,                    &
+     &                     f_cos, 1, ns, .false., tempscalar)
 
             CALL restart_denormalize(jksupsmnf, b_factor)
             CALL restart_denormalize(jksupumnf, b_factor)
@@ -730,15 +688,9 @@
          DEALLOCATE(bsubumnh)
          DEALLOCATE(bsubvmnh)
 
-         DEALLOCATE(bsubsmnf)
-         DEALLOCATE(bsubumnf)
-         DEALLOCATE(bsubvmnf)
-
          DEALLOCATE(jksupsmnf)
          DEALLOCATE(jksupumnf)
          DEALLOCATE(jksupvmnf)
-         DEALLOCATE(dbuds)
-         DEALLOCATE(dbvds)
 
       END IF RECON1
 

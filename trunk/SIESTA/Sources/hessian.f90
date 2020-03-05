@@ -148,7 +148,7 @@
       INTEGER                                     :: np
       INTEGER                                     :: mbloc
       INTEGER                                     :: imax
-      REAL(dp), DIMENSION(:), ALLOCATABLE         :: unordered(:)
+      REAL(dp), DIMENSION(:), ALLOCATABLE         :: unordered
 
 !  Start of executable code
       ALLOCATE (unordered(mblk_size))
@@ -367,9 +367,9 @@
             MESH_3PT_LG: DO mesh = 1, 3
 
               IF (.NOT.(m.EQ.0 .AND. n.LT.0)) THEN
-              DO js = mystart(mesh), myend(mesh), 3
-                 xc(icol,js) = eps
-              END DO
+                 DO js = mystart(mesh), myend(mesh), 3
+                    xc(icol,js) = eps
+                 END DO
 			  END IF
 
               INHESSIAN=.TRUE.
@@ -565,9 +565,9 @@
                   MESH_3PT: DO mesh = 1, 3
 
                   IF (.NOT.(m.EQ.0 .AND. n.LT.0)) THEN
-                  DO js = jstart(mesh), ns, 3
-                     xc(icol,js) = eps
-                  END DO
+                     DO js = jstart(mesh), ns, 3
+                        xc(icol,js) = eps
+                     END DO
 				  END IF
 
                   INHESSIAN=.TRUE.

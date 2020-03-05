@@ -162,14 +162,15 @@
                                    fsupvmncf(:,:,js)*fsubvmncf(:,:,js))
          END IF
       END DO
-      temp(2) = SUM(vp_f(nsmin:nsmax))
 #if defined(MPI_OPT)         
       IF (PARSOLVER) THEN
-         CALL MPI_ALLREDUCE(MPI_IN_PLACE,temp,2,MPI_REAL8,MPI_SUM,             &
+!  FIXME: All reduce is not deterministic. This causes a divergent run sequence.
+         CALL MPI_ALLREDUCE(MPI_IN_PLACE,temp,1,MPI_REAL8,MPI_SUM,             &
                             SIESTA_COMM,MPI_ERR)
       END IF
 #endif
-      fsqout = temp(1)/temp(2)
+
+      fsqout = temp(1)/SUM(vp_f)
 
       END SUBROUTINE GetFSQ
 
@@ -198,8 +199,6 @@
       l_getwmhd    = .FALSE.
 
       getwmhd = wtotal
-
-      RETURN
 
       END FUNCTION getwmhd 
       

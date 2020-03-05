@@ -23,7 +23,7 @@
       REAL(dp), TARGET, DIMENSION(Locq,Locp,nblocks-1), INTENT(inout) ::&
                             bp, cp
 
-      REAL(dp), INTENT(inout) :: asym_index
+      REAL(dp), INTENT(out) :: asym_index
 #if defined(MPI_OPT)
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
@@ -198,7 +198,7 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER, INTENT(in)  :: mblk, nblocks, mpol, ntor
-      REAL(dp), INTENT(inout)  :: asym_index
+      REAL(dp), INTENT(out)  :: asym_index
       REAL(dp), INTENT(in), DIMENSION(mblk,mblk,nblocks) ::             &
          dblk, lblk, ublk
 !-----------------------------------------------

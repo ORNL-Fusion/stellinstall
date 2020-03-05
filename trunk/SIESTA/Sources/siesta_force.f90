@@ -130,6 +130,7 @@
          n2 = nsmax
 #if defined(MPI_OPT)
          IF (PARSOLVER) THEN
+!  FIXME: All reduce is not deterministic. This causes a divergent run sequence.
             CALL MPI_ALLREDUCE(MPI_IN_PLACE, wp, 1, MPI_REAL8, MPI_SUM,        &
                                SIESTA_COMM, MPI_ERR)
          END IF

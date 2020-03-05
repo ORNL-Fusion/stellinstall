@@ -145,6 +145,7 @@
 
          IF (PARSOLVER) THEN
 #if defined(MPI_OPT)
+!  FIXME: All reduce is not deterministic. This causes a divergent run sequence.
             CALL MPI_ALLREDUCE(MPI_IN_PLACE, wb, 1, MPI_REAL8, MPI_SUM,        &
                                SIESTA_COMM, MPI_ERR)
 #endif
