@@ -332,8 +332,8 @@
  10   CONTINUE
 
       IF (lactive) THEN
-      CALL drive_dgmres(n, nloc, m, lwork, work, irc,                    
-     &                  gi%icntl, gi%cntl, gi%info, rinfo)
+         CALL drive_dgmres(n, nloc, m, lwork, work, irc,
+     &                     gi%icntl, gi%cntl, gi%info, rinfo)
       ELSE
          irc = 1
       ENDIF
@@ -446,7 +446,7 @@
 	     IF (l_nonlinear) THEN
 		    PRINT 905
 	     ELSE
-              PRINT 906
+            PRINT 906
 	     END IF
 	  END IF
         kout = gi%info(1)

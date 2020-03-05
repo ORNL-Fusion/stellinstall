@@ -96,6 +96,7 @@
 
 #if defined (MPI_OPT)
       CALL MPI_INITIALIZED(isinit, status)
+
       IF (.not.isinit) THEN
          CALL MPI_INIT(status)
       END IF
@@ -577,4 +578,3 @@
       END FUNCTION
 
       END MODULE
-

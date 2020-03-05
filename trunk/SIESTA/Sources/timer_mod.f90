@@ -21,7 +21,6 @@
       REAL(dp) :: evolve_restart_file_time=0
       REAL(dp) :: evolve_add_resistive_E_time=0
 
-#if defined(SKS)
       REAL(dp) :: total_time
 
       REAL(dp) :: init_data_time
@@ -94,8 +93,6 @@
       REAL(dp)     :: gmres_wrap_time_max, gmres_wrap_time_min
       REAL(dp)     :: ParyAx_time_max, ParyAx_time_min
 
-#endif
-
       CONTAINS
 
       SUBROUTINE init_timers
@@ -114,7 +111,6 @@
 
       END SUBROUTINE init_timers
 
-#if defined(SKS)
       SUBROUTINE sks_timers
         total_time=0
         construct_hessian_time=0
@@ -132,6 +128,5 @@
         sendrecv_time=0
 
       END SUBROUTINE sks_timers
-#endif
 
       END MODULE timer_mod

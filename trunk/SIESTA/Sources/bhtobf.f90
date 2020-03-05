@@ -1,94 +1,99 @@
-      MODULE bhtobf
-      USE v3_utilities, ONLY: assert      
-      CONTAINS
-      
-      SUBROUTINE bhalftobfull (bsupsijh, bsupuijh, bsupvijh,            &
-                               bsupsijf, bsupuijf, bsupvijf,            &
-                               pijh, pijf)
-!     
-!     WRITTEN 01-04-10 BY S. HIRSHMAN AS PART OF THE ORNL SIESTA PROJECT (c)
-!     
-!     PURPOSE: Store BsupX (and p if persent) on full mesh
-!     NOTE:    On Entry, bsups,u_h at js=1 contain the "evolved" values of 
-!              bsups,u_f at s=0 (js=1), as computed in UPDATE_BFIELD
+!*******************************************************************************
+!>  @file siesta_currents.f90
+!>  @brief Contains routines to convert B fields from half grids to full grids.
 !
-       USE stel_kinds
-       USE quantities, ONLY: ns, jacobf, jacobh
-       USE timer_mod
-       USE utilities, ONLY: to_full_mesh
-       IMPLICIT NONE
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(INOUT)    ::     &
-           bsupsijh, bsupvijh
-       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(INOUT) ::        &
-           bsupuijh, bsupsijf, bsupuijf, bsupvijf
-       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:), OPTIONAL ::             &
-           pijh, pijf
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-       REAL(dp) :: skston, skstoff
-       INTEGER  :: nsmin, nsmax
-!-----------------------------------------------
-#undef _OLD_AV
-!#define _OLD_AV
-       CALL second0(skston)
-       
-       nsmin = LBOUND(bsupsijh,3)
-       nsmax = UBOUND(bsupsijh,3)
-       
-!Interpolate b^X finite at the origin
-!On exit, bsupXF = [nsmin, nsmax-1]
-!Radial (s)
-#if defined(_OLD_AV)
-       bsupsijh = bsupsijh/jacobh(:,:,nsmin:nsmax)
-#endif       
-       CALL to_full_mesh(bsupsijh, bsupsijf)
-       IF (nsmin .EQ. 1) bsupsijf(:,:,1) = bsupsijh(:,:,1)
-#if !defined(_OLD_AV)       
-       bsupsijf = bsupsijf/jacobf(:,:,nsmin:nsmax)
-       bsupsijh = bsupsijh/jacobh(:,:,nsmin:nsmax)
-#endif       
-!Poloidal(u): on input, bsupuijh = bsupuijh*jacobh
-       CALL to_full_mesh(bsupuijh, bsupuijf)
-       IF (nsmin .EQ. 1) bsupuijf(:,:,1) = bsupuijh(:,:,1)
-       bsupuijf = bsupuijf/jacobf(:,:,nsmin:nsmax)
-       bsupuijh = bsupuijh/jacobh(:,:,nsmin:nsmax)
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
+!
+!>  Converts half grid B field to full grid and removes the jacobian factor.
+!*******************************************************************************
+      MODULE bhtobf
 
-!Toroidal (v)
-#if defined(_OLD_AV)
-       bsupvijh = bsupvijh/jacobh(:,:,nsmin:nsmax)
-#endif
-       CALL to_full_mesh(bsupvijh, bsupvijf)
-       IF (nsmin .EQ. 1) bsupvijf(:,:,1) = bsupvijh(:,:,1)
+      IMPLICIT NONE
 
-#if !defined(_OLD_AV)       
-       bsupvijf = bsupvijf/jacobf(:,:,nsmin:nsmax)
-       bsupvijh = bsupvijh/jacobh(:,:,nsmin:nsmax)
-#endif       
-!pressure
-       IF (PRESENT(pijh)) THEN
-          CALL ASSERT(SIZE(bsupsijh,3).EQ.SIZE(pijh,3),                 &
-                      'bhtobf pijh SIZE WRONG')
-#if defined(_OLD_AV)
-          pijh = pijh/jacobh(:,:,nsmin:nsmax)
-#endif          
-          CALL to_full_mesh(pijh, pijf)
-          IF (nsmin .EQ. 1) pijf(:,:,1) = pijh(:,:,1)
-#if !defined(_OLD_AV)       
-          pijf = pijf/jacobf(:,:,nsmin:nsmax)
-          pijh = pijh/jacobh(:,:,nsmin:nsmax)
-#endif          
-       END IF
+      CONTAINS
 
-       IF (nsmax .EQ. ns) bsupsijf(:,:,ns) = 0
-       
-       CALL second0(skstoff)
-#if defined(SKS)
-       bhtobf_time=bhtobf_time+(skstoff-skston)
-#endif
-       END SUBROUTINE bhalftobfull
+!*******************************************************************************
+!  UTILITY SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Convert half mesh fields to the full mesh and remove jacobian factor.
+!>
+!>  On entry the full mesh quantities contain an extra jacobian factor that will
+!>  be removed after to coversion to the full mesh.
+!>
+!>  @param[inout] bsupsijh Contravariant s component of B field on half mesh.
+!>  @param[inout] bsupsijh Contravariant u component of B field on half mesh.
+!>  @param[inout] bsupsijh Contravariant v component of B field on half mesh.
+!>  @param[inout] bsupsijh Contravariant s component of B field on full mesh.
+!>  @param[inout] bsupsijh Contravariant u component of B field on full mesh.
+!>  @param[inout] bsupsijh Contravariant v component of B field on full mesh.
+!>  @param[inout] pijh     Pressure on half mesh.
+!>  @param[inout] pijh     Pressure on full mesh.
+!-------------------------------------------------------------------------------
+      SUBROUTINE bhalftobfull(bsupsijh, bsupuijh, bsupvijh,                    &
+                              bsupsijf, bsupuijf, bsupvijf,                    &
+                              pijh, pijf)
+      USE stel_kinds
+      USE v3_utilities, ONLY: assert_eq
+      USE quantities, ONLY: ns, jacobf, jacobh
+      USE timer_mod
+      USE utilities, ONLY: to_full_mesh
+      USE siesta_namelist, ONLY: l_vessel
 
-       END MODULE bhtobf
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: bsupsijh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: bsupuijh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: bsupvijh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: bsupsijf
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: bsupuijf
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: bsupvijf
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: pijh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: pijf
+
+!  local variables
+      INTEGER                                                 :: nsmin
+      INTEGER                                                 :: nsmax
+
+!  Start of executable code
+      nsmin = LBOUND(bsupsijh,3)
+      nsmax = UBOUND(bsupsijh,3)
+
+      CALL to_full_mesh(bsupsijh, bsupsijf)
+      IF (nsmin .EQ. 1) THEN
+         bsupsijf(:,:,1) = bsupsijh(:,:,1)
+      END IF
+      bsupsijf = bsupsijf/jacobf(:,:,nsmin:nsmax)
+      bsupsijh = bsupsijh/jacobh(:,:,nsmin:nsmax)
+
+      CALL to_full_mesh(bsupuijh, bsupuijf)
+      IF (nsmin .EQ. 1) THEN
+         bsupuijf(:,:,1) = bsupuijh(:,:,1)
+      END IF
+      bsupuijf = bsupuijf/jacobf(:,:,nsmin:nsmax)
+      bsupuijh = bsupuijh/jacobh(:,:,nsmin:nsmax)
+
+      CALL to_full_mesh(bsupvijh, bsupvijf)
+      IF (nsmin .EQ. 1) THEN
+         bsupvijf(:,:,1) = bsupvijh(:,:,1)
+      END IF
+      bsupvijf = bsupvijf/jacobf(:,:,nsmin:nsmax)
+      bsupvijh = bsupvijh/jacobh(:,:,nsmin:nsmax)
+
+      CALL assert_eq(SIZE(bsupsijh,3), SIZE(pijh,3), 'bhtobf pijh SIZE WRONG')
+      CALL to_full_mesh(pijh, pijf)
+      IF (nsmin .EQ. 1) THEN
+         pijf(:,:,1) = pijh(:,:,1)
+      END IF
+      pijf = pijf/jacobf(:,:,nsmin:nsmax)
+      pijh = pijh/jacobh(:,:,nsmin:nsmax)
+
+      IF (nsmax .eq. ns .and. .not.l_vessel) THEN
+         bsupsijf(:,:,ns) = 0
+      END IF
+
+      END SUBROUTINE
+
+      END MODULE

@@ -1,55 +1,35 @@
+!*******************************************************************************
+!>  @file siesta_currents.f90
+!>  @brief Contains routines to compute the current density from Curl(B).
+!
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
+!
+!>  Takes the Curl(B) to return the contravariant current density. Contravariant
+!>  components of the magnetic field must be converted to covariant components
+!>  first.
+!*******************************************************************************
       MODULE siesta_currents
       USE v3_utilities, ONLY: assert
       USE stel_kinds
       USE stel_constants
       USE descriptor_mod, ONLY: SIESTA_COMM
-      USE shared_data, ONLY: l_update_state, l_natural, lasym,          &
-                             jsju_ratio_s, jsju_ratio_a, ste 
+      USE shared_data, ONLY: l_update_state, lasym, ste,                       &
+                             jsju_ratio_s, jsju_ratio_a 
       USE fourier
       USE nscalingtools, ONLY: nranks, startglobrow, endglobrow, MPI_ERR
-      USE utilities, ONLY: GradientFull, to_full_mesh
       USE metrics, ONLY: tolowerf, tolowerh
       USE quantities
 
       IMPLICIT NONE
-      PRIVATE
-      INTEGER  :: nsmin, nsmax, n1, n2
-      INTEGER, PARAMETER :: isym=0, iasym=1, m0=0, m1=1, m2=2
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)  ::                       &
-                bsubsijh, bsubuijh, bsubvijh, bs_filter, bu_filter,     &
-                bv_filter
-      REAL(dp) :: edge_cur
-      PUBLIC   :: cv_currents
 
       CONTAINS
 
-      SUBROUTINE cv_currents (bsupsijh, bsupuijh, bsupvijh,             &
-                              ksupsijf, ksupuijf, ksupvijf,             & 
-                              lmagen, lcurr)
 !*******************************************************************************
-!>  \file siesta_currents.f90
-!>  \brief Contains routines to compute the current density from Curl(B).
-!>  Takes the Curl(B) to return the contravariant current density. Contravariant
-!>  components of the magnetic field must be converted to covariant components
-!>  first.
-!>
-!>  \param[in]  bsupsijh B^s on the half grid.
-!>  \param[in]  bsupuijh B^u on the half grid.
-!>  \param[in]  bsupvijh B^v on the half grid.
-!>  \param[out] ksupsijf K^s on the full grid.
-!>  \param[out] ksupuijf K^u on the full grid.
-!>  \param[out] ksupvijf K^v on the full grid.
-!>  \param[in]  lmagen   logical controlling calc of magnetic energy wb
-!>  \param[in]  lcurr    UNKNOWN
-
-!
-!  Note separating the Doxygen comment block here so detailed description is
-!  found in the Module not the file.
-!
-!>  \brief Computes contravariant currents on full-grid from covariant B-fields
-!>  on half-grid.
-!>  \author S. P. Hirshman
-!>  \date February 26 2007
+!  UTILITY SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Compute current density from Curl(B).
 !>
 !>  Current density K is defined as
 !>
@@ -63,348 +43,414 @@
 !>
 !>     K^v = 1/sqrt(g)(dB_u/ds - dB_s/du)                                   (2c)
 !>
-!>  where sqrt(g) is the coordinate system Jacobian. Since there are derivatives 
+!>  where sqrt(g) is the coordinate system Jacobian. Since there are derivatives
 !>  with respect to s, these routines take the half grid values as input. The
 !>  contravariant current computed will be on the full grid. These routines also
-!>  output currents in real space. Note the computed Kmn are [sqrt(g)*K]mn with the 
-!>  embedded jacobian factor.
-!*******************************************************************************
-      USE island_params, ONLY: nu_i, rmajor_i
+!>  output currents in real space. Note the computed Kmn are [sqrt(g)*K]mn with
+!>  the embedded jacobian factor.
+!>
+!>  @param[in]    bsupsijh B^s on the half grid.
+!>  @param[in]    bsupuijh B^u on the half grid.
+!>  @param[in]    bsupvijh B^v on the half grid.
+!>  @param[inout] ksupsijf K^s on the full grid.
+!>  @param[inout] ksupuijf K^u on the full grid.
+!>  @param[inout] ksupvijf K^v on the full grid.
+!>  @param[in]    lmagen   Logical controlling calc of magnetic energy wb.
+!>  @param[in]    lcurr    UNKNOWN
+!-------------------------------------------------------------------------------
+      SUBROUTINE cv_currents(bsupsijh, bsupuijh, bsupvijh,                     &
+                             ksupsijf, ksupuijf, ksupvijf,                     &
+                             lmagen, lcurr)
+      USE island_params, ONLY: nu_i, rmajor_i, fourier_context
       USE Hessian, ONLY: mupar_norm
       USE descriptor_mod, ONLY: iam
+      USE quantities, ONLY: bsq
       USE timer_mod
       USE mpi_inc
       USE descriptor_mod, ONLY: SIESTA_COMM
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      INTEGER :: iwrite
-      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(IN)  ::           &
-           bsupsijh, bsupuijh, bsupvijh,                                &
-           ksupsijf, ksupuijf, ksupvijf
-      LOGICAL, INTENT(IN)  :: lmagen, lcurr
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      INTEGER :: istat
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: bsq_loc
-      REAL(dp) :: beta, ton, toff, stes(6), rtes(6), tmp
-!-----------------------------------------------
+      USE shared_data, ONLY: siesta_curtor, unit_out
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in)    :: bsupsijh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in)    :: bsupuijh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in)    :: bsupvijh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: ksupsijf
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: ksupuijf
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: ksupvijf
+      LOGICAL, INTENT(in)                                     :: lmagen
+      LOGICAL, INTENT(in)                                     :: lcurr
+
+!  Local Variables
+      INTEGER                                                 :: istat
+      REAL (dp)                                               :: beta
+      REAL (dp)                                               :: ton
+      REAL (dp)                                               :: toff
+      REAL (dp), DIMENSION(6)                                 :: temp(6)
+      REAL (dp)                                               :: tmp
+      INTEGER                                                 :: nsmin
+      INTEGER                                                 :: nsmax
+      INTEGER                                                 :: nmin
+      INTEGER                                                 :: nmax
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)                :: bsubsijh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)                :: bsubuijh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)                :: bsubvijh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)                :: bs_filter
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)                :: bu_filter
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)                :: bv_filter
+      REAL (dp)                                               :: edge_cur
+
+!  Start of executable code
       CALL second0(ton)
 
-      n1=MAX(1, startglobrow); n2=MIN(ns,endglobrow)
-      nsmin = LBOUND(bsupsijh,3); nsmax = UBOUND(bsupsijh,3)
+      nmin = MAX(1, startglobrow)
+      nmax = MIN(ns, endglobrow)
+      nsmin = LBOUND(bsupsijh,3)
+      nsmax = UBOUND(bsupsijh,3)
 
-!      CALL ASSERT(LBOUND(ksupsijf,3).EQ.nsmin,                          &
-!                 'KSUPSIJF HAS WRONG LB IN CV_CURRENTS')
-!      CALL ASSERT(UBOUND(ksupsijf,3).EQ.nsmax,                          &
-!                 'KSUPSIJF HAS WRONG UB IN CV_CURRENTS')
-
-! Calculate covariant BsubXh on half mesh
-      ALLOCATE(bsubsijh(ntheta,nzeta,nsmin:nsmax),                      &
-               bsubuijh(ntheta,nzeta,nsmin:nsmax),                      &
+!  Calculate covariant BsubXh on half mesh
+      ALLOCATE(bsubsijh(ntheta,nzeta,nsmin:nsmax),                             &
+               bsubuijh(ntheta,nzeta,nsmin:nsmax),                             &
                bsubvijh(ntheta,nzeta,nsmin:nsmax), stat=istat)
-      CALL ASSERT(istat.EQ.0, 'Allocation1 failed in CV_CURRENTS')
-     
-      CALL tolowerh(bsupsijh, bsupuijh, bsupvijh,                       &
+      CALL assert_eq(0, istat, 'Allocation1 failed in cv_currents')
+
+      CALL tolowerh(bsupsijh, bsupuijh, bsupvijh,                              &
                     bsubsijh, bsubuijh, bsubvijh, nsmin, nsmax)
-                    
-!COMPUTE PARALLEL DAMPING SCALING COEFFICIENT <Bsupv**2/B**2> ~ k^2
-      IF (.NOT. ALLOCATED(mupar_norm)) THEN
+
+!  Compute parallel damping scaling cofficient <bsupv^2/B.B> ~ k^2
+      IF (.not.ALLOCATED(mupar_norm)) THEN
          ALLOCATE(mupar_norm(nsmin:nsmax), stat=istat)
-         CALL ASSERT(istat.EQ.0,'MUPAR_NORM ALLOCATION FAILED!')
+         CALL assert_eq(0, istat,'mupar_norm allocation failed!')
          beta = MAX(1.E-5_dp, wp_i/wb_i)
-         mupar_norm = signjac*beta / rmajor_i**2  !/ vp_f(nsmin:nsmax)     !add 1/jac correction factor in AddDamping
-         IF (iam.EQ.0 .AND. lverbose)                                   &
-            PRINT '(a,1p,e12.3)',' Rmajor_i = ',rmajor_i
+         mupar_norm = signjac*beta/(rmajor_i*rmajor_i)  !/ vp_f(nsmin:nsmax)     !add 1/jac correction factor in AddDamping
+         IF (iam .eq. 0 .and. lverbose) THEN
+            WRITE (*,1000) rmajor_i
+         END IF
       END IF
 
       IF (lmagen) THEN
-         ALLOCATE (bsq_loc(ntheta,nzeta,nsmin:nsmax), stat=istat)
-         bsq_loc = bsupsijh*bsubsijh  + bsupuijh*bsubuijh               &
-                 + bsupvijh*bsubvijh
-         IF (n1 .EQ. 1) bsq_loc(:,:,1) = 0
-         CALL ASSERT(n1.EQ.1 .OR. ALL(bsq_loc(:,:,n1:n2) .GT. zero),    &
-                     'BSQ <= 0 in cv_currents_par!')
+         bsq(:,:,nmin:nmax) = bsupsijh(:,:,nmin:nmax)*bsubsijh(:,:,nmin:nmax)  &
+                            + bsupuijh(:,:,nmin:nmax)*bsubuijh(:,:,nmin:nmax)  &
+                            + bsupvijh(:,:,nmin:nmax)*bsubvijh(:,:,nmin:nmax)
+         IF (nmin .EQ. 1) THEN
+            bsq(:,:,1) = 0
+         END IF
 
-         wb = SUM(bsq_loc(:,:,n1:n2)*jacobh(:,:,n1:n2)*wint(:,:,n1:n2))
-         wb0 = signjac*(twopi*pi*hs_i)*wb
-         
+         CALL assert(nmin                   .eq. 1 .or.                        &
+                     ALL(bsq(:,:,nmin:nmax) .gt. zero),                        &
+                     'BSQ <= 0 in cv_currents!')
+
+         wb = SUM(bsq(:,:,nmin:nmax)*jacobh(:,:,nmin:nmax)*wint(:,:,nmin:nmax))
+
          IF (PARSOLVER) THEN
 #if defined(MPI_OPT)
-            CALL MPI_ALLREDUCE(wb0, wb, 1, MPI_REAL8, MPI_SUM,          &
+!  FIXME: All reduce is not deterministic. This causes a divergent run sequence.
+            CALL MPI_ALLREDUCE(MPI_IN_PLACE, wb, 1, MPI_REAL8, MPI_SUM,        &
                                SIESTA_COMM, MPI_ERR)
 #endif
-         ELSE
-            wb = wb0
          END IF
-         DEALLOCATE (bsq_loc)
+         wb = signjac*(twopi*pi*hs_i)*wb
       END IF
 
-!
-! Calculate BsubXmnh and KsupXmnf harmonics
-!       
-      CALL CURLB (ksupsmnsf, ksupumncf, ksupvmncf, jsju_ratio_s,        &
-                  isym, lcurr)
-      IF (lasym)                                                        &
-      CALL CURLB (ksupsmncf, ksupumnsf, ksupvmnsf, jsju_ratio_a,        &
-                  iasym, lcurr)
+!  Calculate BsubXmnh and KsupXmnf harmonics. Deallocated in calling routine.
+      IF (l_update_state) THEN
+         ALLOCATE(bs_filter(ntheta,nzeta,nsmin:nsmax),                         &
+                  bu_filter(ntheta,nzeta,nsmin:nsmax),                         &
+                  bv_filter(ntheta,nzeta,nsmin:nsmax), stat=istat)
+         CALL assert_eq(0, istat, 'Allocation2 failed in CURLB')
+      END IF
+
+      edge_cur = 0.0
+      CALL curlb(ksupsmnsf, ksupumncf, ksupvmncf,                              &
+                 bsubsijh, bsubuijh, bsubvijh,                                 &
+                 bs_filter, bu_filter, bv_filter, edge_cur,                    &
+                 jsju_ratio_s, f_sin, lcurr, nsmax, nsmin, siesta_curtor)
+      IF (lasym) THEN
+         CALL curlb(ksupsmncf, ksupumnsf, ksupvmnsf,                           &
+                    bsubsijh, bsubuijh, bsubvijh,                              &
+                    bs_filter, bu_filter, bv_filter, edge_cur,                 &
+                    jsju_ratio_a, f_cos, lcurr, nsmax, nsmin,                  &
+                    siesta_curtor)
+      END IF
+
+      IF (nsmax .eq. ns) THEN
+         siesta_curtor = -fourier_context%orthonorm(m0,n0)*siesta_curtor       &
+                       / b_factor
+      END IF
 
       IF (lcurr) THEN
-         nsmax=MIN(ns,endglobrow+1)
+         nsmax = MIN(ns, endglobrow + 1)
       ELSE
-         nsmax=MIN(ns,endglobrow)
+         nsmax = MIN(ns, endglobrow)
       END IF
 
-!
-!     Calculate full mesh, contravariant real-space current components
-!     KsupXF = sqrt(g)*JsupXF 
-!        
-      CALL GETCV (ksupsmnsf, ksupumncf, ksupvmncf, ksupsijf, ksupuijf,  &
-                  ksupvijf, isym)                       
-      IF (lasym)                                                        &
-      CALL GETCV (ksupsmncf, ksupumnsf, ksupvmnsf, ksupsijf, ksupuijf,  &
-                  ksupvijf, iasym)                       
+!  Calculate full mesh, contravariant real-space current components
+!  KsupXF = sqrt(g)*JsupXF.
+      CALL getcv(ksupsmnsf, ksupumncf, ksupvmncf,                              &
+                 ksupsijf, ksupuijf, ksupvijf, f_sin, nsmin, nsmax)
+      IF (lasym) THEN
+         CALL getcv(ksupsmncf, ksupumnsf, ksupvmnsf,                           &
+                    ksupsijf, ksupuijf, ksupvijf, f_cos, nsmin, nsmax)
+      END IF
 
-!Covariant K components (with jacob factor still there) in real space
-!==> needed for current diffusion
+!  Covariant K components (with jacob factor still there) in real space needed
+!  for current diffusion
       IF (lcurr) THEN
-         CALL tolowerf(ksupsijf, ksupuijf, ksupvijf,                    & 
+         CALL tolowerf(ksupsijf, ksupuijf, ksupvijf,                           &
                        ksubsijf, ksubuijf, ksubvijf, nsmin, nsmax)
-         IF (nsmin .EQ. 1) ksubuijf(:,:,1) = 0 
-      ENDIF
+         IF (nsmin .eq. 1) THEN
+            ksubuijf(:,:,1) = 0
+         END IF
+      END IF
 
-!Diagnostic output (only compute when state is updated)
+!  Diagnostic output (only compute when state is updated)
       DIAGNO: IF (l_update_state) THEN
-!
-!     Compute spectral truncation error measure
-!     (Use ksupsijf for temporary FILTERED bsubXijh values)
-!
-         IF (nsmax .EQ. ns) THEN 
-            tmp = SUM(wint(:,:,ns)*(bsubvijh(:,:,ns)**2                  &
-                +                   bsubuijh(:,:,ns)**2))
-            IF (tmp .NE. zero) tmp = SQRT(edge_cur/tmp)
+
+!  Compute spectral truncation error measure (Use ksupsijf for temporary
+!  filtered bsubXijh values)
+         IF (nsmax .eq. ns) THEN
+            tmp = SUM(wint(:,:,ns)*(bsubvijh(:,:,ns)*bsubvijh(:,:,ns) +        &
+                                    bsubuijh(:,:,ns)*bsubuijh(:,:,ns)))
+            IF (tmp .ne. zero) THEN
+               tmp = SQRT(edge_cur/tmp)
+            END IF
          END IF
 #if defined(MPI_OPT)
          IF (PARSOLVER) THEN
-         CALL MPI_BCAST(tmp,1,MPI_REAL8,nranks-1,SIESTA_COMM,MPI_ERR)
+            CALL MPI_BCAST(tmp, 1, MPI_REAL8, nranks - 1, SIESTA_COMM, MPI_ERR)
          END IF
 #endif
          IF (iam .EQ. 0) THEN
-         DO iwrite = 6, unit_out, unit_out-6
-            IF (.NOT.lverbose .AND. iwrite.EQ.6) CYCLE
-            WRITE(iwrite, 1008)' RMS EDGE CURRENT ||KSUPS(NS)|| = ', tmp
-         END DO
-         CALL FLUSH(unit_out)
+            IF (lverbose) THEN
+               WRITE (*, 1001) tmp
+            END IF
+            WRITE (unit_out, 1001) tmp
+            CALL FLUSH(unit_out)
          END IF
- 1008 FORMAT(a,1p,e10.3)
 
-         stes(1) = SUM(wint(:,:,n1:n2)*(bs_filter - bsubsijh(:,:,n1:n2))**2)
-         stes(2) = SUM(wint(:,:,n1:n2)*(bs_filter + bsubsijh(:,:,n1:n2))**2)         
-         stes(3) = SUM(wint(:,:,n1:n2)*(bu_filter - bsubuijh(:,:,n1:n2))**2)
-         stes(4) = SUM(wint(:,:,n1:n2)*(bu_filter + bsubuijh(:,:,n1:n2))**2)         
-         stes(5) = SUM(wint(:,:,n1:n2)*(bv_filter - bsubvijh(:,:,n1:n2))**2)
-         stes(6) = SUM(wint(:,:,n1:n2)*(bv_filter + bsubvijh(:,:,n1:n2))**2)         
-         IF (PARSOLVER) THEN
+         temp(1) = SUM(wint(:,:,nmin:nmax) *                                   &
+                       (bs_filter - bsubsijh(:,:,nmin:nmax))**2)
+         temp(2) = SUM(wint(:,:,nmin:nmax) *                                   &
+                       (bs_filter + bsubsijh(:,:,nmin:nmax))**2)
+         temp(3) = SUM(wint(:,:,nmin:nmax) *                                   &
+                       (bu_filter - bsubuijh(:,:,nmin:nmax))**2)
+         temp(4) = SUM(wint(:,:,nmin:nmax) *                                   &
+                       (bu_filter + bsubuijh(:,:,nmin:nmax))**2)
+         temp(5) = SUM(wint(:,:,nmin:nmax) *                                   &
+                       (bv_filter - bsubvijh(:,:,nmin:nmax))**2)
+         temp(6) = SUM(wint(:,:,nmin:nmax) *                                   &
+                       (bv_filter + bsubvijh(:,:,nmin:nmax))**2)
 #if defined(MPI_OPT)
-         CALL MPI_ALLREDUCE(stes, rtes, 6, MPI_REAL8, MPI_SUM,          &
-                            SIESTA_COMM, MPI_ERR)
-#endif
-         ELSE
-         rtes = stes
+         IF (PARSOLVER) THEN
+            CALL MPI_ALLREDUCE(MPI_IN_PLACE, temp, 6, MPI_REAL8, MPI_SUM,      &
+                               SIESTA_COMM, MPI_ERR)
          END IF
-         IF (rtes(2) .NE. zero) ste(2) = SQRT(rtes(1)/rtes(2))
-         IF (rtes(4) .NE. zero) ste(3) = SQRT(rtes(3)/rtes(4))
-         IF (rtes(6) .NE. zero) ste(4) = SQRT(rtes(5)/rtes(6))
+#endif
+         IF (temp(2) .ne. zero) THEN
+            ste(2) = SQRT(temp(1)/temp(2))
+         END IF
+         IF (temp(4) .ne. zero) THEN
+            ste(3) = SQRT(temp(3)/temp(4))
+         END IF
+         IF (temp(6) .ne. zero) THEN
+            ste(4) = SQRT(temp(5)/temp(6))
+         END IF
          DEALLOCATE (bs_filter, bu_filter, bv_filter)
       END IF DIAGNO
 
       DEALLOCATE (bsubsijh, bsubuijh, bsubvijh) 
 
       CALL second0(toff)
-#if defined(SKS)      
-      cv_current_time=cv_current_time+(toff-ton)
-#endif      
-      time_current = time_current+(toff-ton)
+      cv_current_time = cv_current_time + (toff - ton)
+      time_current = time_current + (toff - ton)
 
-      END SUBROUTINE cv_currents
+1000  FORMAT(' Rmajor_i = ',1p,e12.3)
+1001  FORMAT(' RMS EDGE CURRENT ||KSUPS(NS)|| = ',1p,e10.3)
 
-  
-!>     \brief Compute fourier components of contravariant currents on 
-!>      full radial grid
-      SUBROUTINE CURLB (ksupsmnf, ksupumnf, ksupvmnf, jsju_ratio,       &
-                        ipar, lcurr)
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      INTEGER, INTENT(IN)  :: ipar
-      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE   ::                      &
-           ksupsmnf, ksupumnf, ksupvmnf
-      REAL(dp)             :: jsju_ratio
-      LOGICAL, INTENT(IN)  :: lcurr
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      INTEGER  :: fours, fouru, fourv, fcomb, nmin, nmax,               &
-                  m, n, mp, np, sparity, istat, ns_span
-!----------------------------------------------- 
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                        &
-         bsubsmnf, bsubumnf, bsubvmnf, bsubsmnh, bsubumnh, bsubvmnh,    &
-         db_uds, db_vds
-      REAL(dp) :: r12, temp(-ntor:ntor)
-!-----------------------------------------------
-      IF (ipar .EQ. isym) THEN
-         fcomb = f_none; fours = f_sin; fouru = f_cos; fourv = f_cos
-         sparity=1; edge_cur = 0
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Compute fourier components of contravariant currents on full radial
+!>  grid.
+!>
+!>  @param[inout] ksupsmnf   Contravarant s component of the current with
+!>                           jacobian.
+!>  @param[inout] ksupumnf   Contravarant u component of the current with
+!>                           jacobian.
+!>  @param[inout] ksupvmnf   Contravarant v component of the current with
+!>                           jacobian.
+!>  @param[in]    bsubsijh   Covariant s component of the magnetic field.
+!>  @param[in]    bsubuijh   Covariant u component of the magnetic field.
+!>  @param[inout] bsubvijh   Covariant v component of the magnetic field.
+!>  @param[inout] bs_filter
+!>  @param[inout] bu_filter
+!>  @param[inout] bv_filter
+!>  @param[inout] edge_cur   Edge current.
+!>  @param[out]   jsju_ratio Ratio of <K^s + r12*K^u>/<K^s - r12*K^u>.
+!>  @param[in]    iparity    Parity flag for the fouier components.
+!>  @param[in]    lcurr      UNKNOWN
+!>  @param[in]    nsmax      Maximum radial index.
+!>  @param[in]    nsmin      Minimum radial index.
+!>  @param[inout] curtor     Current enclosed at the boundary.
+!-------------------------------------------------------------------------------
+      SUBROUTINE curlb(ksupsmnf, ksupumnf, ksupvmnf,                           &
+                       bsubsijh, bsubuijh, bsubvijh,                           &
+                       bs_filter, bu_filter, bv_filter, edge_cur,              &
+                       jsju_ratio, iparity, lcurr, nsmax, nsmin, curtor)
+      USE utilities, ONLY: curl_htof
+      USE island_params, ONLY: fourier_context
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: ksupsmnf
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: ksupumnf
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: ksupvmnf
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(in)    :: bsubsijh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(in)    :: bsubuijh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: bsubvijh
+      REAL (dp), DIMENSION(:,:,:), INTENT(inout)              :: bs_filter
+      REAL (dp), DIMENSION(:,:,:), INTENT(inout)              :: bu_filter
+      REAL (dp), DIMENSION(:,:,:), INTENT(inout)              :: bv_filter
+      REAL (dp), INTENT(inout)                                :: edge_cur
+      REAL (dp), INTENT(out)                                  :: jsju_ratio
+      INTEGER, INTENT(in)                                     :: iparity
+      LOGICAL, INTENT(in)                                     :: lcurr
+      INTEGER, INTENT(in)                                     :: nsmax
+      INTEGER, INTENT(in)                                     :: nsmin
+      REAL (dp), INTENT(inout)                                :: curtor
+
+!  local variables
+      INTEGER                                                 :: fours
+      INTEGER                                                 :: fouruv
+      INTEGER                                                 :: fcomb
+      INTEGER                                                 :: nmin
+      INTEGER                                                 :: nmax
+      INTEGER                                                 :: istat
+      REAL (dp)                                               :: r12
+      REAL (dp), DIMENSION(-ntor:ntor)                        :: temp
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)                :: bsubsmnh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)                :: bsubumnh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)                :: bsubvmnh
+
+!  Start of executable code
+      nmin = MAX(1, startglobrow)
+      nmax = MIN(ns, endglobrow)
+
+      IF (iparity .EQ. f_sin) THEN
+         fcomb = f_none
+         fours = f_sin
+         fouruv = f_cos
+         r12 = 0.5*hs_i
       ELSE
-         fcomb = f_sum;  fours = f_cos; fouru = f_sin; fourv = f_sin
-         sparity=-1
+         fcomb = f_sum
+         fours = f_cos
+         fouruv = f_sin
+         r12 = -0.5*hs_i
       END IF
-      r12 = sparity*hs_i/2
 
-      ALLOCATE(bsubsmnh(0:mpol,-ntor:ntor,nsmin:nsmax),                 &
-               bsubumnh(0:mpol,-ntor:ntor,nsmin:nsmax),                 &
+      ALLOCATE(bsubsmnh(0:mpol,-ntor:ntor,nsmin:nsmax),                        &
+               bsubumnh(0:mpol,-ntor:ntor,nsmin:nsmax),                        &
                bsubvmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)   
-      CALL ASSERT(istat.EQ.0,'Allocation1 failed in CURLB')
+      CALL assert_eq(0, istat, 'Allocation1 failed in CURLB')
 
-      CALL tomnsp_par(bsubsijh, bsubsmnh, fours)                          ! Compute BSUBXMNH    
-      CALL tomnsp_par(bsubuijh, bsubumnh, fouru)
-      CALL tomnsp_par(bsubvijh, bsubvmnh, fourv)
+!  Compute bsubxmnh
+      CALL fourier_context%tomnsp(bsubsijh, bsubsmnh, fours)
+      CALL fourier_context%tomnsp(bsubuijh, bsubumnh, fouruv)
+      CALL fourier_context%tomnsp(bsubvijh, bsubvmnh, fouruv)
 
-      ALLOCATE(bsubsmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                 & ! Compute BSUBXMNF
-               bsubumnf(0:mpol,-ntor:ntor,nsmin:nsmax),                 &
-               bsubvmnf(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)   
-      CALL ASSERT(istat.EQ.0,'Allocation2 failed in CURLB')
- 
-      CALL to_full_mesh(bsubsmnh, bsubsmnf)                       
-      CALL to_full_mesh(bsubumnh, bsubumnf)
-      CALL to_full_mesh(bsubvmnh, bsubvmnf)
+      CALL CURL_HtoF(bsubsmnh, bsubumnh, bsubvmnh,                             &
+                     ksupsmnf, ksupumnf, ksupvmnf,                             &
+                     iparity, nsmin, nsmax, lcurr, curtor)
 
-!
-!     Compute K^X == sqrt(g)J^X contravariant current components in Fourier space
-!             
-!                   
-      ALLOCATE(db_uds(0:mpol,-ntor:ntor,nsmin:nsmax),                   &
-               db_vds(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
-      CALL ASSERT(istat.EQ.0,'Allocation3 failed in CURLB')
-
-!     Radial gradients of bsubmnu,v on full grid (excluding origin and edge: treat separately)
-      CALL GradientFull(db_uds, bsubumnh)
-      CALL GradientFull(db_vds, bsubvmnh)
-
-!     Approximate end values...(factor of 2 at origin due to 1/2*hs interval)
-!     Forces will be multiplied by 1/2 in get_force_harmonics
-!     NOTE: the bc B^s = 0 at js=ns means there are no contributions from 
-!           these derivative terms there
-      IF (nsmin .EQ. 1) THEN
-         bsubsmnf(m2:,:,1) = 0
-         bsubumnf(:,:,1) = 0;  bsubumnf(m1,:,1) = bsubumnh(m1,:,2)
-!     to satisfy k^s = r12*k^u at s=r12, for m=1, must have b_u = r12*b_s for m=1
-!     this is not completely consistent with the delta-W jogs in CheckForces!
-         IF (.NOT.l_natural) THEN
-            temp = (r12*bsubsmnf(m1,:,1) - bsubumnf(m1,:,1))/2
-            bsubsmnf(m1,:,1) = bsubsmnf(m1,:,1) - temp/r12
-            bsubumnf(m1,:,1) = bsubumnf(m1,:,1) + temp
+!  Diagnostics
+      DIAGNO: IF (l_update_state) THEN
+         IF (nmax .eq. ns) THEN
+            edge_cur = edge_cur + SUM(ksupsmnf(:,:,ns)*ksupsmnf(:,:,ns))
          END IF
 
-         db_uds(:,:,1) = 0;  db_uds(m0:m1,:,1) = 2*ohs*bsubumnh(m0:m1,:,2)
-         db_vds(:,:,1) = 0;  db_vds(m1,:,1) = 2*ohs*bsubvmnh(m1,:,2)
-         bsubvmnf(m1+1:,:,1) = 0  
-         CALL ASSERT(ALL(bsubvmnf(m1,:,1).EQ.bsubvmnh(m1,:,2)),         &
-                     'b_vmnf(1) ! b_vmnh(2) in CURLB')
-      END IF
+         CALL fourier_context%toijsp(bsubsmnh(:,:,nmin:nmax), bs_filter,       &
+                                     fcomb, fours)
+         CALL fourier_context%toijsp(bsubumnh(:,:,nmin:nmax), bu_filter,       &
+                                     fcomb, fouruv)
+         CALL fourier_context%toijsp(bsubvmnh(:,:,nmin:nmax), bv_filter,       &
+                                     fcomb, fouruv)
+	     IF (nmin .eq. 1) THEN
+            bv_filter(:,:,1) = bv_filter(:,:,2)
+            bsubvijh(:,:,1) = bsubvijh(:,:,2)
+         END IF
 
-!     NOTE: ksupXmnf(ns) is approximately ksupXmnh(ns) a half-grid point in from edge
-
-      nmin = nsmin
-      IF (lcurr) THEN
-         nmax=MIN(ns,endglobrow+1)
-      ELSE
-         nmax=MIN(ns,endglobrow)
-      END IF
-      DO m = 0, mpol
-         mp = sparity*m
-         DO n = -ntor, ntor
-           np = sparity*n*nfp
-           ksupsmnf(m,n,nmin:nmax) = -mp*bsubvmnf(m,n,nmin:nmax)        &
-                                   +  np*bsubumnf(m,n,nmin:nmax)
-           ksupumnf(m,n,nmin:nmax) =  np*bsubsmnf(m,n,nmin:nmax)        &
-                                   -  db_vds(m,n,nmin:nmax)                     
-           ksupvmnf(m,n,nmin:nmax) = -mp*bsubsmnf(m,n,nmin:nmax)        &
-                                   +  db_uds(m,n,nmin:nmax)
-         ENDDO
-      ENDDO
-
-!Diagnostics
-      DIAGNO: IF (l_update_state) THEN
-         IF (nsmax .EQ. ns) edge_cur = edge_cur                         & 
-                                     + SUM(ksupsmnf(:,:,ns)**2)
-
-!Deallocated in calling routine
-         ns_span = n2-n1+1
-         IF (.NOT. ALLOCATED(bs_filter))                                &
-         ALLOCATE(bs_filter(ntheta,nzeta,ns_span),                      &
-                  bu_filter(ntheta,nzeta,ns_span),                      &
-                  bv_filter(ntheta,nzeta,ns_span), stat=istat)
-         CALL ASSERT(istat.EQ.0,'Allocation4 failed in CURLB')
-         CALL toijsp_par(bsubsmnh(:,:,n1:n2), bs_filter, fcomb, fours)
-         CALL toijsp_par(bsubumnh(:,:,n1:n2), bu_filter, fcomb, fouru)
-         CALL toijsp_par(bsubvmnh(:,:,n1:n2), bv_filter, fcomb, fourv)
-	     IF (n1 .EQ. 1) bv_filter(:,:,1) = bv_filter(:,:,2)
-	     IF (n1 .EQ. 1)	bsubvijh(:,:,1) = bsubvijh(:,:,2)
-
-!K^s-r12*K^u at origin BEFORE bc applied
-         IF (nsmin .EQ. 1) THEN
+!  K^s-r12*K^u at origin BEFORE bc applied
+         IF (nsmin .eq. 1) THEN
             temp = ksupsmnf(m1,:,1) + r12*ksupumnf(m1,:,1)
-            jsju_ratio = SUM(temp**2)
-            IF (jsju_ratio .GT. zero) THEN
+            jsju_ratio = SUM(temp*temp)
+            IF (jsju_ratio .gt. zero) THEN
                temp = ksupsmnf(m1,:,1) - r12*ksupumnf(m1,:,1)
-               jsju_ratio = SUM(temp**2) / jsju_ratio
+               jsju_ratio = SUM(temp*temp)/jsju_ratio
                jsju_ratio = SQRT(jsju_ratio)
             END IF
          END IF
-
       END IF DIAGNO
 
-      DEALLOCATE (bsubsmnh, bsubumnh, bsubvmnh,                         &
-                  bsubsmnf, bsubumnf, bsubvmnf, stat=istat)   
-      CALL ASSERT(istat.EQ.0,'Deallocation failed in CURLB')
+      DEALLOCATE (bsubsmnh, bsubumnh, bsubvmnh, stat=istat)   
+      CALL assert_eq(0, istat, 'Deallocation failed in CURLB')
 
-      IF (nsmin .EQ. 1) THEN
-          ksupsmnf(m0,:,1) = 0; ksupsmnf(m2:,:,1) = 0
-          ksupumnf(m2:,:,1) = 0
-          ksupvmnf(m1:,:,1) = 0
-      END IF
+      END SUBROUTINE
 
-      END SUBROUTINE CURLB
+!-------------------------------------------------------------------------------
+!>  @brief Transform full grid contravariant currents to real space.
+!>
+!>  @param[in]    ksupsmnf Contravariant fourier current in the s direction.
+!>  @param[in]    ksupumnf Contravariant fourier current in the u direction.
+!>  @param[in]    ksupvmnf Contravariant fourier current in the v direction.
+!>  @param[inout] ksupsmnf Contravariant real space current in the s direction.
+!>  @param[inout] ksupumnf Contravariant real space current in the u direction.
+!>  @param[inout] ksupvmnf Contravariant real space current in the v direction.
+!>  @param[in]    parity   Partity flag fourier components.
+!>  @param[in]    nsmin    Minimum radial index.
+!>  @param[in]    nsmax    Maximum radial index.
+!-------------------------------------------------------------------------------
+      SUBROUTINE getcv(ksupsmnf, ksupumnf, ksupvmnf,                           &
+                       ksupsijf, ksupuijf, ksupvijf, parity, nsmin, nsmax)
+      USE island_params, ONLY: fourier_context
 
+      IMPLICIT NONE
 
-!>     \brief Compute full-grid contravariant (sup) currents in real space
-      SUBROUTINE GETCV (ksupsmnf, ksupumnf, ksupvmnf,                   &
-                        ksupsijf, ksupuijf, ksupvijf, ipar)                       
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      INTEGER, INTENT(IN)  :: ipar
-      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE ::                        &
-           ksupsmnf, ksupumnf, ksupvmnf,                                &
-           ksupsijf, ksupuijf, ksupvijf
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      INTEGER  :: fours, fouru, fourv, fcomb
-!-----------------------------------------------
-      IF (ipar .EQ. isym) THEN
-         fcomb = f_none; fours = f_sin; fouru = f_cos; fourv = f_cos
+!  Declare Arguments
+      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in)    :: ksupsmnf
+      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in)    :: ksupumnf
+      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in)    :: ksupvmnf
+      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: ksupsijf
+      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: ksupuijf
+      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: ksupvijf
+      INTEGER, INTENT(in)                                    :: parity
+      INTEGER, INTENT(in)                                    :: nsmin
+      INTEGER, INTENT(in)                                    :: nsmax
+
+!  local variables
+      INTEGER                                                :: fours
+      INTEGER                                                :: fouruv
+      INTEGER                                                :: fcomb
+
+!  Start of executable code
+      IF (parity .eq. f_sin) THEN
+         fcomb = f_none
+         fours = f_sin
+         fouruv = f_cos
       ELSE
-         fcomb = f_sum;  fours = f_cos; fouru = f_sin; fourv = f_sin
+         fcomb = f_sum
+         fours = f_cos
+         fouruv = f_sin
       END IF
 
-      CALL toijsp_par(ksupsmnf(:,:,nsmin:nsmax), ksupsijf, fcomb, fours)
-      CALL toijsp_par(ksupumnf(:,:,nsmin:nsmax), ksupuijf, fcomb, fouru)
-      CALL toijsp_par(ksupvmnf(:,:,nsmin:nsmax), ksupvijf, fcomb, fourv)
+      CALL fourier_context%toijsp(ksupsmnf(:,:,nsmin:nsmax), ksupsijf, fcomb,  &
+                                  fours)
+      CALL fourier_context%toijsp(ksupumnf(:,:,nsmin:nsmax), ksupuijf, fcomb,  &
+                                  fouruv)
+      CALL fourier_context%toijsp(ksupvmnf(:,:,nsmin:nsmax), ksupvijf, fcomb,  &
+                                  fouruv)
 
-      END SUBROUTINE GETCV
+      END SUBROUTINE
 
-
-      END MODULE siesta_currents
+      END MODULE
