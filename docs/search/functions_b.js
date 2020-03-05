@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['offset',['offset',['../namespaceline__segment.html#a0cf0121553fa4a68435b32d108a07939',1,'line_segment']]]
+  ['normalize_3933',['normalize',['../classvector3d.html#ac19b2b4c701d4fc46b2652221e480780',1,'vector3d']]]
 ];

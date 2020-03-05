@@ -4,6 +4,7 @@ list (APPEND siesta_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/assert_mod.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/bhtobf.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/blocktridiagonalsolver_s.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/bmw_run.f
 	${CMAKE_CURRENT_SOURCE_DIR}/check3d.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/siesta_currents.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/descriptor_mod.f90
@@ -13,11 +14,13 @@ list (APPEND siesta_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/f1dim_mod.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/fourier.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/gmres.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/grid_extension.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/hessian.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/siesta_init.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/island_params.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/metrics.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/nscalingtools.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/pchelms.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/perturbation.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/prof_mod.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/ptrd_mod.f90

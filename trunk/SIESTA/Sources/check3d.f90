@@ -23,7 +23,7 @@
       REAL(dp), TARGET, DIMENSION(Locq,Locp,nblocks-1), INTENT(inout) ::&
                             bp, cp
 
-      REAL(dp), INTENT(inout) :: asym_index
+      REAL(dp), INTENT(out) :: asym_index
 #if defined(MPI_OPT)
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
@@ -198,7 +198,7 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER, INTENT(in)  :: mblk, nblocks, mpol, ntor
-      REAL(dp), INTENT(inout)  :: asym_index
+      REAL(dp), INTENT(out)  :: asym_index
       REAL(dp), INTENT(in), DIMENSION(mblk,mblk,nblocks) ::             &
          dblk, lblk, ublk
 !-----------------------------------------------
@@ -249,7 +249,7 @@
                              ndims
       USE shared_functions, ONLY: funct_island
       USE quantities, ONLY: fsubsmncf, fsubumnsf, fsubvmnsf,            &
-                            mpol, ntor, ns, wp0, wb0, hs_i
+                            mpol, ntor, ns, wp0, hs_i
       USE hessian, ONLY: l_Compute_Hessian
       USE nscalingtools, ONLY: startglobrow, endglobrow
       USE v3_utilities, ONLY: assert
@@ -276,7 +276,9 @@
       lsave = l_linearize
       lsave2= l_Compute_Hessian
       l_edge = l_push_edge
-      l_s = l_push_s; l_u = l_push_u; l_v = l_push_v
+      l_s = l_push_s
+      l_u = l_push_u
+      l_v = l_push_v
       l_linearize = .FALSE.
       l_Compute_Hessian = .FALSE.
       l_init_state = .FALSE.
@@ -383,7 +385,9 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      REAL(dp) :: xc(ndims*(1+mpol)*(2*ntor+1),ns), gc(ndims*(1+mpol)*(2*ntor+1),ns), eps
+      REAL(dp), DIMENSION(ndims*(1+mpol)*(2*ntor+1),ns) ::              &
+	            xc, gc
+	  REAL(dp), INTENT(IN) :: eps
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
 !-----------------------------------------------

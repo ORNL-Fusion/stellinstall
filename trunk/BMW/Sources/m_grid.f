@@ -250,6 +250,7 @@
       REAL (rprec), INTENT(out)       :: az
 
 !  local variables
+      REAL (rprec)                    :: norm_phi
       REAL (rprec)                    :: dphi
       REAL (rprec)                    :: i
       REAL (rprec)                    :: j
@@ -264,10 +265,15 @@
 !  Start of executable code
       dphi = twopi/(this%nfp*SIZE(this%a_r, 3))
 
+      norm_phi = phi
+      DO WHILE (norm_phi > twopi/this%nfp)
+         norm_phi = norm_phi - twopi/this%nfp
+      END DO
+
 !  Find the nearest index positions.
       i = (r - this%rmin)/this%dr + 1.0
       j = (z - this%zmin)/this%dz + 1.0
-      k = phi/dphi + 1.0
+      k = norm_phi/dphi + 1.0
 
       ilow = FLOOR(i)
       ihigh = CEILING(i)

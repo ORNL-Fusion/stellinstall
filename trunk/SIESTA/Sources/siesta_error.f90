@@ -10,7 +10,6 @@
       MODULE siesta_error
       USE v3_utilities, ONLY: assert
       USE shared_data, Only: lrecon
-      USE mpi_inc
 
       IMPLICIT NONE
 

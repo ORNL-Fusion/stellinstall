@@ -11,7 +11,6 @@
       USE prof_mod
       USE ptrd_mod
 #endif
-#if defined(SKS)
       USE nscalingtools, ONLY: PARSOLVER, MPI_ERR, PARFUNCTISL,         &
         rcounts, disp, startglobrow, endglobrow, nranks, rank,          &
         SKSDBG, TOFU, UPPER, LOWER, DIAG, SAVEDIAG, nrecd,              &
@@ -20,20 +19,17 @@
       USE blocktridiagonalsolver_s, ONLY: ApplyParallelScaling,         &
         ForwardSolve, SetMatrixRHS, BackwardSolve, GetSolutionVector,   &
         CheckSymmetry, Dmin_TRI, MAXEIGEN_TRI, FindMinMax_Tri,          &
-        CheckConditionNumber, PadSides
+        CheckConditionNumber
       USE mpi_inc
-#else
-      USE nscalingtools, ONLY: PARSOLVER, PARFUNCTISL, SKSDBG, TOFU,    &
-                               startglobrow, endglobrow
-#endif
-      USE v3_utilities, ONLY: ASSERT
+      USE v3_utilities, ONLY: assert, assert_eq
+
       IMPLICIT NONE
+
 !-----------------------------------------------
 !SPH 090116: EVENTUALLY MOVE TO nscalingtools? ASK SKS
       PUBLIC  :: gather_array
       INTERFACE gather_array
-         MODULE PROCEDURE gather_array1, gather_array2, gather_array1A, &
-                          gather_array2A, gather_array3
+         MODULE PROCEDURE gather_array1, gather_array2, gather_array3
       END INTERFACE
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
@@ -52,9 +48,7 @@
       INTEGER :: mystart(3), myend(3)
 
       REAL(dp) :: eps, ton, toff, rcond, anorm
-#if !defined(SKS)
-      REAL(dp) :: DMIN_TRI
-#endif
+
       REAL(dp), DIMENSION(:,:), ALLOCATABLE  :: colsum
       REAL(dp), PARAMETER, PUBLIC :: eps_factor = 1._dp 
       REAL(dp), ALLOCATABLE, PUBLIC :: mupar_norm(:)
@@ -68,133 +62,123 @@
 
       CONTAINS
 
-      SUBROUTINE gather_array1A(gc)
-      REAL(dp), DIMENSION(mblk_size*ns), INTENT(INOUT) :: gc
-!-----------------------------------------------
-      CALL gather_array1(gc)
+!-------------------------------------------------------------------------------
+!>  @brief Gather all parts of an 1D array.
+!>
+!>  @param[inout] buffer Buffer to gather to and from.
+!-------------------------------------------------------------------------------
+      SUBROUTINE gather_array1(buffer)
 
-      END SUBROUTINE gather_array1A
+      IMPLICIT NONE
 
+!  Declare Arguments
+      REAL(dp), DIMENSION(:), INTENT(inout) :: buffer
 
-      SUBROUTINE gather_array2A(section, gc)
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), DIMENSION(mblk_size*ns), INTENT(OUT) :: gc
-      REAL(dp), DIMENSION(mblk_size*mynumBlockRows), INTENT(IN) :: section
-!-----------------------------------------------
-      CALL gather_array2(section, gc)
-
-      END SUBROUTINE gather_array2A
-
-
-      SUBROUTINE gather_array1(gc)
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), DIMENSION(mblk_size,ns), INTENT(INOUT) :: gc
-      INTEGER :: istat
-      REAL(dp), DIMENSION (:,:), ALLOCATABLE :: section
-!-----------------------------------------------
+!  Start of executable code
       IF (PARSOLVER) THEN
-#if defined(SKS)
-        ALLOCATE (section(mblk_size,myStartBlock:myEndBlock), stat=istat)
-        CALL ASSERT(istat.EQ.0,'Allocation error in gather_array1')
-
-        section(:,myStartBlock:myEndBlock) = gc(:,myStartBlock:myEndBlock)
-        CALL gather_array2(section, gc)
-        
-        DEALLOCATE (section)
-#endif
+         CALL MPI_ALLGATHERV(MPI_IN_PLACE, rcounts(iam + 1), MPI_REAL8,        &
+                             buffer, rcounts, disp, MPI_REAL8, SIESTA_COMM,    &
+                             MPI_ERR)
       END IF
-      
-      END SUBROUTINE gather_array1
 
+      END SUBROUTINE
 
-      SUBROUTINE gather_array2(section, gc)
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), DIMENSION(mblk_size,ns), INTENT(OUT) :: gc
-      REAL(dp), DIMENSION(mblk_size,myStartBlock:myEndBlock),           &
-                INTENT(IN) :: section
-!-----------------------------------------------
+!-------------------------------------------------------------------------------
+!>  @brief Gather all parts of an 1D array.
+!>
+!>  @param[inout] buffer Buffer to gather to and from.
+!-------------------------------------------------------------------------------
+      SUBROUTINE gather_array2(buffer)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL(dp), DIMENSION(:,:), INTENT(inout) :: buffer
+
+!  Start of executable code
       IF (PARSOLVER) THEN
-#if defined(SKS)
-         CALL MPI_ALLGATHERV(section, mynumBlockRows*mblk_size,         &
-              MPI_REAL8, gc,rcounts, disp, MPI_REAL8, SIESTA_COMM,      &
-              MPI_ERR)
-#endif
-      ELSE
-         gc = section
-      ENDIF
-     
-      END SUBROUTINE gather_array2
+         CALL MPI_ALLGATHERV(MPI_IN_PLACE, rcounts(iam + 1), MPI_REAL8,        &
+                             buffer, rcounts, disp, MPI_REAL8, SIESTA_COMM,    &
+                             MPI_ERR)
+      END IF
 
-      SUBROUTINE gather_array3(section, gather3d)
-      USE nscalingtools, ONLY: mnspcounts, mnspdisps 
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), DIMENSION(0:mpol, -ntor:ntor, ns), INTENT(OUT) :: gather3d
-      REAL(dp), DIMENSION(0:mpol, -ntor:ntor, myStartBlock:myEndBlock), &
-      INTENT(IN)  :: section
-      INTEGER :: M2
-!-----------------------------------------------
-       IF (PARSOLVER) THEN
-#if defined(SKS)
-          M2 = SIZE(gather3d,1)*SIZE(gather3d,2)
-          CALL MPI_ALLGATHERV(section, mynumBlockRows*M2, MPI_REAL8,    &
-                           gather3d, mnspcounts, mnspdisps, MPI_REAL8,  &
-                           SIESTA_COMM, MPI_ERR)
-#endif
-       ELSE
-          gather3d = section
-       END IF
-      END SUBROUTINE gather_array3
-      
-!>  brief Gathers and reorders coltmp distributed scaling factors in colgath
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Gather all parts of an 3D array.
+!>
+!>  @param[inout] buffer Buffer to gather to and from.
+!-------------------------------------------------------------------------------
+      SUBROUTINE gather_array3(buffer)
+      USE nscalingtools, ONLY: mnspcounts, mnspdisps
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp), DIMENSION(:,:,:), INTENT(inout) :: buffer
+
+!  Start of executable code
+      IF (PARSOLVER) THEN
+         CALL MPI_ALLGATHERV(MPI_IN_PLACE, mnspcounts(iam + 1), MPI_REAL8,     &
+                             buffer, mnspcounts, mnspdisps, MPI_REAL8,         &
+                             SIESTA_COMM, MPI_ERR)
+      END IF
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Gather column arrays.
+!>
+!>  @param[in]  coltmp  Temp columns.
+!>  @param[out] colgath Gathered columns.
+!-------------------------------------------------------------------------------
       SUBROUTINE GatherCols(colgath, coltmp)
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), INTENT(IN)   :: coltmp(mblk_size2)
-      REAL(dp), INTENT(OUT)  :: colgath(mblk_size)
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      INTEGER                :: icol, icol_mpi, iorder, np, mbloc, imax
-      REAL(dp), ALLOCATABLE  :: unordered(:)
-!-----------------------------------------------
-#if defined(MPI_OPT)      
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL(dp), DIMENSION(mblk_size), INTENT(out) :: colgath
+      REAL(dp), DIMENSION(mblk_size2), INTENT(in) :: coltmp
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                                     :: icol
+      INTEGER                                     :: icol_mpi
+      INTEGER                                     :: iorder
+      INTEGER                                     :: np
+      INTEGER                                     :: mbloc
+      INTEGER                                     :: imax
+      REAL(dp), DIMENSION(:), ALLOCATABLE         :: unordered
+
+!  Start of executable code
       ALLOCATE (unordered(mblk_size))
 
-!gather to unordered array
+!  Gather to unordered array.
       CALL MPI_ALLGATHERV(coltmp, mblk_size2, MPI_REAL8,                &
                           unordered, scalcounts, scaldisps,             &
                           MPI_REAL8, SIESTA_COMM, MPI_ERR)
       CALL ASSERT(MPI_ERR.EQ.0, 'MPI ERR IN GatherCols')   
 
-!reorder cyclic permutations and save to colgath
-      iorder = 0; imax = 0
+!  Reorder cyclic permutations and save to colgath
+      iorder = 0
+      imax = 0
       DO np = 1, nprocs
-         icol_mpi = np-nprocs
+         icol_mpi = np - nprocs
          mbloc = scalcounts(np)
          DO icol = 1, mbloc
-            icol_mpi = icol_mpi+nprocs
+            icol_mpi = icol_mpi + nprocs
             imax = MAX(imax, icol_mpi)
-            iorder = iorder+1
+            iorder = iorder + 1
             colgath(icol_mpi) = unordered(iorder)
          END DO
       END DO
          
-      CALL ASSERT(iorder.eq.mblk_size,'iorder != mblk_size in GatherCols')         
-      CALL ASSERT(imax.eq.mblk_size,'imax != mblk_size in GatherCols')         
+      CALL assert_eq(iorder, mblk_size, 'iorder != mblk_size in GatherCols')
+      CALL assert_eq(imax, mblk_size, 'imax != mblk_size in GatherCols')
             
       DEALLOCATE(unordered)
 #endif            
-      END SUBROUTINE GatherCols
-
+      END SUBROUTINE
 
       SUBROUTINE InitHess
       INTEGER  :: icol, mesh, nsmin, nsmax
@@ -216,20 +200,28 @@
 
       END SUBROUTINE InitHess
 
+!-------------------------------------------------------------------------------
+!>  @brief Scale displacements.
+!>
+!>  @param[inout] gc       Scratch buffer to scale columns in.
+!>  @param[in]    colscale Column scaling factors.
+!>  @param[in]    nsmin    Minimum radial index.
+!>  @param[in]    nsmax    Maximum radial index.
+!-------------------------------------------------------------------------------
+      SUBROUTINE Apply_ColScale(gc, colscale, nsmin, nsmax)
 
-      SUBROUTINE Apply_ColScale(gc, colscale, n1, n2)
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      INTEGER, INTENT(IN)     :: n1, n2
-      REAL(dp), INTENT(INOUT) :: gc(mblk_size, ns)
-      REAL(dp), INTENT(IN)    :: colscale(mblk_size, ns)
-!-----------------------------------------------
-      
-      gc(:,n1:n2) = gc(:,n1:n2)*colscale(:,n1:n2)
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp), DIMENSION(mblk_size,ns), INTENT(inout) :: gc
+      REAL (dp), DIMENSION(mblk_size,ns), INTENT(in)    :: colscale
+      INTEGER, INTENT(in)                               :: nsmin
+      INTEGER, INTENT(in)                               :: nsmax
+
+!  Start of executable code
+      gc(:,nsmin:nsmax) = gc(:,nsmin:nsmax)*colscale(:,nsmin:nsmax)
             
-      END SUBROUTINE Apply_ColScale
-
+      END SUBROUTINE
 
       SUBROUTINE Compute_Hessian_Blocks (func, ldiagonal)
       USE shared_data, ONLY: xc, gc, l_linearize
@@ -246,7 +238,6 @@
       REAL(dp)                :: bsize
       LOGICAL                 :: lprint
 !-----------------------------------------------
-
       l_Compute_Hessian = .TRUE.
       l_Diagonal_Only   = ldiagonal
       l_linearize = .TRUE.
@@ -335,8 +326,7 @@
       INTEGER  :: n, m, js, mesh, ntype, istat, iunit, icol
       EXTERNAL    :: func
       INTEGER  :: js1
-      
-#if defined(SKS)
+
       REAL(dp) :: starttime, endtime, usedtime
       REAL(dp) :: colstarttime, colendtime, colusedtime
       INTEGER  :: nsmin, nsmax
@@ -376,9 +366,11 @@
 
             MESH_3PT_LG: DO mesh = 1, 3
 
-              DO js = mystart(mesh), myend(mesh), 3
-                 xc(icol,js) = eps
-              END DO
+              IF (.NOT.(m.EQ.0 .AND. n.LT.0)) THEN
+                 DO js = mystart(mesh), myend(mesh), 3
+                    xc(icol,js) = eps
+                 END DO
+			  END IF
 
               INHESSIAN=.TRUE.
               CALL second0(skston)
@@ -501,8 +493,7 @@
 
       IF (iam.EQ.0 .AND. lverbose)                                      &
          PRINT '(a,1p,e12.3)',' BLOCK FACTORIZATION TIME: ', toff-ton
-      
-#endif
+
       END SUBROUTINE Compute_Hessian_Blocks_With_No_Col_Redist
 
 
@@ -518,7 +509,6 @@
       INTEGER  :: n, m, js, js1, mesh, ntype, istat, iunit, icol, icolmpi
       EXTERNAL    :: func
       REAL(dp), ALLOCATABLE, DIMENSION(:) :: SavedDiag
-#if defined(SKS)
       INTEGER, ALLOCATABLE, DIMENSION (:) :: sendCount, recvCount
       REAL(dp), ALLOCATABLE, DIMENSION (:) :: recvBuf
       INTEGER :: procID
@@ -574,9 +564,11 @@
 
                   MESH_3PT: DO mesh = 1, 3
 
-                  DO js = jstart(mesh), ns, 3
-                     xc(icol,js) = eps
-                  END DO
+                  IF (.NOT.(m.EQ.0 .AND. n.LT.0)) THEN
+                     DO js = jstart(mesh), ns, 3
+                        xc(icol,js) = eps
+                     END DO
+				  END IF
 
                   INHESSIAN=.TRUE.
                   CALL second0(skston)
@@ -722,7 +714,7 @@
 
       IF (iam.EQ.0 .AND. lverbose)                                      &
          PRINT '(a,1p,e12.3)',' BLOCK FACTORIZATION TIME: ', toff-ton
-#endif
+
       END SUBROUTINE Compute_Hessian_Blocks_With_Col_Redist
 
 
@@ -847,9 +839,8 @@
       CALL second0(skston)
       CALL func
       CALL second0(skstoff)
-#if defined(SKS)
       hessian_funct_island_time=hessian_funct_island_time+(skstoff-skston)
-#endif
+
 #if defined(MPI_OPT)
       CALL second0(colstarttime) !Added by SKS for timing comparisons
 #endif
@@ -870,17 +861,18 @@
 #endif
                   MESH_3PT: DO mesh = 1, 3
 
+                  IF (.NOT.(m.EQ.0 .AND. n.LT.0)) THEN
                   DO js = jstart(mesh), ns, 3
                      xc(icol,js) = eps
                   END DO
+				  END IF
 
                   INHESSIAN=.TRUE.
                   CALL second0(skston)
                   CALL func
                   CALL second0(skstoff)
-#if defined(SKS)
                   hessian_funct_island_time=hessian_funct_island_time+(skstoff-skston)
-#endif
+
                   INHESSIAN=.FALSE.
 #if defined(MPI_OPT)
 #endif
@@ -964,12 +956,10 @@
       END IF
       
       CAll second0(ton)
-#if defined(SKS)
       colendtime = ton
       colusedtime=colendtime-colstarttime
       time_generate_blocks=time_generate_blocks+colusedtime
       construct_hessian_time=construct_hessian_time+(colendtime-colstarttime)
-#endif
 
       DEALLOCATE (DataItem, stat=istat)
       CALL ASSERT(istat.EQ.0,'DataItem deallocation error!')
@@ -1019,9 +1009,7 @@
                                mblk_size,ns,asym_index)
       END IF
       CALL second0(skstoff)
-#if defined(SKS)
       asymmetry_check_time=asymmetry_check_time+(skstoff-skston)
-#endif
 
  900  CONTINUE
 
@@ -1074,10 +1062,9 @@
          CALL ASSERT(istat.EQ.0, 'ipiv_blk allocation error2 in Compute_Hessian_Blocks')
          CALL blk3d_factor(dblk, lblk, ublk, ipiv_blk, mblk_size, ns)
       END IF  ! LSCALAPACK
-#if defined(SKS)
+
       CALL second0(skstoff)
       block_factorization_time=block_factorization_time+(skstoff-skston)
-#endif
       CALL second0(toff)
       time_factor_blocks = time_factor_blocks + (toff-ton)
 
@@ -1113,33 +1100,33 @@
 
  111  CONTINUE
 
-      BLOCK_ROW1: DO js = 1, ns    
-      COLS1: DO icol = 1, mblk_size2
-         col2 = ABS(dblk(:,icol,js))
-         IF (lequi1) THEN
-            coltmp(icol) = SUM(col2)
-         ELSE
-            coltmp(icol) = MAXVAL(col2)
-         END IF
-         IF (js .GT. 1) THEN
-            col2 = ABS(ublk(:,icol,js-1))
+      BLOCK_ROW1: DO js = 1, ns
+         COLS1: DO icol = 1, mblk_size2
+            col2 = ABS(dblk(:,icol,js))
             IF (lequi1) THEN
-               coltmp(icol) = coltmp(icol) + SUM(col2)         
+               coltmp(icol) = SUM(col2)
             ELSE
-               coltmp(icol) = MAX(coltmp(icol),MAXVAL(col2))         
+               coltmp(icol) = MAXVAL(col2)
             END IF
-         END IF
-         IF (js .LT. ns) THEN
-            col2 = ABS(lblk(:,icol,js+1))
-            IF (lequi1) THEN
-               coltmp(icol) = coltmp(icol) + SUM(col2)         
-            ELSE
-               coltmp(icol) = MAX(coltmp(icol),MAXVAL(col2))         
+            IF (js .GT. 1) THEN
+               col2 = ABS(ublk(:,icol,js-1))
+               IF (lequi1) THEN
+                  coltmp(icol) = coltmp(icol) + SUM(col2)
+               ELSE
+                  coltmp(icol) = MAX(coltmp(icol),MAXVAL(col2))
+               END IF
             END IF
-         END IF
-      ENDDO COLS1
+            IF (js .LT. ns) THEN
+               col2 = ABS(lblk(:,icol,js+1))
+               IF (lequi1) THEN
+                  coltmp(icol) = coltmp(icol) + SUM(col2)
+               ELSE
+                  coltmp(icol) = MAX(coltmp(icol),MAXVAL(col2))
+               END IF
+            END IF
+         END DO COLS1
          eps = minScale*MAXVAL(coltmp)                                   !need ALL(DataItem.eq.zero) check
-         CALL ASSERT(eps.GT.zero,' coltmp == 0 in SerialScaling')
+         CALL assert(eps.GT.zero,' coltmp == 0 in SerialScaling')
          coltmp = MAX(coltmp, eps)
          coltmp = one/SQRT(coltmp)
          col0(:,js) = coltmp                                             !save original ordering for col factors
@@ -1199,7 +1186,7 @@
 !----------------------------------------------
       REAL(dp), PARAMETER  :: minThreshold=1.E-6, zero=0
       INTEGER              :: js, icol, jrow
-      REAL(dp)             :: eps, DminL, s1(2), r1(2), sign_diag=-1
+      REAL(dp)             :: eps, DminL, temp(2), sign_diag=-1
 !----------------------------------------------
       maxeigen = 0
       
@@ -1222,10 +1209,10 @@
 
 #if defined(MPI_OPT)      
          IF (LSCALAPACK) THEN
-            s1(1) = minDiag; s1(2) = maxeigen
-            CALL MPI_ALLREDUCE(s1,r1,1,MPI_REAL8, MPI_MAX,              &
+            temp(1) = minDiag; temp(2) = maxeigen
+            CALL MPI_ALLREDUCE(MPI_IN_PLACE,temp,1,MPI_REAL8, MPI_MAX,         &
                                SIESTA_COMM, MPI_ERR)
-            minDiag = r1(1);  maxeigen = r1(2)
+            minDiag = temp(1);  maxeigen = temp(2)
          END IF
 #endif      
          minDiag = minThreshold*minDiag
@@ -1245,8 +1232,8 @@
 
 #if defined(MPI_OPT)      
       IF (LSCALAPACK) THEN
-         s1 = ABS(Dmin_Tri)
-         CALL MPI_ALLREDUCE(s1,Dmin_Tri,1,MPI_REAL8, MPI_MIN,           &
+         Dmin_Tri = ABS(Dmin_Tri)
+         CALL MPI_ALLREDUCE(MPI_IN_PLACE,Dmin_Tri,1,MPI_REAL8, MPI_MIN,        &
                             SIESTA_COMM, MPI_ERR)
       END IF
 #endif
@@ -1588,7 +1575,7 @@
          bmat = MATMUL(amat, temp)
 #else
          CALL dgetrs('n', mblk, mblk, amat, mblk, ipivot,               &
-                      bmat, mblk, ier)
+                     bmat, mblk, ier)
          CALL ASSERT(ier.EQ.0,'dgetrs INFO != 0')
 #endif
 !         CALL wrdisk(iunit, ql, ndisk, incnow, ibuph, incbu, ier)
@@ -1647,50 +1634,34 @@
       REAL(dp) :: alpha0,beta0
       INTEGER  :: i,j,k,nn,kk,ia,ja,ix,jx,ic,jc,ib,jb
 #endif
-#if defined(SKS)
       REAL(dp) :: starttime, endtime, usedtime
       INTEGER :: PRECONDPASS=0
-      INTEGER :: globrow, cnt
-      !Might need to make it allocatable - just a test right now.
-      REAL(dp), DIMENSION (:,:), ALLOCATABLE :: solvec
+      INTEGER :: globrow
+
 !-----------------------------------------------
-      starttime=0
-      endtime=0
-#endif
+      starttime = 0
+      endtime = 0
+
 !-----------------------------------------------
 !
 !     Applies 3D block-preconditioner to forces vector (gc)
 !
-#if defined(SKS)
       IF (PARSOLVER) THEN
-
-        DO globrow=myStartBlock,myEndBlock
-          CALL SetMatrixRHS (globrow,gc(1:mblk_size,globrow))
-        END DO
+         DO globrow = myStartBlock, myEndBlock
+            CALL SetMatrixRHS(globrow, gc(1:mblk_size,globrow))
+         END DO
         
-        CALL BackwardSolve
-       
-        ALLOCATE (solvec(mblk_size,mynumBlockRows), stat=istat)
-        CALL ASSERT(istat.EQ.0,'Allocation error in block_precond before gather')
+         CALL BackwardSolve
 
-        cnt=1
-        DO globrow=myStartBlock,myEndBlock
-          CALL GetSolutionVector (globrow,solvec(1:mblk_size,cnt))
-          cnt = cnt + 1
-        END DO
+         DO globrow = myStartBlock, myEndBlock
+            CALL GetSolutionVector(globrow, gc(:,globrow))
+         END DO
 
-        CALL gather_array(solvec, gc)
-!        CALL MPI_Allgatherv(solvec,mynumBlockRows*mblk_size,MPI_REAL8,gc, &
-!             rcounts, disp, MPI_REAL8, SIESTA_COMM, MPI_ERR)
-
-!!        CALL GetFullSolution(temp,gc)
-        
-        DEALLOCATE (solvec)
-
+         CALL gather_array(gc)
       ELSE
 
          CALL second0(starttime)
-#endif
+
          IF (l_backslv) THEN
             istat = 0
             IF (.NOT.ALLOCATED(gc_s)) ALLOCATE (gc_s(mblk_size,ns), stat=istat)
@@ -1702,66 +1673,62 @@
 !     Store solution "x" in gc on output
          IF (LSCALAPACK) THEN
 #if defined(MPI_OPT)
-         ALLOCATE (tempp(ineedR), stat=istat)
-         ia = 1
-         ja = 1
-         ib = 1
-         jb = 1
-         beta0 = 0.0d0
-         alpha0 = 1.0d0
-         mm0=descR(3)
-         nrhs0=descR(4)
-         call profstart('pdgeadd call:123')
-         call pdgeadd( 'N', mm0,nrhs0, alpha0,gc,ia,ja,descR_all,       &
-                       beta0,tempp,ib,jb,descR )
-         call profend('pdgeadd call:123')
-         ir = 1
-         jr = 1
-         call blacs_barrier(icontxt,'All')
-         call profstart('solver call:123')
-         call pdtrds(mblk_size,ns,dblkp,lblkp,ublkp,ipiv_blk,descA,     &
-                     nrhs1,tempp,ir,jr,descR )
-         call blacs_barrier(icontxt,'All')
-         call profend('solver call:123')
-         gc = 0
-         ia = 1
-         ja = 1
-         ib = 1
-         jb = 1
-         beta0 = 0.0d0
-         alpha0 = 1.0d0
-         mm0=descR(3)
-         nrhs0=descR(4)
+            ALLOCATE (tempp(ineedR), stat=istat)
+            ia = 1
+            ja = 1
+            ib = 1
+            jb = 1
+            beta0 = 0.0d0
+            alpha0 = 1.0d0
+            mm0 = descR(3)
+            nrhs0 = descR(4)
+            call profstart('pdgeadd call:123')
+            call pdgeadd('N', mm0, nrhs0, alpha0, gc, ia, ja, descR_all,       &
+                         beta0, tempp, ib, jb, descR)
+            call profend('pdgeadd call:123')
+            ir = 1
+            jr = 1
+            call blacs_barrier(icontxt,'All')
+            call profstart('solver call:123')
+            call pdtrds(mblk_size,ns,dblkp,lblkp,ublkp,ipiv_blk,descA,         &
+                        nrhs1,tempp,ir,jr,descR)
+            call blacs_barrier(icontxt,'All')
+            call profend('solver call:123')
+            gc = 0
+            ia = 1
+            ja = 1
+            ib = 1
+            jb = 1
+            beta0 = 0.0d0
+            alpha0 = 1.0d0
+            mm0 = descR(3)
+            nrhs0 = descR(4)
 !     descR_all(7)=-1
 !     descR_all(8)=-1
-         call profstart('pdgeadd2 call:123')
-         call pdgeadd( 'N', mm0,nrhs0, alpha0, tempp,ia,ja,descR,       &
-                       beta0,gc,ib,jb,descR_all )
-         call dgsum2d( icontxt,'A', ' ', mm,1,gc,mm,       -1,-1)
-         call profend('pdgeadd2 call:123')
+            call profstart('pdgeadd2 call:123')
+            call pdgeadd('N', mm0,nrhs0, alpha0, tempp,ia,ja,descR,            &
+                         beta0,gc,ib,jb,descR_all)
+            call dgsum2d( icontxt,'A', ' ', mm,1,gc,mm,-1,-1)
+            call profend('pdgeadd2 call:123')
 
-         DEALLOCATE (tempp, stat=istat)
+            DEALLOCATE (tempp, stat=istat)
 #else
-         CALL ASSERT(.FALSE.,'MPI_OPT must be true for LSCALAPACK!')
+            CALL ASSERT(.FALSE.,'MPI_OPT must be true for LSCALAPACK!')
 #endif
          ELSE       !NOT LSCALAPACK
 
-#if defined(SKS)
-         CALL second0(endtime)
-         usedtime=endtime-starttime
-         IF (SKSDBG) WRITE(TOFU,*)                                      &
-         'HessianTag-2 : Time to BackwardSolve:',usedtime,              &
-         'PRECONDPASS',PRECONDPASS,'in native run'
-         IF (SKSDBG) CALL FLUSH(TOFU)
-#endif
-!        Serial solver
-         CALL blk3d_slv(dblk, lblk, ublk, gc, ipiv_blk, mblk_size, ns)
-         END IF     !END LSCALAPACK
+            CALL second0(endtime)
+            usedtime=endtime-starttime
+            IF (SKSDBG) WRITE(TOFU,*)                                          &
+               'HessianTag-2 : Time to BackwardSolve:',usedtime,               &
+               'PRECONDPASS',PRECONDPASS,'in native run'
+            IF (SKSDBG) CALL FLUSH(TOFU)
 
-#if defined(SKS)
+!        Serial solver
+            CALL blk3d_slv(dblk, lblk, ublk, gc, ipiv_blk, mblk_size, ns)
+         END IF     !END LSCALAPACK
       END IF !END OF IF(PARSOLVER) CONDITIONAL
       PRECONDPASS = PRECONDPASS + 1
-#endif
 
       IF (l_backslv .AND. ALLOCATED(dblk_s) .AND. .NOT.l_linearize) THEN
          error_sum = 0;  b_sum = SQRT(SUM(gc_s*gc_s)/neqs)
@@ -1773,29 +1740,33 @@
          DO js = startglobrow, endglobrow
             irow = 0
 			WRITE (34,*) ' JS: ', js
-         DO ntype = 1, ndims
-            DO n = -ntor, ntor
-               DO m = 0, mpol
-                  irow = irow+1
-                  t1 = SUM(dblk_s(irow,:,js)*gc(:,js))                   
-				  IF (js .LT. ns)                                       &
-                     t1 = t1 + SUM(ublk_s(irow,:,js)*gc(:,js+1))
-			      IF (js .GT. 1)                                        &
-                     t1 = t1 + SUM(lblk_s(irow,:,js)*gc(:,js-1)) 
+            DO ntype = 1, ndims
+               DO n = -ntor, ntor
+                  DO m = 0, mpol
+                     irow = irow+1
+                     t1 = SUM(dblk_s(irow,:,js)*gc(:,js))
+				     IF (js .LT. ns) THEN
+                        t1 = t1 + SUM(ublk_s(irow,:,js)*gc(:,js+1))
+                     END IF
+			         IF (js .GT. 1) THEN
+                        t1 = t1 + SUM(lblk_s(irow,:,js)*gc(:,js-1))
+                     END IF
 
-                  error = t1 - gc_s(irow,js)
-                  error_sum = error_sum + error**2
-                  WRITE(34,110) irow, m, n, ntype,                      &
-                  gc_s(irow,js)/b_sum, error/b_sum
+                     error = t1 - gc_s(irow,js)
+                     error_sum = error_sum + error**2
+                     WRITE(34,110) irow, m, n, ntype, gc_s(irow,js)/b_sum,     &
+                                   error/b_sum
+                  END DO
                END DO
             END DO
          END DO
-         END DO
 
          DEALLOCATE(dblk_s, lblk_s, ublk_s, gc_s, stat=istat)
-         IF (lverbose) PRINT '(3(a,1pe12.4))',' |b|: ', b_sum,          &
-                       ' |x| = ', SQRT(SUM(gc*gc)/neqs),                &
-                       ' Hessian Error: ', SQRT(error_sum/neqs)/b_sum
+         IF (lverbose) THEN
+            PRINT '(3(a,1pe12.4))',' |b|: ', b_sum,                            &
+                  ' |x| = ', SQRT(SUM(gc*gc)/neqs),                            &
+                  ' Hessian Error: ', SQRT(error_sum/neqs)/b_sum
+         END IF
 
       END IF
  110  FORMAT(4i6,1p,2e16.4)
@@ -1970,7 +1941,7 @@
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
 !-----------------------------------------------
-      INTEGER :: ipart,jpart,i,j,k
+      INTEGER :: ipart,jpart,k
       INTEGER :: ia,ja,inc1,ib,jb,inc2,nsm
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
