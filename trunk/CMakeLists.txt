@@ -176,6 +176,7 @@ add_subdirectory (BOOZ_XFORM)
 add_subdirectory (WOUT_CONVERTER)
 add_subdirectory (BOOTSJ)
 add_subdirectory (DESCUR)
+add_subdirectory (SURFACE)
 add_subdirectory (LGRID)
 add_subdirectory (Testing)
 
