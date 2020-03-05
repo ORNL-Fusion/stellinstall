@@ -1,7 +1,6 @@
       MODULE diagnostics_mod
       USE v3_utilities, ONLY: assert
-      USE fourier, ONLY: tomnsp, toijsp, tomnsp_par, toijsp_par,        &
-                   f_sum, f_cos, f_sin, f_none, f_du, f_dv
+      USE fourier, ONLY: f_sum, f_cos, f_sin, f_none, f_du, f_dv
       USE descriptor_mod, ONLY: iam, nprocs, SIESTA_COMM
       USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
       USE timer_mod
@@ -11,7 +10,10 @@
 #if defined(MPI_OPT)
       USE mpi_inc
 #endif
+      USE island_params, ONLY: fourier_context
+
       IMPLICIT NONE
+
       INTEGER, PRIVATE  :: unit35=35, unit36=36, nsmin, nsmax
       REAL(dp) :: divb_rms, avbeta, bdotj_rms, divj_rms, bdotj2_rms
       REAL(dp) :: toroidal_flux, toroidal_flux0=0, bgradp_rms, wbgradp
@@ -36,73 +38,98 @@
 
       CONTAINS
 
-        SUBROUTINE divb (ns_min, ns_max)
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-        INTEGER, INTENT(IN) :: ns_min, ns_max
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-        INTEGER  :: istat, m, n, n1, n2
-        REAL(dp) :: tnorm, s1(2), r1(2), ton, toff
-!-----------------------------------------------
-!
-!     COMPUTE divB ON FULL MESH POINTS
-!
-        CALL second0(ton)
+!*******************************************************************************
+!>  UTILITY SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Compute divergence of B on the full mesh points.
+!>
+!>  @param[in] ns_min Lower radial index.
+!>  @param[in] ns_max Upper radial index.
+!-------------------------------------------------------------------------------
+      SUBROUTINE divb(ns_min, ns_max)
+      USE island_params, ONLY: ohs=>ohs_i
+      USE hessian, ONLY: gather_array
 
-        nsmin=ns_min;  nsmax=ns_max
-        n1 = MAX(2, nsmin)
-        n2 = MIN(ns-1, nsmax)       
+!  Declare Arguments
+      INTEGER, INTENT(in)     :: ns_min
+      INTEGER, INTENT(in)     :: ns_max
+
+!  Local Variables
+      INTEGER                 :: istat
+      INTEGER                 :: m
+      INTEGER                 :: n
+      INTEGER                 :: nl
+      INTEGER                 :: nh
+      REAL (dp)               :: tnorm
+      REAL (dp), DIMENSION(2) :: temp
+      REAL (dp)               :: ton
+      REAL (dp)               :: toff
+
+!  Start of executable code
+      CALL second0(ton)
+
+      nsmin = ns_min
+      nsmax = ns_max
+      nl = MAX(2, nsmin)
+      nh = MIN(ns - 1, nsmax)
  
-        IF (ALLOCATED(divbmnsf)) DEALLOCATE(divbmnsf)
-        IF (ALLOCATED(divbmncf)) DEALLOCATE(divbmncf)
-        ALLOCATE(divbmnsf(0:mpol,-ntor:ntor,nsmin:nsmax),               &
-                 divbmncf(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
-        CALL ASSERT(istat.EQ.0,'Allocation failed in divb')
+      IF (ALLOCATED(divbmnsf)) THEN
+         DEALLOCATE(divbmnsf)
+      END IF
+      IF (ALLOCATED(divbmncf)) THEN
+         DEALLOCATE(divbmncf)
+      END IF
+      ALLOCATE(divbmnsf(0:mpol,-ntor:ntor,nsmin:nsmax),                      &
+               divbmncf(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
+      CALL ASSERT(istat.EQ.0,'Allocation failed in divb')
         
-        divbmnsf = 0; divbmncf = 0
+      divbmnsf = 0
+      divbmncf = 0
 
-        DO m = 0, mpol
-           DO n = -ntor, ntor
-           divbmnsf(m,n,n1:n2) =                                        &
-                -m*(jbsupumnch(m,n,n1+1:n2+1)+jbsupumnch(m,n,n1:n2))/2  &
-            -n*nfp*(jbsupvmnch(m,n,n1+1:n2+1)+jbsupvmnch(m,n,n1:n2))/2  &
-            + ohs *(jbsupsmnsh(m,n,n1+1:n2+1)-jbsupsmnsh(m,n,n1:n2))
-           IF (lasym) THEN
-           divbmncf(m,n,n1:n2) =                                        &
-                 m*(jbsupumnsh(m,n,n1+1:n2+1)+jbsupumnsh(m,n,n1:n2))/2  &
-            +n*nfp*(jbsupvmnsh(m,n,n1+1:n2+1)+jbsupvmnsh(m,n,n1:n2))/2  &
-            + ohs *(jbsupsmnch(m,n,n1+1:n2+1)-jbsupsmnch(m,n,n1:n2))
-           END IF
-           END DO
-        END DO
+      DO m = 0, mpol
+         DO n = -ntor, ntor
+            divbmnsf(m,n,nl:nh) =    -m*(jbsupumnch(m,n,nl+1:nh+1) +           &
+                                         jbsupumnch(m,n,nl:nh))*0.5            &
+                                - n*nfp*(jbsupvmnch(m,n,nl+1:nh+1) +           &
+                                         jbsupvmnch(m,n,nl:nh))*0.5            &
+                                +   ohs*(jbsupsmnsh(m,n,nl+1:nh+1) -           &
+                                         jbsupsmnsh(m,n,nl:nh))
+            IF (lasym) THEN
+               divbmncf(m,n,nl:nh) =     m*(jbsupumnsh(m,n,nl+1:nh+1) +        &
+                                            jbsupumnsh(m,n,nl:nh))*0.5         &
+                                   + n*nfp*(jbsupvmnsh(m,n,nl+1:nh+1) +        &
+                                            jbsupvmnsh(m,n,nl:nh))*0.5         &
+                                   +   ohs*(jbsupsmnch(m,n,nl+1:nh+1) -        &
+                                            jbsupsmnch(m,n,nl:nh))
+            END IF
+         END DO
+      END DO
 
-        tnorm = hs_i*SUM(jbsupumnch(:,:,nsmin:nsmax)**2                 &
-              +          jbsupvmnch(:,:,nsmin:nsmax)**2                 &
-              +          jbsupsmnsh(:,:,nsmin:nsmax)**2)
+      tnorm = hs_i*SUM(jbsupumnch(:,:,nsmin:nsmax)**2                          &
+            +          jbsupvmnch(:,:,nsmin:nsmax)**2                          &
+            +          jbsupsmnsh(:,:,nsmin:nsmax)**2)
        
-        divb_rms = SUM(divbmnsf**2 + divbmncf**2)
+      divb_rms = SUM(divbmnsf**2 + divbmncf**2)
 #if defined(MPI_OPT)        
-        s1(1) = divb_rms; s1(2) = tnorm
-        CALL MPI_ALLREDUCE(s1,r1,2,MPI_REAL8, MPI_SUM,                  &
-                           SIESTA_COMM,MPI_ERR)
-        divb_rms=r1(1);   tnorm = r1(2)
+      temp(1) = divb_rms
+      temp(2) = tnorm
+      CALL MPI_ALLREDUCE(MPI_IN_PLACE,temp,2,MPI_REAL8, MPI_SUM,               &
+                         SIESTA_COMM,MPI_ERR)
+      divb_rms = temp(1)
+      tnorm = temp(2)
 #endif
-        IF (tnorm .NE. zero) THEN
-           divb_rms = SQRT(divb_rms/tnorm)
-           divbmnsf = divbmnsf/SQRT(tnorm)
-           divbmncf = divbmncf/SQRT(tnorm)
-        END IF
+      IF (tnorm .NE. zero) THEN
+         divb_rms = SQRT(divb_rms/tnorm)
+         divbmnsf = divbmnsf/SQRT(tnorm)
+         divbmncf = divbmncf/SQRT(tnorm)
+      END IF
 
+      CALL second0(toff)
+      time_divb = time_divb + (toff-ton)
 
-        CALL second0(toff)
-        time_divb = time_divb + (toff-ton)
+      END SUBROUTINE
 
-        END SUBROUTINE divb
-
-         
         SUBROUTINE WRITE_PROFILES(fsq_total)
         USE safe_open_mod
         USE siesta_init, ONLY: init_state
@@ -119,9 +146,11 @@
         REAL(dp)                 :: average(ns)
 !-----------------------------------------------
 !
-!       IT IS ASSUMED COMING IN HERE THAT THE PROFILES HAVE BEEN GATHERED
-!       (IN UPDATE_STATE)
+!       IT IS ASSUMED COMING IN HERE THAT THE PROFILES HAVE BEEN PREVIOUSLY
+!       GATHERED (IN UPDATE_STATE) AND PREPARE_QUANTITIES HAS BEEN CALLED
 !
+        IF (iam .NE. 0) RETURN
+        
         ALLOCATE (pijh(ntheta,nzeta,ns),                                &
                   pmnh(0:mpol,-ntor:ntor,ns), stat=istat)      
         CALL ASSERT(istat.EQ.0,'Allocation failed in WRITE_PROFILES')
@@ -133,62 +162,48 @@
 
         CALL ASSERT(istat.EQ.0,'Error opening siesta profiles data file')
 
+!Check that init_state was initialized so start/end globrow = (1,ns)
+        CALL ASSERT(startglobrow.EQ.1 .AND. endglobrow.EQ.ns,           &
+          ' INIT_STATE NOT INITIALIZED IN WRITE_PROFILES!')
+          
 !USE pijh, pmnh scratch arrays to compute pressure and bsupX components on half-mesh
 
 !pressure
-        CALL toijsp(jpmnch, pijh, f_none, f_cos)
-        IF (lasym) CALL toijsp(jpmnsh, pijh, f_sum, f_sin)
-        CALL WRITE_SPECTRA (pijh, pmnh, f_cos, f_sin, ihalf, 'p', fsq_total)
+        CALL WRITE_SPECTRA(pijf0, pmnh, f_cos, f_sin, ifull, 'p', fsq_total)
 
 !BSUPS
-        CALL toijsp(jbsupsmnsh, pijh, f_none, f_sin)
-        IF (lasym) CALL toijsp(jbsupsmnch, pijh, f_sum, f_cos)
-        CALL WRITE_SPECTRA (pijh, pmnh, f_sin, f_cos, ihalf, 'B^s', fsq_total)
+        CALL WRITE_SPECTRA(bsupsijf0, pmnh, f_sin, f_cos, ifull, 'B^s', fsq_total)
 
 !BSUPU
-        CALL toijsp(jbsupumnch, pijh, f_none, f_cos)
-        IF (lasym) CALL toijsp(jbsupumnsh, pijh, f_sum, f_sin)
-        CALL WRITE_SPECTRA (pijh, pmnh, f_cos, f_sin, ihalf, 'B^u', fsq_total)
+        CALL WRITE_SPECTRA(bsupuijf0, pmnh, f_cos, f_sin, ifull, 'B^u', fsq_total)
 
 !BSUPV
-        CALL toijsp(jbsupvmnch, pijh, f_none, f_cos)
-        IF (lasym) CALL toijsp(jbsupvmnsh, pijh, f_sum, f_sin)
-        CALL WRITE_SPECTRA (pijh, pmnh, f_cos, f_sin, ihalf, 'B^v', fsq_total)
+        CALL WRITE_SPECTRA(bsupvijf0, pmnh, f_cos, f_sin, ifull, 'B^v', fsq_total)
 
 !KSUPS CRCook
-        CALL toijsp(ksupsmnsf, pijh, f_none, f_sin)
-        IF (lasym) CALL toijsp(ksupsmncf, pijh, f_sum, f_cos)
-        pijh = pijh/jacobf
-        CALL WRITE_SPECTRA (pijh, pmnh, f_sin, f_cos, ifull, 'J^s', fsq_total)
+        pijh = ksupsijf0/jacobf
+        CALL WRITE_SPECTRA(pijh, pmnh, f_sin, f_cos, ifull, 'J^s', fsq_total)
 
 !KSUPU CRCook
-        CALL toijsp(ksupumncf, pijh, f_none, f_cos)
-        IF (lasym) CALL toijsp(ksupumnsf, pijh, f_sum, f_sin)
-        pijh = pijh/jacobf
-        CALL WRITE_SPECTRA (pijh, pmnh, f_cos, f_sin, ifull, 'J^u', fsq_total)
+        pijh = ksupuijf0/jacobf
+        CALL WRITE_SPECTRA(pijh, pmnh, f_cos, f_sin, ifull, 'J^u', fsq_total)
 
 !KSUPV CRCook
-        CALL toijsp(ksupvmncf, pijh, f_none, f_cos)
-        IF (lasym) CALL toijsp(ksupvmnsf, pijh, f_sum, f_sin)
-        pijh = pijh/jacobf
-        CALL WRITE_SPECTRA (pijh, pmnh, f_cos, f_sin, ifull, 'J^v', fsq_total)
+        pijh = ksupvijf0/jacobf
+        CALL WRITE_SPECTRA(pijh, pmnh, f_cos, f_sin, ifull, 'J^v', fsq_total)
 
 !K|| = (J*B)/B**2 (SPH:040915)
-        lcurr_init=.TRUE.                             
-        CALL init_state(lcurr_init)
         CALL bdotj(bdotjijh)
-        pijh = 0
-        WHERE (bsq .NE. zero) pijh = bdotjijh/bsq
+        pijh = bdotjijh*jacobh
         DEALLOCATE(bdotjijh)
-        pijh = pijh*jacobh
-        CALL WRITE_SPECTRA (pijh, pmnh, f_cos, f_sin, ihalf, 'K||', fsq_total)
+        CALL WRITE_SPECTRA(pijh, pmnh, f_cos, f_sin, ihalf, 'K||', fsq_total)
 
 
 !<K||-nonaxi> : RWILCOX metric in PEST coordinates
 !need to extend this to lasym=T
-        CALL tomnsp(pijh, pmnh, f_cos)
+        CALL fourier_context%tomnsp(pijh, pmnh, f_cos)
         pmnh(:,0,:) = 0
-        CALL toijsp(pmnh, pijh, f_none, f_cos)
+        CALL fourier_context%toijsp(pmnh, pijh, f_none, f_cos)
         CALL SurfAverage(average, ABS(pijh), 1, ns)
         WRITE (unit36, *) 
         WRITE (unit36, *) '<ABS(K||) - nonaxisymmetric>'
@@ -197,67 +212,95 @@
         END DO
         
 !Displacements X jac (SPH:052114)
-        CALL siesta_profiles (unit35, jvsupsmncf, 'vel^s_cosmn;  fsq_total: ', fsq_total)
-        IF (lasym) CALL siesta_profiles (unit35, jvsupsmnsf, 'vel^s_sinmn;  fsq_total: ', fsq_total)
-        CALL siesta_profiles (unit35, jvsupumnsf, 'vel^u_sinmn;  fsq_total: ', fsq_total)
-        IF (lasym) CALL siesta_profiles (unit35, jvsupumncf, 'vel^u_cosmn;  fsq_total: ', fsq_total)
-        CALL siesta_profiles (unit35, jvsupvmnsf, 'vel^v_sinmn;  fsq_total: ', fsq_total)
+        CALL siesta_profiles(unit35, jvsupsmncf, 'vel^s_cosmn;  fsq_total: ', fsq_total)
+        IF (lasym) CALL siesta_profiles(unit35, jvsupsmnsf, 'vel^s_sinmn;  fsq_total: ', fsq_total)
+        CALL siesta_profiles(unit35, jvsupumnsf, 'vel^u_sinmn;  fsq_total: ', fsq_total)
+        IF (lasym) CALL siesta_profiles(unit35, jvsupumncf, 'vel^u_cosmn;  fsq_total: ', fsq_total)
+        CALL siesta_profiles(unit35, jvsupvmnsf, 'vel^v_sinmn;  fsq_total: ', fsq_total)
         IF (lasym) CALL siesta_profiles (unit35, jvsupvmncf, 'vel^v_cosmn;  fsq_total: ', fsq_total)
 
-
-        DEALLOCATE (pijh, pmnh)
+        DEALLOCATE(pijh, pmnh)
 
         CLOSE (unit35)
         CLOSE (unit36)
 
       END SUBROUTINE WRITE_PROFILES
       
-      
-      SUBROUTINE WRITE_SPECTRA (XIJ, XMN, FSYM, FASYM, IGRID,  LABEL, FSQ_TOTAL)
-      USE fourier, ONLY: tomnsp_pest
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      INTEGER, INTENT(IN)   :: FSYM, FASYM, IGRID
-      REAL(dp), INTENT(IN)  :: fsq_total
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: XIJ, XMN
-      CHARACTER*(*)         :: LABEL
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      INTEGER               :: n1, n2, n3
-      REAL(dp), ALLOCATABLE :: xijf(:,:,:)
-      CHARACTER(LEN=128)    :: MYLABEL
-!-----------------------------------------------
+!-------------------------------------------------------------------------------
+!>  @brief  Write fourier spectra for both regular and pest coordinates.
+!>
+!>  There is no lmn* quantity when using free boundary SIESTA so pest output is
+!>  disabled. Arrays must be ALLOCATABLE to preserve array bounds.
+!>
+!>  @param[inout] xij       Real space quantity.
+!>  @param[inout] xmn       Fourier space buffer.
+!>  @param[in]    fsym      Symmetric parity.
+!>  @param[in]    fasym     Asymmetric parity.
+!>  @param[in]    igrid     Radial grid type. This should either be 0 for full
+!>                          or 1 for half grid.
+!>  @param[in]    label     Name of the quantity in xij.
+!>  @param[in]    fsq_total
+!>------------------------------------------------------------------------------
+      SUBROUTINE write_spectra(xij, xmn, fsym, fasym, igrid, label, fsq_total)
+      USE vmec_info, ONLY:  lmns => lmns_i, lmnc => lmnc_i
+      USE siesta_namelist, ONLY: l_vessel
+      USE utilities, ONLY: to_full_mesh
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: xij
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: xmn
+      INTEGER, INTENT(IN)                                     :: fsym
+      INTEGER, INTENT(IN)                                     :: fasym
+      INTEGER, INTENT(IN)                                     :: igrid
+      CHARACTER (len=*), INTENT(in)                           :: label
+      REAL (dp), INTENT(IN)                                   :: fsq_total
+
+!  Local variables
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE                :: xijf
+      CHARACTER (LEN=128)                                     :: mylabel
+
+!  Start of executable code.
       IF (igrid .EQ. 1) THEN
-         n1 = SIZE(xij,1); n2 = SIZE(xij,2); n3 = SIZE(xij,3)
-         ALLOCATE(xijf(n1,n2,n3))
+         ALLOCATE(xijf(SIZE(xij,1), SIZE(xij,2), SIZE(xij,3)))
          CALL to_full_mesh(xij, xijf)
-         xij = xijf
+         xij = xijf/jacobf
          DEALLOCATE(xijf)
       END IF
- 
-      xij = xij/jacobf
 
-      IF (fsym .EQ. f_cos) MYLABEL = TRIM(LABEL) // "_cosmn; fsq_total: "
-      IF (fsym .EQ. f_sin) MYLABEL = TRIM(LABEL) // "_sinmn; fsq_total: "
-      
-      CALL tomnsp(xij, xmn, fsym)
-      CALL siesta_profiles (unit35, xmn, TRIM(mylabel), fsq_total)
-      CALL tomnsp_pest(xij, xmn, fsym)
-      CALL siesta_profiles (unit36, xmn, TRIM(mylabel), fsq_total)
-      IF (lasym) THEN
-
-         IF (fasym .EQ. f_cos) MYLABEL = TRIM(LABEL) // "_cosmn; fsq_total: "
-         IF (fasym .EQ. f_sin) MYLABEL = TRIM(LABEL) // "_sinmn; fsq_total: "
-
-         CALL tomnsp(xij, xmn, fasym)
-         CALL siesta_profiles (unit35, xmn, TRIM(mylabel), fsq_total)
-         CALL tomnsp_pest(xij, xmn, fasym)
-         CALL siesta_profiles (unit36, xmn, TRIM(mylabel), fsq_total)
+      IF (fsym .EQ. f_cos) THEN
+         WRITE (mylabel,1000) TRIM(LABEL)
+      ELSE
+         WRITE (mylabel,1001) TRIM(LABEL)
       END IF
       
-      END SUBROUTINE WRITE_SPECTRA
+      CALL fourier_context%tomnsp(xij, xmn, fsym)
+      CALL siesta_profiles(unit35, xmn, TRIM(mylabel), fsq_total)
+      IF (.not.l_vessel) THEN
+         CALL fourier_context%tomnsp(xij, xmn, lmns, lmnc, fsym, lasym)
+         CALL siesta_profiles(unit36, xmn, TRIM(mylabel), fsq_total)
+      END IF
+      IF (lasym) THEN
+
+         IF (fasym .EQ. f_cos) THEN
+            WRITE (mylabel,1000) TRIM(LABEL)
+         ELSE
+            WRITE (mylabel,1001) TRIM(LABEL)
+         END IF
+
+         CALL fourier_context%tomnsp(xij, xmn, fasym)
+         CALL siesta_profiles(unit35, xmn, TRIM(mylabel), fsq_total)
+         IF (.not.l_vessel) THEN
+            CALL fourier_context%tomnsp(xij, xmn, lmns, lmnc, fasym, lasym)
+            CALL siesta_profiles(unit36, xmn, TRIM(mylabel), fsq_total)
+         END IF
+      END IF
+
+1000  FORMAT(a,'_cosmn; fsq_total: ')
+1001  FORMAT(a,'_sinmn; fsq_total: ')
+
+      END SUBROUTINE
 
       SUBROUTINE SIESTA_PROFILES (iunit, arr_value, label, fsq_total)
 !-----------------------------------------------
@@ -300,7 +343,7 @@
 
       WRITE (p_format,1002) mnmax
       DO js = 2, ns
-         sj = hs_i*(js-1)
+         sj = hs_i*(js - 1)
          rms_value = SQRT(SUM(arr_value(:,:,js)**2)/mnmax)
          WRITE(iunit,p_format) sj, rms_value, arr_value(:,:,js)
       END DO
@@ -342,86 +385,94 @@
 
       END SUBROUTINE bgradp
 
-
+!-------------------------------------------------------------------------------
+!>  @brief Compute B.Grad(p) on the full mesh sans end points.
+!>
+!>  @param[in] ns_min Minimum radial index.
+!>  @param[in] ns_max Maximum radial index.
+!-------------------------------------------------------------------------------
       SUBROUTINE get_bgradp(ns_min, ns_max)
-!     
-!     PURPOSE: Computes B*GRAD P on the FULL mesh
-!
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      INTEGER, INTENT(IN) :: ns_min, ns_max
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      INTEGER     :: istat, n1, n2
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)  ::  dpduijf, dpdvijf
-      REAL(dp)    :: s1(2), r1(2), ton, toff
-!-----------------------------------------------
-!
-!     COMPUTE B DOT GRAD P AT FULL-GRID POINTS (sans endpts)
-!
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER, INTENT(in)                      :: ns_min
+      INTEGER, INTENT(in)                      :: ns_max
+
+!  local variables
+      INTEGER                                  :: istat
+      INTEGER                                  :: n1
+      INTEGER                                  :: n2
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: dpduijf
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: dpdvijf
+      REAL (dp), DIMENSION(2)                  :: temp(2)
+      REAL (dp)                                :: ton
+      REAL (dp)                                :: toff
+
+!  Start of executable code
       CALL second0(ton)
 
-      nsmin = ns_min; nsmax=MIN(ns_max+1,ns)
+      CALL assert(ALLOCATED(jbsupsmnsh),'jbsupXmn unallocated in get_bgradp')
+
+      nsmin = ns_min
+      nsmax = MIN(ns_max + 1, ns)
 
       bgradpf = 0 
 
-!     Compute pressure and angle derivatives
-!
-      ALLOCATE(dpduijf(ntheta,nzeta,nsmin:nsmax),                       &
+!  Compute pressure and angle derivatives
+      ALLOCATE(dpduijf(ntheta,nzeta,nsmin:nsmax),                              &
                dpdvijf(ntheta,nzeta,nsmin:nsmax), stat=istat)
-      CALL ASSERT(istat.EQ.0,'Allocation failed in GET_BGRADP_PAR')
+      CALL assert_eq(0, istat, 'Allocation failed in get_bgradp')
 
-      CALL ASSERT(ALLOCATED(jbsupsmnsh),'jbsupXmn UNALLOCATED IN GET_BGRADP_PAR')
+      CALL to_full_mesh(pijh0_du, dpduijf)
+      CALL to_full_mesh(pijh0_dv, dpdvijf)
 
-      CALL GetPressure (dpduijf, dpdvijf)
+      nsmax = MIN(endglobrow, ns)
+      n1 = MAX(2, nsmin)
+      n2 = MIN(nsh, nsmax)
+!  Get all values except first and
+      bgradpf(:,:,n1:n2) = bsupsijf0(:,:,n1:n2)*pijf0_ds(:,:,n1:n2)            &
+                         + bsupuijf0(:,:,n1:n2)*dpduijf(:,:,n1:n2)             &
+                         + bsupvijf0(:,:,n1:n2)*dpdvijf(:,:,n1:n2)
 
-      nsmax=MIN(endglobrow,ns)
-      n1 = MAX(2, nsmin); n2 = MIN(nsh, nsmax)
-      bgradpf(:,:,n1:n2) =                                              &   ! Get all values except first and
-               bsupsijf0(:,:,n1:n2)*pijf0_ds(:,:,n1:n2)                 &
-             + bsupuijf0(:,:,n1:n2)*dpduijf(:,:,n1:n2)                  &
-             + bsupvijf0(:,:,n1:n2)*dpdvijf(:,:,n1:n2)         
-    
-      tnorm_bgradp = SUM((bsupsijf0(:,:,n1:nsmax)**2                    &
-                   +      bsupuijf0(:,:,n1:nsmax)**2                    &
-                   +      bsupvijf0(:,:,n1:nsmax)**2)                   &
-                   *          pijf0(:,:,n1:nsmax)**2*wint(:,:,n1:nsmax))
+      tnorm_bgradp = SUM((bsupsijf0(:,:,n1:nsmax)**2 +                         &
+                          bsupuijf0(:,:,n1:nsmax)**2 +                         &
+                          bsupvijf0(:,:,n1:nsmax)**2)*                         &
+                         pijf0(:,:,n1:nsmax)**2*wint(:,:,n1:nsmax))
 
-!SPH10-31-16: ignore inner s<.1 for this diagnostic
+!  Ignore inner s<0.1 for this diagnostic
       n1 = MAX(ns/20, nsmin)
-      wbgradp = SUM(bgradpf(:,:, n1:n2)**2*wint(:,:,n1:nsmax))
-      s1(1)=tnorm_bgradp;  s1(2)=wbgradp
+      wbgradp = SUM(bgradpf(:,:,n1:n2)**2*wint(:,:,n1:n2))
+      temp(1) = tnorm_bgradp
+      temp(2) = wbgradp
       IF (PARSOLVER) THEN
 #if defined(MPI_OPT)
-      CALL MPI_ALLREDUCE(s1,r1,2,MPI_REAL8, MPI_SUM,                    &
-                         SIESTA_COMM,MPI_ERR)
-#endif                         
-      ELSE
-      r1 = s1
+         CALL MPI_ALLREDUCE(MPI_IN_PLACE, temp, 2, MPI_REAL8, MPI_SUM,         &
+                            SIESTA_COMM, MPI_ERR)
+#endif
       END IF
-      tnorm_bgradp=r1(1); wbgradp=r1(2)
+      tnorm_bgradp = temp(1)
+      wbgradp = temp(2)
 
       IF (tnorm_bgradp .GT. zero) THEN
          bgradp_rms = SQRT(wbgradp/tnorm_bgradp)
          tnorm_bgradp = SQRT(tnorm_bgradp/ns)
 
-!IGNORE FIRST POINT
+!  Ignore first point
          max_bgradp = MAXVAL(bgradpf(:,:,n1:n2))/tnorm_bgradp
          min_bgradp = MINVAL(bgradpf(:,:,n1:n2))/tnorm_bgradp
-         s1(1)=max_bgradp; s1(2) = -min_bgradp
+         temp(1) = max_bgradp
+         temp(2) = -min_bgradp
          IF (PARSOLVER) THEN
 #if defined(MPI_OPT)
-         CALL MPI_ALLREDUCE(s1,r1,2,MPI_REAL8, MPI_MAX,                 &
-                            SIESTA_COMM,MPI_ERR)
-#endif                         
-         ELSE
-         r1 = s1
+            CALL MPI_ALLREDUCE(MPI_IN_PLACE, temp, 2, MPI_REAL8, MPI_MAX,      &
+                               SIESTA_COMM, MPI_ERR)
+#endif
          END IF
-         max_bgradp=r1(1)
-         min_bgradp=-r1(2)
-         IF (.NOT.lasym) THEN                                              !reflect onto u=pi-2*pi: bgradp is sin parity
+         max_bgradp = temp(1)
+         min_bgradp = -temp(2)
+         IF (.not.lasym) THEN
+!  Reflect onto u = pi - 2*pi: bgradp has sin parity.
             max_bgradp = MAX(max_bgradp, -min_bgradp)
             min_bgradp = MIN(min_bgradp, -max_bgradp)
          END IF
@@ -430,64 +481,39 @@
       DEALLOCATE (dpdvijf, dpduijf, stat=istat)
 
       CALL second0(toff)
-      time_bgradp = time_bgradp+(toff-ton)
+      time_bgradp = time_bgradp + (toff - ton)
 
-      END SUBROUTINE get_bgradp
-      
+      END SUBROUTINE
 
-      SUBROUTINE GetPressure (dpduijf, dpdvijf)
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE :: dpduijf, dpdvijf
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      INTEGER  :: istat, n2
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: ph0_du, ph0_dv
-!-----------------------------------------------
-    
-      n2 = MIN(ns,endglobrow+1)
-      
-      ALLOCATE(ph0_du(ntheta,nzeta,nsmin:n2),                           &
-               ph0_dv(ntheta,nzeta,nsmin:n2), stat=istat)
-      CALL ASSERT(istat.EQ.0,'Allocation error in GetPressure_par')               
-      ph0_du(:,:,nsmin:n2) = pijh0_du(:,:,nsmin:n2)
-      ph0_dv(:,:,nsmin:n2) = pijh0_dv(:,:,nsmin:n2)
-
-      CALL to_full_mesh(ph0_du, dpduijf)
-      CALL to_full_mesh(ph0_dv, dpdvijf)
-      
-      DEALLOCATE(ph0_du, ph0_dv, stat=istat)
-      CALL ASSERT(istat.EQ.0,'Deallocation error in GetPressure_par')               
-
-      END SUBROUTINE GetPressure
-
+!-------------------------------------------------------------------------------
+!>  @brief Plasma beta.
+!-------------------------------------------------------------------------------
       SUBROUTINE BETA
 
-        avbeta = wp/wb
+      avbeta = wp/wb
  
-      END SUBROUTINE BETA
+      END SUBROUTINE
  
       
       SUBROUTINE TFLUX
+      USE fourier, ONLY: m0, n0
+
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER, PARAMETER :: m0=0, n0=0
       REAL(dp)           :: part_sum
 !-----------------------------------------------
       nsmin=MAX(2,startglobrow); nsmax=MIN(endglobrow,ns)
 
 !Averages over all toroidal cross sections (which should be the same)
-      part_sum = SUM(jbsupvmnch(m0,n0,nsmin:nsmax))
+      toroidal_flux = SUM(jbsupvmnch(m0,n0,nsmin:nsmax))
       IF (PARSOLVER) THEN
 #if defined(MPI_OPT)
-      CALL MPI_ALLREDUCE(part_sum,toroidal_flux,1,MPI_REAL8, MPI_SUM,   &
+      CALL MPI_ALLREDUCE(MPI_IN_PLACE,toroidal_flux,1,MPI_REAL8, MPI_SUM,   &
                          SIESTA_COMM,MPI_ERR)
 #endif      
-      ELSE
-      toroidal_flux = part_sum      
+!      ELSE
+!      toroidal_flux = part_sum      
       END IF
       toroidal_flux = signjac*twopi*toroidal_flux*hs_i/b_factor  
       
@@ -509,37 +535,16 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
         INTEGER      :: istat
-        REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: bsupsijh,            &
-          bsupuijh, bsupvijh,                                           &
+        REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                      &
+!          bsupsijh, bsupuijh, bsupvijh,                                 &
           bsubsijh, bsubuijh, bsubvijh, ksubsijh, ksubuijh,             &
           ksubvijh, ksupsijh, ksupuijh, ksupvijh, work1, work2,         &
           work3, work4, work5, work6
         REAL(dp)  :: tnorm, tnorm2, ton, toff
 !-----------------------------------------------
         CALL second0(ton)
-
-        CALL ASSERT(lcurr_init,'MUST CALL init_state(.TRUE.) BEFORE bdotj')
+        CALL ASSERT(SIZE(bsupsijh0,3).EQ.ns, 'bsupsijh0 wrong size in bdotj')
 ! 
-!     Compute contravariant components of magnetic field
-!       
-        ALLOCATE(bsupsijh(ntheta,nzeta,ns),                             &
-                 bsupuijh(ntheta,nzeta,ns),                             &
-                 bsupvijh(ntheta,nzeta,ns), stat=istat)
-        bsupsijh=0; bsupuijh=0; bsupvijh=0
-        CALL ASSERT(istat.EQ.0,'Allocation #1 failed in BDOTJ')
-
-        CALL toijsp(jbsupsmnsh, bsupsijh, f_none, f_sin)
-        CALL toijsp(jbsupumnch, bsupuijh, f_none, f_cos)
-        CALL toijsp(jbsupvmnch, bsupvijh, f_none, f_cos)
-        IF (lasym) THEN
-        CALL toijsp(jbsupsmnch, bsupsijh, f_sum, f_sin)
-        CALL toijsp(jbsupumnsh, bsupuijh, f_sum, f_cos)
-        CALL toijsp(jbsupvmnsh, bsupvijh, f_sum, f_cos)
-        END IF
-        bsupsijh = bsupsijh/jacobh
-        bsupuijh = bsupuijh/jacobh
-        bsupvijh = bsupvijh/jacobh
-!
 !   Compute covariant field. Used for normalization.
 !        
         ALLOCATE(bsubsijh(ntheta,nzeta,ns),                             &
@@ -548,7 +553,7 @@
         CALL ASSERT(istat.EQ.0, 'Allocation #2 failed in BDOTJ')
         bsubsijh=0; bsubvijh=0; bsubuijh=0
       
-        CALL tolowerh(bsupsijh, bsupuijh, bsupvijh,                     &
+        CALL tolowerh(bsupsijh0, bsupuijh0, bsupvijh0,                  &
                       bsubsijh, bsubuijh, bsubvijh, 1, ns)
 
 !
@@ -604,9 +609,9 @@
         bdotjijhA=0
         
         bdotjijhA(:,:,3:nsh-1) =                                        &  ! RS: If I include 2 and nsh, it gets huge
-          bsupsijh(:,:,3:nsh-1)*ksubsijh(:,:,3:nsh-1) +                 &  ! something funny happens at the boundaries.
-          bsupuijh(:,:,3:nsh-1)*ksubuijh(:,:,3:nsh-1) +                 &
-          bsupvijh(:,:,3:nsh-1)*ksubvijh(:,:,3:nsh-1)                       ! B*J = (B^s*J_s + B^u*J_u + B^v*J_v)
+          bsupsijh0(:,:,3:nsh-1)*ksubsijh(:,:,3:nsh-1) +                &  ! something funny happens at the boundaries.
+          bsupuijh0(:,:,3:nsh-1)*ksubuijh(:,:,3:nsh-1) +                &
+          bsupvijh0(:,:,3:nsh-1)*ksubvijh(:,:,3:nsh-1)                       ! B*J = (B^s*J_s + B^u*J_u + B^v*J_v)
 ! 
 !   Compute tnorm = |JXB|^2 for normalization; thus we print out J_parallel/|J_perp|.
 !
@@ -630,8 +635,8 @@
         tnorm = SQRT(ABS(tnorm))
         DEALLOCATE(work3, work4, work5, work6)
         
-        work1 = bsupsijh*bsubsijh + bsupuijh*bsubuijh +                 &  ! |B|**2
-                bsupvijh*bsubvijh
+        work1 = bsupsijh0*bsubsijh + bsupuijh0*bsubuijh +               &  ! |B|**2
+                bsupvijh0*bsubvijh
         work2 = ksupsijh*ksubsijh + ksupuijh*ksubuijh +                 &  ! |J|**2
                 ksupvijh*ksubvijh
        
@@ -644,8 +649,7 @@
         tnorm2 = SQRT(ABS(tnorm2))                                           ! |J|*|B|
         bdotj_rms = SUM(bdotjijhA*bdotjijhA)
 
-        DEALLOCATE (bsupsijh, bsupuijh, bsupvijh, bsubsijh,             &
-                    bsubuijh, bsubvijh, ksupsijh, ksupuijh,             &
+        DEALLOCATE (bsubsijh, bsubuijh, bsubvijh, ksupsijh, ksupuijh,   &
                     ksupvijh, ksubsijh, ksubuijh, ksubvijh,             &      
                     work1, work2)
 
@@ -653,10 +657,10 @@
         tnorm2= MAX(tnorm2,EPSILON(tnorm2))
         bdotj2_rms = SQRT(ABS(bdotj_rms))/tnorm2                           ! RMS of bdotj/|J|*|B|  
         bdotj_rms  = SQRT(ABS(bdotj_rms))/tnorm                            ! RMS of bdotj/|JxB|  
-        CALL tomnsp(bdotjijhA, bdotjmnch, f_cos)                  ! Keep harmonics of BDOTJ for output
+        CALL fourier_context%tomnsp(bdotjijhA, bdotjmnch, f_cos)                  ! Keep harmonics of BDOTJ for output
         bdotjmnch = bdotjmnch/tnorm
         IF (lasym) THEN
-        CALL tomnsp(bdotjijhA, bdotjmnsh, f_cos)                  ! Keep harmonics of BDOTJ for output
+        CALL fourier_context%tomnsp(bdotjijhA, bdotjmnsh, f_cos)                  ! Keep harmonics of BDOTJ for output
         bdotjmnsh = bdotjmnsh/tnorm
         END IF
         CALL second0(toff)
@@ -667,7 +671,10 @@
         END SUBROUTINE bdotj
 
       SUBROUTINE bdotj_par
-!#if defined(SKS)
+      USE island_params, ONLY: fourier_context
+
+      IMPLICIT NONE
+
 !     
 !     WRITTEN 08-20-07 BY R. SANCHEZ AS PART OF THE ORNL SIESTA PROJECT (c)
 !     UPDATED 03-21-13 BY S. HIRSHMAN FOR PARALLEL EXECUTION
@@ -683,7 +690,7 @@
           bsubsijh, bsubuijh, bsubvijh, ksubsijh, ksubuijh,             &
           ksubvijh, ksupsijh, ksupuijh, ksupvijh, work1, work2,         &
           work3, work4, work5, work6
-      REAL(dp)  :: tnorm, tnorm2, s1(3), r1(3), ton, toff
+      REAL(dp)  :: tnorm, tnorm2, temp(3), ton, toff
 !-----------------------------------------------
       CALL second0(ton)
 
@@ -698,13 +705,19 @@
                  bsupvijh(ntheta,nzeta,nsmin:nsmax), stat=istat)
         CALL ASSERT(istat.EQ.0,'Allocation #1 failed in BDOTJ_PAR')
 
-        CALL toijsp_par(jbsupsmnsh(:,:,nsmin:nsmax), bsupsijh, f_none, f_sin)
-        CALL toijsp_par(jbsupumnch(:,:,nsmin:nsmax), bsupuijh, f_none, f_cos)
-        CALL toijsp_par(jbsupvmnch(:,:,nsmin:nsmax), bsupvijh, f_none, f_cos)
+        CALL fourier_context%toijsp(jbsupsmnsh(:,:,nsmin:nsmax), bsupsijh,     &
+       &                            f_none, f_sin)
+        CALL fourier_context%toijsp(jbsupumnch(:,:,nsmin:nsmax), bsupuijh,     &
+                                    f_none, f_cos)
+        CALL fourier_context%toijsp(jbsupvmnch(:,:,nsmin:nsmax), bsupvijh,     &
+                                    f_none, f_cos)
         IF (lasym) THEN
-        CALL toijsp_par(jbsupsmnch(:,:,nsmin:nsmax), bsupsijh, f_sum, f_cos)
-        CALL toijsp_par(jbsupumnsh(:,:,nsmin:nsmax), bsupuijh, f_sum, f_sin)
-        CALL toijsp_par(jbsupvmnsh(:,:,nsmin:nsmax), bsupvijh, f_sum, f_sin)
+           CALL fourier_context%toijsp(jbsupsmnch(:,:,nsmin:nsmax), bsupsijh,  &
+                                       f_sum, f_cos)
+           CALL fourier_context%toijsp(jbsupumnsh(:,:,nsmin:nsmax), bsupuijh,  &
+                                       f_sum, f_sin)
+           CALL fourier_context%toijsp(jbsupvmnsh(:,:,nsmin:nsmax), bsupvijh,  &
+                                       f_sum, f_sin)
         END IF
 
         bsupsijh = bsupsijh/jacobh(:,:,nsmin:nsmax)
@@ -830,12 +843,12 @@
         tnorm2 = SUM(work1(:,:,n1:n2)*work2(:,:,n1:n2))
         bdotj_rms = SUM(bdotjijh(:,:,n1:n2)*bdotjijh(:,:,n1:n2))
 #if defined(MPI_OPT)
-        s1(1)=tnorm; s1(2)=tnorm2; s1(3)=bdotj_rms
-        CALL MPI_ALLREDUCE(s1,r1,3,MPI_REAL8, MPI_SUM,                  &
+        temp(1)=tnorm; temp(2)=tnorm2; temp(3)=bdotj_rms
+        CALL MPI_ALLREDUCE(MPI_IN_PLACE,temp,3,MPI_REAL8, MPI_SUM,                  &
                            SIESTA_COMM,MPI_ERR)
-        tnorm  = SQRT(ABS(r1(1)))
-        tnorm2 = SQRT(ABS(r1(2)))                                         ! |J|*|B|
-        bdotj_rms = r1(3) 
+        tnorm  = SQRT(ABS(temp(1)))
+        tnorm2 = SQRT(ABS(temp(2)))                                         ! |J|*|B|
+        bdotj_rms = temp(3)
 #else
         tnorm = SQRT(ABS(tnorm)); tnorm2 = SQRT(ABS(tnorm2))
 #endif
@@ -851,125 +864,159 @@
 
         bdotjijh = bdotjijh/tnorm
         
-        CALL tomnsp_par(bdotjijh, bdotjmnch, f_cos)                       ! Keep harmonics of BDOTJ for output
+        CALL fourier_context%tomnsp(bdotjijh, bdotjmnch, f_cos)                       ! Keep harmonics of BDOTJ for output
         IF (lasym) THEN
-        CALL tomnsp_par(bdotjijh, bdotjmnsh, f_sin)                       ! Keep harmonics of BDOTJ for output
+           CALL fourier_context%tomnsp(bdotjijh, bdotjmnsh, f_sin)                       ! Keep harmonics of BDOTJ for output
         END IF
 
         DEALLOCATE (bdotjijh)
 
         CALL second0(toff)
         time_bdotj = time_bdotj+(toff-ton)
-!#endif
+
         END SUBROUTINE bdotj_par
       
+!-------------------------------------------------------------------------------
+!>  @brief Compute the divergence of J.
+!>
+!>  Computes divergence of the current normalized to the total current on the
+!>  half mesh.
+!>
+!>  @param[in] ns_min Lower radial index.
+!>  @param[in] ns_max Upper radial index.
+!-------------------------------------------------------------------------------
+      SUBROUTINE divj(ns_min, ns_max)
+      USE island_params, ONLY: ohs=>ohs_i
 
-        SUBROUTINE divj(ns_min, ns_max)
-!     
-!     WRITTEN 03-18-13 BY S. HIRSHMAN AS PART OF THE ORNL SIESTA PROJECT (c)
-!     
-!     PURPOSE: Computes divergence of the current normalized to the total current on the half mesh
-!
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t
-!-----------------------------------------------
-        INTEGER, INTENT(IN)  :: ns_min, ns_max
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-        INTEGER              :: m, n, istat, n1, n2
-        REAL(dp), DIMENSION(:,:,:), ALLOCATABLE ::  temp1, temp2
-        REAL(dp)             :: tnorm, s1(2), r1(2), ton, toff
-!-----------------------------------------------
-!
-!     COMPUTE divJ ON HALF MESH POINTS
-!
-        CALL second0(ton)
+      IMPLICIT NONE
 
-        CALL ASSERT(lcurr_init,'MUST CALL init_state(.TRUE.) BEFORE divJ_par')
+!  Declare Arguments
+      INTEGER, INTENT(in)                     :: ns_min
+      INTEGER, INTENT(in)                     :: ns_max
 
-        nsmin=ns_min; nsmax = ns_max
+!  Local variables
+      INTEGER                                 :: m
+      INTEGER                                 :: n
+      INTEGER                                 :: istat
+      INTEGER                                 :: n1
+      INTEGER                                 :: n2
+      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE :: temp1
+      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE :: temp2
+      REAL(dp)                                :: tnorm
+      REAL(dp), DIMENSION(2)                  :: temp
+      REAL(dp)                                :: ton
+      REAL(dp)                                :: toff
 
-        IF (ALLOCATED(divjmnsh)) DEALLOCATE(divjmnsh)
-        IF (ALLOCATED(divjmnch)) DEALLOCATE(divjmnch)
-        ALLOCATE(divjmnsh(0:mpol,-ntor:ntor,nsmin:nsmax),               &
-                 divjmnch(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat) 
-        CALL ASSERT(istat.EQ.0,'Allocation failed in DIVJ')
-        divjmnsh = 0; divjmnch = 0
+!  Start of executable code.
+      CALL second0(ton)
 
-!
+      CALL ASSERT(lcurr_init,'MUST CALL init_state(.TRUE.) BEFORE divJ_par')
+
+      nsmin = ns_min
+      nsmax = ns_max
+
+      IF (ALLOCATED(divjmnsh)) THEN
+         DEALLOCATE(divjmnsh)
+      END IF
+      IF (ALLOCATED(divjmnch)) THEN
+         DEALLOCATE(divjmnch)
+      END IF
+      ALLOCATE(divjmnsh(0:mpol,-ntor:ntor,nsmin:nsmax),                        &
+               divjmnch(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
+      CALL assert_eq(istat, 0, 'Allocation failed in DIVJ')
+      divjmnsh = 0
+      divjmnch = 0
+
 !  Compute divergence of J. It is a SINE parity quantity.
-!
-        n1 = MAX(3, nsmin); n2 = MIN(ns-1, nsmax)
-        DO m = 0, mpol
-           DO n = -ntor,ntor
-             divjmnsh(m,n,n1:n2) =                                      &
-               -m*(ksupumncf(m,n,n1:n2)+ksupumncf(m,n,n1-1:n2-1))/2     &
-           -n*nfp*(ksupvmncf(m,n,n1:n2)+ksupvmncf(m,n,n1-1:n2-1))/2     &
-           + ohs *(ksupsmnsf(m,n,n1:n2)-ksupsmnsf(m,n,n1-1:n2-1))
-             IF (lasym) THEN
-             divjmnch(m,n,n1:n2) =                                      &
-                m*(ksupumnsf(m,n,n1:n2)+ksupumnsf(m,n,n1-1:n2-1))/2     &
-           +n*nfp*(ksupvmnsf(m,n,n1:n2)+ksupvmnsf(m,n,n1-1:n2-1))/2     &
-           + ohs *(ksupsmncf(m,n,n1:n2)-ksupsmncf(m,n,n1-1:n2-1))
-             END IF
-           END DO
-        END DO
+      n1 = MAX(3, nsmin)
+      n2 = MIN(ns-1, nsmax)
+      DO m = 0, mpol
+         DO n = -ntor,ntor
+            divjmnsh(m,n,n1:n2) =                                              &
+                    -m*(ksupumncf(m,n,n1:n2) + ksupumncf(m,n,n1-1:n2-1))/2     &
+               - n*nfp*(ksupvmncf(m,n,n1:n2) + ksupvmncf(m,n,n1-1:n2-1))/2     &
+               +   ohs*(ksupsmnsf(m,n,n1:n2) - ksupsmnsf(m,n,n1-1:n2-1))
+            IF (lasym) THEN
+                divjmnch(m,n,n1:n2) =                                          &
+                         m*(ksupumnsf(m,n,n1:n2) + ksupumnsf(m,n,n1-1:n2-1))/2 &
+                   + n*nfp*(ksupvmnsf(m,n,n1:n2) + ksupvmnsf(m,n,n1-1:n2-1))/2 &
+                   +   ohs*(ksupsmncf(m,n,n1:n2) - ksupsmncf(m,n,n1-1:n2-1))
+            END IF
+         END DO
+      END DO
 !
 !    Compute covariant components of current (times jacobian). Used for normalization. 
 !  
-        nsmin=MAX(1,startglobrow-1); nsmax=MIN(endglobrow+1,ns)
-        ALLOCATE(temp1(ntheta,nzeta,nsmin:nsmax),                       &
-                 temp2(ntheta,nzeta,nsmin:nsmax), stat=istat)                     
-        CALL ASSERT(istat.EQ.0,'Allocation failed in DIVJ')
-        temp1 = 0; temp2 = 0
+      nsmin = MAX(1, startglobrow - 1)
+      nsmax = MIN(endglobrow + 1, ns)
+      ALLOCATE(temp1(ntheta,nzeta,nsmin:nsmax),                                &
+               temp2(ntheta,nzeta,nsmin:nsmax), stat=istat)
+      CALL assert_eq(istat, 0, 'Allocation failed in DIVJ')
+      temp1 = 0
+      temp2 = 0
 
-        temp1 = ksupsijf0(:,:,nsmin:nsmax)*ksubsijf(:,:,nsmin:nsmax)    &
-              + ksupuijf0(:,:,nsmin:nsmax)*ksubuijf(:,:,nsmin:nsmax)    & ! Norm: |J|^2
-              + ksupvijf0(:,:,nsmin:nsmax)*ksubvijf(:,:,nsmin:nsmax)
+!  Norm: |J|^2
+      temp1 = ksupsijf0(:,:,nsmin:nsmax)*ksubsijf(:,:,nsmin:nsmax)             &
+            + ksupuijf0(:,:,nsmin:nsmax)*ksubuijf(:,:,nsmin:nsmax)             &
+            + ksupvijf0(:,:,nsmin:nsmax)*ksubvijf(:,:,nsmin:nsmax)
 
-        CALL to_half_mesh(temp1, temp2)
+      CALL to_half_mesh(temp1, temp2)
 
-        temp2 = temp2/jacobh(:,:,nsmin:nsmax)**2
+      temp2 = temp2/(jacobh(:,:,nsmin:nsmax)*jacobh(:,:,nsmin:nsmax))
 
-        nsmin=MAX(1,startglobrow); nsmax=MIN(endglobrow,ns)
-        tnorm = SUM(temp2(:,:,nsmin:nsmax))
+      nsmin = MAX(1, startglobrow)
+      nsmax = MIN(endglobrow, ns)
+      tnorm = SUM(temp2(:,:,nsmin:nsmax))
 
-        DEALLOCATE(temp1, temp2, stat=istat)
+      DEALLOCATE(temp1, temp2, stat=istat)
 
-        divj_rms = SUM(divjmnsh(:,:,n1:n2)**2                           &
-                 +     divjmnch(:,:,n1:n2)**2)
+      divj_rms = SUM(divjmnsh(:,:,n1:n2)**2                                    &
+               +     divjmnch(:,:,n1:n2)**2)
 #if defined(MPI_OPT)
-        s1(1) = divj_rms; s1(2) = tnorm
-        CALL MPI_ALLREDUCE(s1,r1,2,MPI_REAL8, MPI_SUM,                  &
-                           SIESTA_COMM,MPI_ERR)
-        divj_rms=r1(1);   tnorm = r1(2)
-#endif   
- !   Compute rms of divergence of J
- !     
-        IF (tnorm .GE. zero) THEN
-           divjmnsh = divjmnsh/SQRT(tnorm)
-           divjmnch = divjmnch/SQRT(tnorm)
-           divj_rms = SQRT(divj_rms/tnorm)
-        END IF
+      temp(1) = divj_rms
+      temp(2) = tnorm
+      CALL MPI_ALLREDUCE(MPI_IN_PLACE,temp,2,MPI_REAL8, MPI_SUM,               &
+                         SIESTA_COMM,MPI_ERR)
+      divj_rms = temp(1)
+      tnorm = temp(2)
+#endif
 
-!        IF (iam .EQ. 0) WRITE(3100,*)'DIVJ_PAR: tnorm=',SQRT(tnorm),' divj_rms: ',divj_rms
+!  Compute rms of divergence of J
+      IF (tnorm .ge. zero) THEN
+         divjmnsh = divjmnsh/SQRT(tnorm)
+         divjmnch = divjmnch/SQRT(tnorm)
+         divj_rms = SQRT(divj_rms/tnorm)
+      END IF
 
-        CALL second0(toff)
-        time_divj = time_divj+(toff-ton)
+      CALL second0(toff)
+      time_divj = time_divj + (toff - ton)
 
-        END SUBROUTINE divj
+      END SUBROUTINE
 
-       SUBROUTINE dealloc_diagnostics
+!-------------------------------------------------------------------------------
+!>  @brief Deallocate diagnostic buffers.
+!-------------------------------------------------------------------------------
+      SUBROUTINE dealloc_diagnostics
 
-       IF (ALLOCATED(divbmnsf)) DEALLOCATE(divbmnsf)
-       IF (ALLOCATED(divbmncf)) DEALLOCATE(divbmncf)
-       IF (ALLOCATED(divjmnsh)) DEALLOCATE(divjmnsh)
-       IF (ALLOCATED(divjmnch)) DEALLOCATE(divjmnch)
-       IF (ALLOCATED(bdotjmnch)) DEALLOCATE(bdotjmnch)
-       IF (ALLOCATED(bdotjmnsh)) DEALLOCATE(bdotjmnsh)
+      IF (ALLOCATED(divbmnsf)) THEN
+         DEALLOCATE(divbmnsf)
+      END IF
+      IF (ALLOCATED(divbmncf)) THEN
+         DEALLOCATE(divbmncf)
+      END IF
+      IF (ALLOCATED(divjmnsh)) THEN
+         DEALLOCATE(divjmnsh)
+      END IF
+      IF (ALLOCATED(divjmnch)) THEN
+         DEALLOCATE(divjmnch)
+      END IF
+      IF (ALLOCATED(bdotjmnch)) THEN
+         DEALLOCATE(bdotjmnch)
+      END IF
+      IF (ALLOCATED(bdotjmnsh)) THEN
+         DEALLOCATE(bdotjmnsh)
+      END IF
 
-       END SUBROUTINE dealloc_diagnostics
+      END SUBROUTINE
 
-
-      END MODULE diagnostics_mod
+      END MODULE

@@ -388,6 +388,7 @@
 !$    USE omp_lib
       USE bmw_state_flags, ONLY: clear_screen, progress
       USE, INTRINSIC :: iso_fortran_env, Only : output_unit
+!      USE stel_constants, ONLY: twopi  ! TEMP
 
       IMPLICIT NONE
 

@@ -13,9 +13,8 @@
       USE nscalingtools, ONLY: PARFUNCTISL, MPI_ERR, startglobrow,      &
                                endglobrow, PARSOLVER
       USE timer_mod
-#if defined(SKS)
       USE mpi_inc
-#endif
+
       IMPLICIT NONE
 
       CONTAINS
@@ -27,9 +26,8 @@
                          levmarq_param0, l_diagonal_only, gather_array, &
                          muPar
       USE siesta_namelist, ONLY: lresistive, ftol
-#if defined(SKS)
       USE blocktridiagonalsolver_s, ONLY: RefactorHessian
-#endif
+
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -66,12 +64,13 @@
       CALL second0(skston)
       CALL funct_island
       brhs = -gc 
-      IF (PARFUNCTISL) CALL gather_array(brhs)     
+      IF (PARFUNCTISL) THEN
+         CALL gather_array(brhs)
+      END IF
       l_getwmhd=.FALSE.
       CALL second0(skstoff)
-#if defined(SKS)
       gmres_funct_island_time=gmres_funct_island_time+(skstoff-skston)
-#endif
+
       wmhd = wtotal
       fsq_min = fsq_total1
 
@@ -105,7 +104,9 @@
       CALL funct_island
       xc = -gc
       eps = ABS(levmarq_param)*Dmin
-      IF (.NOT.l_ApplyPrecon) CALL Apply_Precond(xc)
+      IF (.not.l_ApplyPrecon) THEN
+         CALL Apply_Precond(xc)
+      END IF
       xc1 = xc
       DO j = 1, 10
          IF (j .GT. 1) THEN
@@ -134,7 +135,7 @@
       ENDIF LFAST
 
  927  CONTINUE
- 
+
       LGMRES: IF (fsq_min.GT.ftol .AND. fsq_min.GT.fmhd/10) THEN
 
 !!!START GMRES CONVERGENCE
@@ -145,16 +146,14 @@
       xc = xcmin
       CALL gmres_wrap (xc, brhs)
       CALL second0(skstoff)
-#if defined(SKS)
       gmres_wrap_time=gmres_wrap_time+(skstoff-skston)
-#endif
+
       IF (fsq_total1.LT.fsq_min .OR. ALL(xcmin.EQ.zero)) THEN
          xcmin = xc
          fsq_min = fsq_total1
          IF (lm0 .GT. zero) scale_fac = levmarq_param/lm0
       END IF
 !!!END GMRES CONVERGENCE
-#if defined(SKS)
 !FOR NOW, THIS IS ONLY IMPLEMENTED FOR PARSOLVER=TRUE: MUST IMPLEMENT
 !RefactorHessian FOR LSCALAPACK=T
       IF (.FALSE.) THEN
@@ -169,7 +168,6 @@
             GOTO 920
          END IF
       END IF
-#endif
       END IF LGMRES
 
  912  FORMAT(i5,3(3x,1pe12.3))
@@ -218,9 +216,7 @@
       CALL funct_island
 !      CALL update_state(.FALSE., zero, zero)                           !Get this in evolution, line 455
       CALL second0(skstoff)
-#if defined(SKS)
       gmres_funct_island_time=gmres_funct_island_time+(skstoff-skston)
-#endif      
       l_PrintOriginForces=.FALSE.
 
       muPar = muParS
@@ -236,14 +232,10 @@
       REAL(dp)             :: skston, skstoff
       INTEGER, PARAMETER   :: noPrec=0, leftPrec=1, rightPrec=2, dblePrec=3
 
-#if defined (SKS)
       CALL second0(skston)
-#endif
       CALL init_dgmres(icntl ,cntl)
-#if defined (SKS)
       CALL second0(skstoff)
       gmres_init_dgmres_time=gmres_init_dgmres_time+(skstoff-skston)
-#endif
 
 !*************************
 !*  Tune some parameters
@@ -325,10 +317,8 @@
          gi%my_comm = SIESTA_COMM
          gi%my_comm_world = SIESTA_COMM
 !         gi%lactive = lactive
-#if defined(SKS)
          CALL gmres_par (n, gi, matvec_par, apply_precond, GetNLForce,  &
                          x0, b)
-#endif                         
       ELSE
          CALL gmres_ser (n, gi, matvec, apply_precond, GetNLForce,      &
                          x0, b)
@@ -339,7 +329,6 @@
 
       END SUBROUTINE gmres_wrap
 
-#if defined (SKS)
       SUBROUTINE matvec_par (ploc, Ap, nloc)
       USE island_params, ONLY: ns=>ns_i
       USE hessian, ONLY: eps_factor, mupar, gather_array
@@ -374,6 +363,7 @@
       CALL second0(skston)
       ALLOCATE (p(ns*mblk_size), stat=istat)
       CALL ASSERT(istat.eq.0,'Allocation error in matvec_par')
+      p = 0
 
       p(myrowstart:myrowend) = ploc
       CALL PadSides(p, mblk_size, 1, 1)
@@ -405,7 +395,6 @@
       ParyAx_time=ParyAx_time+(skstoff-skston)
 
       END SUBROUTINE matvec_par
-#endif
 
       SUBROUTINE matvec (p, Ap, ndim)
       USE stel_kinds

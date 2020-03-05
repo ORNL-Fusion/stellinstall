@@ -691,6 +691,7 @@
       USE functions
       USE integration_path
       USE rho_bndy
+      USE fourier
 
       IMPLICIT NONE
 
@@ -732,6 +733,13 @@
 !  Rho Boundary tests
       IF (rho_bndy_test()) THEN
          WRITE (*,*) 'Rho Boundary Test Passed'
+      ELSE
+         tests_failed = .true.
+      END IF
+
+!  SIESTA fourier unit test.
+      IF (test_fourier()) THEN
+         WRITE (*,*) 'SIESTA Fourier Test Passed'
       ELSE
          tests_failed = .true.
       END IF
