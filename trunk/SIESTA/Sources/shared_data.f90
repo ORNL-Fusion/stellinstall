@@ -25,7 +25,7 @@
       INTEGER, PARAMETER   :: PREBLOCK = 2
 !>  Threshold force for turning off resistive perturbations.
       REAL (dp), PARAMETER :: fsq_res = 1.E-16_dp
-!>  FIXME UNKNOWN
+!>  FIXME: UNKNOWN
       REAL (dp), PARAMETER :: levm_ped = 1.E-10_dp
 !>  Pedestal value of levenberg/mu. Should be between 10^-5 and 10^-10.
       REAL (dp), PARAMETER :: mu_ped = 1.E-8_dp
@@ -113,9 +113,9 @@
       REAL (dp)                                   :: fsq_gmres
 !>  Linear |F|^2.
       REAL (dp)                                   :: fsq_lin
-!>  FIXME UNKNOWN
+!>  FIXME: UNKNOWN
       REAL (dp)                                   :: etak_tol
-!>  FIXME UNKNOWN
+!>  FIXME: UNKNOWN
       REAL (dp)                                   :: levm_scale = 1
 !>  MHD energy sum of magnetic and thermal.
       REAL (dp)                                   :: wtotal
@@ -131,21 +131,21 @@
       REAL (dp)                                   :: fsqvv
 !>  Spectral Truncation RMS error,
       REAL (dp)                                   :: ste(4)
-!>  FIXME UNKNOWN
+!>  FIXME: UNKNOWN
       REAL (dp)                                   :: bs0(12)
-!>  FIXME UNKNOWN
+!>  FIXME: UNKNOWN
       REAL (dp)                                   :: bu0(12)
-!>  FIXME UNKNOWN
+!>  FIXME: UNKNOWN
       REAL (dp)                                   :: bsbu_ratio_s
-!>  FIXME UNKNOWN
+!>  FIXME: UNKNOWN
       REAL (dp)                                   :: jsju_ratio_s
-!>  FIXME UNKNOWN
+!>  FIXME: UNKNOWN
       REAL (dp)                                   :: bsbu_ratio_a
-!>  FIXME UNKNOWN
+!>  FIXME: UNKNOWN
       REAL (dp)                                   :: jsju_ratio_a
-!>  FIXME UNKNOWN
+!>  FIXME: UNKNOWN
       REAL (dp)                                   :: scale_s
-!>  FIXME UNKNOWN
+!>  FIXME: UNKNOWN
       REAL (dp)                                   :: scale_u
 
 !  Cordinate basis.
@@ -163,7 +163,7 @@
       REAL(dp), DIMENSION(:,:,:), ALLOCATABLE     :: zv_i
 
 !  Shared quantities.
-!>  FIXME UNKNOWN
+!>  FIXME: UNKNOWN
       REAL (dp)                                   :: jsupvdotA
 !>  Toroidal flux profile.
       REAL (dp), DIMENSION(:), ALLOCATABLE        :: torflux
@@ -208,7 +208,7 @@
       LOGICAL :: l_push_v
 !>  Use linearized forces.
       LOGICAL :: l_linearize
-!>  FIXME UNKNOWN
+!>  FIXME: UNKNOWN
       LOGICAL :: l_conjgrad
 !>  Compute MHD energy.
       LOGICAL :: l_getwmhd
@@ -222,7 +222,7 @@
       LOGICAL :: l_init_state
 !>  Update the @ref ste array.
       LOGICAL :: l_update_state = .false.
-!>  Parallel allocated quantities? FIXME check this.
+!>  Parallel allocated quantities? FIXME: check this.
       LOGICAL :: l_par_state
 !>  Apply column scaling to hessian.
       LOGICAL :: lcolscale

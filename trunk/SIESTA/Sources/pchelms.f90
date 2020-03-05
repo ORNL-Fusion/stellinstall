@@ -45,7 +45,7 @@
 !>    * False Fix edge Asubs values.
       LOGICAL, PARAMETER, PRIVATE :: l_AsEdge = .TRUE.
 
-!  FIXME Remove these. They should either be passed in as arguments.
+!  FIXME: Remove these. They should either be passed in as arguments.
       INTEGER, PRIVATE            :: nsmin
       INTEGER, PRIVATE            :: nsmax
       INTEGER, PRIVATE            :: ns_match

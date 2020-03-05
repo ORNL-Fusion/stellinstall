@@ -194,10 +194,10 @@
 !>  @param[in]    jbsupumnh  Contravariant magnetic field in the u direction.
 !>  @param[in]    jbsupvmnh  Contravariant magnetic field in the v direction.
 !>  @param[in]    jpmnh      Pressure Fourier coeffients.
-!>  @param[out]   bs         UNKNOWN FIXME:
-!>  @param[out]   bu         UNKNOWN FIXME:
-!>  @param[out]   bsbu_ratio UNKNOWN FIXME:
-!>  @param[inout] pwr_spec   UNKNOWN FIXME:
+!>  @param[out]   bs         FIXME: UNKNOWN
+!>  @param[out]   bu         FIXME: UNKNOWN
+!>  @param[out]   bsbu_ratio FIXME: UNKNOWN
+!>  @param[inout] pwr_spec   FIXME: UNKNOWN
 !>  @param[in]    iparity    Fourier parity.
 !-------------------------------------------------------------------------------
       SUBROUTINE Update_Diagnostics(jbsupsmnh, jbsupumnh, jbsupvmnh,    &
