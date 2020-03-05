@@ -21,28 +21,28 @@
 !>     @item{lresistive,       Use resistive perturbation.,                      siesta_namelist::lresistive}
 !>     @item{lrestart,         Restart SIESTA from pervious run.,                siesta_namelist::lrestart}
 !>     @item{l_tracing,        Produce output file for fieldline tracing.,       siesta_namelist::l_tracing}
-!>     @item{lcolscale,        Use column scaling.,                              siesta_namelist::lcolscale}
+!>     @item{lcolscale,        Use column scaling.,                              shared_data::lcolscale}
 !>     @item{l_silo_output,    Produce silo output.,                             siesta_namelist::l_silo_output}
-!>     @item{l_silo3D,         Produce silo 3D output.,                          siesta_namelist::l_silo3D}
+!>     @item{l_silo3D,         Produce silo 3D output.,                          siesta_namelist::l_silo3d}
 !>     @item{l_output_alliter, Write output files on all iterations instead of
 !>                             only iterations that lower the MHD energy and
 !>                             force residuals.,                                 siesta_namelist::l_output_alliter}
-!>     @item{l_VMEC_Uniform,   UNKNOWN,                                          siesta_namelist::l_VMEC_Uniform}
-!>     @item{lasym,            Use non stellarator symmetric terms.,             siesta_namelist::lasym}
+!>     @item{l_VMEC_Uniform,   UNKNOWN,                                          siesta_namelist::l_vmec_uniform}
+!>     @item{lasym,            Use non stellarator symmetric terms.,             shared_data::lasym}
 !>     @item{l_vessel,         Use free-boundary grid extension to vessel wall., siesta_namelist::l_vessel}
 !>     @item{lrecon,           Add additional output to the restart file when
-!>                             used in a reconstruction context.,                siesta_namelist::lrecon}
+!>                             used in a reconstruction context.,                shared_data::lrecon}
 !>  @end_table
 !>
 !>  @table_section{siesta_algrothim_sec, Algrothim Control Variables}
 !>     @item{niter,         Maximum number of iterations after diagonal prec.,  siesta_namelist::niter}
 !>     @item{ftol,          Minimum force tolarance for converged solution.,    siesta_namelist::ftol}
-!>     @item{mupar,         Resistivity factor.,                                siesta_namelist::mupar}
-!>     @item{levmarq_param, Inital value of Levenberg-Marquardt parameter.,     siesta_namelist::levmarq_param}
+!>     @item{mupar,         Resistivity factor.,                                hessian::mupar}
+!>     @item{levmarq_param, Inital value of Levenberg-Marquardt parameter.,     hessian::levmarq_param}
 !>     @item{eta_factor,    Resistivity value.,                                 siesta_namelist::eta_factor}
 !>     @item{nprecon,       Skip diagonal preconditioner if greater than zero., siesta_namelist::nprecon}
-!>     @item{ngmres_type,   Preconditioner type.,                               siesta_namelist::ngmres_type}
-!>     @item{iortho,        UNKNOWN,                                            siesta_namelist::iortho}
+!>     @item{ngmres_type,   Preconditioner type.,                               shared_data::ngmres_type}
+!>     @item{iortho,        UNKNOWN,                                            shared_data::iortho}
 !>  @end_table
 !>
 !>  @table_section{siesta_island_sec, Island Parameters}
@@ -55,9 +55,9 @@
 !>     @item{nsin_ext, Size of extended radial grid.,                          siesta_namelist::nsin_ext}
 !>     @item{mpolin,   Number of poloidal modes.,                              siesta_namelist::mpolin}
 !>     @item{ntorin,   Number of toroidal modes.,                              siesta_namelist::ntorin}
-!>     @item{nfpin,    Number of field periods to use. Setting this to a
-!                      anything less than one will use the value form the wout
-!                      file.,                                                  siesta_namelist::nfpin}
+!>     @item{nfpin,    Number of field periods to use. Setting this to
+!>                     anything less than one will use the value form the wout
+!>                     file.,                                                  siesta_namelist::nfpin}
 !>     @table_subsection{siesta_grid_size_out_sec, Output Grid Sizes}
 !>        @item{nphis, Number of cylindrical phi planes.,     siesta_namelist::nphis}
 !>        @item{nrs,   Number of radial grid points.,         siesta_namelist::nrs}
@@ -75,8 +75,8 @@
 !>  @end_table
 !>
 !>  @table_section{siesta_test_sec, Test Controls}
-!>      @item{hesspass_test, UNKNOWN, siesta_namelist::hesspass_test}
-!>      @item{mupar_test,    UNKNOWN, siesta_namelist::mupar_test}
+!>      @item{hesspass_test, UNKNOWN, shared_data::hesspass_test}
+!>      @item{mupar_test,    UNKNOWN, shared_data::mupar_test}
 !>  @end_table
 !>
 !>  @section siesta_namelist_prog_ref_sec Programmers Reference

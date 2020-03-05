@@ -71,9 +71,14 @@ $(function() {
 <li class="level1"><a href="#siesta_namelist_var_sec">Namelist Variables</a><ul><li class="level2"><a href="#siesta_flag_sec">Control Flags</a></li>
 <li class="level2"><a href="#siesta_algrothim_sec">Algrothim Control Variables</a></li>
 <li class="level2"><a href="#siesta_island_sec">Island Parameters</a></li>
-<li class="level2"><a href="#siesta_grid_size_sec">Grid Sizes</a></li>
+<li class="level2"><a href="#siesta_grid_size_sec">Grid Sizes</a><ul><li class="level3"><a href="#siesta_grid_size_out_sec">Output Grid Sizes</a></li>
 </ul>
 </li>
+<li class="level2"><a href="#siesta_file_name_sec">File Names</a></li>
+<li class="level2"><a href="#siesta_test_sec">Test Controls</a></li>
+</ul>
+</li>
+<li class="level1"><a href="#siesta_namelist_prog_ref_sec">Programmers Reference</a></li>
 </ul>
 </div>
 <div class="textblock"><h1><a class="anchor" id="siesta_namelist_intro_sec"></a>
@@ -97,21 +102,21 @@ Control Flags</h2>
 <tr>
 <td width="20%"><code>l_tracing</code></td><td width="50%">Produce output file for fieldline tracing.</td><td width="30%"><a class="el" href="namespacesiesta__namelist.html#aacab78f4d88efc204f565cd25917d463">siesta_namelist::l_tracing</a> </td></tr>
 <tr>
-<td width="20%"><code>lcolscale</code></td><td width="50%">Use column scaling.</td><td width="30%">siesta_namelist::lcolscale </td></tr>
+<td width="20%"><code>lcolscale</code></td><td width="50%">Use column scaling.</td><td width="30%"><a class="el" href="namespaceshared__data.html#acd61b4f909ffaba70b0084fb06fdc4df">shared_data::lcolscale</a> </td></tr>
 <tr>
 <td width="20%"><code>l_silo_output</code></td><td width="50%">Produce silo output.</td><td width="30%"><a class="el" href="namespacesiesta__namelist.html#a0f0f3577ffa289377e6ae8d12ba7d68e">siesta_namelist::l_silo_output</a> </td></tr>
 <tr>
-<td width="20%"><code>l_silo3D</code></td><td width="50%">Produce silo 3D output.</td><td width="30%">siesta_namelist::l_silo3D </td></tr>
+<td width="20%"><code>l_silo3D</code></td><td width="50%">Produce silo 3D output.</td><td width="30%"><a class="el" href="namespacesiesta__namelist.html#a83d92599194e6e14d6f17582ad93be35">siesta_namelist::l_silo3d</a> </td></tr>
 <tr>
 <td width="20%"><code>l_output_alliter</code></td><td width="50%">Write output files on all iterations instead of only iterations that lower the MHD energy and force residuals.</td><td width="30%"><a class="el" href="namespacesiesta__namelist.html#a862817756335c5f140475c535775ae6b">siesta_namelist::l_output_alliter</a> </td></tr>
 <tr>
-<td width="20%"><code>l_VMEC_Uniform</code></td><td width="50%">UNKNOWN</td><td width="30%">siesta_namelist::l_VMEC_Uniform </td></tr>
+<td width="20%"><code>l_VMEC_Uniform</code></td><td width="50%">UNKNOWN</td><td width="30%"><a class="el" href="namespacesiesta__namelist.html#a9ce10cbbca6fbb1464e1b980af9fd4bd">siesta_namelist::l_vmec_uniform</a> </td></tr>
 <tr>
-<td width="20%"><code>lasym</code></td><td width="50%">Use non stellarator symmetric terms.</td><td width="30%">siesta_namelist::lasym </td></tr>
+<td width="20%"><code>lasym</code></td><td width="50%">Use non stellarator symmetric terms.</td><td width="30%"><a class="el" href="namespaceshared__data.html#a5d807a0397226b49764c470d9c2e32a5">shared_data::lasym</a> </td></tr>
 <tr>
 <td width="20%"><code>l_vessel</code></td><td width="50%">Use free-boundary grid extension to vessel wall.</td><td width="30%"><a class="el" href="namespacesiesta__namelist.html#a9cf180f8f8051badebf8399a77a27ec0">siesta_namelist::l_vessel</a> </td></tr>
 <tr>
-<td width="20%"><code>lrecon</code></td><td width="50%">Add additional output to the restart file when used in a reconstruction context.</td><td width="30%">siesta_namelist::lrecon </td></tr>
+<td width="20%"><code>lrecon</code></td><td width="50%">Add additional output to the restart file when used in a reconstruction context.</td><td width="30%"><a class="el" href="namespaceshared__data.html#af01f56f0921599e96571e9dd049f01c1">shared_data::lrecon</a> </td></tr>
 </table>
 <h2><a class="anchor" id="siesta_algrothim_sec"></a>
 Algrothim Control Variables</h2>
@@ -121,17 +126,17 @@ Algrothim Control Variables</h2>
 <tr>
 <td width="20%"><code>ftol</code></td><td width="50%">Minimum force tolarance for converged solution.</td><td width="30%"><a class="el" href="namespacesiesta__namelist.html#ae64f42cf055173d5c482a8cd115f38ab">siesta_namelist::ftol</a> </td></tr>
 <tr>
-<td width="20%"><code>mupar</code></td><td width="50%">Resistivity factor.</td><td width="30%">siesta_namelist::mupar </td></tr>
+<td width="20%"><code>mupar</code></td><td width="50%">Resistivity factor.</td><td width="30%">hessian::mupar </td></tr>
 <tr>
-<td width="20%"><code>levmarq_param</code></td><td width="50%">Inital value of Levenberg-Marquardt parameter.</td><td width="30%">siesta_namelist::levmarq_param </td></tr>
+<td width="20%"><code>levmarq_param</code></td><td width="50%">Inital value of Levenberg-Marquardt parameter.</td><td width="30%">hessian::levmarq_param </td></tr>
 <tr>
 <td width="20%"><code>eta_factor</code></td><td width="50%">Resistivity value.</td><td width="30%"><a class="el" href="namespacesiesta__namelist.html#a5c34fd50cada7045ae178a8fb1b2d259">siesta_namelist::eta_factor</a> </td></tr>
 <tr>
 <td width="20%"><code>nprecon</code></td><td width="50%">Skip diagonal preconditioner if greater than zero.</td><td width="30%"><a class="el" href="namespacesiesta__namelist.html#a1953e5123f43e0a6630d797dde716a22">siesta_namelist::nprecon</a> </td></tr>
 <tr>
-<td width="20%"><code>ngmres_type</code></td><td width="50%">Preconditioner type.</td><td width="30%">siesta_namelist::ngmres_type </td></tr>
+<td width="20%"><code>ngmres_type</code></td><td width="50%">Preconditioner type.</td><td width="30%"><a class="el" href="namespaceshared__data.html#a17742427a611e4fbdf91af6885a78902">shared_data::ngmres_type</a> </td></tr>
 <tr>
-<td width="20%"><code>iortho</code></td><td width="50%">UNKNOWN</td><td width="30%">siesta_namelist::iortho </td></tr>
+<td width="20%"><code>iortho</code></td><td width="50%">UNKNOWN</td><td width="30%"><a class="el" href="namespaceshared__data.html#a1c4cd51a3ebc3cb3c5d9b9bc7aa08c83">shared_data::iortho</a> </td></tr>
 </table>
 <h2><a class="anchor" id="siesta_island_sec"></a>
 Island Parameters</h2>
@@ -153,13 +158,52 @@ Grid Sizes</h2>
 <tr>
 <td width="20%"><code>ntorin</code></td><td width="50%">Number of toroidal modes.</td><td width="30%"><a class="el" href="namespacesiesta__namelist.html#a8d54dbdd3913d2009948fba9e41a19fb">siesta_namelist::ntorin</a> </td></tr>
 <tr>
-<td width="20%"><code>nfpin</code></td><td width="50%">Number of field periods to use. Setting this to a </td></tr>
+<td width="20%"><code>nfpin</code></td><td width="50%">Number of field periods to use. Setting this to anything less than one will use the value form the wout file.</td><td width="30%"><a class="el" href="namespacesiesta__namelist.html#afdb40d9a582f32071bc4e4d5b3c932c5">siesta_namelist::nfpin</a> </td></tr>
 </table>
+<h3><a class="anchor" id="siesta_grid_size_out_sec"></a>
+Output Grid Sizes</h3>
+<table border="1px" width="80%">
+<tr>
+<td width="20%"><code>nphis</code></td><td width="50%">Number of cylindrical phi planes.</td><td width="30%"><a class="el" href="namespacesiesta__namelist.html#aba3567b3968e6c263a69c930338dcbcc">siesta_namelist::nphis</a> </td></tr>
+<tr>
+<td width="20%"><code>nrs</code></td><td width="50%">Number of radial grid points.</td><td width="30%"><a class="el" href="namespacesiesta__namelist.html#ad31194b302457af042767b2c89e32dcf">siesta_namelist::nrs</a> </td></tr>
+<tr>
+<td width="20%"><code>nzs</code></td><td width="50%">Number of vertical grid points.</td><td width="30%"><a class="el" href="namespacesiesta__namelist.html#aa2eec19be319194798166084c2801204">siesta_namelist::nzs</a> </td></tr>
+<tr>
+<td width="20%"><code>nvs</code></td><td width="50%">Number of flux space toroidal points.</td><td width="30%"><a class="el" href="namespacesiesta__namelist.html#a48bc8c3a9904f90c87655201c78b3d23">siesta_namelist::nvs</a> </td></tr>
+<tr>
+<td width="20%"><code>nus</code></td><td width="50%">Number of flux space poloidal points.</td><td width="30%"><a class="el" href="namespacesiesta__namelist.html#aa611c16676737334b9607022cd032fb8">siesta_namelist::nus</a> </td></tr>
+<tr>
+<td width="20%"><code>nss</code></td><td width="50%">Number of flux space radial points.</td><td width="30%"><a class="el" href="namespacesiesta__namelist.html#a029be8c8fd1e187f0df0cc271c0b2752">siesta_namelist::nss</a> </td></tr>
+</table>
+<h2><a class="anchor" id="siesta_file_name_sec"></a>
+File Names</h2>
+<table border="1px" width="80%">
+<tr>
+<td width="20%"><code>wout_file</code></td><td width="50%">Filename of the VMEC woutfile.</td><td width="30%"><a class="el" href="namespacesiesta__namelist.html#a21c9db52d45e79833d731b4be4bb346d">siesta_namelist::wout_file</a> </td></tr>
+<tr>
+<td width="20%"><code>restart_ext</code></td><td width="50%">Name of the restart file extension.</td><td width="30%"><a class="el" href="namespacesiesta__namelist.html#afc6f7d08fed7c3d94ee39455ed79b02d">siesta_namelist::restart_ext</a> </td></tr>
+<tr>
+<td width="20%"><code>mgrid_file</code></td><td width="50%">Filename of the MGRID file.</td><td width="30%"><a class="el" href="namespacesiesta__namelist.html#a0786d7fe79a02575fa7080531d16070c">siesta_namelist::mgrid_file</a> </td></tr>
+<tr>
+<td width="20%"><code>vessel_file</code></td><td width="50%">Filename of the extended surfaces.</td><td width="30%"><a class="el" href="namespacesiesta__namelist.html#af552ff3682f00474151794c35b2cbb59">siesta_namelist::vessel_file</a> </td></tr>
+</table>
+<h2><a class="anchor" id="siesta_test_sec"></a>
+Test Controls</h2>
+<table border="1px" width="80%">
+<tr>
+<td width="20%"><code>hesspass_test</code></td><td width="50%">UNKNOWN</td><td width="30%"><a class="el" href="namespaceshared__data.html#abc2e97d9043baaf076efe1e5034b7f84">shared_data::hesspass_test</a> </td></tr>
+<tr>
+<td width="20%"><code>mupar_test</code></td><td width="50%">UNKNOWN</td><td width="30%"><a class="el" href="namespaceshared__data.html#a0661d0f76647ea92b0d6ea69d1bc32cc">shared_data::mupar_test</a> </td></tr>
+</table>
+<h1><a class="anchor" id="siesta_namelist_prog_ref_sec"></a>
+Programmers Reference</h1>
+<p>Reference material for the coding to implement this namelist is found in the <a class="el" href="namespacesiesta__namelist.html">siesta_namelist</a> module. </p>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Mar 5 2020 15:31:24 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Thu Mar 5 2020 15:49:27 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.17
 </small></address>
