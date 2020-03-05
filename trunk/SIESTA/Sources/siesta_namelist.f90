@@ -17,66 +17,66 @@
 !>  @header{Input variable, Description, Code Reference}
 !>
 !>  @table_section{siesta_flag_sec, Control Flags}
-!>     @item{ladd_pert,        Use helical perturbation.}
-!>     @item{lresistive,       Use resistive perturbation.}
-!>     @item{lrestart,         Restart SIESTA from pervious run.}
-!>     @item{l_tracing,        Produce output file for fieldline tracing.}
-!>     @item{lcolscale,        Use column scaling.}
-!>     @item{l_silo_output,    Produce silo output.}
-!>     @item{l_silo3D,         Produce silo 3D output.}
+!>     @item{ladd_pert,        Use helical perturbation.,                        siesta_namelist::ladd_pert}
+!>     @item{lresistive,       Use resistive perturbation.,                      siesta_namelist::lresistive}
+!>     @item{lrestart,         Restart SIESTA from pervious run.,                siesta_namelist::lrestart}
+!>     @item{l_tracing,        Produce output file for fieldline tracing.,       siesta_namelist::l_tracing}
+!>     @item{lcolscale,        Use column scaling.,                              siesta_namelist::lcolscale}
+!>     @item{l_silo_output,    Produce silo output.,                             siesta_namelist::l_silo_output}
+!>     @item{l_silo3D,         Produce silo 3D output.,                          siesta_namelist::l_silo3D}
 !>     @item{l_output_alliter, Write output files on all iterations instead of
 !>                             only iterations that lower the MHD energy and
-!>                             force residuals.}
-!>     @item{l_VMEC_Uniform,   }
-!>     @item{lasym,            Use non stellarator symmetric terms.}
-!>     @item{l_vessel,         Use free-boundary grid extension to vessel wall.}
+!>                             force residuals.,                                 siesta_namelist::l_output_alliter}
+!>     @item{l_VMEC_Uniform,   UNKNOWN,                                          siesta_namelist::l_VMEC_Uniform}
+!>     @item{lasym,            Use non stellarator symmetric terms.,             siesta_namelist::lasym}
+!>     @item{l_vessel,         Use free-boundary grid extension to vessel wall., siesta_namelist::l_vessel}
 !>     @item{lrecon,           Add additional output to the restart file when
-!>                             used in a reconstruction context.}
+!>                             used in a reconstruction context.,                siesta_namelist::lrecon}
 !>  @end_table
 !>
 !>  @table_section{siesta_algrothim_sec, Algrothim Control Variables}
-!>     @item{niter,         Maximum number of iterations after diagonal prec.}
-!>     @item{ftol,          Minimum force tolarance for converged solution.}
-!>     @item{mupar,         }
-!>     @item{levmarq_param, Inital value of Levenberg-Marquardt parameter.}
-!>     @item{eta_factor,    Resistivity value.}
-!>     @item{nprecon,       Skip diagonal preconditioner if greater than zero.}
-!>     @item{ngmres_type,   }
-!>     @item{iortho,        }
+!>     @item{niter,         Maximum number of iterations after diagonal prec.,  siesta_namelist::niter}
+!>     @item{ftol,          Minimum force tolarance for converged solution.,    siesta_namelist::ftol}
+!>     @item{mupar,         Resistivity factor.,                                siesta_namelist::mupar}
+!>     @item{levmarq_param, Inital value of Levenberg-Marquardt parameter.,     siesta_namelist::levmarq_param}
+!>     @item{eta_factor,    Resistivity value.,                                 siesta_namelist::eta_factor}
+!>     @item{nprecon,       Skip diagonal preconditioner if greater than zero., siesta_namelist::nprecon}
+!>     @item{ngmres_type,   Preconditioner type.,                               siesta_namelist::ngmres_type}
+!>     @item{iortho,        UNKNOWN,                                            siesta_namelist::iortho}
 !>  @end_table
 !>
 !>  @table_section{siesta_island_sec, Island Parameters}
-!>     @item{mres,    M numbers of island resonances.}
-!>     @item{helpert, Sizes of the helical perturbation.}
+!>     @item{mres,    M numbers of island resonances.,    siesta_namelist::mres}
+!>     @item{helpert, Sizes of the helical perturbation., siesta_namelist::helpert}
 !>  @end_table
 !>
 !>  @table_section{siesta_grid_size_sec, Grid Sizes}
-!>     @item{nsin,     Size of plasma radial grid.}
-!>     @item{nsin_ext, Size of extended radial grid.}
-!>     @item{mpolin,   Number of poloidal modes.}
-!>     @item{ntorin,   Number of toroidal modes.}
+!>     @item{nsin,     Size of plasma radial grid.,                            siesta_namelist::nsin}
+!>     @item{nsin_ext, Size of extended radial grid.,                          siesta_namelist::nsin_ext}
+!>     @item{mpolin,   Number of poloidal modes.,                              siesta_namelist::mpolin}
+!>     @item{ntorin,   Number of toroidal modes.,                              siesta_namelist::ntorin}
 !>     @item{nfpin,    Number of field periods to use. Setting this to a
 !                      anything less than one will use the value form the wout
-!                      file.}
+!                      file.,                                                  siesta_namelist::nfpin}
 !>     @table_subsection{siesta_grid_size_out_sec, Output Grid Sizes}
-!>        @item{nphis, Number of cylindrical phi planes.}
-!>        @item{nrs,   Number of radial grid points.}
-!>        @item{nzs,   Number of vertical grid points.}
-!>        @item{nvs,   Number of flux space toroidal points.}
-!>        @item{nus,   Number of flux space poloidal points.}
-!>        @item{nss,   Number of flux space radial points.}
+!>        @item{nphis, Number of cylindrical phi planes.,     siesta_namelist::nphis}
+!>        @item{nrs,   Number of radial grid points.,         siesta_namelist::nrs}
+!>        @item{nzs,   Number of vertical grid points.,       siesta_namelist::nzs}
+!>        @item{nvs,   Number of flux space toroidal points., siesta_namelist::nvs}
+!>        @item{nus,   Number of flux space poloidal points., siesta_namelist::nus}
+!>        @item{nss,   Number of flux space radial points.,   siesta_namelist::nss}
 !>  @end_table
 !>
 !>  @table_section{siesta_file_name_sec, File Names}
-!>      @item{wout_file,   Filename of the VMEC woutfile.}
-!>      @item{restart_ext, Name of the restart file extension.}
-!>      @item{mgrid_file,  Filename of the MGRID file.}
-!>      @item{vessel_file, Filename of the extended surfaces.}
+!>      @item{wout_file,   Filename of the VMEC woutfile.,      siesta_namelist::wout_file}
+!>      @item{restart_ext, Name of the restart file extension., siesta_namelist::restart_ext}
+!>      @item{mgrid_file,  Filename of the MGRID file.,         siesta_namelist::mgrid_file}
+!>      @item{vessel_file, Filename of the extended surfaces.,  siesta_namelist::vessel_file}
 !>  @end_table
 !>
 !>  @table_section{siesta_test_sec, Test Controls}
-!>      @item{hesspass_test, }
-!>      @item{mupar_test,    }
+!>      @item{hesspass_test, UNKNOWN, siesta_namelist::hesspass_test}
+!>      @item{mupar_test,    UNKNOWN, siesta_namelist::mupar_test}
 !>  @end_table
 !>
 !>  @section siesta_namelist_prog_ref_sec Programmers Reference
