@@ -1,5 +1,7 @@
 var searchData=
 [
+  ['dealloc_5ffull_5flower_5fmetrics',['dealloc_full_lower_metrics',['../namespacemetrics.html#a11d826a7b8e8cbb8ddd086a9aaed0c76',1,'metrics']]],
+  ['dealloc_5fquantities',['dealloc_quantities',['../namespacequantities.html#a573f5bf3e013725ddbda60c3dd0322d4',1,'quantities']]],
   ['delete_5fdirectory',['delete_directory',['../namespacefile__opts.html#ae523a497a9dae8d43c3d652252def711',1,'file_opts']]],
   ['delete_5ffile',['delete_file',['../namespacefile__opts.html#aa53312bc8b319948cf70e47974073d4a',1,'file_opts']]],
   ['determinemasterslaveranks',['determinemasterslaveranks',['../namespaceblocktridiagonalsolver__s.html#a6fa59d395a365a6acc52b15cd0e6ae00',1,'blocktridiagonalsolver_s::determinemasterslaveranks()'],['../namespaceblocktridiagonalsolver.html#a68b9fd3655efde644e29f374bcae5c3f',1,'blocktridiagonalsolver::determinemasterslaveranks()']]],
@@ -17,5 +19,7 @@ var searchData=
   ['diagnostic_5fdot_5fparse_5fs_5frogowski',['diagnostic_dot_parse_s_rogowski',['../namespacediagnostic__dot.html#a36dda260fc15b6fe2bbec117ac2758ac',1,'diagnostic_dot']]],
   ['direction',['direction',['../classvertex.html#a4d336ff7ddbbf641a62ed14eeabca57a',1,'vertex']]],
   ['distance',['distance',['../classvertex.html#aae36ee47387da49f3e9ff97dac66aa83',1,'vertex']]],
-  ['dot_5fproduct',['dot_product',['../classvector3d.html#a92e03128e92a0de7fea44096fd0f4fea',1,'vector3d']]]
+  ['dot_5fproduct',['dot_product',['../classvector3d.html#a92e03128e92a0de7fea44096fd0f4fea',1,'vector3d']]],
+  ['dump_5fa',['dump_a',['../namespacepchelms.html#a07ec25d3505a77c0b09e726dd8ef1a07',1,'pchelms']]],
+  ['dump_5fb',['dump_b',['../namespacepchelms.html#a11fde1f18d2db817c31be925702ca27a',1,'pchelms']]]
 ];

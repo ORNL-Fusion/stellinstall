@@ -10,6 +10,7 @@ var searchData=
   ['getjcyl',['getjcyl',['../interfacevmec__utils_1_1getjcyl.html',1,'vmec_utils']]],
   ['getpid',['getpid',['../interfacesystem__mod_1_1getpid.html',1,'system_mod']]],
   ['gmres_5finfo',['gmres_info',['../structgmres__lib_1_1gmres__info.html',1,'gmres_lib']]],
+  ['gradienthalf',['gradienthalf',['../interfaceutilities_1_1gradienthalf.html',1,'utilities']]],
   ['gridbicub',['gridbicub',['../interfacepspline__calls_1_1gridbicub.html',1,'pspline_calls']]],
   ['gridherm1',['gridherm1',['../interfacepspline__calls_1_1gridherm1.html',1,'pspline_calls']]],
   ['gridherm2',['gridherm2',['../interfacepspline__calls_1_1gridherm2.html',1,'pspline_calls']]],

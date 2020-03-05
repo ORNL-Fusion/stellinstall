@@ -2,7 +2,6 @@ var searchData=
 [
   ['ece_5fclass',['ece_class',['../structece_1_1ece__class.html',1,'ece']]],
   ['ece_5fcontext',['ece_context',['../structece_1_1ece__context.html',1,'ece']]],
-  ['ece_5fget_5fgp',['ece_get_gp',['../interfaceece_1_1ece__get__gp.html',1,'ece']]],
   ['emission_5fclass',['emission_class',['../structemission_1_1emission__class.html',1,'emission']]],
   ['emission_5fconstruct',['emission_construct',['../interfaceemission_1_1emission__construct.html',1,'emission']]],
   ['equilibrium_5fclass',['equilibrium_class',['../structequilibrium_1_1equilibrium__class.html',1,'equilibrium']]],

@@ -6,6 +6,8 @@ var searchData=
   ['x_5fmin',['x_min',['../classvertex.html#a908da11b1c6fdaf0f8c33bd8e886bb58',1,'vertex']]],
   ['x_5fprime',['x_prime',['../structsiesta__equilibrium_1_1siesta__magnetic__cache.html#a06399065a6e568d30bc79bd84ff11bd5',1,'siesta_equilibrium::siesta_magnetic_cache::x_prime()'],['../structvmec__equilibrium_1_1vmec__magnetic__cache.html#aa43c7e0e49e5236813ddc6ce542f654b',1,'vmec_equilibrium::vmec_magnetic_cache::x_prime()']]],
   ['xc',['xc',['../structvmec__context_1_1vmec__context__class.html#aad73580917513bd8d8a183794709e085',1,'vmec_context::vmec_context_class::xc()'],['../namespaceshared__data.html#ab4e75e1fc1ed72aef88d3d5fe0d80b2d',1,'shared_data::xc()']]],
+  ['xc0',['xc0',['../namespaceshared__data.html#a78f1ef4a9077f3e374ba136f0477fcf5',1,'shared_data']]],
   ['xcart',['xcart',['../structintpol_1_1intpol__gp__context__x.html#a4b044b7b5b1be1653cde24f36158adf0',1,'intpol::intpol_gp_context_x::xcart()'],['../structsxrem_1_1sxrem__gp__context__x.html#a28a961787fefbade6b6c9f66d9fbc750',1,'sxrem::sxrem_gp_context_x::xcart()'],['../structthomson_1_1thomson__class.html#a25a05a650a56409d617a41167538d6f3',1,'thomson::thomson_class::xcart()']]],
+  ['xcdot',['xcdot',['../namespaceevolution.html#a53c412b9edfcdd8bff8fd946fc1b6955',1,'evolution']]],
   ['xlookup',['xlookup',['../interfacepspline__calls_1_1xlookup.html',1,'pspline_calls']]]
 ];

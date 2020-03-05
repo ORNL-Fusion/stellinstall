@@ -1,5 +1,8 @@
 var searchData=
 [
+  ['set_5fbndy_5ffouier_5fm0',['set_bndy_fouier_m0',['../interfaceutilities_1_1set__bndy__fouier__m0.html',1,'utilities']]],
+  ['set_5fbndy_5fhalf_5fto_5ffull',['set_bndy_half_to_full',['../interfaceutilities_1_1set__bndy__half__to__full.html',1,'utilities']]],
+  ['set_5fbndy_5fhalf_5fto_5ffull_5fds',['set_bndy_half_to_full_ds',['../interfaceutilities_1_1set__bndy__half__to__full__ds.html',1,'utilities']]],
   ['seval',['seval',['../interfacepspline__calls_1_1seval.html',1,'pspline_calls']]],
   ['seval2',['seval2',['../interfacepspline__calls_1_1seval2.html',1,'pspline_calls']]],
   ['seval3',['seval3',['../interfacepspline__calls_1_1seval3.html',1,'pspline_calls']]],
@@ -22,8 +25,6 @@ var searchData=
   ['signal_5fclass',['signal_class',['../structsignal_1_1signal__class.html',1,'signal']]],
   ['signal_5fconstruct',['signal_construct',['../interfacesignal_1_1signal__construct.html',1,'signal']]],
   ['signal_5fdot_5ffile',['signal_dot_file',['../structsignal__dot_1_1signal__dot__file.html',1,'signal_dot']]],
-  ['signal_5fget_5fgp',['signal_get_gp',['../interfacesignal_1_1signal__get__gp.html',1,'signal']]],
-  ['signal_5fgp_5fcontext',['signal_gp_context',['../structsignal_1_1signal__gp__context.html',1,'signal']]],
   ['signal_5fpointer',['signal_pointer',['../structsignal_1_1signal__pointer.html',1,'signal']]],
   ['signals',['signals',['../structv3post__rfun_1_1signals.html',1,'v3post_rfun']]],
   ['solutionelement',['solutionelement',['../structblocktridiagonalsolver_1_1solutionelement.html',1,'blocktridiagonalsolver::solutionelement'],['../structblocktridiagonalsolver__bst_1_1solutionelement.html',1,'blocktridiagonalsolver_bst::solutionelement'],['../structblocktridiagonalsolver__s_1_1solutionelement.html',1,'blocktridiagonalsolver_s::solutionelement']]],
@@ -37,11 +38,12 @@ var searchData=
   ['spvec',['spvec',['../interfacepspline__calls_1_1spvec.html',1,'pspline_calls']]],
   ['sxrch_5fdesc',['sxrch_desc',['../structsxrch__t_1_1sxrch__desc.html',1,'sxrch_t']]],
   ['sxrem_5fclass',['sxrem_class',['../structsxrem_1_1sxrem__class.html',1,'sxrem']]],
-  ['sxrem_5fconstruct',['sxrem_construct',['../interfacesxrem_1_1sxrem__construct.html',1,'sxrem']]],
   ['sxrem_5fcontext',['sxrem_context',['../structsxrem_1_1sxrem__context.html',1,'sxrem']]],
-  ['sxrem_5fget_5fgp',['sxrem_get_gp',['../interfacesxrem_1_1sxrem__get__gp.html',1,'sxrem']]],
+  ['sxrem_5femiss_5fclass',['sxrem_emiss_class',['../structsxrem_1_1sxrem__emiss__class.html',1,'sxrem']]],
   ['sxrem_5fgp_5fcontext_5fi',['sxrem_gp_context_i',['../structsxrem_1_1sxrem__gp__context__i.html',1,'sxrem']]],
+  ['sxrem_5fgp_5fcontext_5fs',['sxrem_gp_context_s',['../structsxrem_1_1sxrem__gp__context__s.html',1,'sxrem']]],
   ['sxrem_5fgp_5fcontext_5fx',['sxrem_gp_context_x',['../structsxrem_1_1sxrem__gp__context__x.html',1,'sxrem']]],
   ['sxrem_5fratio_5fclass',['sxrem_ratio_class',['../structsxrem__ratio_1_1sxrem__ratio__class.html',1,'sxrem_ratio']]],
+  ['sxrem_5fti_5fclass',['sxrem_ti_class',['../structsxrem_1_1sxrem__ti__class.html',1,'sxrem']]],
   ['system',['system',['../interfacesystem__mod_1_1system.html',1,'system_mod']]]
 ];

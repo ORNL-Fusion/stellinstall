@@ -9,10 +9,13 @@ var searchData=
   ['tcspline',['tcspline',['../interfacepspline__calls_1_1tcspline.html',1,'pspline_calls']]],
   ['tcspvec',['tcspvec',['../interfacepspline__calls_1_1tcspvec.html',1,'pspline_calls']]],
   ['thomson_5fclass',['thomson_class',['../structthomson_1_1thomson__class.html',1,'thomson']]],
-  ['thomson_5fget_5fgp',['thomson_get_gp',['../interfacethomson_1_1thomson__get__gp.html',1,'thomson']]],
+  ['thomson_5fne_5fclass',['thomson_ne_class',['../structthomson_1_1thomson__ne__class.html',1,'thomson']]],
+  ['thomson_5fp_5fclass',['thomson_p_class',['../structthomson_1_1thomson__p__class.html',1,'thomson']]],
+  ['thomson_5fte_5fclass',['thomson_te_class',['../structthomson_1_1thomson__te__class.html',1,'thomson']]],
   ['thscte_5fdesc',['thscte_desc',['../structthscte__t_1_1thscte__desc.html',1,'thscte_t']]],
   ['timecount',['timecount',['../structblocktridiagonalsolver__s_1_1timecount.html',1,'blocktridiagonalsolver_s::timecount'],['../structblocktridiagonalsolver_1_1timecount.html',1,'blocktridiagonalsolver::timecount'],['../structblocktridiagonalsolver__bst_1_1timecount.html',1,'blocktridiagonalsolver_bst::timecount']]],
   ['to_5ffull_5fmesh',['to_full_mesh',['../interfaceutilities_1_1to__full__mesh.html',1,'utilities']]],
+  ['to_5fhalf_5fmesh',['to_half_mesh',['../interfaceutilities_1_1to__half__mesh.html',1,'utilities']]],
   ['tpsplinb',['tpsplinb',['../interfacepspline__calls_1_1tpsplinb.html',1,'pspline_calls']]],
   ['tpspline',['tpspline',['../interfacepspline__calls_1_1tpspline.html',1,'pspline_calls']]]
 ];

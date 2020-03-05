@@ -6,7 +6,6 @@ var searchData=
   ['li_5fgefa',['li_gefa',['../interfaceliprec_1_1li__gefa.html',1,'liprec']]],
   ['li_5fgesl',['li_gesl',['../interfaceliprec_1_1li__gesl.html',1,'liprec']]],
   ['limiter_5fclass',['limiter_class',['../structlimiter_1_1limiter__class.html',1,'limiter']]],
-  ['limiter_5fconstruct',['limiter_construct',['../interfacelimiter_1_1limiter__construct.html',1,'limiter']]],
   ['limiter_5fgrid_5fclass',['limiter_grid_class',['../structlimiter__grid_1_1limiter__grid__class.html',1,'limiter_grid']]],
-  ['limiter_5fiso',['limiter_iso',['../structlimiter__iso__t_1_1limiter__iso.html',1,'limiter_iso_t']]]
+  ['limiter_5fiso_5fclass',['limiter_iso_class',['../structlimiter__iso__t_1_1limiter__iso__class.html',1,'limiter_iso_t']]]
 ];

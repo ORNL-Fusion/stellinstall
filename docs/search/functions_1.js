@@ -1,8 +1,10 @@
 var searchData=
 [
   ['b',['b',['../classvertex.html#a08acd824a0f0e30ad46faec5fbf3de7e',1,'vertex']]],
+  ['backslv',['backslv',['../namespacepchelms.html#a59257cee16eee714e41df5a755e5db8d',1,'pchelms']]],
   ['backwardsolve',['backwardsolve',['../namespaceblocktridiagonalsolver__s.html#a3194664a997b1ae8dce86176ac784f03',1,'blocktridiagonalsolver_s::backwardsolve()'],['../namespaceblocktridiagonalsolver.html#ae8df562dbec1f4da773f18a24beb63e4',1,'blocktridiagonalsolver::backwardsolve()']]],
   ['bclockinit',['bclockinit',['../namespaceblocktridiagonalsolver__s.html#a8164f65aac96bc0678c43eeddf505deb',1,'blocktridiagonalsolver_s::bclockinit()'],['../namespaceblocktridiagonalsolver.html#a14a13522456670c350261d6794295719',1,'blocktridiagonalsolver::bclockinit()']]],
+  ['bhalftobfull',['bhalftobfull',['../namespacebhtobf.html#a5fb79b83ea094015cc4c495a6dad46f7',1,'bhtobf']]],
   ['bivariate_5fconstruct',['bivariate_construct',['../namespacebivariate.html#ac102c8b2b8a0da05dceee85fc90baa78',1,'bivariate']]],
   ['bivariate_5fdestruct',['bivariate_destruct',['../namespacebivariate.html#ac365c981828b3c0a9344226807d341f3',1,'bivariate']]],
   ['bivariate_5fget_5f4pt',['bivariate_get_4pt',['../namespacebivariate.html#a2eacc53209204cd912a2a898025863b6',1,'bivariate']]],
@@ -23,6 +25,7 @@ var searchData=
   ['bmw_5fcontext_5fset_5fup_5fgrid_5fa',['bmw_context_set_up_grid_a',['../namespacebmw__context.html#ab91a6a1feda46567841c76e5b5e5d228',1,'bmw_context']]],
   ['bmw_5fcontext_5fset_5fup_5fgrid_5fm',['bmw_context_set_up_grid_m',['../interfacebmw__context_1_1bmw__context__set__up__grid.html#a58f1bdaff07fe9241d6551a32d0ae021',1,'bmw_context::bmw_context_set_up_grid::bmw_context_set_up_grid_m()'],['../namespacebmw__context.html#a11d3e692484c866bc08fa8d13005d932',1,'bmw_context::bmw_context_set_up_grid_m()']]],
   ['bmw_5fcontext_5fwrite',['bmw_context_write',['../namespacebmw__context.html#a05733762ffd48b52b7c3ed11fabdd367',1,'bmw_context']]],
+  ['bmw_5fexec',['bmw_exec',['../namespacebmw__run.html#ab58fb07fddd572e1d324d2c7787b228d',1,'bmw_run']]],
   ['bmw_5fparallel_5fcontext_5fabort',['bmw_parallel_context_abort',['../namespacebmw__parallel__context.html#a749a1ae195871249c5d9927c0ec07fe7',1,'bmw_parallel_context']]],
   ['bmw_5fparallel_5fcontext_5fconstruct',['bmw_parallel_context_construct',['../namespacebmw__parallel__context.html#a4911142f5838749e06d9a7efbff07afe',1,'bmw_parallel_context']]],
   ['bmw_5fparallel_5fcontext_5fdestruct',['bmw_parallel_context_destruct',['../namespacebmw__parallel__context.html#a7069911f2d41699fefacec04fcf7bc4f',1,'bmw_parallel_context']]],
@@ -37,6 +40,7 @@ var searchData=
   ['bmw_5fparallel_5fcontext_5freport',['bmw_parallel_context_report',['../namespacebmw__parallel__context.html#aa943f42d724ebb57fe4ada59aa561391',1,'bmw_parallel_context']]],
   ['bmw_5fparallel_5fcontext_5fset_5fthreads',['bmw_parallel_context_set_threads',['../namespacebmw__parallel__context.html#aa155eebd5433ae179013d34b58392c9d',1,'bmw_parallel_context']]],
   ['bmw_5fparallel_5fcontext_5fstart',['bmw_parallel_context_start',['../namespacebmw__parallel__context.html#a4e2382c07d73e07870c912c03a566f41',1,'bmw_parallel_context']]],
+  ['boundaryconditions',['boundaryconditions',['../namespacepchelms.html#a6cae02545c78f51ab7c3841373b05c55',1,'pchelms']]],
   ['brent',['brent',['../namespacef1dim__mod.html#a047cf9f6906388ae97a217d07c28c358',1,'f1dim_mod']]],
   ['bsystemclock',['bsystemclock',['../namespaceblocktridiagonalsolver__s.html#a6cfa61b4c747c298dfbd2bb6762ff59e',1,'blocktridiagonalsolver_s::bsystemclock()'],['../namespaceblocktridiagonalsolver.html#a19ca39bad842087e9250d7fb892f6edf',1,'blocktridiagonalsolver::bsystemclock()']]]
 ];

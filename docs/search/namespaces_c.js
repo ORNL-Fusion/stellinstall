@@ -4,6 +4,7 @@ var searchData=
   ['shared_5ffunctions',['shared_functions',['../namespaceshared__functions.html',1,'']]],
   ['siesta_5fbfield',['siesta_bfield',['../namespacesiesta__bfield.html',1,'']]],
   ['siesta_5fcontext',['siesta_context',['../namespacesiesta__context.html',1,'']]],
+  ['siesta_5fcurrents',['siesta_currents',['../namespacesiesta__currents.html',1,'']]],
   ['siesta_5fdisplacement',['siesta_displacement',['../namespacesiesta__displacement.html',1,'']]],
   ['siesta_5fequilibrium',['siesta_equilibrium',['../namespacesiesta__equilibrium.html',1,'']]],
   ['siesta_5ferror',['siesta_error',['../namespacesiesta__error.html',1,'']]],

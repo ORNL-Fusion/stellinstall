@@ -2,7 +2,6 @@ var searchData=
 [
   ['e',['e',['../structreconstruction_1_1reconstruction__class.html#a88a8c128dddce607a924ca1989fe5b51',1,'reconstruction::reconstruction_class']]],
   ['e_5fpressure_5ffraction',['e_pressure_fraction',['../namespacev3fit__input.html#a5ed8f65dd06c73918ebfa04ede7b5fb1',1,'v3fit_input']]],
-  ['ece',['ece',['../structsignal_1_1signal__class.html#a8654ad1f0f9fa1a8159270213c40acf1',1,'signal::signal_class']]],
   ['ece_5fdot_5ffilename',['ece_dot_filename',['../namespacev3fit__input.html#af786af93e310aa065e95b891ae9cb5ab',1,'v3fit_input']]],
   ['ece_5findex',['ece_index',['../structv3fit__context_1_1v3fit__context__class.html#a0e1f79b55351e20dd41e81c6953f42c1',1,'v3fit_context::v3fit_context_class']]],
   ['ece_5fresonance_5frange',['ece_resonance_range',['../namespacev3fit__input.html#a5ea57408967601f98371a8a2f9985895',1,'v3fit_input']]],
@@ -18,10 +17,10 @@ var searchData=
   ['equilibrium_5fvacuum_5ftype',['equilibrium_vacuum_type',['../namespaceequilibrium.html#a0ebb24533ddf516be30adc3548db05af',1,'equilibrium']]],
   ['equilibrium_5fvmec_5ftype',['equilibrium_vmec_type',['../namespaceequilibrium.html#a578956333b13429d5f9fc2e1387c042f',1,'equilibrium']]],
   ['eta_5ffactor',['eta_factor',['../namespacesiesta__namelist.html#a5c34fd50cada7045ae178a8fb1b2d259',1,'siesta_namelist']]],
+  ['etak_5ftol',['etak_tol',['../namespaceshared__data.html#ad1644f3c84ff72f6f26e72243bfc2755',1,'shared_data']]],
   ['ev_5fper_5fjoule',['ev_per_joule',['../namespacemodel.html#adee0096c51cfba8e688b2e2f073ec866',1,'model']]],
   ['exp_5fg2',['exp_g2',['../structreconstruction_1_1reconstruction__class.html#a165d78187d9b2affd156c44fddebe941',1,'reconstruction::reconstruction_class']]],
   ['extcur',['extcur',['../structvacuum__equilibrium_1_1vacuum__class.html#ad225c6a24e78bbe13e3c7cdd21fda033',1,'vacuum_equilibrium::vacuum_class::extcur()'],['../structv3rfun__context_1_1v3rfun__context__class.html#a58d36844ceaf9b13b7d7654e30c15a9d',1,'v3rfun_context::v3rfun_context_class::extcur()'],['../namespacevacuum__input.html#a63364fb21724c5c5b6a62c787b455e12',1,'vacuum_input::extcur()']]],
-  ['extcurz',['extcurz',['../structsignal_1_1signal__class.html#a570046251018c8439b2f8bdb35f95e53',1,'signal::signal_class']]],
   ['extcurz_5findex',['extcurz_index',['../structv3fit__context_1_1v3fit__context__class.html#aea301b64c5e910f29191c4bb87235740',1,'v3fit_context::v3fit_context_class']]],
   ['extcurz_5fs0',['extcurz_s0',['../namespacev3fit__input.html#a11987511aea794ac429ac277a0e5ea9d',1,'v3fit_input']]],
   ['extcurz_5fu0',['extcurz_u0',['../namespacev3fit__input.html#a555584a3df19eb60f116d9f7a9bc4211',1,'v3fit_input']]]

@@ -3,10 +3,9 @@ var searchData=
   ['m_5fgrid_5fclass',['m_grid_class',['../structm__grid_1_1m__grid__class.html',1,'m_grid']]],
   ['magfield',['magfield',['../structvertex__list_1_1magfield.html',1,'vertex_list']]],
   ['magnetic_5fclass',['magnetic_class',['../structmagnetic_1_1magnetic__class.html',1,'magnetic']]],
-  ['magnetic_5fconstruct',['magnetic_construct',['../interfacemagnetic_1_1magnetic__construct.html',1,'magnetic']]],
   ['magnetic_5fresponse_5fclass',['magnetic_response_class',['../structmagnetic__response_1_1magnetic__response__class.html',1,'magnetic_response']]],
   ['magnetic_5fresponse_5fconstruct',['magnetic_response_construct',['../interfacemagnetic__response_1_1magnetic__response__construct.html',1,'magnetic_response']]],
-  ['mastertoslavemapping',['mastertoslavemapping',['../structblocktridiagonalsolver_1_1mastertoslavemapping.html',1,'blocktridiagonalsolver::mastertoslavemapping'],['../structblocktridiagonalsolver__bst_1_1mastertoslavemapping.html',1,'blocktridiagonalsolver_bst::mastertoslavemapping'],['../structblocktridiagonalsolver__s_1_1mastertoslavemapping.html',1,'blocktridiagonalsolver_s::mastertoslavemapping']]],
+  ['mastertoslavemapping',['mastertoslavemapping',['../structblocktridiagonalsolver__bst_1_1mastertoslavemapping.html',1,'blocktridiagonalsolver_bst::mastertoslavemapping'],['../structblocktridiagonalsolver_1_1mastertoslavemapping.html',1,'blocktridiagonalsolver::mastertoslavemapping'],['../structblocktridiagonalsolver__s_1_1mastertoslavemapping.html',1,'blocktridiagonalsolver_s::mastertoslavemapping']]],
   ['mddc_5fcdf_5fdefine',['mddc_cdf_define',['../interfacemddc__cdf_1_1mddc__cdf__define.html',1,'mddc_cdf']]],
   ['mddc_5fcdf_5fread',['mddc_cdf_read',['../interfacemddc__cdf_1_1mddc__cdf__read.html',1,'mddc_cdf']]],
   ['mddc_5fcdf_5fwrite',['mddc_cdf_write',['../interfacemddc__cdf_1_1mddc__cdf__write.html',1,'mddc_cdf']]],
@@ -46,6 +45,5 @@ var searchData=
   ['model_5fget_5fti',['model_get_ti',['../interfacemodel_1_1model__get__ti.html',1,'model']]],
   ['model_5fget_5fze',['model_get_ze',['../interfacemodel_1_1model__get__ze.html',1,'model']]],
   ['mse_5fclass',['mse_class',['../structmse_1_1mse__class.html',1,'mse']]],
-  ['mse_5fconstruct',['mse_construct',['../interfacemse_1_1mse__construct.html',1,'mse']]],
   ['mse_5fpitch',['mse_pitch',['../interfacevmec__utils_1_1mse__pitch.html',1,'vmec_utils']]]
 ];

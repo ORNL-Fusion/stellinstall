@@ -22,7 +22,7 @@ var searchData=
   ['vecspline',['vecspline',['../interfacepspline__calls_1_1vecspline.html',1,'pspline_calls']]],
   ['vector3d',['vector3d',['../classvector3d.html',1,'']]],
   ['vectricub',['vectricub',['../interfacepspline__calls_1_1vectricub.html',1,'pspline_calls']]],
-  ['vertex',['vertex',['../structvertex__list_1_1vertex.html',1,'vertex_list::vertex'],['../classvertex.html',1,'vertex'],['../structintegration__path_1_1vertex.html',1,'integration_path::vertex']]],
+  ['vertex',['vertex',['../classvertex.html',1,'vertex'],['../structintegration__path_1_1vertex.html',1,'integration_path::vertex'],['../structvertex__list_1_1vertex.html',1,'vertex_list::vertex']]],
   ['virtual_5fcasing_5fdist',['virtual_casing_dist',['../interfacevirtual__casing__mod_1_1virtual__casing__dist.html',1,'virtual_casing_mod']]],
   ['vmec_5fclass',['vmec_class',['../structvmec__equilibrium_1_1vmec__class.html',1,'vmec_equilibrium']]],
   ['vmec_5fconstruct',['vmec_construct',['../interfacevmec__equilibrium_1_1vmec__construct.html',1,'vmec_equilibrium']]],

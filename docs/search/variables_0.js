@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['a',['a',['../structsignal_1_1combination__class.html#aed9fd61fcbb9e6293ed38073def1f494',1,'signal::combination_class']]],
+  ['a',['a',['../structcombination_1_1combination__class.html#a1482ab624fb6af56f779e21d000aac35',1,'combination::combination_class']]],
   ['a_5fminor_5fradius',['a_minor_radius',['../namespacev3fit__input.html#a457741ccea4be3ff7dab9609a1c6040c',1,'v3fit_input']]],
   ['a_5fp',['a_p',['../structm__grid_1_1m__grid__class.html#a1a24568fe4859c23005039c181096e6e',1,'m_grid::m_grid_class::a_p()'],['../structunprimed__grid_1_1unprimed__grid__class.html#a23ab3215e0ff5eee766f8dd2e05d6806',1,'unprimed_grid::unprimed_grid_class::a_p()']]],
   ['a_5fr',['a_r',['../structm__grid_1_1m__grid__class.html#af9cb7ad35ed9218e00760cabe7542e97',1,'m_grid::m_grid_class::a_r()'],['../structunprimed__grid_1_1unprimed__grid__class.html#a917ddf0092d925e7f1363987adb6f0e2',1,'unprimed_grid::unprimed_grid_class::a_r()']]],
@@ -11,8 +11,14 @@ var searchData=
   ['absc',['absc',['../structintegration__path_1_1path__int__class.html#a9c56b254d1218732c9634ae55c737dd8',1,'integration_path::path_int_class']]],
   ['af',['af',['../structpprofile__t_1_1pprofile__class.html#a8e7c9cbd88e4e2941e041365c593ec69',1,'pprofile_t::pprofile_class']]],
   ['alpha',['alpha',['../structmse_1_1mse__class.html#a7e0bdbfc8e2b9b7740d634403c78e83a',1,'mse::mse_class']]],
-  ['arz',['arz',['../structlimiter__iso__t_1_1limiter__iso.html#abe8d54aa503144ad3db3ceec484058be',1,'limiter_iso_t::limiter_iso']]],
+  ['arz',['arz',['../structlimiter__iso__t_1_1limiter__iso__class.html#af875449906931169b6163042492f4b75',1,'limiter_iso_t::limiter_iso_class']]],
   ['as',['as',['../structpprofile__t_1_1pprofile__class.html#a93f23406d8927e7b19a6570f8ee4becb',1,'pprofile_t::pprofile_class']]],
   ['astep_5fmax',['astep_max',['../namespacev3fit__input.html#acb9417098adb81002267eb6a99f64562',1,'v3fit_input']]],
+  ['asubsmncf',['asubsmncf',['../namespaceshared__data.html#a33becb95782782d593d234c2e6a086e6',1,'shared_data']]],
+  ['asubsmnsf',['asubsmnsf',['../namespaceshared__data.html#a87573fa1ab016ed2588da37ccca86835',1,'shared_data']]],
+  ['asubumncf',['asubumncf',['../namespaceshared__data.html#ac0f10bb1709996044a49dbcc782bebde',1,'shared_data']]],
+  ['asubumnsf',['asubumnsf',['../namespaceshared__data.html#a8204cbbc6aecc2985b44ef64e2de4806',1,'shared_data']]],
+  ['asubvmncf',['asubvmncf',['../namespaceshared__data.html#a0a3336731ffa506840e6cc8d78f89f68',1,'shared_data']]],
+  ['asubvmnsf',['asubvmnsf',['../namespaceshared__data.html#aca9fad6a7edf01ae301be04653e258a7',1,'shared_data']]],
   ['average_5ftime',['average_time',['../structprofiler_1_1profiler__bucket.html#a942fc09c0e7ef9d4fe5bf707f12fe56d',1,'profiler::profiler_bucket']]]
 ];

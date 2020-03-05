@@ -8,6 +8,5 @@ var searchData=
   ['vacuum_5fequilibrium',['vacuum_equilibrium',['../namespacevacuum__equilibrium.html',1,'']]],
   ['vacuum_5finput',['vacuum_input',['../namespacevacuum__input.html',1,'']]],
   ['vmec_5fcontext',['vmec_context',['../namespacevmec__context.html',1,'']]],
-  ['vmec_5fequilibrium',['vmec_equilibrium',['../namespacevmec__equilibrium.html',1,'']]],
-  ['vmec_5finfo',['vmec_info',['../namespacevmec__info.html',1,'']]]
+  ['vmec_5fequilibrium',['vmec_equilibrium',['../namespacevmec__equilibrium.html',1,'']]]
 ];
