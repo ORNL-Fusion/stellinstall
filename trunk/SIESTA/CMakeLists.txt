@@ -7,7 +7,7 @@ find_library (SCALAPACK_LIB NAMES scalapack)
 add_subdirectory (Sources)
 
 add_library (siesta STATIC ${siesta_sources})
-add_dependencies (siesta stell)
+add_dependencies (siesta bmw stell)
 set_target_properties (siesta PROPERTIES COMPILE_DEFINITIONS "SKS")
 set_target_properties (siesta PROPERTIES Fortran_MODULE_DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}/siesta)
 if (CMAKE_VERSION VERSION_GREATER "2.8.8")
