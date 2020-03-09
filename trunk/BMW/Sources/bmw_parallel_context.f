@@ -493,10 +493,10 @@
 !  Acound for the remaining elements in the first n_left processes.
       IF (this%offset .lt. n_left) THEN
          bmw_parallel_context_end = bmw_parallel_context_end               &
-     &                              + this%offset + 1
+     &                            + this%offset + 1
       ELSE
          bmw_parallel_context_end = bmw_parallel_context_end               &
-     &                              + n_left
+     &                            + n_left
       END IF
 
       END FUNCTION
