@@ -174,6 +174,7 @@
      &                     vmec_info_construct_island
       USE metrics, ONLY: LoadGrid
       USE fourier, ONLY: m0, m1, fourier_class
+      USE stel_constants, ONLY: one
 
       IMPLICIT NONE
 
@@ -321,12 +322,12 @@
 
       fourier_context => fourier_class(mpolin, ntorin, nu_i, nv_i, nfpin, lasym)
 
-      CALL restart_normalize(rmnc, 1)
-      CALL restart_normalize(zmns, 1)
+      CALL restart_normalize(rmnc, one)
+      CALL restart_normalize(zmns, one)
       IF (lasym) THEN
-         CALL restart_normalize(rmns, 1)
-         CALL restart_normalize(zmnc, 1)
-      END DO
+         CALL restart_normalize(rmns, one)
+         CALL restart_normalize(zmnc, one)
+      END IF
 
       CALL LoadGrid(status)
 

@@ -4935,7 +4935,7 @@ ELSE
    CALL MPI_Reduce(temp,temp,2,MPI_REAL8,MPI_SUM,0,SIESTA_COMM,mpi_err)
 END IF
 IF (rank.EQ.0) THEN 
-  asymIndx=SQRT(temp(1)/temp(2))
+  asymIndx = SQRT(temp(1)/temp(2))
   !print *,'New asymIndx:',asymIndx
 END IF
 
