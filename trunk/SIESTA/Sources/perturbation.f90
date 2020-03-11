@@ -440,7 +440,9 @@
          CALL fourier_context%toijsp(ress, buv_res, f_sum, f_sin)
       END IF
       
-      IF (rho .NE. zero) buv_res = buv_res/rho
+      IF (rho .NE. zero) THEN
+         buv_res = buv_res/rho
+      END IF
 
 !	Apply radial form-factor
       DO js = nsmin, nsmax
@@ -454,11 +456,11 @@
       bmn_res = 0
          
       bmn_res(mres0,nres0) = HelP_local
-      CALL fourier_context%toijsp(bmn_res, buv_res(:,:,nsmin), f_cos, f_none)
+      CALL fourier_context%toijsp(bmn_res, buv_res(:,:,nsmin), f_none, f_cos)
       
       IF (lasym) THEN
          bmn_res(mres0,nres0) = HelPA_local
-         CALL fourier_context%toijsp(bmn_res, buv_res(:,:,nsmin), f_sin, f_sum)
+         CALL fourier_context%toijsp(bmn_res, buv_res(:,:,nsmin), f_sum, f_sin)
       END IF
       DO js = nsmin + 1, nsmax
          buv_res(:,:,js) = buv_res(:,:,nsmin)*pert_prof(js)
