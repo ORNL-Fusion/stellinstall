@@ -229,6 +229,7 @@
 !>  Use non-stellarator symmetry.
       LOGICAL :: lasym = .false.
 !>  Output extra information to the restart file that will be used by V3FIT.
+!>  @DEPRICATED
       LOGICAL :: lrecon = .false.
 !>  Use verbose screen output.
       LOGICAL :: lverbose = .true.

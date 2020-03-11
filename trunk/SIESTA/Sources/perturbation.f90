@@ -4,8 +4,7 @@
       USE descriptor_mod, ONLY: iam
       USE siesta_state, ONLY: update_state, update_state
       USE shared_data, ONLY: ngmres_type, iortho, lcolscale, lasym,            &
-                             hesspass_test, buv_res, lrecon,                   &
-                             unit_out
+                             hesspass_test, buv_res, unit_out
       USE nscalingtools, ONLY: startglobrow, endglobrow
 
       IMPLICIT NONE
