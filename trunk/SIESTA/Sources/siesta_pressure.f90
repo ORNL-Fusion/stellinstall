@@ -1,5 +1,5 @@
 !*******************************************************************************
-!>  @file utilities.f90
+!>  @file siesta_pressure.f90
 !>  @brief Contains module @ref siesta_pressure
 !
 !  Note separating the Doxygen comment block here so detailed decription is
