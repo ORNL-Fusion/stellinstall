@@ -269,10 +269,11 @@
       IMPLICIT NONE
 
 !  Local variables.
-      INTEGER                                  :: istat
+      INTEGER                                  :: istat               ,i,j,k
       INTEGER                                  :: l
       REAL (dp)                                :: sum1
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: tempmn
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: tempmn_sym
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: tempmn_asym
 
 !  Start of executable code.
       IF (PARSOLVER) THEN
@@ -298,21 +299,26 @@
 !  Reshapes sqrtg in local form
       jacobh(:,:,:) = RESHAPE(sqrtg, SHAPE(jacobh))
 
-!AVOID DIVIDE BY ZERO AND STORE AVERAGED VALUE (OVER THETA) 
-!AT FIRST 1/2 GRID PT AT ORIGIN IN JACOBH(1)
+!  Avoid divide by zero and store averaged value over theta at first half grid
+!  point at origin in jacobh.
       CALL fourier_context%get_origin(jacobh, m0, lasym)
       signjac = jacobh(1,1,2)/ABS(jacobh(1,1,2))
 
 !  Filter jacobian ro preserve the unperturbed (constant in s) part of the
 !  pressure.
-      ALLOCATE(tempmn(0:mpol,-ntor:ntor,SIZE(jacobh,3)))
-      CALL fourier_context%tomnsp(jacobh, tempmn, f_cos)
-      CALL fourier_context%toijsp(tempmn, jacobh, f_none, f_cos)
+      ALLOCATE(tempmn_sym(0:mpol,-ntor:ntor,SIZE(jacobh,3)))
+      CALL fourier_context%tomnsp(jacobh, tempmn_sym, f_cos)
       IF (lasym) THEN
-         CALL fourier_context%tomnsp(jacobh, tempmn, f_sin)
-         CALL fourier_context%toijsp(tempmn, jacobh, f_sum, f_sin)
+         ALLOCATE(tempmn_asym(0:mpol,-ntor:ntor,SIZE(jacobh,3)))
+         CALL fourier_context%tomnsp(jacobh, tempmn_asym, f_sin)
       END IF
-      DEALLOCATE(tempmn)
+
+      CALL fourier_context%toijsp(tempmn_sym, jacobh, f_none, f_cos)
+      DEALLOCATE(tempmn_sym)
+      IF (lasym) THEN
+         CALL fourier_context%toijsp(tempmn_asym, jacobh, f_sum, f_sin)
+         DEALLOCATE(tempmn_asym)
+      END IF
 
       CALL assert(ALL(jacobh*signjac .gt. 0), 'FILTERED JACOBIAN CHANGED SIGN!')
 

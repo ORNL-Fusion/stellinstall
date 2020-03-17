@@ -744,9 +744,10 @@
                ELSE
                   workcos = this%workmj2(m,j)*this%cosnv(j,n)
                   worksin = this%workmj1(m,j)*this%sinnv(j,n)
+
                   xmn(m + moff,n + noff) = xmn(m + moff,n + noff)              &
                                          + workcos + worksin
-                  IF (n .ne. n0) THEN
+                  IF (n .ne. n0 .and. m .ne. m0) THEN
                      xmn(m + moff,-n + noff) = xmn(m + moff,-n + noff)         &
                                              + workcos - worksin
                   END IF
@@ -756,7 +757,7 @@
       END DO
 
       IF (parity .eq. f_cos) THEN
-         xmn(m0 + moff,:-n1 + noff) = zero                                             ! Redundant: To avoid counting (0,-n) for non-zero n.
+         xmn(m0 + moff,:-n1 + noff) = zero
       ELSE
          xmn(m0 + moff,:n0 + noff) = zero
       END IF
@@ -991,11 +992,11 @@
          END IF
       END IF
 
-      CALL this%toijsp(xmn_cos(:,:), xuv(:,:,js1), f_cos, f_none)
+      CALL this%toijsp(xmn_cos(:,:), xuv(:,:,js1), f_none, f_cos)
       DEALLOCATE(xmn_cos)
 
       IF (asym) THEN
-         CALL this%toijsp(xmn_sin(:,:), xuv(:,:,js1), f_sin, f_sum)
+         CALL this%toijsp(xmn_sin(:,:), xuv(:,:,js1), f_sum, f_sin)
          DEALLOCATE(xmn_sin)
       END IF
 
