@@ -29,13 +29,13 @@
       IMPLICIT NONE
 
 !  local variables
-      TYPE (bmw_parallel_context_class), POINTER :: parallel => null()
-      TYPE (surface_context_class), POINTER      :: context => null()
+      CLASS (bmw_parallel_context_class), POINTER :: parallel => null()
+      TYPE (surface_context_class), POINTER       :: context => null()
       TYPE (surface_commandline_parser_class), POINTER ::                      &
      &   cl_parser => null()
-      INTEGER                                    :: io_unit
-      INTEGER                                    :: status
-      REAL (rprec)                               :: start_time
+      INTEGER                                     :: io_unit
+      INTEGER                                     :: status
+      REAL (rprec)                                :: start_time
 
 !  Start of executable code
 #if defined (MPI_OPT)
@@ -45,11 +45,11 @@
 
       start_time = profiler_get_start_time()
 
-      parallel => bmw_parallel_context_construct(                              &
+      parallel => bmw_parallel_context_class(                                  &
 #if defined (MPI_OPT)
-     &                                           MPI_COMM_WORLD                &
+     &                                       MPI_COMM_WORLD                    &
 #endif
-     &                                          )
+     &                                      )
 
       cl_parser => surface_commandline_parser_construct(parallel)
 
@@ -65,7 +65,7 @@
          CALL surface_commandline_parser_print_help
       END IF
 
-      CALL bmw_parallel_context_set_threads(parallel,                          &
+      CALL parallel%set_threads(                                               &
      &        surface_commandline_parser_get_integer(cl_parser, '-para',       &
      &                                               1))
 
@@ -83,7 +83,7 @@
          WRITE (io_unit,1000) 1
          WRITE (io_unit,*)
       END IF
-      CALL bmw_parallel_context_report(parallel, io_unit)
+      CALL parallel%report(io_unit)
 
       context => surface_context_construct(                                    &
      &   surface_commandline_parser_get_string(cl_parser, '-woutf'),           &
@@ -106,11 +106,7 @@
 
       CLOSE(io_unit)
 
-      CALL bmw_parallel_context_destruct(parallel                              &
-#if defined (MPI_OPT)
-     &                                   ,.true.                               &
-#endif
-     &                                  )
+      DEALLOCATE(parallel)
 
 1000  FORMAT('SURFACE verson ',i4,'.')
 1001  FORMAT('Required flag ',a,' not set.')

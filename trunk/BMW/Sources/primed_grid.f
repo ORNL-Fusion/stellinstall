@@ -24,7 +24,7 @@
 !>  Base class representing a primed grid. This is grid the volume integral will
 !>  be summed over.
 !-------------------------------------------------------------------------------
-      TYPE primed_grid_class
+      TYPE :: primed_grid_class
 !>  Volume integration element.
          REAL (rprec)                            :: dvol
 !>  Toroidal grid spacing.
@@ -43,9 +43,19 @@
          REAL (rprec), DIMENSION(:,:,:), POINTER :: j_y => null()
 !>  Current density in the Z direction.
          REAL (rprec), DIMENSION(:,:,:), POINTER :: j_z => null()
-
-         REAL (rprec), DIMENSION(:,:,:), POINTER :: vol => null()  ! TEMP
+      CONTAINS
+         FINAL :: primed_grid_destruct
       END TYPE
+
+!*******************************************************************************
+!  INTERFACE BLOCKS
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Interface for the bmw_commandline_parser constructor.
+!-------------------------------------------------------------------------------
+      INTERFACE primed_grid_class
+         MODULE PROCEDURE primed_grid_construct
+      END INTERFACE
 
       CONTAINS
 !*******************************************************************************
@@ -128,47 +138,47 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (primed_grid_class), POINTER :: primed_grid_construct_both
-      INTEGER, INTENT(in)                           :: num_v
-      TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
+      CLASS (primed_grid_class), POINTER :: primed_grid_construct_both
+      INTEGER, INTENT(in)                            :: num_v
+      CLASS (bmw_parallel_context_class), INTENT(in) :: parallel
 
 !  local variables
-      REAL (rprec)                                  :: start_time
-      INTEGER                                       :: i
-      REAL (rprec)                                  :: x
-      REAL (rprec)                                  :: ds
-      INTEGER                                       :: si
-      INTEGER                                       :: ui
-      INTEGER                                       :: vi
-      REAL (rprec)                                  :: r
-      REAL (rprec)                                  :: z
-      REAL (rprec)                                  :: ru
-      REAL (rprec)                                  :: zu
-      REAL (rprec)                                  :: rv
-      REAL (rprec)                                  :: zv
-      REAL (rprec)                                  :: ju
-      REAL (rprec)                                  :: jv
-      REAL (rprec)                                  :: jr
-      REAL (rprec)                                  :: jp
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: cosv
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: sinv
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: cosmu
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: sinmu
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: cosmu_nyq
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: sinmu_nyq
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: cosnv
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: sinnv
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: cosnv_nyq
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: sinnv_nyq
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: cosmn
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: sinmn
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: cosmn_nyq
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: sinmn_nyq
-      INTEGER                                       :: num_v_use
+      REAL (rprec)                                   :: start_time
+      INTEGER                                        :: i
+      REAL (rprec)                                   :: x
+      REAL (rprec)                                   :: ds
+      INTEGER                                        :: si
+      INTEGER                                        :: ui
+      INTEGER                                        :: vi
+      REAL (rprec)                                   :: r
+      REAL (rprec)                                   :: z
+      REAL (rprec)                                   :: ru
+      REAL (rprec)                                   :: zu
+      REAL (rprec)                                   :: rv
+      REAL (rprec)                                   :: zv
+      REAL (rprec)                                   :: ju
+      REAL (rprec)                                   :: jv
+      REAL (rprec)                                   :: jr
+      REAL (rprec)                                   :: jp
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: cosv
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: sinv
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: cosmu
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: sinmu
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: cosmu_nyq
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: sinmu_nyq
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: cosnv
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: sinnv
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: cosnv_nyq
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: sinnv_nyq
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: cosmn
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: sinmn
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: cosmn_nyq
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: sinmn_nyq
+      INTEGER                                        :: num_v_use
 
 !  local parameters
-      INTEGER, PARAMETER                            :: num_u = 101
-      REAL (rprec), PARAMETER                       :: du = twopi/num_u
+      INTEGER, PARAMETER                             :: num_u = 101
+      REAL (rprec), PARAMETER                        :: du = twopi/num_u
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -188,8 +198,6 @@
       ALLOCATE(primed_grid_construct_both%j_x(ns,num_u,num_v_use))
       ALLOCATE(primed_grid_construct_both%j_y(ns,num_u,num_v_use))
       ALLOCATE(primed_grid_construct_both%j_z(ns,num_u,num_v_use))
-
-!      ALLOCATE(primed_grid_construct_both%vol(ns,num_u,num_v_use)) !TEMP
 
       ALLOCATE(cosv(num_v_use))
       ALLOCATE(sinv(num_v_use))
@@ -237,10 +245,8 @@
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO i = bmw_parallel_context_start(parallel, num_u),                      &
-     &       bmw_parallel_context_end(parallel, num_u)
+      DO i = parallel%start(num_u), parallel%end(num_u)
          x = (i - 0.5)*du
-!         WRITE (*,*) x      ! TEMP
          cosmu(:,i) = COS(xm*x)
          sinmu(:,i) = SIN(xm*x)
          cosmu_nyq(:,i) = COS(xm_nyq*x)
@@ -250,8 +256,7 @@
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO i = bmw_parallel_context_start(parallel, num_v_use),                  &
-     &       bmw_parallel_context_end(parallel, num_v_use)
+      DO i = parallel%start(num_v_use), parallel%end(num_v_use)
          x = (i - 0.5)*primed_grid_construct_both%dv
 !         WRITE (*,*) x     ! TEMP
          cosv(i) = COS(x)
@@ -265,16 +270,16 @@
 
       IF (parallel%stride .gt. 1) THEN
 !$OMP SINGLE
-         CALL bmw_parallel_context_reduce(parallel, cosv)
-         CALL bmw_parallel_context_reduce(parallel, sinv)
-         CALL bmw_parallel_context_reduce(parallel, cosmu)
-         CALL bmw_parallel_context_reduce(parallel, sinmu)
-         CALL bmw_parallel_context_reduce(parallel, cosmu_nyq)
-         CALL bmw_parallel_context_reduce(parallel, sinmu_nyq)
-         CALL bmw_parallel_context_reduce(parallel, cosnv)
-         CALL bmw_parallel_context_reduce(parallel, sinnv)
-         CALL bmw_parallel_context_reduce(parallel, cosnv_nyq)
-         CALL bmw_parallel_context_reduce(parallel, sinnv_nyq)
+         CALL parallel%reduce(cosv)
+         CALL parallel%reduce(sinv)
+         CALL parallel%reduce(cosmu)
+         CALL parallel%reduce(sinmu)
+         CALL parallel%reduce(cosmu_nyq)
+         CALL parallel%reduce(sinmu_nyq)
+         CALL parallel%reduce(cosnv)
+         CALL parallel%reduce(sinnv)
+         CALL parallel%reduce(cosnv_nyq)
+         CALL parallel%reduce(sinnv_nyq)
 !$OMP END SINGLE
       END IF
 
@@ -287,8 +292,8 @@
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO i = bmw_parallel_context_start(parallel, ns*num_u*num_v_use),         &
-     &       bmw_parallel_context_end(parallel, ns*num_u*num_v_use)
+      DO i = parallel%start(ns*num_u*num_v_use),                               &
+     &       parallel%end(ns*num_u*num_v_use)
          si = bmw_parallel_context_i(i, ns)
          ui = bmw_parallel_context_j(i, ns, num_u)
          vi = bmw_parallel_context_k(i, ns, num_u)
@@ -310,9 +315,6 @@
 
          ju = SUM(currumnc(:,si)*cosmn_nyq(:))*mu0
          jv = SUM(currvmnc(:,si)*cosmn_nyq(:))*mu0
-
-!         primed_grid_construct_both%vol(si,ui,vi) =                            &
-!     &      SUM(gmnc(:,si)*cosmn_nyq(:))  ! TEMP
 
          IF (lasym) THEN
             sinmn_nyq = sinmu_nyq(:,ui)*cosnv_nyq(:,vi)                        &
@@ -339,9 +341,6 @@
             jp = jp/2.0
             primed_grid_construct_both%j_z(si,ui,vi) =                         &
      &         primed_grid_construct_both%j_z(si,ui,vi)/2.0
-
-!            primed_grid_construct_both%vol(si,ui,vi) =                         &
-!     &         primed_grid_construct_both%vol(si,ui,vi)/2.0    ! TEMP
          END IF
 
          primed_grid_construct_both%j_x(si,ui,vi) = jr*cosv(vi)                &
@@ -377,18 +376,12 @@
 !  Multi process did not fill out the entire array. Get the missing pieces from
 !  the other processes.
       IF (parallel%stride .gt. 1) THEN
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           primed_grid_construct_both%x)
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           primed_grid_construct_both%y)
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           primed_grid_construct_both%z)
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           primed_grid_construct_both%j_x)
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           primed_grid_construct_both%j_y)
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           primed_grid_construct_both%j_z)
+         CALL parallel%reduce(primed_grid_construct_both%x)
+         CALL parallel%reduce(primed_grid_construct_both%y)
+         CALL parallel%reduce(primed_grid_construct_both%z)
+         CALL parallel%reduce(primed_grid_construct_both%j_x)
+         CALL parallel%reduce(primed_grid_construct_both%j_y)
+         CALL parallel%reduce(primed_grid_construct_both%j_z)
       END IF
 
       CALL profiler_set_stop_time('primed_grid_construct_both',                &
@@ -420,56 +413,56 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (primed_grid_class), POINTER :: primed_grid_construct_ju
-      INTEGER, INTENT(in)                           :: num_v
-      TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
+      CLASS (primed_grid_class), POINTER :: primed_grid_construct_ju
+      INTEGER, INTENT(in)                            :: num_v
+      CLASS (bmw_parallel_context_class), INTENT(in) :: parallel
 
 !  local variables
-      REAL (rprec)                                  :: start_time
-      INTEGER                                       :: i
-      REAL (rprec)                                  :: x
-      REAL (rprec)                                  :: ds
-      INTEGER                                       :: si
-      INTEGER                                       :: ui
-      INTEGER                                       :: vi
-      REAL (rprec)                                  :: r
-      REAL (rprec)                                  :: z
-      REAL (rprec)                                  :: ru
-      REAL (rprec)                                  :: zu
-      REAL (rprec)                                  :: rv
-      REAL (rprec)                                  :: zv
-      REAL (rprec)                                  :: ju
-      REAL (rprec)                                  :: jv
-      REAL (rprec)                                  :: bu
-      REAL (rprec)                                  :: bv
-      REAL (rprec)                                  :: jr
-      REAL (rprec)                                  :: jp
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: cosv
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: sinv
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: cosmu
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: sinmu
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: cosmu_nyq
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: sinmu_nyq
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: cosnv
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: sinnv
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: cosnv_nyq
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: sinnv_nyq
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: cosmn
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: sinmn
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: cosmn_nyq
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: sinmn_nyq
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: rmnch
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: rmnsh
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: zmnch
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: zmnsh
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: currvmnch
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: currvmnsh
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: p_prime
-      INTEGER                                       :: num_v_use
+      REAL (rprec)                                   :: start_time
+      INTEGER                                        :: i
+      REAL (rprec)                                   :: x
+      REAL (rprec)                                   :: ds
+      INTEGER                                        :: si
+      INTEGER                                        :: ui
+      INTEGER                                        :: vi
+      REAL (rprec)                                   :: r
+      REAL (rprec)                                   :: z
+      REAL (rprec)                                   :: ru
+      REAL (rprec)                                   :: zu
+      REAL (rprec)                                   :: rv
+      REAL (rprec)                                   :: zv
+      REAL (rprec)                                   :: ju
+      REAL (rprec)                                   :: jv
+      REAL (rprec)                                   :: bu
+      REAL (rprec)                                   :: bv
+      REAL (rprec)                                   :: jr
+      REAL (rprec)                                   :: jp
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: cosv
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: sinv
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: cosmu
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: sinmu
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: cosmu_nyq
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: sinmu_nyq
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: cosnv
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: sinnv
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: cosnv_nyq
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: sinnv_nyq
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: cosmn
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: sinmn
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: cosmn_nyq
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: sinmn_nyq
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: rmnch
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: rmnsh
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: zmnch
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: zmnsh
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: currvmnch
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: currvmnsh
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: p_prime
+      INTEGER                                        :: num_v_use
 
 !  local parameters
-      INTEGER, PARAMETER                            :: num_u = 101
-      REAL (rprec), PARAMETER                       :: du = twopi/num_u
+      INTEGER, PARAMETER                             :: num_u = 101
+      REAL (rprec), PARAMETER                        :: du = twopi/num_u
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -559,8 +552,7 @@
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO i = bmw_parallel_context_start(parallel, ns - 1),                     &
-     &       bmw_parallel_context_end(parallel, ns - 1)
+      DO i = parallel%start(ns - 1), parallel%end(ns - 1)
          rmnch(:,i) = (rmnc(:,i + 1) + rmnc(:,i))/2.0
          zmnsh(:,i) = (zmns(:,i + 1) + zmns(:,i))/2.0
 
@@ -579,8 +571,7 @@
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO i = bmw_parallel_context_start(parallel, num_u),                      &
-     &       bmw_parallel_context_end(parallel, num_u)
+      DO i = parallel%start(num_u), parallel%end(num_u)
          x = (i - 0.5)*du
          cosmu(:,i) = COS(xm*x)
          sinmu(:,i) = SIN(xm*x)
@@ -591,8 +582,7 @@
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO i = bmw_parallel_context_start(parallel, num_v_use),                  &
-     &       bmw_parallel_context_end(parallel, num_v_use)
+      DO i = parallel%start(num_v_use), parallel%end(num_v_use)
          x = (i - 0.5)*primed_grid_construct_ju%dv
          cosv(i) = COS(x)
          sinv(i) = SIN(x)
@@ -605,24 +595,24 @@
 
       IF (parallel%stride .gt. 1) THEN
 !$OMP SINGLE
-         CALL bmw_parallel_context_reduce(parallel, cosv)
-         CALL bmw_parallel_context_reduce(parallel, sinv)
-         CALL bmw_parallel_context_reduce(parallel, cosmu)
-         CALL bmw_parallel_context_reduce(parallel, sinmu)
-         CALL bmw_parallel_context_reduce(parallel, cosmu_nyq)
-         CALL bmw_parallel_context_reduce(parallel, sinmu_nyq)
-         CALL bmw_parallel_context_reduce(parallel, cosnv)
-         CALL bmw_parallel_context_reduce(parallel, sinnv)
-         CALL bmw_parallel_context_reduce(parallel, cosnv_nyq)
-         CALL bmw_parallel_context_reduce(parallel, sinnv_nyq)
-         CALL bmw_parallel_context_reduce(parallel, rmnch)
-         CALL bmw_parallel_context_reduce(parallel, zmnsh)
-         CALL bmw_parallel_context_reduce(parallel, currvmnch)
-         CALL bmw_parallel_context_reduce(parallel, p_prime)
+         CALL parallel%reduce(cosv)
+         CALL parallel%reduce(sinv)
+         CALL parallel%reduce(cosmu)
+         CALL parallel%reduce(sinmu)
+         CALL parallel%reduce(cosmu_nyq)
+         CALL parallel%reduce(sinmu_nyq)
+         CALL parallel%reduce(cosnv)
+         CALL parallel%reduce(sinnv)
+         CALL parallel%reduce(cosnv_nyq)
+         CALL parallel%reduce(sinnv_nyq)
+         CALL parallel%reduce(rmnch)
+         CALL parallel%reduce(zmnsh)
+         CALL parallel%reduce(currvmnch)
+         CALL parallel%reduce(p_prime)
          IF (lasym) THEN
-            CALL bmw_parallel_context_reduce(parallel, rmnsh)
-            CALL bmw_parallel_context_reduce(parallel, zmnch)
-            CALL bmw_parallel_context_reduce(parallel, currvmnsh)
+            CALL parallel%reduce(rmnsh)
+            CALL parallel%reduce(zmnch)
+            CALL parallel%reduce(currvmnsh)
          END IF
 !$OMP END SINGLE
       END IF
@@ -636,8 +626,8 @@
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO i = bmw_parallel_context_start(parallel, ns*num_u*num_v_use),         &
-     &       bmw_parallel_context_end(parallel, ns*num_u*num_v_use)
+      DO i = parallel%start(ns*num_u*num_v_use),                               &
+     &       parallel%end(ns*num_u*num_v_use)
          si = bmw_parallel_context_i(i, ns)
          ui = bmw_parallel_context_j(i, ns, num_u)
          vi = bmw_parallel_context_k(i, ns, num_u)
@@ -728,18 +718,12 @@
 !  Multi process did not fill out the entire array. Get the missing pieces from
 !  the other processes.
       IF (parallel%stride .gt. 1) THEN
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           primed_grid_construct_ju%x)
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           primed_grid_construct_ju%y)
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           primed_grid_construct_ju%z)
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           primed_grid_construct_ju%j_x)
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           primed_grid_construct_ju%j_y)
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           primed_grid_construct_ju%j_z)
+         CALL parallel%reduce(primed_grid_construct_ju%x)
+         CALL parallel%reduce(primed_grid_construct_ju%y)
+         CALL parallel%reduce(primed_grid_construct_ju%z)
+         CALL parallel%reduce(primed_grid_construct_ju%j_x)
+         CALL parallel%reduce(primed_grid_construct_ju%j_y)
+         CALL parallel%reduce(primed_grid_construct_ju%j_z)
       END IF
 
       CALL profiler_set_stop_time('primed_grid_construct_ju',                  &
@@ -771,56 +755,56 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (primed_grid_class), POINTER :: primed_grid_construct_jv
-      INTEGER, INTENT(in)                           :: num_v
-      TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
+      CLASS (primed_grid_class), POINTER :: primed_grid_construct_jv
+      INTEGER, INTENT(in)                            :: num_v
+      CLASS (bmw_parallel_context_class), INTENT(in) :: parallel
 
 !  local variables
-      REAL (rprec)                                  :: start_time
-      INTEGER                                       :: i
-      REAL (rprec)                                  :: x
-      REAL (rprec)                                  :: ds
-      INTEGER                                       :: si
-      INTEGER                                       :: ui
-      INTEGER                                       :: vi
-      REAL (rprec)                                  :: r
-      REAL (rprec)                                  :: z
-      REAL (rprec)                                  :: ru
-      REAL (rprec)                                  :: zu
-      REAL (rprec)                                  :: rv
-      REAL (rprec)                                  :: zv
-      REAL (rprec)                                  :: ju
-      REAL (rprec)                                  :: jv
-      REAL (rprec)                                  :: bu
-      REAL (rprec)                                  :: bv
-      REAL (rprec)                                  :: jr
-      REAL (rprec)                                  :: jp
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: cosv
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: sinv
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: cosmu
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: sinmu
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: cosmu_nyq
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: sinmu_nyq
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: cosnv
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: sinnv
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: cosnv_nyq
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: sinnv_nyq
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: cosmn
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: sinmn
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: cosmn_nyq
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: sinmn_nyq
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: rmnch
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: rmnsh
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: zmnch
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: zmnsh
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: currumnch
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: currumnsh
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: p_prime
-      INTEGER                                       :: num_v_use
+      REAL (rprec)                                   :: start_time
+      INTEGER                                        :: i
+      REAL (rprec)                                   :: x
+      REAL (rprec)                                   :: ds
+      INTEGER                                        :: si
+      INTEGER                                        :: ui
+      INTEGER                                        :: vi
+      REAL (rprec)                                   :: r
+      REAL (rprec)                                   :: z
+      REAL (rprec)                                   :: ru
+      REAL (rprec)                                   :: zu
+      REAL (rprec)                                   :: rv
+      REAL (rprec)                                   :: zv
+      REAL (rprec)                                   :: ju
+      REAL (rprec)                                   :: jv
+      REAL (rprec)                                   :: bu
+      REAL (rprec)                                   :: bv
+      REAL (rprec)                                   :: jr
+      REAL (rprec)                                   :: jp
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: cosv
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: sinv
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: cosmu
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: sinmu
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: cosmu_nyq
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: sinmu_nyq
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: cosnv
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: sinnv
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: cosnv_nyq
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: sinnv_nyq
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: cosmn
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: sinmn
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: cosmn_nyq
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: sinmn_nyq
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: rmnch
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: rmnsh
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: zmnch
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: zmnsh
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: currumnch
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: currumnsh
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: p_prime
+      INTEGER                                        :: num_v_use
 
 !  local parameters
-      INTEGER, PARAMETER                            :: num_u = 101
-      REAL (rprec), PARAMETER                       :: du = twopi/num_u
+      INTEGER, PARAMETER                             :: num_u = 101
+      REAL (rprec), PARAMETER                        :: du = twopi/num_u
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -908,8 +892,7 @@
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO i = bmw_parallel_context_start(parallel, ns - 1),                     &
-     &       bmw_parallel_context_end(parallel, ns - 1)
+      DO i = parallel%start(ns - 1), parallel%end(ns - 1)
          si = bmw_parallel_context_i(i, ns)
 
          rmnch(:,si) = (rmnc(:,si + 1) + rmnc(:,si))/2.0
@@ -930,8 +913,7 @@
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO i = bmw_parallel_context_start(parallel, num_u),                      &
-     &       bmw_parallel_context_end(parallel, num_u)
+      DO i = parallel%start(num_u), parallel%end(num_u)
          x = (i - 0.5)*du
          cosmu(:,i) = COS(xm*x)
          sinmu(:,i) = SIN(xm*x)
@@ -942,8 +924,7 @@
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO i = bmw_parallel_context_start(parallel, num_v_use),                  &
-     &       bmw_parallel_context_end(parallel, num_v_use)
+      DO i = parallel%start(num_v_use), parallel%end(num_v_use)
          x = (i - 0.5)*primed_grid_construct_jv%dv
          cosv(i) = COS(x)
          sinv(i) = SIN(x)
@@ -956,24 +937,24 @@
 
       IF (parallel%stride .gt. 1) THEN
 !$OMP SINGLE
-         CALL bmw_parallel_context_reduce(parallel, cosv)
-         CALL bmw_parallel_context_reduce(parallel, sinv)
-         CALL bmw_parallel_context_reduce(parallel, cosmu)
-         CALL bmw_parallel_context_reduce(parallel, sinmu)
-         CALL bmw_parallel_context_reduce(parallel, cosmu_nyq)
-         CALL bmw_parallel_context_reduce(parallel, sinmu_nyq)
-         CALL bmw_parallel_context_reduce(parallel, cosnv)
-         CALL bmw_parallel_context_reduce(parallel, sinnv)
-         CALL bmw_parallel_context_reduce(parallel, cosnv_nyq)
-         CALL bmw_parallel_context_reduce(parallel, sinnv_nyq)
-         CALL bmw_parallel_context_reduce(parallel, rmnch)
-         CALL bmw_parallel_context_reduce(parallel, zmnsh)
-         CALL bmw_parallel_context_reduce(parallel, currumnch)
-         CALL bmw_parallel_context_reduce(parallel, p_prime)
+         CALL parallel%reduce(cosv)
+         CALL parallel%reduce(sinv)
+         CALL parallel%reduce(cosmu)
+         CALL parallel%reduce(sinmu)
+         CALL parallel%reduce(cosmu_nyq)
+         CALL parallel%reduce(sinmu_nyq)
+         CALL parallel%reduce(cosnv)
+         CALL parallel%reduce(sinnv)
+         CALL parallel%reduce(cosnv_nyq)
+         CALL parallel%reduce(sinnv_nyq)
+         CALL parallel%reduce(rmnch)
+         CALL parallel%reduce(zmnsh)
+         CALL parallel%reduce(currumnch)
+         CALL parallel%reduce(p_prime)
          IF (lasym) THEN
-            CALL bmw_parallel_context_reduce(parallel, rmnsh)
-            CALL bmw_parallel_context_reduce(parallel, zmnch)
-            CALL bmw_parallel_context_reduce(parallel, currumnsh)
+            CALL parallel%reduce(rmnsh)
+            CALL parallel%reduce(zmnch)
+            CALL parallel%reduce(currumnsh)
          END IF
 !$OMP END SINGLE
       END IF
@@ -987,8 +968,8 @@
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO i = bmw_parallel_context_start(parallel, ns*num_u*num_v_use),         &
-     &       bmw_parallel_context_end(parallel, ns*num_u*num_v_use)
+      DO i = parallel%start(ns*num_u*num_v_use),                               &
+     &       parallel%end(ns*num_u*num_v_use)
          si = bmw_parallel_context_i(i, ns)
          ui = bmw_parallel_context_j(i, ns, num_u)
          vi = bmw_parallel_context_k(i, ns, num_u)
@@ -1079,18 +1060,12 @@
 !  Multi process did not fill out the entire array. Get the missing pieces from
 !  the other processes.
       IF (parallel%stride .gt. 1) THEN
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           primed_grid_construct_jv%x)
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           primed_grid_construct_jv%y)
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           primed_grid_construct_jv%z)
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           primed_grid_construct_jv%j_x)
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           primed_grid_construct_jv%j_y)
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           primed_grid_construct_jv%j_z)
+         CALL parallel%reduce(primed_grid_construct_jv%x)
+         CALL parallel%reduce(primed_grid_construct_jv%y)
+         CALL parallel%reduce(primed_grid_construct_jv%z)
+         CALL parallel%reduce(primed_grid_construct_jv%j_x)
+         CALL parallel%reduce(primed_grid_construct_jv%j_y)
+         CALL parallel%reduce(primed_grid_construct_jv%j_z)
       END IF
 
       CALL profiler_set_stop_time('primed_grid_construct_jv',                  &
@@ -1120,65 +1095,65 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (primed_grid_class), POINTER :: primed_grid_construct_siesta
-      INTEGER, INTENT(in)                           :: num_v
-      CHARACTER (len=*)                             :: siesta_file_name
-      TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
+      CLASS (primed_grid_class), POINTER :: primed_grid_construct_siesta
+      INTEGER, INTENT(in)                            :: num_v
+      CHARACTER (len=*)                              :: siesta_file_name
+      CLASS (bmw_parallel_context_class), INTENT(in) :: parallel
 
 !  local variables
-      REAL (rprec)                                  :: start_time
-      INTEGER                                       :: i
-      REAL (rprec)                                  :: x
-      REAL (rprec)                                  :: ds
-      INTEGER                                       :: si
-      INTEGER                                       :: ui
-      INTEGER                                       :: vi
-      REAL (rprec)                                  :: r
-      REAL (rprec)                                  :: z
-      REAL (rprec)                                  :: rs
-      REAL (rprec)                                  :: zs
-      REAL (rprec)                                  :: ru
-      REAL (rprec)                                  :: zu
-      REAL (rprec)                                  :: rv
-      REAL (rprec)                                  :: zv
-      REAL (rprec)                                  :: js
-      REAL (rprec)                                  :: ju
-      REAL (rprec)                                  :: jv
-      REAL (rprec)                                  :: jr
-      REAL (rprec)                                  :: jp
-      REAL (rprec)                                  :: jz
-      INTEGER                                       :: m
-      INTEGER                                       :: n
-      INTEGER                                       :: ilow
-      INTEGER                                       :: ihigh
-      REAL (rprec)                                  :: wlow
-      REAL (rprec)                                  :: whigh
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: cosv
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: sinv
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: cosmu
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: sinmu
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: cosnv
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: sinnv
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: cosmu_vmec
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: sinmu_vmec
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: cosnv_vmec
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: sinnv_vmec
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: cosmn
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE     :: sinmn
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: cosmn_vmec
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: sinmn_vmec
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: amnint
-      INTEGER                                       :: num_v_use
-      TYPE (siesta_file_class), POINTER             :: siesta
+      REAL (rprec)                                   :: start_time
+      INTEGER                                        :: i
+      REAL (rprec)                                   :: x
+      REAL (rprec)                                   :: ds
+      INTEGER                                        :: si
+      INTEGER                                        :: ui
+      INTEGER                                        :: vi
+      REAL (rprec)                                   :: r
+      REAL (rprec)                                   :: z
+      REAL (rprec)                                   :: rs
+      REAL (rprec)                                   :: zs
+      REAL (rprec)                                   :: ru
+      REAL (rprec)                                   :: zu
+      REAL (rprec)                                   :: rv
+      REAL (rprec)                                   :: zv
+      REAL (rprec)                                   :: js
+      REAL (rprec)                                   :: ju
+      REAL (rprec)                                   :: jv
+      REAL (rprec)                                   :: jr
+      REAL (rprec)                                   :: jp
+      REAL (rprec)                                   :: jz
+      INTEGER                                        :: m
+      INTEGER                                        :: n
+      INTEGER                                        :: ilow
+      INTEGER                                        :: ihigh
+      REAL (rprec)                                   :: wlow
+      REAL (rprec)                                   :: whigh
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: cosv
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: sinv
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: cosmu
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: sinmu
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: cosnv
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: sinnv
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: cosmu_vmec
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: sinmu_vmec
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: cosnv_vmec
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: sinnv_vmec
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: cosmn
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE      :: sinmn
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: cosmn_vmec
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: sinmn_vmec
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: amnint
+      INTEGER                                        :: num_v_use
+      CLASS (siesta_file_class), POINTER             :: siesta
 
 !  local parameters
-      INTEGER, PARAMETER                            :: num_u = 101
-      REAL (rprec), PARAMETER                       :: du = twopi/num_u
+      INTEGER, PARAMETER                             :: num_u = 101
+      REAL (rprec), PARAMETER                        :: du = twopi/num_u
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      siesta => siesta_file_construct(TRIM(siesta_file_name))
+      siesta => siesta_file_class(TRIM(siesta_file_name))
 
       ALLOCATE(primed_grid_construct_siesta)
 
@@ -1249,8 +1224,7 @@
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO i = bmw_parallel_context_start(parallel, num_u),                      &
-     &       bmw_parallel_context_end(parallel, num_u)
+      DO i = parallel%start(num_u), parallel%end(num_u)
          x = (i - 0.5)*du
          cosmu_vmec(:,i) = COS(xm*x)
          sinmu_vmec(:,i) = SIN(xm*x)
@@ -1264,8 +1238,7 @@
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO i = bmw_parallel_context_start(parallel, num_v_use),                  &
-     &       bmw_parallel_context_end(parallel, num_v_use)
+      DO i = parallel%start(num_v_use), parallel%end(num_v_use)
          x = (i - 0.5)*primed_grid_construct_siesta%dv
          cosv(i) = COS(x)
          sinv(i) = SIN(x)
@@ -1280,16 +1253,16 @@
 
       IF (parallel%stride .gt. 1) THEN
 !$OMP SINGLE
-         CALL bmw_parallel_context_reduce(parallel, cosv)
-         CALL bmw_parallel_context_reduce(parallel, sinv)
-         CALL bmw_parallel_context_reduce(parallel, cosmu_vmec)
-         CALL bmw_parallel_context_reduce(parallel, sinmu_vmec)
-         CALL bmw_parallel_context_reduce(parallel, cosnv_vmec)
-         CALL bmw_parallel_context_reduce(parallel, sinnv_vmec)
-         CALL bmw_parallel_context_reduce(parallel, cosmu)
-         CALL bmw_parallel_context_reduce(parallel, sinmu)
-         CALL bmw_parallel_context_reduce(parallel, cosnv)
-         CALL bmw_parallel_context_reduce(parallel, sinnv)
+         CALL parallel%reduce(cosv)
+         CALL parallel%reduce(sinv)
+         CALL parallel%reduce(cosmu_vmec)
+         CALL parallel%reduce(sinmu_vmec)
+         CALL parallel%reduce(cosnv_vmec)
+         CALL parallel%reduce(sinnv_vmec)
+         CALL parallel%reduce(cosmu)
+         CALL parallel%reduce(sinmu)
+         CALL parallel%reduce(cosnv)
+         CALL parallel%reduce(sinnv)
 !$OMP END SINGLE
       END IF
 
@@ -1303,10 +1276,8 @@
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO i = bmw_parallel_context_start(parallel,                              &
-     &                                  siesta%nrad*num_u*num_v_use),          &
-     &       bmw_parallel_context_end(parallel,                                &
-     &                                siesta%nrad*num_u*num_v_use)
+      DO i = parallel%start(siesta%nrad*num_u*num_v_use),                      &
+     &       parallel%end(siesta%nrad*num_u*num_v_use)
          si = bmw_parallel_context_i(i, siesta%nrad)
          ui = bmw_parallel_context_j(i, siesta%nrad, num_u)
          vi = bmw_parallel_context_k(i, siesta%nrad, num_u)
@@ -1422,21 +1393,15 @@
 !  Multi process did not fill out the entire array. Get the missing pieces from
 !  the other processes.
       IF (parallel%stride .gt. 1) THEN
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           primed_grid_construct_siesta%x)
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           primed_grid_construct_siesta%y)
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           primed_grid_construct_siesta%z)
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           primed_grid_construct_siesta%j_x)
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           primed_grid_construct_siesta%j_y)
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           primed_grid_construct_siesta%j_z)
+         CALL parallel%reduce(primed_grid_construct_siesta%x)
+         CALL parallel%reduce(primed_grid_construct_siesta%y)
+         CALL parallel%reduce(primed_grid_construct_siesta%z)
+         CALL parallel%reduce(primed_grid_construct_siesta%j_x)
+         CALL parallel%reduce(primed_grid_construct_siesta%j_y)
+         CALL parallel%reduce(primed_grid_construct_siesta%j_z)
       END IF
 
-      CALL siesta_file_destruct(siesta)
+      DEALLOCATE(siesta)
 
       CALL profiler_set_stop_time('primed_grid_construct_siesta',              &
      &                            start_time)
@@ -1458,7 +1423,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (primed_grid_class), POINTER :: this
+      TYPE (primed_grid_class), INTENT(inout) :: this
 
 !  Start of executable code
       IF (ASSOCIATED(this%x)) THEN
@@ -1490,8 +1455,6 @@
          DEALLOCATE(this%j_z)
          this%j_z => null()
       END IF
-
-      DEALLOCATE(this)
 
       END SUBROUTINE
 

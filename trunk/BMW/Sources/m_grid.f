@@ -23,7 +23,7 @@
 !>  Base class representing a m grid. This is grid contains information about
 !>  the vacuum fields.
 !-------------------------------------------------------------------------------
-      TYPE m_grid_class
+      TYPE :: m_grid_class
 !>  Minimum R position.
          REAL (rprec)                            :: rmin
 !>  Maximum R position.
@@ -47,7 +47,20 @@
          REAL (rprec), DIMENSION(:,:,:), POINTER :: a_p => null()
 !>  Vector potential in the Z direction.
          REAL (rprec), DIMENSION(:,:,:), POINTER :: a_z => null()
+      CONTAINS
+         PROCEDURE, PASS :: interpolate => m_grid_interpolate
+         FINAL           :: m_grid_destruct
       END TYPE
+
+!*******************************************************************************
+!  INTERFACE BLOCKS
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Interface for the bmw_commandline_parser constructor.
+!-------------------------------------------------------------------------------
+      INTERFACE m_grid_class
+         MODULE PROCEDURE m_grid_construct
+      END INTERFACE
 
       CONTAINS
 !*******************************************************************************
@@ -72,23 +85,23 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (m_grid_class), POINTER                  :: m_grid_construct
-      CHARACTER (len=*), INTENT(in)                 :: mgrid_file_name
-      TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
-      INTEGER, INTENT(in)                           :: io_unit
+      CLASS (m_grid_class), POINTER                  :: m_grid_construct
+      CHARACTER (len=*), INTENT(in)                  :: mgrid_file_name
+      CLASS (bmw_parallel_context_class), INTENT(in) :: parallel
+      INTEGER, INTENT(in)                            :: io_unit
 
 !  local variables
-      REAL (rprec)                                  :: start_time
-      INTEGER                                       :: mgrid_ncid
-      INTEGER                                       :: i
-      INTEGER                                       :: status
-      INTEGER                                       :: varid
-      INTEGER                                       :: num_r
-      INTEGER                                       :: num_p
-      INTEGER                                       :: num_z
-      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE   :: temp_buffer
-      CHARACTER (len=6)                             :: temp_string
-      INTEGER, DIMENSION(3)                         :: temp_dims
+      REAL (rprec)                                   :: start_time
+      INTEGER                                        :: mgrid_ncid
+      INTEGER                                        :: i
+      INTEGER                                        :: status
+      INTEGER                                        :: varid
+      INTEGER                                        :: num_r
+      INTEGER                                        :: num_p
+      INTEGER                                        :: num_z
+      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE    :: temp_buffer
+      CHARACTER (len=6)                              :: temp_string
+      INTEGER, DIMENSION(3)                          :: temp_dims
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -153,12 +166,9 @@
       END DO
 
       IF (parallel%stride .gt. 1) THEN
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &                                    m_grid_construct%a_r)
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &                                    m_grid_construct%a_p)
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &                                    m_grid_construct%a_z)
+         CALL parallel%reduce(m_grid_construct%a_r)
+         CALL parallel%reduce(m_grid_construct%a_p)
+         CALL parallel%reduce(m_grid_construct%a_z)
       END IF
 
       DEALLOCATE(temp_buffer)
@@ -196,7 +206,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (m_grid_class), POINTER :: this
+      TYPE (m_grid_class), INTENT(inout) :: this
 
 !  Start of executable code
       IF (ASSOCIATED(this%a_r)) THEN
@@ -213,8 +223,6 @@
          DEALLOCATE(this%a_z)
          this%a_z => null()
       END IF
-
-      DEALLOCATE(this)
 
       END SUBROUTINE
 
@@ -241,26 +249,26 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (m_grid_class), INTENT(in) :: this
-      REAL (rprec), INTENT(in)        :: r
-      REAL (rprec), INTENT(in)        :: phi
-      REAL (rprec), INTENT(in)        :: z
-      REAL (rprec), INTENT(out)       :: ar
-      REAL (rprec), INTENT(out)       :: ap
-      REAL (rprec), INTENT(out)       :: az
+      CLASS (m_grid_class), INTENT(in) :: this
+      REAL (rprec), INTENT(in)         :: r
+      REAL (rprec), INTENT(in)         :: phi
+      REAL (rprec), INTENT(in)         :: z
+      REAL (rprec), INTENT(out)        :: ar
+      REAL (rprec), INTENT(out)        :: ap
+      REAL (rprec), INTENT(out)        :: az
 
 !  local variables
-      REAL (rprec)                    :: norm_phi
-      REAL (rprec)                    :: dphi
-      REAL (rprec)                    :: i
-      REAL (rprec)                    :: j
-      REAL (rprec)                    :: k
-      INTEGER                         :: ilow
-      INTEGER                         :: ihigh
-      INTEGER                         :: jlow
-      INTEGER                         :: jhigh
-      INTEGER                         :: klow
-      INTEGER                         :: khigh
+      REAL (rprec)                     :: norm_phi
+      REAL (rprec)                     :: dphi
+      REAL (rprec)                     :: i
+      REAL (rprec)                     :: j
+      REAL (rprec)                     :: k
+      INTEGER                          :: ilow
+      INTEGER                          :: ihigh
+      INTEGER                          :: jlow
+      INTEGER                           :: jhigh
+      INTEGER                          :: klow
+      INTEGER                          :: khigh
 
 !  Start of executable code
       dphi = twopi/(this%nfp*SIZE(this%a_r, 3))

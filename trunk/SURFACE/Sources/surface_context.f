@@ -74,7 +74,7 @@
       TYPE (surface_context_class), POINTER :: surface_context_construct
       CHARACTER (len=*), INTENT(in)         :: wout_file_name
       CHARACTER (len=*), INTENT(in)         :: surface_file_name
-      TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
+      CLASS (bmw_parallel_context_class), INTENT(in) :: parallel
       INTEGER, INTENT(in)                   :: io_unit
 
 !  local variables
@@ -275,15 +275,15 @@
       REAL (rprec)                                  :: by
       REAL (rprec)                                  :: bz
       INTEGER                                       :: i
-      TYPE (primed_grid_class), POINTER             :: p_grid
+      CLASS (primed_grid_class), POINTER            :: p_grid
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      p_grid => primed_grid_construct(101, bmw_state_flags_off,                &
-     &                                '', parallel, io_unit)
+      p_grid => primed_grid_class(101, bmw_state_flags_off, '',                &
+     &                            parallel, io_unit)
 
-      total = bmw_parallel_context_end(parallel, SIZE(this%x))
+      total = parallel%end(SIZE(this%x))
       total = CEILING(total/parallel%num_threads)
       current = 0.0
 
@@ -306,8 +306,7 @@
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO i = bmw_parallel_context_start(parallel, SIZE(this%x)),               &
-     &       bmw_parallel_context_end(parallel, SIZE(this%x))
+      DO i = parallel%start(SIZE(this%x)), parallel%end(SIZE(this%x))
          lx = this%x(i) - p_grid%x
          ly = this%y(i) - p_grid%y
          lz = this%z(i) - p_grid%z
@@ -352,12 +351,12 @@
 !$OMP END PARALLEL
 
       IF (parallel%stride .gt. 1) THEN
-         CALL bmw_parallel_context_reduce(parallel, this%k_x)
-         CALL bmw_parallel_context_reduce(parallel, this%k_y)
-         CALL bmw_parallel_context_reduce(parallel, this%k_z)
+         CALL parallel%reduce(this%k_x)
+         CALL parallel%reduce(this%k_y)
+         CALL parallel%reduce(this%k_z)
       END IF
 
-      CALL primed_grid_destruct(p_grid)
+      DEALLOCATE(p_grid)
       p_grid => null()
 
       IF (parallel%offset .eq. 0) THEN
@@ -383,21 +382,21 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (surface_context_class), INTENT(inout)   :: this
-      CHARACTER (len=*), INTENT(in)                 :: output_file
-      INTEGER, INTENT(in)                           :: io_unit
-      TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
+      TYPE (surface_context_class), INTENT(inout)    :: this
+      CHARACTER (len=*), INTENT(in)                  :: output_file
+      INTEGER, INTENT(in)                            :: io_unit
+      CLASS (bmw_parallel_context_class), INTENT(in) :: parallel
 
 !  local variables
-      INTEGER                                       :: iou
-      INTEGER                                       :: i
-      INTEGER                                       :: status
-      REAL (rprec)                                  :: start_time
-      INTEGER                                       :: ncid
-      INTEGER                                       :: size_dim
-      INTEGER                                       :: kxid
-      INTEGER                                       :: kyid
-      INTEGER                                       :: kzid
+      INTEGER                                        :: iou
+      INTEGER                                        :: i
+      INTEGER                                        :: status
+      REAL (rprec)                                   :: start_time
+      INTEGER                                        :: ncid
+      INTEGER                                        :: size_dim
+      INTEGER                                        :: kxid
+      INTEGER                                        :: kyid
+      INTEGER                                        :: kzid
 
 !  Start of executable code
       start_time = profiler_get_start_time()
