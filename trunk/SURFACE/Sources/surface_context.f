@@ -24,7 +24,7 @@
 !>  Base class representing a surface context. This contains all memory needed
 !>  to operate surface.
 !-------------------------------------------------------------------------------
-      TYPE surface_context_class
+      TYPE :: surface_context_class
 !>  Array of radial points on the current surface.
          REAL (rprec), DIMENSION(:), POINTER :: x
 !>  Array of phi points on the current surface.
@@ -43,7 +43,18 @@
          REAL (rprec), DIMENSION(:), POINTER :: k_y
 !>  Virtual Surface current in the z direction.
          REAL (rprec), DIMENSION(:), POINTER :: k_z
+      CONTAINS
+         PROCEDURE, PASS :: set_current => surface_context_set_current
+         PROCEDURE, PASS :: write => surface_context_write
+         FINAL :: surface_context_destruct
       END TYPE
+
+!-------------------------------------------------------------------------------
+!>  Interface to constructors.
+!-------------------------------------------------------------------------------
+      INTERFACE surface_context_class
+         MODULE PROCEDURE surface_context_construct
+      END INTERFACE
 
       CONTAINS
 !*******************************************************************************
@@ -71,26 +82,27 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (surface_context_class), POINTER :: surface_context_construct
-      CHARACTER (len=*), INTENT(in)         :: wout_file_name
-      CHARACTER (len=*), INTENT(in)         :: surface_file_name
+      CLASS (surface_context_class), POINTER ::                                &
+     &   surface_context_construct
+      CHARACTER (len=*), INTENT(in)          :: wout_file_name
+      CHARACTER (len=*), INTENT(in)          :: surface_file_name
       CLASS (bmw_parallel_context_class), INTENT(in) :: parallel
-      INTEGER, INTENT(in)                   :: io_unit
+      INTEGER, INTENT(in)                    :: io_unit
 
 !  local variables
-      REAL (rprec)                          :: start_time
-      INTEGER                               :: status
-      INTEGER                               :: iou
-      INTEGER                               :: size
-      INTEGER                               :: i
-      INTEGER                               :: ncid
-      INTEGER                               :: size_dim
-      INTEGER                               :: xid
-      INTEGER                               :: yid
-      INTEGER                               :: zid
-      INTEGER                               :: xnid
-      INTEGER                               :: ynid
-      INTEGER                               :: znid
+      REAL (rprec)                           :: start_time
+      INTEGER                                :: status
+      INTEGER                                :: iou
+      INTEGER                                :: size
+      INTEGER                                :: i
+      INTEGER                                :: ncid
+      INTEGER                                :: size_dim
+      INTEGER                                :: xid
+      INTEGER                                :: yid
+      INTEGER                                :: zid
+      INTEGER                                :: xnid
+      INTEGER                                :: ynid
+      INTEGER                                :: znid
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -172,7 +184,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (surface_context_class), POINTER :: this
+      TYPE (surface_context_class), INTENT(inout) :: this
 
 !  Start of executable code
       IF (ASSOCIATED(this%x)) THEN
@@ -258,24 +270,24 @@
 !$    USE omp_lib
 
 !  Declare Arguments
-      TYPE (surface_context_class), INTENT(inout)   :: this
-      INTEGER, INTENT(in)                           :: io_unit
-      TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
+      CLASS (surface_context_class), INTENT(inout)   :: this
+      INTEGER, INTENT(in)                            :: io_unit
+      CLASS (bmw_parallel_context_class), INTENT(in) :: parallel
 
 !  local variables
-      REAL (rprec)                                  :: start_time
-      REAL (rprec)                                  :: total
-      REAL (rprec)                                  :: done
-      REAL (rprec)                                  :: current
-      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE   :: lx
-      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE   :: ly
-      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE   :: lz
-      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE   :: l
-      REAL (rprec)                                  :: bx
-      REAL (rprec)                                  :: by
-      REAL (rprec)                                  :: bz
-      INTEGER                                       :: i
-      CLASS (primed_grid_class), POINTER            :: p_grid
+      REAL (rprec)                                   :: start_time
+      REAL (rprec)                                   :: total
+      REAL (rprec)                                   :: done
+      REAL (rprec)                                   :: current
+      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE    :: lx
+      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE    :: ly
+      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE    :: lz
+      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE    :: l
+      REAL (rprec)                                   :: bx
+      REAL (rprec)                                   :: by
+      REAL (rprec)                                   :: bz
+      INTEGER                                        :: i
+      CLASS (primed_grid_class), POINTER             :: p_grid
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -382,7 +394,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (surface_context_class), INTENT(inout)    :: this
+      CLASS (surface_context_class), INTENT(inout)   :: this
       CHARACTER (len=*), INTENT(in)                  :: output_file
       INTEGER, INTENT(in)                            :: io_unit
       CLASS (bmw_parallel_context_class), INTENT(in) :: parallel

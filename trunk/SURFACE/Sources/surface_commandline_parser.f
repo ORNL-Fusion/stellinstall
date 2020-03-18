@@ -76,7 +76,7 @@
 !-------------------------------------------------------------------------------
 !>  Base class containing a parsed surface_commandline.
 !-------------------------------------------------------------------------------
-      TYPE surface_commandline_parser_class
+      TYPE :: surface_commandline_parser_class
 !>  Command name of current process.
          CHARACTER (len=max_length) :: command
 !>  Array of arguments. An argument is the form of -flag
@@ -86,7 +86,30 @@
 !>  '=' character. The value maybe blank indicating there was no value provided.
          CHARACTER (len=path_length), DIMENSION(:), POINTER ::                 &
      &      value => null()
+      CONTAINS
+         PROCEDURE, PASS ::                                                    &
+     &      get_string => surface_commandline_parser_get_string
+         PROCEDURE, PASS ::                                                    &
+     &      get_integer => surface_commandline_parser_get_integer
+         PROCEDURE, PASS ::                                                    &
+     &      get_real => surface_commandline_parser_get_real
+         GENERIC         :: get => get_string, get_integer, get_real
+         PROCEDURE, PASS ::                                                    &
+     &      is_flag_set => surface_commandline_parser_is_flag_set
+         PROCEDURE, PASS :: flag_requires_value =>                             &
+     &      surface_commandline_parser_flag_requires_value
+         FINAL           :: surface_commandline_parser_destruct
       END TYPE
+
+!*******************************************************************************
+!  INTERFACE BLOCKS
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Interface for the bmw_commandline_parser constructor.
+!-------------------------------------------------------------------------------
+      INTERFACE surface_commandline_parser_class
+         MODULE PROCEDURE surface_commandline_parser_construct
+      END INTERFACE
 
       CONTAINS
 !*******************************************************************************
@@ -109,13 +132,15 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (surface_commandline_parser_class), POINTER  ::                     &
+      CLASS (surface_commandline_parser_class), POINTER ::                     &
      &   surface_commandline_parser_construct
-      TYPE (bmw_parallel_context_class), INTENT(in)     :: parallel
+      CLASS (bmw_parallel_context_class), INTENT(in)    :: parallel
 
-!  local variables
+!  Local Variables
       CHARACTER (len=max_length) :: temp
-      INTEGER                    :: num_args, i, value_index
+      INTEGER                    :: num_args
+      INTEGER                    :: i
+      INTEGER                    :: value_index
       REAL (rprec)               :: start_time
 
 !  Start of executable code
@@ -185,7 +210,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (surface_commandline_parser_class), POINTER :: this
+      TYPE (surface_commandline_parser_class), INTENT(inout) :: this
 
 !  Start of executable code
       IF (ASSOCIATED(this%arg)) THEN
@@ -197,8 +222,6 @@
          DEALLOCATE(this%value)
          this%value => null()
       END IF
-
-      DEALLOCATE(this)
 
       END SUBROUTINE
 
@@ -223,12 +246,12 @@
 !  Declare Arguments
       CHARACTER (len=path_length) ::                                           &
      &   surface_commandline_parser_get_string
-      TYPE (surface_commandline_parser_class), INTENT(in) :: this
-      CHARACTER (len=*), INTENT(in)                       :: arg
+      CLASS (surface_commandline_parser_class), INTENT(in) :: this
+      CHARACTER (len=*), INTENT(in)                        :: arg
 
 !  Local arguments
-      INTEGER                                             :: i
-      REAL (rprec)                                        :: start_time
+      INTEGER                                              :: i
+      REAL (rprec)                                         :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -275,7 +298,7 @@
 
 !  Declare Arguments
       INTEGER :: surface_commandline_parser_get_integer
-      TYPE (surface_commandline_parser_class), INTENT(in) :: this
+      CLASS (surface_commandline_parser_class), INTENT(in) :: this
       CHARACTER (len=*), INTENT(in) :: arg
       INTEGER, INTENT(in)           :: default_value
 
@@ -287,7 +310,7 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      value = surface_commandline_parser_get_string(this, arg)
+      value = this%get(arg)
 
       IF (TRIM(value) .eq. '') THEN
          surface_commandline_parser_get_integer = default_value
@@ -332,19 +355,19 @@
 
 !  Declare Arguments
       REAL (rprec) :: surface_commandline_parser_get_real
-      TYPE (surface_commandline_parser_class), INTENT(in) :: this
-      CHARACTER (len=*), INTENT(in)  :: arg
-      REAL (rprec), INTENT(in)       :: default_value
+      CLASS (surface_commandline_parser_class), INTENT(in) :: this
+      CHARACTER (len=*), INTENT(in) :: arg
+      REAL (rprec), INTENT(in)      :: default_value
 
 !  Local arguments
-      CHARACTER (len=path_length)    :: value
-      INTEGER                        :: status
-      REAL (rprec)                   :: start_time
+      CHARACTER (len=path_length)   :: value
+      INTEGER                       :: status
+      REAL (rprec)                  :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      value = surface_commandline_parser_get_string(this, arg)
+      value = this%get(arg)
 
       IF (TRIM(value) .eq. '') THEN
          surface_commandline_parser_get_real = default_value
@@ -385,7 +408,7 @@
 
 !  Declare Arguments
       LOGICAL :: surface_commandline_parser_is_flag_set
-      TYPE (surface_commandline_parser_class), INTENT(in) :: this
+      CLASS (surface_commandline_parser_class), INTENT(in) :: this
       CHARACTER (len=*), INTENT(in) :: arg
 
 !  Local arguments
@@ -441,11 +464,11 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (surface_commandline_parser_class), INTENT(in) :: this
-      INTEGER, INTENT(in)                                 :: index
+      CLASS (surface_commandline_parser_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                                  :: index
 
 !  Local arguments
-      REAL (rprec)                                        :: start_time
+      REAL (rprec)                                         :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()

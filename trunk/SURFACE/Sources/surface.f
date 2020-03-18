@@ -31,7 +31,7 @@
 !  local variables
       CLASS (bmw_parallel_context_class), POINTER :: parallel => null()
       TYPE (surface_context_class), POINTER       :: context => null()
-      TYPE (surface_commandline_parser_class), POINTER ::                      &
+      CLASS (surface_commandline_parser_class), POINTER ::                     &
      &   cl_parser => null()
       INTEGER                                     :: io_unit
       INTEGER                                     :: status
@@ -51,30 +51,24 @@
 #endif
      &                                      )
 
-      cl_parser => surface_commandline_parser_construct(parallel)
+      cl_parser => surface_commandline_parser_class(parallel)
 
 !  Check if the required flags are set.
-      IF (.not.surface_commandline_parser_is_flag_set(cl_parser,               &
-     &                                                '-woutf')) THEN
+      IF (.not.cl_parser%is_flag_set('-woutf')) THEN
          WRITE (*,1001) '-woutf'
          CALL surface_commandline_parser_print_help
       END IF
-      IF (.not.surface_commandline_parser_is_flag_set(cl_parser,               &
-     &                                                '-surff')) THEN
+      IF (.not.cl_parser%is_flag_set('-surff')) THEN
          WRITE (*,1001) '-surff'
          CALL surface_commandline_parser_print_help
       END IF
 
-      CALL parallel%set_threads(                                               &
-     &        surface_commandline_parser_get_integer(cl_parser, '-para',       &
-     &                                               1))
+      CALL parallel%set_threads(cl_parser%get_integer('-para', 1))
 
       io_unit = output_unit
-      IF (surface_commandline_parser_is_flag_set(cl_parser,                    &
-     &                                           '-logf')) THEN
-         CALL safe_open(io_unit, status,                                       &
-     &      surface_commandline_parser_get_string(cl_parser, '-logf'),         &
-     &      'replace', 'formatted', delim_in='none')
+      IF (cl_parser%is_flag_set('-logf')) THEN
+         CALL safe_open(io_unit, status, cl_parser%get('-logf'),               &
+     &                  'replace', 'formatted', delim_in='none')
       END IF
 
 
@@ -85,18 +79,14 @@
       END IF
       CALL parallel%report(io_unit)
 
-      context => surface_context_construct(                                    &
-     &   surface_commandline_parser_get_string(cl_parser, '-woutf'),           &
-     &   surface_commandline_parser_get_string(cl_parser, '-surff'),           &
-     &   parallel, io_unit)
-      CALL surface_context_set_current(context, io_unit, parallel)
-      CALL surface_context_write(context,                                      &
-     &        surface_commandline_parser_get_string(cl_parser,                 &
-     &                                              '-surff'),                 &
-     &        io_unit, parallel)
+      context => surface_context_class(cl_parser%get('-woutf'),                &
+     &                                 cl_parser%get('-surff'),                &
+     &                                 parallel, io_unit)
+      CALL context%set_current(io_unit, parallel)
+      CALL context%write(cl_parser%get('-surff'), io_unit, parallel)
 
-      CALL surface_context_destruct(context)
-      CALL surface_commandline_parser_destruct(cl_parser)
+      DEALLOCATE(context)
+      DEALLOCATE(cl_parser)
 
       CALL profiler_set_stop_time('surface_main', start_time)
       IF (parallel%offset .eq. 0) THEN
