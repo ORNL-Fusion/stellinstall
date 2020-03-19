@@ -323,6 +323,9 @@
 !    kp           Number of toroidal planes per period                      (write_mgrid)
 !    ir           Number of radial mesh points                              (write_mgrid)
 !    jz           Number of vertical mesh points                            (write_mgrid)
+!    use_eddy     Add an aditional blank coil group to store vacuum eddy
+!                 current contribution. Eddy currents are not coputed by
+!                 makegrid
 !
 !  Used in task 'mgrid_rs'. 
 !        (All variables are declared in module makegrid_global)
