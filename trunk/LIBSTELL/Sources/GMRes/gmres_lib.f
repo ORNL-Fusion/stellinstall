@@ -275,7 +275,7 @@
 !     X0: on input, initial guess if icntl(6) == 1
 !         on output, solution of Ax = b
 !         NOTE: it is not overwritten UNTIL the end of this routine
-
+      fsq_nl = -1
       lactive = gi%lactive
       MY_COMM_WORLD = gi%MY_COMM_WORLD
       MY_COMM       = gi%MY_COMM
