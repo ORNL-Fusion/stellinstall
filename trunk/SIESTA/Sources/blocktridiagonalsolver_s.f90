@@ -2636,7 +2636,6 @@ SUBROUTINE SetMatrixRHS( globrow, b )
   !-----------------------------------------------------------------------------
   ! Local variables
   !-----------------------------------------------------------------------------
-  REAL(dp) :: val
   INTEGER :: i, globrowoff
 
   !-------------------------------------------
@@ -2651,15 +2650,12 @@ SUBROUTINE SetMatrixRHS( globrow, b )
     CALL ASSERT(.FALSE.,'blocktri #32')
   END IF
 
-  globrowoff = globrow-startglobrow+1
+  globrowoff = globrow - startglobrow + 1
 
   !-------------------------------------------
   ! Copy given values into allocated RHS
   !-------------------------------------------
-  DO i = 1, M
-    val = b(i)
-    lelement(1, globrowoff)%b(i,1) = val
-  END DO
+  lelement(1, globrowoff)%b(1:M,1) = b(1:M)
 
   !-------------------------------------------
   !Save a copy of this original problem
