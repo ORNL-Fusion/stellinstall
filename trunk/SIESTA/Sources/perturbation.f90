@@ -54,53 +54,33 @@
 !>  siesta_<name>.jcf, where <name> is the command line argument (ignored if not
 !>  present!)
 !>
+!>  @param[in] namelist_file Path to the siesta namelist input file.
 !>  @returns The preconditioner control value.
 !>  FIXME: This doesn't really have much todo with the applying the helical
 !>         perturbation. This should be somewhere else.
 !-------------------------------------------------------------------------------
-      FUNCTION init_data()
+      FUNCTION init_data(namelist_file)
       USE date_and_computer
       USE siesta_namelist
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      INTEGER            :: init_data
+      INTEGER                       :: init_data
+      CHARACTER (len=*), INTENT(in) :: namelist_file
 
 !  Local variables
-      INTEGER            :: istat
-      INTEGER            :: index1
-      INTEGER            :: imon
-      INTEGER            :: numargs
-      CHARACTER(LEN=10)  :: date0
-      CHARACTER(LEN=10)  :: time0
-      CHARACTER(LEN=10)  :: zone0
-      CHARACTER(LEN=256) :: temp
-      CHARACTER(LEN=100) :: command_arg
-      CHARACTER(LEN=256) :: filename
+      INTEGER                       :: istat
+      INTEGER                       :: index1
+      INTEGER                       :: imon
+      CHARACTER(LEN=10)             :: date0
+      CHARACTER(LEN=10)             :: time0
+      CHARACTER(LEN=10)             :: zone0
+      CHARACTER(LEN=256)            :: temp
+      CHARACTER(LEN=256)            :: filename
 
 !  Start of executable code
-
-!  Read Command line arguments if present.
-      CALL getcarg(1, command_arg, numargs)
-
-      IF (numargs .gt. 0) THEN
-         IF (LEN_TRIM(temp) .ne. 0) THEN
-            IF (command_arg(1:7) .ne. 'siesta_' .AND.                          &
-                command_arg(1:7) .ne. 'SIESTA_') THEN
-               temp = 'siesta_' // TRIM(command_arg)
-            END IF
-            istat = LEN_TRIM(temp)
-            IF (temp(istat - 3:istat) .ne. '.jcf' .AND.                        &
-                temp(istat - 3:istat) .ne. '.JCF') THEN
-               temp = TRIM(temp) // '.jcf'
-            END IF
-         END IF
-      ELSE
-         temp = 'siesta.jcf'
-      END IF
-
-      CALL siesta_namelist_read(temp)
+      CALL siesta_namelist_read(namelist_file)
       init_data = nprecon
 
       irad_scale = MIN(irad_scale, nsin)

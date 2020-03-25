@@ -67,13 +67,16 @@
 !>  Allocates memory and initializes a @ref siesta_run_class object. Performs
 !>  all the initialization needed to operate SIESTA.
 !>
-!>  @param[in] run_comm MPI Communicator to use.
-!>  @param[in] verbose
-!>  @param[in] init_mpi   Instructs if MPI should be initialized.
-!>  @param[in] close_wout Instructs if wout file should be closed on deallocate.
+!>  @param[in] run_comm      MPI Communicator to use.
+!>  @param[in] verbose       Control the code screen output.
+!>  @param[in] init_mpi      Instructs if MPI should be initialized.
+!>  @param[in] close_wout    Instructs if wout file should be closed on
+!>                           deallocate.
+!>  @param[in] namelist_file Path to the siesta namelist input file.
 !>  @returns A pointer to a constructed @ref siesta_run_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION siesta_run_construct(run_comm, verbose, init_mpi, close_wout)
+      FUNCTION siesta_run_construct(run_comm, verbose, init_mpi, close_wout,   &
+                                    namelist_file)
       USE nscalingtools, ONLY: MyEnvVariables, PARSOLVER, SIESTA_COMM
       USE descriptor_mod, ONLY: LSCALAPACK, INHESSIAN, iam, nprocs,            &
                                 nprow, npcol, icontxt, icontxt_1xp,            &
@@ -100,6 +103,7 @@
       LOGICAL, INTENT(in)               :: verbose
       LOGICAL, INTENT(in)               :: init_mpi
       LOGICAL, INTENT(in)               :: close_wout
+      CHARACTER (len=*), INTENT(in)     :: namelist_file
 
 !  local variables.
       REAL (dp)                         :: ton
@@ -180,7 +184,7 @@
       CALL second0(ton)
       siesta_run_construct%time_on = ton
 
-      nprecon = init_data()
+      nprecon = init_data(namelist_file)
       CALL set_grid_sizes(mpolin, ntorin)
 
       CALL second0(toff)
