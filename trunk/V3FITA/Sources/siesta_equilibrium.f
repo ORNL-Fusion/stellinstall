@@ -4161,7 +4161,7 @@
       CALL MPI_BARRIER(eq_comm, status)
 #endif
       run_context => siesta_run_class(eq_comm, .false., .false.,               &
-     &                                .false.)
+     &                                .false., this%siesta_file_name)
       CALL run_context%set_vmec
       CALL run_context%converge
       DEALLOCATE(run_context)
