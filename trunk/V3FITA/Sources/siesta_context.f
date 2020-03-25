@@ -14,34 +14,6 @@
 
       IMPLICIT NONE
 
-!  FIXME: This is a hack remove everything between these FIXME statements once
-!         siesta is fully coupled
-      LOGICAL                     :: lasym = .true.
-      LOGICAL                     :: lrecon = .true.
-      LOGICAL                     :: lcolscale = .true.
-      LOGICAL                     :: ladd_pert = .true.
-      LOGICAL                     :: lresistive = .true.
-      LOGICAL                     :: lrestart = .false.
-      INTEGER                     :: niter = 100
-      INTEGER                     :: nsin = 50
-      INTEGER                     :: mpolin = 12
-      INTEGER                     :: ntorin = 2
-      REAL (rprec)                :: ftol = 1.0E-20
-      REAL (rprec)                :: levmarq_param = 3.0E-2
-      REAL (rprec)                :: mupar = 1.0E-3
-      CHARACTER (len=100)         ::                                           &
-     &   wout_file = 'wout_154921.02530.asym.ntor1.nc'
-      CHARACTER (len=100)         :: restart_ext = 'restart_cth_'
-      INTEGER, DIMENSION(10)      :: mres
-      REAL (rprec), DIMENSION(10) :: helpert
-
-      NAMELIST/siesta_info/                                                    &
-     &   lasym, lrecon, lcolscale, ladd_pert, lresistive, lrestart,            &
-     &   niter, nsin, mpolin, ntorin, ftol, levmarq_param, mupar,              &
-     &   wout_file, restart_ext, mres, helpert
-!  FIXME: This is a hack remove everything between these FIXME statements once
-!         siesta is fully coupled
-
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) siesta_context_class class
