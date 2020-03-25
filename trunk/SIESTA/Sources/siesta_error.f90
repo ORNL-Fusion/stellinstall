@@ -5,7 +5,7 @@
 !  Note separating the Doxygen comment block here so detailed decription is
 !  found in the Module not the file.
 !
-!>  This module contains all the code needed to define error.
+!>  This module contains all the code needed to define an error.
 !*******************************************************************************
       MODULE siesta_error
       USE v3_utilities, ONLY: assert
@@ -30,6 +30,8 @@
       INTEGER, PARAMETER :: siesta_error_allocation = 3
 !>  IO Error.
       INTEGER, PARAMETER :: siesta_error_io         = 4
+!>  Parameter error.
+      INTEGER, PARAMETER :: siesta_error_param      = 5
 
 !*******************************************************************************
 !  module variables.

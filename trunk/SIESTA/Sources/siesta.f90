@@ -37,34 +37,28 @@
       IMPLICIT NONE
 
 !  Local variables
-      TYPE (siesta_run_class), POINTER :: context => NULL()
+      CLASS (siesta_run_class), POINTER :: context => NULL()
 
 !  Local parameters
 #if defined(MPI_OPT)
-      INTEGER, PARAMETER               :: run_comm = MPI_COMM_WORLD
+      INTEGER, PARAMETER                :: run_comm = MPI_COMM_WORLD
 #else
-      INTEGER, PARAMETER               :: run_comm = 0
+      INTEGER, PARAMETER                :: run_comm = 0
 #endif
 
 !  Start of executable code.
 !  Create a context and read the SIESTA namelist input file.
-      context => siesta_run_construct(run_comm, .true.)
+      context => siesta_run_class(run_comm, .true. , .true., .true.)
 
 !  Check the restart flag in from the namelist input. If true, restart from an
 !  existing restart file. Otherwise initalize from a VMEC file.
       IF (lrestart) THEN
-         CALL siesta_run_set_restart(context)
+         CALL context%set_restart
       ELSE
-         CALL siesta_run_set_vmec(context)
+         CALL context%set_vmec
       END IF
 
-      CALL siesta_run_converge(context)
-      CALL siesta_run_destruct(context, .true., .true.)
+      CALL context%converge
+      DEALLOCATE(context)
 
-      END PROGRAM SIESTA
-
-     ! siesta_run_set_vmec 
-     ! -> init_metric_elements (in metrics)
-     ! -> grid_extender (in grid_extension)
-     ! siesta_run_converge
-     ! -> run_pchelms 
+      END PROGRAM
