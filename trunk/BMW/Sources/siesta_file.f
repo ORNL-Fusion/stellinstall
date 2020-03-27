@@ -54,7 +54,16 @@
          REAL (rprec), DIMENSION(:,:,:), POINTER :: jksupumnsf => null()
 !  J^v current density full parity.
          REAL (rprec), DIMENSION(:,:,:), POINTER :: jksupvmnsf => null()
+      CONTAINS
+         FINAL :: siesta_file_destruct
       END TYPE
+
+!-------------------------------------------------------------------------------
+!>  Interface for the siesta_file_class constructor.
+!-------------------------------------------------------------------------------
+      INTERFACE siesta_file_class
+         MODULE PROCEDURE siesta_file_construct
+      END INTERFACE
 
       CONTAINS
 !*******************************************************************************
@@ -75,13 +84,13 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (siesta_file_class), POINTER :: siesta_file_construct
-      CHARACTER (len=*), INTENT(in)     :: siesta_file_name
+      CLASS (siesta_file_class), POINTER :: siesta_file_construct
+      CHARACTER (len=*), INTENT(in)      :: siesta_file_name
 
 !  local variables
-      REAL (rprec)                      :: start_time
-      INTEGER                           :: siesta_ncid
-      INTEGER                           :: status
+      REAL (rprec)                       :: start_time
+      INTEGER                            :: siesta_ncid
+      INTEGER                            :: status
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -163,7 +172,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (siesta_file_class), POINTER :: this
+      TYPE (siesta_file_class), INTENT(inout) :: this
 
 !  Start of executable code
       IF (ASSOCIATED(this%jksupsmncf)) THEN
@@ -195,8 +204,6 @@
          DEALLOCATE(this%jksupvmnsf)
          this%jksupvmnsf => null()
       END IF
-
-      DEALLOCATE(this)
 
       END SUBROUTINE
 

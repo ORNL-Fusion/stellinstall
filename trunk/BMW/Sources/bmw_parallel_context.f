@@ -23,7 +23,7 @@
 !>  Base class representing a bmw parallel context. This contains all memory
 !>  needed parameters needed to parallel processing.
 !-------------------------------------------------------------------------------
-      TYPE bmw_parallel_context_class
+      TYPE :: bmw_parallel_context_class
 !>  Problem space offset.
          INTEGER :: offset
 !>  Problem space stride.
@@ -37,20 +37,31 @@
 !>  library. Multiple instances can be running in parallel on separate problems
 !>  so do not assume the world comm.
          INTEGER :: comm = MPI_COMM_NULL
+!>  Flag to mark if bmw intialized the MPI context.
+         LOGICAL :: initialized_mpi
 #endif
+      CONTAINS
+         PROCEDURE, PASS ::                                                    &
+     &      set_threads => bmw_parallel_context_set_threads
+         PROCEDURE, PASS :: report => bmw_parallel_context_report
+         PROCEDURE, PASS :: reduce1 => bmw_parallel_context_reduce1
+         PROCEDURE, PASS :: reduce2 => bmw_parallel_context_reduce2
+         PROCEDURE, PASS :: reduce3 => bmw_parallel_context_reduce3
+         PROCEDURE, PASS :: reduce4 => bmw_parallel_context_reduce4
+         GENERIC         :: reduce => reduce1, reduce2, reduce3, reduce4
+         PROCEDURE, PASS :: start => bmw_parallel_context_start
+         PROCEDURE, PASS :: end => bmw_parallel_context_end
+         FINAL           :: bmw_parallel_context_destruct
       END TYPE
 
 !*******************************************************************************
 !  INTERFACE BLOCKS
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  Interface for the buffer reduction.
+!>  Interface for the bmw_parallel_context constructor.
 !-------------------------------------------------------------------------------
-      INTERFACE bmw_parallel_context_reduce
-         MODULE PROCEDURE bmw_parallel_context_reduce1,                        &
-     &                    bmw_parallel_context_reduce2,                        &
-     &                    bmw_parallel_context_reduce3,                        &
-     &                    bmw_parallel_context_reduce4
+      INTERFACE bmw_parallel_context_class
+         MODULE PROCEDURE bmw_parallel_context_construct
       END INTERFACE
 
       CONTAINS
@@ -76,7 +87,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (bmw_parallel_context_class), POINTER ::                            &
+      CLASS (bmw_parallel_context_class), POINTER ::                           &
      &   bmw_parallel_context_construct
 #if defined (MPI_OPT)
       INTEGER, INTENT(in)                        :: comm
@@ -96,7 +107,9 @@
 
 #if defined (MPI_OPT)
       CALL MPI_INITIALIZED(isinit, status)
+
       IF (.not.isinit) THEN
+         bmw_parallel_context_construct%initialized_mpi = .true.
          CALL MPI_INIT(status)
       END IF
 
@@ -134,28 +147,19 @@
 !>  @param[in]    finalize Flag to call MPI_FINALIZE. Only used if MPI support
 !>                         has been compiled in.
 !-------------------------------------------------------------------------------
-      SUBROUTINE bmw_parallel_context_destruct(this                            &
-#if defined(MPI_OPT)
-     &                                         ,finalize                       &
-#endif
-     &                                        )
+      SUBROUTINE bmw_parallel_context_destruct(this)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (bmw_parallel_context_class), POINTER :: this
-#if defined (MPI_OPT)
-      LOGICAL, INTENT(in)                        :: finalize
+      TYPE (bmw_parallel_context_class), INTENT(inout) :: this
 
 !  local variables
-      INTEGER                                    :: status
-#endif
+#if defined (MPI_OPT)
+      INTEGER                                          :: status
 
 !  Start of executable code
-      DEALLOCATE(this)
-
-#if defined (MPI_OPT)
-      IF (finalize) THEN
+      IF (this%initialized_mpi) THEN
          CALL MPI_FINALIZE(status)
       END IF
 #endif
@@ -163,7 +167,48 @@
       END SUBROUTINE
 
 !*******************************************************************************
-!  DESTRUCTION SUBROUTINES
+!  SETTER SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Set the number of threads.
+!>
+!>  Sets the number of OpenMP threads to use.
+!>
+!>  @param[in] this        A @ref bmw_parallel_context_class instance.
+!>  @param[in] num_threads Number of threads to use.
+!-------------------------------------------------------------------------------
+      SUBROUTINE bmw_parallel_context_set_threads(this, num_threads)
+!$    USE omp_lib
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CLASS (bmw_parallel_context_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)                               :: num_threads
+
+!  local variables
+      REAL (rprec)                                      :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+!  Configure the number of threads to use.
+      this%num_threads = num_threads
+
+!$    IF (this%num_threads .gt. 0) THEN
+!$       CALL OMP_SET_NUM_THREADS(this%num_threads)
+!$    END IF
+!$OMP PARALLEL
+!$    this%num_threads = OMP_GET_MAX_THREADS()
+!$OMP END PARALLEL
+
+      CALL profiler_set_stop_time('bmw_parallel_context_set_threads',          &
+     &                            start_time)
+
+      END SUBROUTINE
+
+!*******************************************************************************
+!  UTILITY SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
 !>  @brief Abort the entire program.
@@ -188,50 +233,6 @@
 
       END SUBROUTINE
 
-!*******************************************************************************
-!  SETTER SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Set the number of threads.
-!>
-!>  Sets the number of OpenMP threads to use.
-!>
-!>  @param[in] this        A @ref bmw_parallel_context_class instance.
-!>  @param[in] num_threads Number of threads to use.
-!-------------------------------------------------------------------------------
-      SUBROUTINE bmw_parallel_context_set_threads(this, num_threads)
-!$    USE omp_lib
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (bmw_parallel_context_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)                              :: num_threads
-
-!  local variables
-      REAL (rprec)                                     :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-!  Configure the number of threads to use.
-      this%num_threads = num_threads
-
-!$    IF (this%num_threads .gt. 0) THEN
-!$       CALL OMP_SET_NUM_THREADS(this%num_threads)
-!$    END IF
-!$OMP PARALLEL
-!$    this%num_threads = OMP_GET_MAX_THREADS()
-!$OMP END PARALLEL
-
-      CALL profiler_set_stop_time('bmw_parallel_context_set_threads',          &
-     &                            start_time)
-
-      END SUBROUTINE
-
-!*******************************************************************************
-!  UTILITY SUBROUTINES
-!*******************************************************************************
 !-------------------------------------------------------------------------------
 !>  @brief Report the number of parallel processes and threads.
 !>
@@ -246,11 +247,11 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (bmw_parallel_context_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)                              :: io_unit
+      CLASS (bmw_parallel_context_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)                               :: io_unit
 
 !  local variables
-      REAL (rprec)                                     :: start_time
+      REAL (rprec)                                      :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -289,12 +290,12 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (bmw_parallel_context_class), INTENT(in) :: this
-      REAL (rprec), DIMENSION(:), INTENT(inout)     :: buffer
+      CLASS (bmw_parallel_context_class), INTENT(in) :: this
+      REAL (rprec), DIMENSION(:), INTENT(inout)      :: buffer
 
 !  local variables
-      REAL (rprec)                                  :: start_time
-      INTEGER                                       :: status
+      REAL (rprec)                                   :: start_time
+      INTEGER                                        :: status
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -324,12 +325,12 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (bmw_parallel_context_class), INTENT(in) :: this
-      REAL (rprec), DIMENSION(:,:), INTENT(inout)   :: buffer
+      CLASS (bmw_parallel_context_class), INTENT(in) :: this
+      REAL (rprec), DIMENSION(:,:), INTENT(inout)    :: buffer
 
 !  local variables
-      REAL (rprec)                                  :: start_time
-      INTEGER                                       :: status
+      REAL (rprec)                                   :: start_time
+      INTEGER                                        :: status
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -359,12 +360,12 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (bmw_parallel_context_class), INTENT(in) :: this
-      REAL (rprec), DIMENSION(:,:,:), INTENT(inout) :: buffer
+      CLASS (bmw_parallel_context_class), INTENT(in) :: this
+      REAL (rprec), DIMENSION(:,:,:), INTENT(inout)  :: buffer
 
 !  local variables
-      REAL (rprec)                                  :: start_time
-      INTEGER                                       :: status
+      REAL (rprec)                                   :: start_time
+      INTEGER                                        :: status
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -394,7 +395,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (bmw_parallel_context_class), INTENT(in)   :: this
+      CLASS (bmw_parallel_context_class), INTENT(in)  :: this
       REAL (rprec), DIMENSION(:,:,:,:), INTENT(inout) :: buffer
 
 !  local variables
@@ -430,12 +431,12 @@
 
 !  Declare Arguments
       INTEGER :: bmw_parallel_context_start
-      TYPE (bmw_parallel_context_class), INTENT(in) :: this
-      INTEGER, INTENT(in)                           :: total
+      CLASS (bmw_parallel_context_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                            :: total
 
 !  local variables
-      INTEGER                                       :: n_per_process
-      INTEGER                                       :: n_left
+      INTEGER                                        :: n_per_process
+      INTEGER                                        :: n_left
 
 !  Start of executable code
 !  Need to divide the problem space evenly by the number of processes.
@@ -473,12 +474,12 @@
 
 !  Declare Arguments
       INTEGER :: bmw_parallel_context_end
-      TYPE (bmw_parallel_context_class), INTENT(in) :: this
-      INTEGER, INTENT(in)                           :: total
+      CLASS (bmw_parallel_context_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                            :: total
 
 !  local variables
-      INTEGER                                       :: n_per_process
-      INTEGER                                       :: n_left
+      INTEGER                                        :: n_per_process
+      INTEGER                                        :: n_left
 
 !  Start of executable code
 !  Need to divide the problem space evenly by the number of processes.
@@ -492,10 +493,10 @@
 !  Acound for the remaining elements in the first n_left processes.
       IF (this%offset .lt. n_left) THEN
          bmw_parallel_context_end = bmw_parallel_context_end               &
-     &                              + this%offset + 1
+     &                            + this%offset + 1
       ELSE
          bmw_parallel_context_end = bmw_parallel_context_end               &
-     &                              + n_left
+     &                            + n_left
       END IF
 
       END FUNCTION
@@ -516,8 +517,8 @@
 
 !  Declare Arguments
       INTEGER :: bmw_parallel_context_i
-      INTEGER, INTENT(in)                           :: index
-      INTEGER, INTENT(in)                           :: num_i
+      INTEGER, INTENT(in) :: index
+      INTEGER, INTENT(in) :: num_i
 
 !  Start of executable code
       bmw_parallel_context_i = MOD(index - 1, num_i) + 1
@@ -541,9 +542,9 @@
 
 !  Declare Arguments
       INTEGER :: bmw_parallel_context_j
-      INTEGER, INTENT(in)                           :: index
-      INTEGER, INTENT(in)                           :: num_i
-      INTEGER, INTENT(in)                           :: num_j
+      INTEGER, INTENT(in) :: index
+      INTEGER, INTENT(in) :: num_i
+      INTEGER, INTENT(in) :: num_j
 
 !  Start of executable code
       bmw_parallel_context_j = MOD((index - 1)/num_i, num_j) + 1
@@ -567,9 +568,9 @@
 
 !  Declare Arguments
       INTEGER :: bmw_parallel_context_k
-      INTEGER, INTENT(in)                           :: index
-      INTEGER, INTENT(in)                           :: num_i
-      INTEGER, INTENT(in)                           :: num_j
+      INTEGER, INTENT(in) :: index
+      INTEGER, INTENT(in) :: num_i
+      INTEGER, INTENT(in) :: num_j
 
 !  Start of executable code
       bmw_parallel_context_k = (index - 1)/(num_j*num_i) + 1
@@ -577,4 +578,3 @@
       END FUNCTION
 
       END MODULE
-

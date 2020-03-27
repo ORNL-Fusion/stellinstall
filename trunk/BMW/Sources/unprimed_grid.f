@@ -27,7 +27,7 @@
 !>  Base class representing a unprimed grid. This is grid the volume integral
 !>  will be summed over.
 !-------------------------------------------------------------------------------
-      TYPE unprimed_grid_class
+      TYPE :: unprimed_grid_class
 !>  Vector potential in the R direction.
          REAL (rprec), DIMENSION(:,:,:), POINTER :: a_r => null()
 !>  Vector potential in the Phi direction.
@@ -41,12 +41,14 @@
          REAL (rprec), DIMENSION(:,:,:), POINTER :: b_p => null()
 !>  B field in the Z direction.
          REAL (rprec), DIMENSION(:,:,:), POINTER :: b_z => null()
+      CONTAINS
+         FINAL :: unprimed_grid_destruct
       END TYPE
 
 !-------------------------------------------------------------------------------
 !>  Interface to constructors.
 !-------------------------------------------------------------------------------
-      INTERFACE unprimed_grid_construct
+      INTERFACE unprimed_grid_class
          MODULE PROCEDURE unprimed_grid_construct_m,                           &
      &                    unprimed_grid_construct_a
       END INTERFACE
@@ -82,45 +84,45 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (unprimed_grid_class), POINTER :: unprimed_grid_construct_m
-      TYPE (m_grid_class), INTENT(in)               :: mgrid
-      TYPE (primed_grid_class), INTENT(in)          :: pgrid
-      INTEGER, INTENT(in)                           :: p_start
-      INTEGER, INTENT(in)                           :: p_end
-      TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
-      INTEGER, INTENT(in)                           :: io_unit
+      CLASS (unprimed_grid_class), POINTER :: unprimed_grid_construct_m
+      CLASS (m_grid_class), INTENT(in)               :: mgrid
+      CLASS (primed_grid_class), INTENT(in)          :: pgrid
+      INTEGER, INTENT(in)                            :: p_start
+      INTEGER, INTENT(in)                            :: p_end
+      CLASS (bmw_parallel_context_class), INTENT(in) :: parallel
+      INTEGER, INTENT(in)                            :: io_unit
 
 !  local variables
-      REAL (rprec)                                  :: start_time
-      INTEGER                                       :: i
-      INTEGER                                       :: ri
-      INTEGER                                       :: zi
-      INTEGER                                       :: vi
-      INTEGER                                       :: num_r
-      INTEGER                                       :: num_p
-      INTEGER                                       :: num_z
-      REAL (rprec)                                  :: x
-      REAL (rprec)                                  :: y
-      REAL (rprec)                                  :: ax
-      REAL (rprec)                                  :: ay
-      INTEGER                                       :: k_p
-      INTEGER                                       :: k_m
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: r
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: z
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: r_p
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: r_m
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: cosv
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: sinv
-      REAL (rprec)                                  :: total
-      REAL (rprec)                                  :: done
-      REAL (rprec)                                  :: current
-      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE   :: rp
-      REAL (rprec)                                  :: ar_p
-      REAL (rprec)                                  :: ar_m
-      REAL (rprec)                                  :: ap_p
-      REAL (rprec)                                  :: ap_m
-      REAL (rprec)                                  :: az_p
-      REAL (rprec)                                  :: az_m
+      REAL (rprec)                                   :: start_time
+      INTEGER                                        :: i
+      INTEGER                                        :: ri
+      INTEGER                                        :: zi
+      INTEGER                                        :: vi
+      INTEGER                                        :: num_r
+      INTEGER                                        :: num_p
+      INTEGER                                        :: num_z
+      REAL (rprec)                                   :: x
+      REAL (rprec)                                   :: y
+      REAL (rprec)                                   :: ax
+      REAL (rprec)                                   :: ay
+      INTEGER                                        :: k_p
+      INTEGER                                        :: k_m
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: r
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: z
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: r_p
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: r_m
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: cosv
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: sinv
+      REAL (rprec)                                   :: total
+      REAL (rprec)                                   :: done
+      REAL (rprec)                                   :: current
+      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE    :: rp
+      REAL (rprec)                                   :: ar_p
+      REAL (rprec)                                   :: ar_m
+      REAL (rprec)                                   :: ap_p
+      REAL (rprec)                                   :: ap_m
+      REAL (rprec)                                   :: az_p
+      REAL (rprec)                                   :: az_m
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -147,7 +149,7 @@
       ALLOCATE(r_p(num_r))
       ALLOCATE(r_m(num_r))
 
-      total = bmw_parallel_context_end(parallel, num_r*num_z*num_p)
+      total = parallel%end(num_r*num_z*num_p)
       total = CEILING(total/parallel%num_threads)
 
 !$OMP PARALLEL
@@ -175,8 +177,7 @@
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO i = bmw_parallel_context_start(parallel, num_r),                      &
-     &       bmw_parallel_context_end(parallel, num_r)
+      DO i = parallel%start(num_r), parallel%end(num_r)
          r(i) = (i - 1.0)*mgrid%dr + mgrid%rmin
          r_p(i) = r(i) + mgrid%dr
          r_m(i) = r(i) - mgrid%dr
@@ -185,16 +186,14 @@
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO i = bmw_parallel_context_start(parallel, num_z),                      &
-     &       bmw_parallel_context_end(parallel, num_z)
+      DO i = parallel%start(num_z), parallel%end(num_z)
          z(i) = (i - 1.0)*mgrid%dz + mgrid%zmin
       END DO
 !$OMP END DO
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO i = bmw_parallel_context_start(parallel, num_p),                      &
-     &       bmw_parallel_context_end(parallel, num_p)
+      DO i = parallel%start(num_p), parallel%end(num_p)
          x = (i - 1.0)*pgrid%dv
          cosv(i) = COS(x)
          sinv(i) = SIN(x)
@@ -203,12 +202,12 @@
 
 !$OMP SINGLE
       IF (parallel%stride .gt. 1) THEN
-         CALL bmw_parallel_context_reduce(parallel, cosv)
-         CALL bmw_parallel_context_reduce(parallel, sinv)
-         CALL bmw_parallel_context_reduce(parallel, r)
-         CALL bmw_parallel_context_reduce(parallel, z)
-         CALL bmw_parallel_context_reduce(parallel, r_p)
-         CALL bmw_parallel_context_reduce(parallel, r_m)
+         CALL parallel%reduce(cosv)
+         CALL parallel%reduce(sinv)
+         CALL parallel%reduce(r)
+         CALL parallel%reduce(z)
+         CALL parallel%reduce(r_p)
+         CALL parallel%reduce(r_m)
       END IF
 !$OMP END SINGLE
 
@@ -220,8 +219,8 @@
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO i = bmw_parallel_context_start(parallel, num_r*num_z*num_p),          &
-     &       bmw_parallel_context_end(parallel, num_r*num_z*num_p)
+      DO i = parallel%start(num_r*num_z*num_p),                                &
+     &       parallel%end(num_r*num_z*num_p)
          ri = bmw_parallel_context_i(i, num_r)
          zi = bmw_parallel_context_j(i, num_r, num_z)
          vi = bmw_parallel_context_k(i, num_r, num_z)
@@ -264,19 +263,16 @@
 !  Multi process did not fill out the entire array. Get the missing pieces from
 !  the other processes.
       IF (parallel%stride .gt. 1) THEN
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           unprimed_grid_construct_m%a_r)
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           unprimed_grid_construct_m%a_p)
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           unprimed_grid_construct_m%a_z)
+         CALL parallel%reduce(unprimed_grid_construct_m%a_r)
+         CALL parallel%reduce(unprimed_grid_construct_m%a_p)
+         CALL parallel%reduce(unprimed_grid_construct_m%a_z)
       END IF
 !$OMP END SINGLE
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO i = bmw_parallel_context_start(parallel, num_p*num_r*num_z),          &
-     &       bmw_parallel_context_end(parallel, num_p*num_r*num_z)
+      DO i = parallel%start(num_p*num_r*num_z),                                &
+     &       parallel%end(num_p*num_r*num_z)
          ri = bmw_parallel_context_i(i, num_r)
          zi = bmw_parallel_context_j(i, num_r, num_z)
          vi = bmw_parallel_context_k(i, num_r, num_z)
@@ -336,12 +332,9 @@
 !$OMP END PARALLEL
 
       IF (parallel%stride .gt. 1) THEN
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           unprimed_grid_construct_m%b_r)
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           unprimed_grid_construct_m%b_p)
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           unprimed_grid_construct_m%b_z)
+         CALL parallel%reduce(unprimed_grid_construct_m%b_r)
+         CALL parallel%reduce(unprimed_grid_construct_m%b_p)
+         CALL parallel%reduce(unprimed_grid_construct_m%b_z)
       END IF
 
       DEALLOCATE(cosv)
@@ -392,44 +385,44 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (unprimed_grid_class), POINTER :: unprimed_grid_construct_a
-      TYPE (m_grid_class), INTENT(in)               :: mgrid
-      TYPE (primed_grid_class), INTENT(in)          :: pgrid
-      REAL (rprec), DIMENSION(:,:,:), INTENT(in)    :: r_grid
-      REAL (rprec), DIMENSION(:,:,:), INTENT(in)    :: z_grid
-      REAL (rprec), INTENT(in)                      :: dphi
-      TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
-      INTEGER, INTENT(in)                           :: io_unit
+      CLASS (unprimed_grid_class), POINTER :: unprimed_grid_construct_a
+      TYPE (m_grid_class), INTENT(in)                :: mgrid
+      TYPE (primed_grid_class), INTENT(in)           :: pgrid
+      REAL (rprec), DIMENSION(:,:,:), INTENT(in)     :: r_grid
+      REAL (rprec), DIMENSION(:,:,:), INTENT(in)     :: z_grid
+      REAL (rprec), INTENT(in)                       :: dphi
+      CLASS (bmw_parallel_context_class), INTENT(in) :: parallel
+      INTEGER, INTENT(in)                            :: io_unit
 
 !  local variables
-      REAL (rprec)                                  :: start_time
-      INTEGER                                       :: num_1
-      INTEGER                                       :: num_2
-      INTEGER                                       :: num_3
-      REAL (rprec)                                  :: current
-      REAL (rprec)                                  :: done
-      REAL (rprec)                                  :: total
-      INTEGER                                       :: i
-      INTEGER                                       :: ai
-      INTEGER                                       :: aj
-      INTEGER                                       :: ak
-      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE   :: rp
-      REAL (rprec)                                  :: ax
-      REAL (rprec)                                  :: ay
-      REAL (rprec)                                  :: x
-      REAL (rprec)                                  :: y
-      REAL (rprec)                                  :: z
-      REAL (rprec)                                  :: r
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: phi
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: cosv
-      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: sinv
+      REAL (rprec)                                   :: start_time
+      INTEGER                                        :: num_1
+      INTEGER                                        :: num_2
+      INTEGER                                        :: num_3
+      REAL (rprec)                                   :: current
+      REAL (rprec)                                   :: done
+      REAL (rprec)                                   :: total
+      INTEGER                                        :: i
+      INTEGER                                        :: ai
+      INTEGER                                        :: aj
+      INTEGER                                        :: ak
+      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE    :: rp
+      REAL (rprec)                                   :: ax
+      REAL (rprec)                                   :: ay
+      REAL (rprec)                                   :: x
+      REAL (rprec)                                   :: y
+      REAL (rprec)                                   :: z
+      REAL (rprec)                                   :: r
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: phi
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: cosv
+      REAL (rprec), DIMENSION(:), ALLOCATABLE        :: sinv
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      IF (MAXVAL(r_grid) .gt. mgrid%rmax .or.                            &
-     &    MINVAL(r_grid) .lt. mgrid%rmin .or.                            &
-     &    MAXVAL(z_grid) .gt. mgrid%zmax .or.                            &
+      IF (MAXVAL(r_grid) .gt. mgrid%rmax .or.                                  &
+     &    MINVAL(r_grid) .lt. mgrid%rmin .or.                                  &
+     &    MAXVAL(z_grid) .gt. mgrid%zmax .or.                                  &
      &    MINVAL(z_grid) .lt. mgrid%zmin) THEN
          IF (parallel%offset .eq. 0) THEN
             WRITE (io_unit, 2000)
@@ -451,7 +444,7 @@
       ALLOCATE(sinv(num_2))
       ALLOCATE(phi(num_2))
 
-      total = bmw_parallel_context_end(parallel, num_1*num_2*num_3)
+      total = parallel%end(num_1*num_2*num_3)
       total = CEILING(total/parallel%num_threads)
 
 !$OMP PARALLEL
@@ -472,8 +465,7 @@
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO i = bmw_parallel_context_start(parallel, num_2),                      &
-     &       bmw_parallel_context_end(parallel, num_2)
+      DO i = parallel%start(num_2), parallel%end(num_2)
          phi(i) = (i - 1.0)*dphi
          cosv(i) = COS(phi(i))
          sinv(i) = SIN(phi(i))
@@ -482,9 +474,9 @@
 
 !$OMP SINGLE
       IF (parallel%stride .gt. 1) THEN
-         CALL bmw_parallel_context_reduce(parallel, cosv)
-         CALL bmw_parallel_context_reduce(parallel, sinv)
-         CALL bmw_parallel_context_reduce(parallel, phi)
+         CALL parallel%reduce(cosv)
+         CALL parallel%reduce(sinv)
+         CALL parallel%reduce(phi)
       END IF
 !$OMP END SINGLE
 
@@ -496,8 +488,8 @@
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO i = bmw_parallel_context_start(parallel, num_1*num_2*num_3),          &
-     &       bmw_parallel_context_end(parallel, num_1*num_2*num_3)
+      DO i = parallel%start(num_1*num_2*num_3),                                &
+     &       parallel%end(num_1*num_2*num_3)
          ai = bmw_parallel_context_i(i, num_1)
          aj = bmw_parallel_context_j(i, num_1, num_2)
          ak = bmw_parallel_context_k(i, num_1, num_2)
@@ -552,12 +544,9 @@
 !  Multi process did not fill out the entire array. Get the missing pieces from
 !  the other processes.
       IF (parallel%stride .gt. 1) THEN
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           unprimed_grid_construct_a%a_r)
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           unprimed_grid_construct_a%a_p)
-         CALL bmw_parallel_context_reduce(parallel,                            &
-     &           unprimed_grid_construct_a%a_z)
+         CALL parallel%reduce(unprimed_grid_construct_a%a_r)
+         CALL parallel%reduce(unprimed_grid_construct_a%a_p)
+         CALL parallel%reduce(unprimed_grid_construct_a%a_z)
       END IF
 
       IF (parallel%offset .eq. 0) THEN
@@ -589,7 +578,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (unprimed_grid_class), POINTER :: this
+      TYPE (unprimed_grid_class), INTENT(inout) :: this
 
 !  Start of executable code
       IF (ASSOCIATED(this%a_r)) THEN
@@ -621,8 +610,6 @@
          DEALLOCATE(this%b_z)
          this%b_z => null()
       END IF
-
-      DEALLOCATE(this)
 
       END SUBROUTINE
 

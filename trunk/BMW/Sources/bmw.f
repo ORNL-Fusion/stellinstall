@@ -43,15 +43,15 @@
       IMPLICIT NONE
 
 !  local variables
-      TYPE (bmw_parallel_context_class), POINTER   :: parallel => null()
-      TYPE (bmw_context_class), POINTER            :: context => null()
-      TYPE (bmw_commandline_parser_class), POINTER ::                          &
+      CLASS (bmw_parallel_context_class), POINTER :: parallel => null()
+      CLASS (bmw_context_class), POINTER            :: context => null()
+      CLASS (bmw_commandline_parser_class), POINTER ::                         &
      &   cl_parser => null()
-      INTEGER                                      :: flags
-      INTEGER                                      :: num_p
-      INTEGER                                      :: io_unit
-      INTEGER                                      :: status
-      REAL (rprec)                                 :: start_time
+      INTEGER                                       :: flags
+      INTEGER                                       :: num_p
+      INTEGER                                       :: io_unit
+      INTEGER                                       :: status
+      REAL (rprec)                                  :: start_time
 
 !  Start of executable code
 #if defined (MPI_OPT)
@@ -61,47 +61,42 @@
 
       start_time = profiler_get_start_time()
 
-      parallel => bmw_parallel_context_construct(                              &
+      parallel => bmw_parallel_context_class(                                  &
 #if defined (MPI_OPT)
-     &                                           MPI_COMM_WORLD                &
+     &                                       MPI_COMM_WORLD                    &
 #endif
-     &                                          )
+     &                                       )
 
-      cl_parser => bmw_commandline_parser_construct(parallel)
+      cl_parser => bmw_commandline_parser_class(parallel)
 
 !  Check if the required flags are set.
-      IF (.not.bmw_commandline_parser_is_flag_set(cl_parser,                   &
-     &    '-mgridf')) THEN
+      IF (.not.cl_parser%is_flag_set('-mgridf')) THEN
          WRITE (*,1001) '-mgridf'
          CALL bmw_commandline_parser_print_help
       END IF
-      IF (.not.bmw_commandline_parser_is_flag_set(cl_parser,                   &
-     &    '-woutf')) THEN
+      IF (.not.cl_parser%is_flag_set('-woutf')) THEN
          WRITE (*,1001) '-woutf'
          CALL bmw_commandline_parser_print_help
       END IF
-      IF (.not.bmw_commandline_parser_is_flag_set(cl_parser,                   &
-     &    '-outf')) THEN
+      IF (.not.cl_parser%is_flag_set('-outf')) THEN
          WRITE (*,1001) '-outf'
          CALL bmw_commandline_parser_print_help
       END IF
 
-      CALL bmw_parallel_context_set_threads(parallel,                          &
-     &        bmw_commandline_parser_get_integer(cl_parser, '-para', 1))
+      CALL parallel%set_threads(cl_parser%get('-para', 1))
 
       flags = bmw_state_flags_off
-      IF (bmw_commandline_parser_is_flag_set(cl_parser, '-force')) THEN
+      IF (cl_parser%is_flag_set('-force')) THEN
          flags = IBSET(flags, bmw_state_flags_force)
       END IF
-      IF (bmw_commandline_parser_is_flag_set(cl_parser, '-ju')) THEN
+      IF (cl_parser%is_flag_set('-ju')) THEN
          flags = IBSET(flags, bmw_state_flags_ju)
       END IF
-      IF (bmw_commandline_parser_is_flag_set(cl_parser, '-jv')) THEN
+      IF (cl_parser%is_flag_set('-jv')) THEN
          flags = IBSET(flags, bmw_state_flags_jv)
          flags = IBCLR(flags, bmw_state_flags_ju)
       END IF
-      IF (bmw_commandline_parser_is_flag_set(cl_parser,                        &
-     &                                       '-siestaf')) THEN
+      IF (cl_parser%is_flag_set('-siestaf')) THEN
          flags = IBSET(flags, bmw_state_flags_siesta)
          flags = IBCLR(flags, bmw_state_flags_ju)
          flags = IBCLR(flags, bmw_state_flags_jv)
@@ -111,10 +106,9 @@
       num_p = 0
 
       io_unit = output_unit
-      IF (bmw_commandline_parser_is_flag_set(cl_parser, '-logf')) THEN
-         CALL safe_open(io_unit, status,                                       &
-     &      bmw_commandline_parser_get_string(cl_parser, '-logf'),             &
-     &      'replace', 'formatted', delim_in='none')
+      IF (cl_parser%is_flag_set('-logf')) THEN
+         CALL safe_open(io_unit, status, cl_parser%get_string('-logf'),        &
+     &                  'replace', 'formatted', delim_in='none')
       END IF
 
       IF (parallel%offset .eq. 0) THEN
@@ -122,23 +116,19 @@
          WRITE (io_unit,1000) series
          WRITE (io_unit,*)
       END IF
-      CALL bmw_parallel_context_report(parallel, io_unit)
+      CALL parallel%report(io_unit)
 
-      context => bmw_context_construct(                                        &
-     &   bmw_commandline_parser_get_string(cl_parser, '-mgridf'),              &
-     &   bmw_commandline_parser_get_string(cl_parser, '-woutf'),               &
-     &   bmw_commandline_parser_get_string(cl_parser, '-siestaf'),             &
-     &   flags, num_p, parallel, io_unit)
-      CALL bmw_context_set_up_grid(context,                                    &
-     &   bmw_commandline_parser_get_integer(cl_parser, '-p_start', -1),        &
-     &   bmw_commandline_parser_get_integer(cl_parser, '-p_end', -1),          &
-     &   parallel, io_unit)
-      CALL bmw_context_write(context,                                          &
-     &        bmw_commandline_parser_get_string(cl_parser, '-outf'),           &
-     &        parallel)
+      context => bmw_context_class(cl_parser%get('-mgridf'),                   &
+     &                             cl_parser%get('-woutf'),                    &
+     &                             cl_parser%get('-siestaf'),                  &
+     &                             flags, num_p, parallel, io_unit)
+      CALL context%set_up_grid(cl_parser%get('-p_start', -1),                  &
+     &                         cl_parser%get('-p_end', -1),                    &
+     &                         parallel, io_unit)
+      CALL context%write(cl_parser%get('-outf'), parallel)
 
-      CALL bmw_context_destruct(context)
-      CALL bmw_commandline_parser_destruct(cl_parser)
+      DEALLOCATE(context)
+      DEALLOCATE(cl_parser)
 
       CALL profiler_set_stop_time('bmw_main', start_time)
       IF (parallel%offset .eq. 0) THEN
@@ -148,11 +138,7 @@
 
       CLOSE(io_unit)
 
-      CALL bmw_parallel_context_destruct(parallel                              &
-#if defined (MPI_OPT)
-     &                                   ,.true.                               &
-#endif
-     &                                  )
+      DEALLOCATE(parallel)
 
 1000  FORMAT('BMW ',i4,' Series.')
 1001  FORMAT('Required flag ',a,' not set.')

@@ -29,6 +29,8 @@ C-----------------------------------------------
       CHARACTER(LEN=1) :: mgrid_mode='S'
       CHARACTER(LEN=70) :: mgrid_file, coil_file
       CHARACTER(LEN=60) :: mgrid_ext
+      LOGICAL     :: use_eddy
+      CHARACTER (len=30), DIMENSION(:), ALLOCATABLE :: temp_sname
 
       PRIVATE :: istat
 C-----------------------------------------------
@@ -66,14 +68,19 @@ C-----------------------------------------------
       CALL cdf_define(ngrid, vn_rmax, rmax)
       CALL cdf_define(ngrid, vn_zmax, zmax)
       IF (nextcur .eq. 1) THEN
-         CALL cdf_define(ngrid, vn_coilgrp,coil_group(1)%s_name) 
+         CALL cdf_define(ngrid, vn_coilgrp,coil_group(1)%s_name)
+      ELSE IF (use_eddy) THEN
+         ALLOCATE(temp_sname(nextcur))
+         temp_sname(1:nextcur - 1) = coil_group(1:nextcur - 1)%s_name
+         temp_sname(nextcur) = 'Eddy currents'
+         CALL cdf_define(ngrid, vn_coilgrp, temp_sname, dimname=coildim)
       ELSE
          CALL cdf_define(ngrid, vn_coilgrp,coil_group(1:nextcur)%s_name,
-     1                   dimname=coildim)
+     &                   dimname=coildim)
       END IF
       CALL cdf_define(ngrid, vn_mgmode, mgrid_mode)
       CALL cdf_define(ngrid, vn_coilcur, extcur(1:nextcur),
-     1                dimname=groupdim)
+     &                dimname=groupdim)
 !
 !     STORED AS 3D ARRAYS (ACTUALLY 4D, BUT CUT THROUGH IG)
 !
@@ -112,6 +119,9 @@ C-----------------------------------------------
       CALL cdf_write(ngrid, vn_zmax, zmax)
       IF (nextcur .eq. 1) THEN
          CALL cdf_write(ngrid, vn_coilgrp, coil_group(1)%s_name)
+      ELSE IF (use_eddy) THEN
+         CALL cdf_write(ngrid, vn_coilgrp, temp_sname)
+         DEALLOCATE(temp_sname)
       ELSE
          CALL cdf_write(ngrid, vn_coilgrp, coil_group(1:nextcur)%s_name)
       END IF
@@ -122,8 +132,17 @@ C-----------------------------------------------
 !     NOTE: USER MUST SUPPLY SUBROUTINE "	" TO COMPUTE THESE VALUES
 !
       GROUPS: DO ig = 1,nextcur
-
-         CALL compute_bfield(ig)
+         IF (ig .eq. nextcur .and. use_eddy) THEN
+            br = 0
+            bp = 0
+            bz = 0
+            ar = 0
+            ap = 0
+            az = 0
+            extcur(nextcur) = 1
+         ELSE
+            CALL compute_bfield(ig)
+         END IF
 
          CALL cdf_write(ngrid, vn_br(ig), br)
          CALL cdf_write(ngrid, vn_bp(ig), bp)

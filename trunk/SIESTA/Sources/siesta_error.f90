@@ -9,8 +9,7 @@
 !*******************************************************************************
       MODULE siesta_error
       USE v3_utilities, ONLY: assert
-      USE shared_data, Only: lrecon
-      USE mpi_inc
+      USE shared_data, Only: lverbose
 
       IMPLICIT NONE
 
@@ -62,8 +61,9 @@
 !  Start of executable code.
       siesta_error_state = IBSET(siesta_error_state, error_code)
 
-      CALL ASSERT(lrecon, message)
-      IF (iam .EQ. 0) WRITE (*,*) TRIM(message)
+      IF (iam .eq. 0 .and. lverbose) THEN
+         WRITE (*,*) TRIM(message)
+      END IF
 
       END SUBROUTINE
 

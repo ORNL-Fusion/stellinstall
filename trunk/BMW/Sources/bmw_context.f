@@ -20,7 +20,7 @@
 !  bmw context module parameters
 !*******************************************************************************
 !>  Version number.
-      INTEGER, PARAMETER :: series = 2
+      INTEGER, PARAMETER :: series = 3
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
@@ -31,21 +31,29 @@
 !>  Base class representing a bmw context. This contains all memory needed to
 !>  operate bmw.
 !-------------------------------------------------------------------------------
-      TYPE bmw_context_class
+      TYPE :: bmw_context_class
 !>  Vacuum grid object.
-         TYPE (m_grid_class), POINTER        :: m_grid => null()
+         CLASS (m_grid_class), POINTER        :: m_grid => null()
 !>  Primed grid object.
-         TYPE (primed_grid_class), POINTER   :: p_grid => null()
+         CLASS (primed_grid_class), POINTER   :: p_grid => null()
 !>  Unprimed grid object.
-         TYPE (unprimed_grid_class), POINTER :: up_grid => null()
+         CLASS (unprimed_grid_class), POINTER :: up_grid => null()
+      CONTAINS
+         PROCEDURE, PASS :: set_up_grid_m => bmw_context_set_up_grid_m
+         PROCEDURE, PASS :: set_up_grid_a => bmw_context_set_up_grid_a
+         GENERIC         :: set_up_grid => set_up_grid_m, set_up_grid_a
+         PROCEDURE, PASS :: write => bmw_context_write
+         FINAL :: bmw_context_destruct
       END TYPE
 
+!*******************************************************************************
+!  INTERFACE BLOCKS
+!*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  Interface to set the unprimed grid.
+!>  Interface for the bmw_context constructor.
 !-------------------------------------------------------------------------------
-      INTERFACE bmw_context_set_up_grid
-         MODULE PROCEDURE bmw_context_set_up_grid_m,                           &
-     &                    bmw_context_set_up_grid_a
+      INTERFACE bmw_context_class
+         MODULE PROCEDURE bmw_context_construct
       END INTERFACE
 
       CONTAINS
@@ -75,18 +83,18 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (bmw_context_class), POINTER :: bmw_context_construct
-      CHARACTER (len=*), INTENT(in)     :: mgrid_file_name
-      CHARACTER (len=*), INTENT(in)     :: wout_file_name
-      CHARACTER (len=*), INTENT(in)     :: siesta_file_name
-      INTEGER, INTENT(in)               :: flags
-      INTEGER, INTENT(inout)            :: num_p
-      TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
-      INTEGER, INTENT(in)               :: io_unit
+      CLASS (bmw_context_class), POINTER :: bmw_context_construct
+      CHARACTER (len=*), INTENT(in)                  :: mgrid_file_name
+      CHARACTER (len=*), INTENT(in)                  :: wout_file_name
+      CHARACTER (len=*), INTENT(in)                  :: siesta_file_name
+      INTEGER, INTENT(in)                            :: flags
+      INTEGER, INTENT(inout)                         :: num_p
+      CLASS (bmw_parallel_context_class), INTENT(in) :: parallel
+      INTEGER, INTENT(in)                            :: io_unit
 
 !  local variables
-      REAL (rprec)                      :: start_time
-      INTEGER                           :: status
+      REAL (rprec)                                   :: start_time
+      INTEGER                                        :: status
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -108,16 +116,15 @@
       END IF
 
       bmw_context_construct%m_grid =>                                          &
-     &   m_grid_construct(mgrid_file_name, parallel, io_unit)
+     &   m_grid_class(mgrid_file_name, parallel, io_unit)
 
       IF (BTEST(flags, bmw_state_flags_mgrid)) THEN
          num_p = SIZE(bmw_context_construct%m_grid%a_p, 3)
       END IF
 
       bmw_context_construct%p_grid =>                                          &
-     &   primed_grid_construct(num_p*bmw_context_construct%m_grid%nfp,         &
-     &                         flags, siesta_file_name, parallel,              &
-     &                         io_unit)
+     &   primed_grid_class(num_p*bmw_context_construct%m_grid%nfp,             &
+     &                     flags, siesta_file_name, parallel, io_unit)
 
       CALL profiler_set_stop_time('bmw_context_construct', start_time)
 
@@ -141,25 +148,23 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (bmw_context_class), POINTER :: this
+      TYPE (bmw_context_class), INTENT(inout) :: this
 
 !  Start of executable code
       IF (ASSOCIATED(this%m_grid)) THEN
-         CALL m_grid_destruct(this%m_grid)
+         DEALLOCATE(this%m_grid)
          this%m_grid => null()
       END IF
 
       IF (ASSOCIATED(this%p_grid)) THEN
-         CALL primed_grid_destruct(this%p_grid)
+         DEALLOCATE(this%p_grid)
          this%p_grid => null()
       END IF
 
       IF (ASSOCIATED(this%up_grid)) THEN
-         CALL unprimed_grid_destruct(this%up_grid)
+         DEALLOCATE(this%up_grid)
          this%up_grid => null()
       END IF
-
-      DEALLOCATE(this)
 
       END SUBROUTINE
 
@@ -185,21 +190,21 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (bmw_context_class), INTENT(inout)       :: this
-      INTEGER, INTENT(in)                           :: p_start
-      INTEGER, INTENT(in)                           :: p_end
-      TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
-      INTEGER, INTENT(in)                           :: io_unit
+      CLASS (bmw_context_class), INTENT(inout)       :: this
+      INTEGER, INTENT(in)                            :: p_start
+      INTEGER, INTENT(in)                            :: p_end
+      CLASS (bmw_parallel_context_class), INTENT(in) :: parallel
+      INTEGER, INTENT(in)                            :: io_unit
 
 !  local variables
-      REAL (rprec)                                  :: start_time
+      REAL (rprec)                                   :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      this%up_grid => unprimed_grid_construct(this%m_grid, this%p_grid,        &
-     &                                        p_start, p_end, parallel,        &
-     &                                        io_unit)
+      this%up_grid => unprimed_grid_class(this%m_grid, this%p_grid,            &
+     &                                    p_start, p_end, parallel,            &
+     &                                    io_unit)
 
       CALL profiler_set_stop_time('bmw_context_set_up_grid_m',                 &
      &                            start_time)
@@ -226,22 +231,22 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (bmw_context_class), INTENT(inout)       :: this
-      REAL (rprec), DIMENSION(:,:,:), INTENT(in)    :: r_grid
-      REAL (rprec), DIMENSION(:,:,:), INTENT(in)    :: z_grid
-      REAL (rprec), INTENT(in)                      :: dphi
-      TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
-      INTEGER, INTENT(in)                           :: io_unit
+      CLASS (bmw_context_class), INTENT(inout)       :: this
+      REAL (rprec), DIMENSION(:,:,:), INTENT(in)     :: r_grid
+      REAL (rprec), DIMENSION(:,:,:), INTENT(in)     :: z_grid
+      REAL (rprec), INTENT(in)                       :: dphi
+      CLASS (bmw_parallel_context_class), INTENT(in) :: parallel
+      INTEGER, INTENT(in)                            :: io_unit
 
 !  local variables
-      REAL (rprec)                                  :: start_time
+      REAL (rprec)                                   :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      this%up_grid => unprimed_grid_construct(this%m_grid, this%p_grid,        &
-     &                                        r_grid, z_grid, dphi,            &
-     &                                        parallel, io_unit)
+      this%up_grid => unprimed_grid_class(this%m_grid, this%p_grid,            &
+     &                                    r_grid, z_grid, dphi,                &
+     &                                    parallel, io_unit)
 
       CALL profiler_set_stop_time('bmw_context_set_up_grid_a',                 &
      &                            start_time)
@@ -278,33 +283,7 @@
 !>     @item{jx_grid (num_s\, num_u\, num_v), X position of the primed grid.,     primed_grid::primed_grid_class::j_x}
 !>     @item{jy_grid (num_s\, num_u\, num_v), Y position of the primed grid.,     primed_grid::primed_grid_class::j_y}
 !>     @item{jz_grid (num_s\, num_u\, num_v), Z position of the primed grid.,     primed_grid::primed_grid_class::j_z}
-
 !>  @end_table
-!-------------------------------------------------------------------------------
-!>  @brief Initialize NetCDF based result file.
-!>
-!>  If a result file already exists, open it. If a previous result file does not
-!>  already exist create a new one.
-!>
-!>  @param[in] this             A @ref bmw_context_class instance.
-!>  @param[in] result_file_name NetCDF file id of the result file.
-!>  @param[in] parallel         @ref bmw_parallel_context_class object instance.
-!-------------------------------------------------------------------------------
-      SUBROUTINE bmw_context_init_nc(this, result_file_name, parallel)
-      USE ezcdf
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (bmw_context_class), INTENT(in)          :: this
-      CHARACTER (len=*), INTENT(in)                 :: result_file_name
-      TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
-
-!  local variables
-      REAL (rprec)                                  :: start_time
-
-      END SUBROUTINE
-
 !-------------------------------------------------------------------------------
 !>  @brief Write NetCDF based result file.
 !>
@@ -321,14 +300,14 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (bmw_context_class), INTENT(in)          :: this
-      CHARACTER (len=*), INTENT(in)                 :: result_file_name
-      TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
+      CLASS (bmw_context_class), INTENT(in)          :: this
+      CHARACTER (len=*), INTENT(in)                  :: result_file_name
+      CLASS (bmw_parallel_context_class), INTENT(in) :: parallel
 
 !  local variables
-      REAL (rprec)                                  :: start_time
-      INTEGER                                       :: status
-      INTEGER                                       :: result_iou
+      REAL (rprec)                                   :: start_time
+      INTEGER                                        :: status
+      INTEGER                                        :: result_iou
 
 !  local parameters
       CHARACTER (len=*), DIMENSION(3), PARAMETER  ::                           &

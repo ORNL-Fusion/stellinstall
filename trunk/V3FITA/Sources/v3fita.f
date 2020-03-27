@@ -690,6 +690,7 @@
       USE coordinate_utilities
       USE functions
       USE integration_path
+      USE fourier
 
       IMPLICIT NONE
 
@@ -724,6 +725,13 @@
 ! Integration path tests
       IF (path_test()) THEN
          WRITE (*,*) 'Integration Path Test Passed'
+      ELSE
+         tests_failed = .true.
+      END IF
+
+!  SIESTA fourier unit test.
+      IF (test_fourier()) THEN
+         WRITE (*,*) 'SIESTA Fourier Test Passed'
       ELSE
          tests_failed = .true.
       END IF

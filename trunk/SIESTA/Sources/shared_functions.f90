@@ -1,13 +1,20 @@
-!>  \brief Module contained subroutines and functions updating MHD forces and Wmhd
-!!  \author S. P. Hirshman
-!!  \date July, 2014
+!*******************************************************************************
+!>  @file shared_functions.f90
+!>  @brief Contains module @ref shared_functions
+!
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
+!
+!>  Subroutines and functions updating MHD forces and Wmhd.
+!*******************************************************************************
+
       MODULE shared_functions
       USE v3_utilities, ONLY: assert
       USE shared_data
+      USE utilities
       USE descriptor_mod, ONLY: INHESSIAN, nprocs, iam, SIESTA_COMM
-      USE island_params, ns=>ns_i, hs=>hs_i
+      USE island_params, ns=>ns_i, hs=>hs_i, mpol=>mpol_i, ntor=>ntor_i
       USE hessian, ONLY: apply_precond, l_Compute_Hessian, apply_colscale
-      USE quantities, ONLY: wb, wp
       USE timer_mod, ONLY: time_init_state, time_funci
       USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR,       &
                                PARSOLVER
@@ -15,210 +22,241 @@
       USE GMRES_LIB, ONLY: Truncate
       
       IMPLICIT NONE
-
-      INTEGER, PRIVATE :: nsmin, nsmax
       
       CONTAINS
 
-!>  \brief Parallel/Serial routine to compute forces for perturbed state.
-!!  \author S. P. Hirshman, R. Sanchez, S. K. Seal
+!*******************************************************************************
+!  UTILITY SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Compute forces for the perturbed state.
+!-------------------------------------------------------------------------------
       SUBROUTINE funct_island
-!-----------------------------------------------
-!     PARALLEL (in N rows, PARSOLVER=T)
-!     SERIAL   (PARSOLVER=F, startglobrow=1, endglobrow=ns)
-!-----------------------------------------------
       USE siesta_bfield, ONLY: update_bfield
       USE siesta_pressure, ONLY: update_pres
       USE siesta_force, ONLY: update_force
       USE siesta_displacement, ONLY: update_upperv
       USE siesta_init, ONLY: init_state
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      REAL(dp) :: ton, toff, skston, skstoff
-      LOGICAL  :: ltype
-!-----------------------------------------------
+      USE quantities, ONLY: wb, wp
+      USE siesta_state, ONLY: Clear_Field_Perts
+
+      IMPLICIT NONE
+
+!  Local Variables
+      REAL (dp) :: ton
+      REAL (dp) :: toff
+      REAL (dp) :: skston
+      REAL (dp) :: skstoff
+      LOGICAL   :: ltype
+      INTEGER   :: nsmin
+      INTEGER   :: nsmax
+
+!  Start if executable code.
       CALL second0(ton)
-      nsmin=MAX(1,startglobrow); nsmax=MIN(endglobrow,ns)
+      nsmin = MAX(1, startglobrow)
+      nsmax = MIN(endglobrow, ns)
 
       IF (INHESSIAN) THEN
-         in_hess_nfunct=in_hess_nfunct+1
+         in_hess_nfunct = in_hess_nfunct + 1
       ELSE
-         out_hess_nfunct=out_hess_nfunct+1
+         out_hess_nfunct = out_hess_nfunct + 1
       END IF
 
-      l_update_state = .FALSE.
+      l_update_state = .false.
       IF (l_init_state) THEN
-        CALL second0(skston)
-        CALL init_state(.FALSE.)
-        CALL second0(skstoff)
-        time_init_state=time_init_state+(skstoff-skston)
-        l_init_state = .FALSE.
+         CALL second0(skston)
+         CALL init_state(.false.)
+         CALL second0(skstoff)
+         time_init_state = time_init_state + (skstoff - skston)
+         l_init_state = .FALSE.
       END IF
 
-      CALL update_upperv
-      CALL update_bfield (.FALSE.)
-      CALL update_pres
+!  There no need to compute the pertubations if the displacement vector did not
+!  change.
+      IF (ANY(xc .ne. 0) .or. ALLOCATED(buv_res)) THEN
+         CALL update_upperv
+         CALL update_bfield(.false.)
+         CALL update_pres
+      ELSE
+         CALL Clear_Field_Perts
+      END IF
       CALL update_force
 
-      CALL ASSERT(gamma.NE.one,'SIESTA REQUIRES gamma != 1')
-      wtotal = wb + wp/(gamma-1)
-      IF (wtotal0 == -1) wtotal0 = wtotal
-      
+      CALL ASSERT(gamma .ne. one, 'SIESTA REQUIRES gamma != 1')
+      wtotal = wb + wp/(gamma - 1)
+      IF (wtotal0 .eq. -1) THEN
+         wtotal0 = wtotal
+      END IF
+
       gc = gnorm_i*gc
 
-!     CALLED FROM GMRES: ADD BACK INITIAL FORCE gc0 or STORE UNPRECONDITIONED FORCES
-      IF (ALLOCATED(gc0) .AND. (l_getfsq .OR. l_conjgrad) .AND.         &
-         l_linearize .AND. .NOT.l_Compute_Hessian) gc = gc+gc0
+!  Called from gmres. Add back the inital force gc0 or store unpreconditioned
+!  forces.
+      IF (ALLOCATED(gc0)             .and.                                     &
+          (l_getfsq .or. l_conjgrad) .and.                                     &
+          l_linearize                .and.                                     &
+         .not.l_Compute_Hessian) THEN
+         gc = gc + gc0
+      END IF
 
-      CALL ASSERT(.NOT.(l_getfsq.AND.inhessian),                        &
+      CALL ASSERT(.not.(l_getfsq .and. inhessian),                             &
                   'l_getfsq must be set to FALSE in Hessian')
 
       IF (l_getfsq) THEN
-! COMPUTE PRECONDITIONED, VOLUME-AVERAGED FORCE fsq_total 
-         CALL GetFSQ(fsq_total)
+!  Compute preconditioned volume-averaged force.
+         fsq_total = GetFSQ(nsmin, nsmax)
 
-!COMPUTE UN-PRECONDITIONED, VOLUME-AVERAGED FORCE fsq_total1
-         IF (ANY(col_scale .NE. one)) THEN
-            col_scale(:,:,:,nsmin:nsmax) = one/col_scale(:,:,:,nsmin:nsmax)
-            CALL Apply_ColScale(gc, col_scale, nsmin, nsmax)
+!  Compute un preconfitioned volume-averaged force.
+         IF (ANY(col_scale .ne. one)) THEN
+            CALL Apply_ColScale(gc, one/col_scale, nsmin, nsmax)
 
-            CALL GetFSQ(fsq_total1)
+            fsq_total1 = GetFSQ(nsmin, nsmax)
 
-            col_scale(:,:,:,nsmin:nsmax) = one/col_scale(:,:,:,nsmin:nsmax)            
             CALL Apply_ColScale(gc, col_scale, nsmin, nsmax)
          ELSE
             fsq_total1 = fsq_total
          END IF
       END IF
 
-!
-!     GMRES handles preconditioning itself: do NOT apply
-!     Do not precondition when Hessian is being computed
-      IF (l_ApplyPrecon) CALL apply_precond(gc)
+!  gmres handles preconditioning itself. Do not apply when called from inside
+!  gmres or when the hessian is being computed.
+      IF (l_ApplyPrecon) THEN
+         CALL apply_precond(gc)
+      END IF
 
       CALL second0(toff)
-      time_funci = time_funci+(toff-ton)
+      time_funci = time_funci + (toff - ton)
 
-      END SUBROUTINE funct_island
+      END SUBROUTINE
 
-
-      SUBROUTINE GetFSQ(fsqout)
+!-------------------------------------------------------------------------------
+!>  @brief Computes the force residul.
+!>
+!>  The force residul is found by
+!>
+!>    |F^2| = Fsub.Fsup = f_s*f^s + f_u*f^u + f_v*f^v                        (3)
+!>
+!>  @param[in] nsmin Minimum radial index.
+!>  @param[in] nsmax Maximum radial index.
+!>  @returns |F^2|
+!-------------------------------------------------------------------------------
+      FUNCTION GetFSQ(nsmin, nsmax)
       USE quantities, ONLY: fsubsmncf, fsubumnsf, fsubvmnsf,            &
                             fsupsmncf, fsupumnsf, fsupvmnsf,            &
                             fsubsmnsf, fsubumncf, fsubvmncf,            &
                             fsupsmnsf, fsupumncf, fsupvmncf,            &
                             toupper_forces
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), INTENT(OUT) :: fsqout
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      REAL(dp) :: stmp(3), rtmp(3)
-      INTEGER  :: js
-!-----------------------------------------------
-      stmp(1) = SUM(fsubsmncf(:,:,nsmin:nsmax)**2)
-      stmp(2) = SUM(fsubumnsf(:,:,nsmin:nsmax)**2)
-      stmp(3) = SUM(fsubvmnsf(:,:,nsmin:nsmax)**2)
-      IF (lasym) THEN
-         stmp(1) = stmp(1) + SUM(fsubsmnsf(:,:,nsmin:nsmax)**2)
-         stmp(2) = stmp(2) + SUM(fsubumncf(:,:,nsmin:nsmax)**2)
-         stmp(3) = stmp(3) + SUM(fsubvmncf(:,:,nsmin:nsmax)**2)
-      END IF
-         
-#if defined(MPI_OPT)         
-      IF (PARSOLVER) THEN
-         CALL MPI_ALLREDUCE(stmp,rtmp,3,MPI_REAL8,MPI_SUM,              &
-                            SIESTA_COMM,MPI_ERR)
-         stmp = rtmp
-      END IF
-#endif         
-      fsqvs=hs*stmp(1); fsqvu=hs*stmp(2); fsqvv=hs*stmp(3)
 
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp)               :: GetFSQ
+      INTEGER, INTENT(in)     :: nsmin
+      INTEGER, INTENT(in)     :: nsmax
+
+!  Local Variables
+      REAL (dp), DIMENSION(4) :: temp
+      INTEGER                 :: js
+
+!  Start of executable code.
       CALL toupper_forces
 
-!VOLUME-AVERAGE |F|**2
-      stmp(1) = 0
-      DO js = nsmin,nsmax
-         stmp(1) = stmp(1) + vp_f(js)*SUM(                              &
-                   fsupsmncf(:,:,js)*fsubsmncf(:,:,js)                  & 
-                 + fsupumnsf(:,:,js)*fsubumnsf(:,:,js)                  &
-                 + fsupvmnsf(:,:,js)*fsubvmnsf(:,:,js))
+      temp(1) = SUM(fsubsmncf(:,:,nsmin:nsmax)**2)
+      temp(2) = SUM(fsubumnsf(:,:,nsmin:nsmax)**2)
+      temp(3) = SUM(fsubvmnsf(:,:,nsmin:nsmax)**2)
+      IF (lasym) THEN
+         temp(1) = temp(1) + SUM(fsubsmnsf(:,:,nsmin:nsmax)**2)
+         temp(2) = temp(2) + SUM(fsubumncf(:,:,nsmin:nsmax)**2)
+         temp(3) = temp(3) + SUM(fsubvmncf(:,:,nsmin:nsmax)**2)
+      END IF
+
+!  Volume avereages |F|^2.
+      temp(4) = 0
+      DO js = nsmin, nsmax
+         temp(4) = temp(4)                                                     &
+                 + vp_f(js)*SUM(fsupsmncf(:,:,js)*fsubsmncf(:,:,js) +          &
+                                fsupumnsf(:,:,js)*fsubumnsf(:,:,js) +          &
+                                fsupvmnsf(:,:,js)*fsubvmnsf(:,:,js))
          IF (lasym) THEN
-         stmp(1) = stmp(1) + vp_f(js)*SUM(                              &
-                   fsupsmnsf(:,:,js)*fsubsmnsf(:,:,js)                  &
-                 + fsupumncf(:,:,js)*fsubumncf(:,:,js)                  &
-                 + fsupvmncf(:,:,js)*fsubvmncf(:,:,js))
+            temp(4) = temp(4)                                                  &
+                    + vp_f(js)*SUM(fsupsmnsf(:,:,js)*fsubsmnsf(:,:,js) +       &
+                                   fsupumncf(:,:,js)*fsubumncf(:,:,js) +       &
+                                   fsupvmncf(:,:,js)*fsubvmncf(:,:,js))
          END IF
       END DO
-      stmp(2) = SUM(vp_f(nsmin:nsmax))
 #if defined(MPI_OPT)         
       IF (PARSOLVER) THEN
-         CALL MPI_ALLREDUCE(stmp,rtmp,2,MPI_REAL8,MPI_SUM,              &
-                            SIESTA_COMM,MPI_ERR)
-         stmp = rtmp
+!  FIXME: All reduce is not deterministic. This causes a divergent run sequence.
+         CALL MPI_ALLREDUCE(MPI_IN_PLACE, temp, 4, MPI_REAL8, MPI_SUM,         &
+                            SIESTA_COMM, MPI_ERR)
       END IF
 #endif
-      fsqout = stmp(1)/stmp(2)
-      
-      
-      END SUBROUTINE GetFSQ
 
+      fsqvs = hs*temp(1)
+      fsqvu = hs*temp(2)
+      fsqvv = hs*temp(3)
 
-!>   \brief Returns perturbed MHD+KINETIC energy
-!!   \author S. P. Hirshman, R. Sanchez
-      FUNCTION getwmhd (p)
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), INTENT(in) :: p(neqs)           !<displacement vector
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      REAL(dp) :: getwmhd
-!-----------------------------------------------
-        
+      GetFSQ = temp(4)/SUM(vp_f)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the perturbed MHD and Kinetic energy.
+!>
+!>  @param[in] p Displacement vector.
+!>  @return The total stored energy.
+!-------------------------------------------------------------------------------
+      FUNCTION getwmhd(p)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp)                           :: getwmhd
+      REAL (dp), DIMENSION(:), INTENT(in) :: p
+
+!  Start of executable code.
       xc = p
-      l_init_state = .TRUE.
-      l_linearize  = .FALSE.
-      l_getwmhd    = .TRUE.
-      l_getfsq     = .FALSE.
+      l_init_state = .true.
+      l_linearize  = .false.
+      l_getwmhd    = .true.
+      l_getfsq     = .false.
 
       CALL funct_island
 
-      l_getwmhd    = .FALSE.
+      l_getwmhd    = .false.
 
       getwmhd = wtotal
 
-      RETURN
+      END FUNCTION
 
-      END FUNCTION getwmhd 
-      
-
-!>    \brief Performs line search along xc vector for minimum fsq_total1
-!!    \author S. P. Hirshman (2016)
+!-------------------------------------------------------------------------------
+!>  @brief Perform line search along xc vector for minimum force residul.
+!>
+!>  @param[inout] xcmin   Scaled displacement vector.
+!>  @param[out]   fsq_min Resdule at the minimum.
+!-------------------------------------------------------------------------------
       SUBROUTINE LineSearch(xcmin, fsq_min)
       USE siesta_namelist, ONLY: ftol
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), INTENT(INOUT) :: xcmin(neqs)
-      REAL(dp), INTENT(INOUT) :: fsq_min
-!-----------------------------------------------
-      REAL(dp) :: facmin
-      INTEGER  :: iter, j
-      LOGICAL  :: lwrite
-!-----------------------------------------------
-      facmin = 2
-      l_init_state = .FALSE.
-      l_getfsq = .TRUE.
-      
-      lwrite = (iam .EQ. 0 .and. lverbose) 
-      IF (lwrite) PRINT 90
- 90   FORMAT(/,1x,'LINE SEARCH - SCAN ||X|| FOR MIN FSQ_NL',/,1x,15('-'), &
-           /,1x,'ITER',7x,'FSQ_NL',10x,'||X||',9x,'MAX|X|',10x,'FAC')
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL(dp), DIMENSION(neqs), INTENT(inout) :: xcmin
+      REAL(dp), INTENT(out)                    :: fsq_min
+
+!  Local Variables
+      REAL (dp)                                :: facmin
+      INTEGER                                  :: iter
+      INTEGER                                  :: j
+
+!  Start if executable code.
+      facmin = 3
+      l_init_state = .false.
+      l_getfsq = .true.
+
+      IF (iam .eq. 0 .and. lverbose) THEN
+         WRITE (*,1000)
+      END IF
 
       xc = facmin*xcmin
       iter = 0
@@ -226,26 +264,77 @@
 
       DO j = 1, 100
          CALL funct_island
-         IF (fsq_total1 .LT. fsq_min) THEN
+         IF (fsq_total1 .lt. fsq_min) THEN
             xcmin = xc
-            IF (fsq_total1 .GT. 0.98_dp*fsq_min) iter=iter+1
-            IF (fsq_total1 .LT. 0.85_dp*fsq_min) iter = 0
+            IF (fsq_total1 .gt. 0.98_dp*fsq_min) THEN
+               iter = iter + 1
+            END IF
+            IF (fsq_total1 .lt. 0.85_dp*fsq_min) THEN
+               iter = 0
+            END IF
             fsq_min = fsq_total1
-         ELSE IF (j .GT. 4) THEN
-            iter = iter+1
+         ELSE IF (j .gt. 4) THEN
+            iter = iter + 1
          END IF
-         IF (iam .EQ. 0 .AND. lverbose) THEN
-            PRINT 100, j, fsq_total1, SQRT(SUM(xc*xc)),                 &
-                       MAXVAL(ABS(xc)), facmin
+         IF (iam .eq. 0 .and. lverbose) THEN
+            WRITE (*,1001) j, fsq_total1, SQRT(SUM(xc*xc)), MAXVAL(ABS(xc)),   &
+                           facmin
             facmin = facmin/SQRT2
          END IF
-         IF (iter.GT.2 .OR. fsq_total1.LE.ftol) EXIT
+         IF (iter .gt. 2 .or. fsq_total1 .le. ftol) THEN
+            EXIT
+         END IF
          xc = xc/SQRT2
       END DO
 
- 100  FORMAT(i5,4(3x,1pe12.3))
+1000  FORMAT(/,1x,'LINE SEARCH - SCAN ||X|| FOR MIN FSQ_NL',/,1x,15('-'),      &
+             /,1x,'ITER',7x,'FSQ_NL',10x,'||X||',9x,'MAX|X|',10x,'FAC')
+1001  FORMAT(i5,4(3x,1pe12.3))
  
-      END SUBROUTINE LineSearch
+      END SUBROUTINE
 
+!-------------------------------------------------------------------------------
+!>  @brief Initializes pointers for xc (displacement variable) and gc (force)
+!>         residules.
+!>
+!>  @param[in]  xtarget   State array to point to.
+!>  @param[out] s_ptr_sym Stellarator symmetric term for the s component.
+!>  @param[out] u_ptr_sym Stellarator symmetric term for the u component.
+!>  @param[out] v_ptr_sym Stellarator symmetric term for the v component.
+!>  @param[out] s_ptr_asym Stellarator asymmetric term for the s component.
+!>  @param[out] u_ptr_asym Stellarator asymmetric term for the u component.
+!>  @param[out] v_ptr_asym Stellarator asymmetric term for the v component.
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_ptrs(xtarget, s_ptr_sym, u_ptr_sym, v_ptr_sym,           &
+                           s_ptr_asym, u_ptr_asym, v_ptr_asym)
 
-      END MODULE shared_functions
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp), DIMENSION(0:mpol,-ntor:ntor,ndims,ns), TARGET, INTENT(in) ::  &
+         xtarget
+      REAL (dp), DIMENSION(:,:,:), POINTER :: s_ptr_sym
+      REAL (dp), DIMENSION(:,:,:), POINTER :: u_ptr_sym
+      REAL (dp), DIMENSION(:,:,:), POINTER :: v_ptr_sym
+      REAL (dp), DIMENSION(:,:,:), POINTER :: s_ptr_asym
+      REAL (dp), DIMENSION(:,:,:), POINTER :: u_ptr_asym
+      REAL (dp), DIMENSION(:,:,:), POINTER :: v_ptr_asym
+
+!  Start of executable code.
+
+!  Set stellarator symmetric pointers.
+      s_ptr_sym => xtarget(:,:,1,:)
+      u_ptr_sym => xtarget(:,:,2,:)
+      v_ptr_sym => xtarget(:,:,3,:)
+
+!  The number of dimensions if double when lasym is true. Set the stellarator
+!  asymmetric pointers.
+      IF (ndims .eq. 6) THEN
+         s_ptr_asym => xtarget(:,:,4,:)
+         u_ptr_asym => xtarget(:,:,5,:)
+         v_ptr_asym => xtarget(:,:,6,:)
+      END IF
+
+      END SUBROUTINE
+
+      END MODULE

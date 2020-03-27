@@ -97,11 +97,11 @@
 #endif
 !  Start of executable code
       IF (.not.n1) THEN
-         IF (myrank .eq. 0) THEN
+!         IF (myrank .eq. 0) THEN
          WRITE (*,fmt) 'error: an assertion failed with this tag:',     &
      &      string
          WRITE(*,*) ' n1 = ',n1
-         END IF
+!         END IF
 !  Is error Fatal or Warning?
          lfatal = .TRUE.
          IF (PRESENT(err_class)) THEN
@@ -801,5 +801,34 @@
       RETURN
       END SUBROUTINE most_redundant
 
+!-------------------------------------------------------------------------------
+!>  @brief Print out a double precission real as a full precision int.
+!>
+!>  Use the equivalence statement to represent a real as an integer without type
+!>  conversion to intetger. This preserves the full binary represenation to
+!>  debug small differences in real numbers that a normal print statement may
+!>  miss.
+!-------------------------------------------------------------------------------
+      FUNCTION to_integer(real_value)
+      USE stel_kinds
+      USE, INTRINSIC :: iso_c_binding
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER (C_INT64_T)   :: to_integer
+      REAL (dp), INTENT(in) :: real_value
+
+!  Local variables
+      REAL (dp)             :: as_double
+      INTEGER (C_INT64_T)   :: as_int
+
+      EQUIVALENCE (as_double, as_int)
+
+!  Start of executable code.
+      as_double = real_value
+      to_integer = as_int
+
+      END FUNCTION
 
       END MODULE v3_utilities

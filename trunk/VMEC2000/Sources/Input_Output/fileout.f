@@ -130,7 +130,6 @@ C-----------------------------------------------
      &      norm_term_flag, more_iter_flag, output_flag,
      &      cleanup_flag, successful_term_flag
       USE vforces
-      USE vsvd
       USE xstuff, ONLY: xc, gc, xsave, scalxc
       USE precon2d, ONLY: ictrl_prec2d
       USE timer_sub
@@ -176,7 +175,7 @@ C-----------------------------------------------
      &   /)
       CHARACTER(LEN=*), PARAMETER ::
      &    Warning = " Error deallocating global memory FILEOUT"
-      LOGICAL :: log_open, lwrite, loutput, lterm
+      LOGICAL :: lwrite, loutput, lterm
       REAL(dp) :: tmpxc, rmssum
 C-----------------------------------------------
     
@@ -289,21 +288,6 @@ C-----------------------------------------------
       END IF
 
 !     END TEST
-
-!
-!     WRITE SEQUENCE HISTORY FILE
-!
-      INQUIRE(unit=nlog,opened=log_open)
-      IF (lrecon .and. log_open) THEN
-         IF (iseq .eq. 0) WRITE (nlog, 100)
-         WRITE (nlog, 110) iseq + 1, iter2, total_chi_square_n,
-     &      1.e-6_dp*ctor/mu0, 1.e-3_dp*ppeak/mu0, torflux, r00,
-     &      timer(tsum), input_extension
-      END IF
-
-  100 FORMAT(' SEQ ITERS  CHISQ/N',
-     1   '  TORCUR  PRESMAX  PHIEDGE     R00 CPU-TIME  EXTENSION')
-  110 FORMAT(i4,i6,f8.2,3f9.2,f8.2,f9.2,2x,a20)
 
  1000 CONTINUE
 
