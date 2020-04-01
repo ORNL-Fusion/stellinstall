@@ -5295,10 +5295,11 @@ END SUBROUTINE FinalizeScaleFactors
 !-------------------------------------------------------------------------------
 
 !-------------------------------------------------------------------------------
-SUBROUTINE ApplyParallelScaling(lmp, colscale)
+SUBROUTINE ApplyParallelScaling(lmp, colscale, lverbose)
 !-------------------------------------------------------------------------------
 REAL(dp), INTENT(IN)    :: lmp
 REAL(dp), INTENT(INOUT) :: colscale(M,N)
+LOGICAL, INTENT(IN)     :: lverbose
 !-------------------------------------------------------------------------------
 INTEGER               :: icount, istat
 REAL(dp)              :: ton, toff, colcnd, colcnd1, temp(2)
@@ -5342,7 +5343,7 @@ DEALLOCATE(colpad)
 CALL FindMinMax_TRI(lmp)
 
 CALL second0(toff)
-IF (rank.EQ.0) PRINT '(1x,3(a,1p,e10.3))',                              &
+IF (rank.EQ.0 .and. lverbose) PRINT '(1x,3(a,1p,e10.3))',                      &
               'COLUMN-SCALING TIME: ', toff-ton, ' COLCND: ', colcnd,   &
               ' DMINL: ', DMIN_TRI*lmp
 
