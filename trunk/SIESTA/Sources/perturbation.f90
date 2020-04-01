@@ -244,8 +244,8 @@
       w0 = getwmhd(xc)
 
       IF (iam .eq. 0) THEN
-         DO iprint = 6, unit_out, unit_out-6
-            IF (lverbose .or. iprint .eq. 6) THEN
+         DO iprint = 6, unit_out, unit_out - 6
+            IF (lverbose .or. iprint .ne. 6) THEN
                WRITE (iprint, 1000)
             END IF
          END DO
@@ -332,7 +332,7 @@
                   END IF
 
                   DO iprint = 6, unit_out, unit_out - 6
-                     IF (lverbose .or. iprint .eq. 6) THEN
+                     IF (lverbose .or. iprint .ne. 6) THEN
                         WRITE (iprint, 1001) 10**6*(wmhd - w0), mres0, nres0,  &
                                              HP*normal, rad,                   &
                                              ABS(mres0*chip0 +                 &
@@ -363,7 +363,7 @@
 
       IF (iam .eq. 0) THEN
          DO iprint = 6, unit_out, unit_out - 6
-            IF (lverbose .or. iprint .eq. 6) THEN
+            IF (lverbose .or. iprint .ne. 6) THEN
                WRITE (iprint, *)
             END IF
          END DO
