@@ -933,9 +933,9 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE siesta_set_magnetic_cache_calc(this)
       USE stel_constants, only: mu0
-      USE read_wout_mod, only: nfp, mnmax, xm, xn, rmnc, rmns, zmnc,           &
-     &                         zmns, lasym, nsvmec => ns
-      USE siesta_namelist, ONLY: mpolin, ntorin
+      USE read_wout_mod, only: mnmax, xm, xn, rmnc, rmns, zmnc, zmns,          &
+     &                         lasym, nsvmec => ns
+      USE siesta_namelist, ONLY: mpolin, ntorin, nfpin
 
       IMPLICIT NONE
 
@@ -948,6 +948,7 @@
       INTEGER                                   :: numS, numU, numV
       INTEGER                                   :: m, n
       INTEGER                                   :: mpol, ntor
+      INTEGER                                   :: nfp
       REAL (rprec)                              :: r, rs, ru, rv
       REAL (rprec)                              :: z, zs, zu, zv
       REAL (rprec)                              :: js, ju, jv
@@ -980,9 +981,11 @@
          IF (ASSOCIATED(this%context)) THEN
             mpol = this%context%mpol
             ntor = this%context%ntor
+            nfp = this%context%nfp
          ELSE
             mpol = mpolin
             ntor = ntorin
+            nfp = nfpin
          END IF
 
 !$OMP PARALLEL
@@ -1289,9 +1292,6 @@
 
                END IF
 
-               bu = bu/this%context%b_factor
-               bv = bv/this%context%b_factor
-
                this%magnetic_cache%kruv(j,k) = -(bu*rv - bv*ru)/mu0
                this%magnetic_cache%kphiuv(j,k) = -bu*r/mu0
                this%magnetic_cache%kzuv(j,k) = -(bu*zv - bv*zu)/mu0
@@ -1381,9 +1381,6 @@
                   bu = bu + SUM(bsubus*sinmn)
                   bv = bv + SUM(bsubvs*sinmn)
                END IF
-
-               bu = bu/this%context%b_factor
-               bv = bv/this%context%b_factor
 
                kr = -(bu*rv - bv*ru)/mu0
                kp = -bu*r/mu0
@@ -2889,7 +2886,6 @@
 !>  @returns The plasma pressure at flux.
 !-------------------------------------------------------------------------------
       FUNCTION siesta_get_p_flux(this, flux, normalize)
-      USE read_wout_mod, only: nfp
       USE stel_constants, only: mu0
 
       IMPLICIT NONE
@@ -2908,6 +2904,7 @@
       INTEGER                                :: ihigh
       INTEGER                                :: mpol
       INTEGER                                :: ntor
+      INTEGER                                :: nfp
       INTEGER                                :: m
       INTEGER                                :: n
       REAL (rprec)                           :: start_time
@@ -2936,6 +2933,7 @@
 
       mpol = this%context%mpol
       ntor = this%context%ntor
+      nfp = this%context%nfp
 
       siesta_get_p_flux = 0.0
       DO n = -ntor, ntor
@@ -2954,7 +2952,7 @@
          END DO
       END DO
 
-!  The normalizes pressure is requested, scale the pressure to the min and max
+!  The normalizes pressure if requested, scale the pressure to the min and max
 !  pressure. Otherwise apply constants to comvert to pascals.
       IF (normalize) THEN
 !  Ensure that the pressure is not outside the bounds of pmin and pmax.
@@ -2963,9 +2961,6 @@
 
          siesta_get_p_flux = (siesta_get_p_flux - this%context%p_min)          &
      &                     / (this%context%p_max - this%context%p_min)
-      ELSE
-         siesta_get_p_flux = siesta_get_p_flux                                 &
-     &                     / (mu0*this%context%p_factor)
       END IF
 
       CALL profiler_set_stop_time('siesta_get_p_flux', start_time)
@@ -3627,8 +3622,8 @@
 !>  @returns The internal field.
 !-------------------------------------------------------------------------------
       FUNCTION siesta_get_int_b_plasma(this, flux)
-      USE read_wout_mod, only: nfp, mnmax, xm, xn, rmnc, rmns, zmnc,           &
-     &                         zmns, lasym, nsvmec => ns
+      USE read_wout_mod, only: mnmax, xm, xn, rmnc, rmns, zmnc, zmns,          &
+     &                         lasym, nsvmec => ns
 
       USE vmec_utils, ONLY : GetBcyl_WOUT
 
@@ -3651,6 +3646,7 @@
       INTEGER                                 :: ihigh_s
       INTEGER                                 :: mpol
       INTEGER                                 :: ntor
+      INTEGER                                 :: nfp
       INTEGER                                 :: m
       INTEGER                                 :: n
       REAL (rprec)                            :: r
@@ -3722,6 +3718,7 @@
 
       mpol = this%context%mpol
       ntor = this%context%ntor
+      nfp = this%context%nfp
 
       bs = 0.0
       bu = 0.0

@@ -11,6 +11,7 @@
       MODULE siesta_context
       USE stel_kinds
       USE profiler
+      USE restart_mod
 
       IMPLICIT NONE
 
@@ -33,9 +34,8 @@
          INTEGER                                 :: mpol
 !>  Number of toroidal modes.
          INTEGER                                 :: ntor
-
-!>  Normalization factor for pressure.
-         REAL (rprec)                            :: p_factor
+!>  Number of field periods.
+         INTEGER                                 :: nfp
 
 !>  Minimum pressure.
          REAL (rprec)                            :: p_min
@@ -131,112 +131,111 @@
 
       CALL cdf_open(ncid, TRIM(restart_file_name), 'r', status)
 
-      CALL cdf_read(ncid, 'nrad', ns)
-      CALL cdf_read(ncid, 'mpol', mpol)
-      CALL cdf_read(ncid, 'ntor', ntor)
+      CALL cdf_read(ncid, vn_nsin, ns)
+      CALL cdf_read(ncid, vn_mpolin, mpol)
+      CALL cdf_read(ncid, vn_ntorin, ntor)
 
       siesta_context_construct%ns = ns
       siesta_context_construct%mpol = mpol
       siesta_context_construct%ntor = ntor
 
-      CALL cdf_read(ncid, 'state_flags', flags)
+      CALL cdf_read(ncid, vn_nfpin, siesta_context_construct%nfp)
+
+      CALL cdf_read(ncid, vn_flags, flags)
       siesta_context_construct%l_asym = BTEST(flags, l_asym_flag)
 
 !  Pressure
-      CALL cdf_read(ncid, 'p_factor', siesta_context_construct%p_factor)
-
-      CALL cdf_read(ncid, 'p_min', siesta_context_construct%p_min)
-      CALL cdf_read(ncid, 'p_max', siesta_context_construct%p_max)
+      CALL cdf_read(ncid, vn_p_min, siesta_context_construct%p_min)
+      CALL cdf_read(ncid, vn_p_max, siesta_context_construct%p_max)
 
       ALLOCATE(siesta_context_construct%pmnch(0:mpol,-ntor:ntor,ns))
-      CALL cdf_read(ncid, 'pmnch(m,n,r)',                                      &
-     &              siesta_context_construct%pmnch)
+      CALL cdf_read(ncid, vn_pmnc, siesta_context_construct%pmnch)
 
 !  Magnetic field
-      CALL cdf_read(ncid, 'b_factor', siesta_context_construct%b_factor)
+      CALL cdf_read(ncid, vn_b_factor,                                         &
+     &              siesta_context_construct%b_factor)
 
 !  Bsup*
       ALLOCATE(siesta_context_construct%bsupsmnsh(0:mpol,-ntor:ntor,ns))
-      CALL cdf_read(ncid, 'bsupsmnsh(m,n,r)',                                  &
+      CALL cdf_read(ncid, vn_bsupsmns,                                         &
      &              siesta_context_construct%bsupsmnsh)
       ALLOCATE(siesta_context_construct%bsupumnch(0:mpol,-ntor:ntor,ns))
-      CALL cdf_read(ncid, 'bsupumnch(m,n,r)',                                  &
+      CALL cdf_read(ncid, vn_bsupumnc,                                         &
      &              siesta_context_construct%bsupumnch)
       ALLOCATE(siesta_context_construct%bsupvmnch(0:mpol,-ntor:ntor,ns))
-      CALL cdf_read(ncid, 'bsupvmnch(m,n,r)',                                  &
+      CALL cdf_read(ncid, vn_bsupvmnc,                                         &
      &              siesta_context_construct%bsupvmnch)
 
 !  Bsub*
       ALLOCATE(siesta_context_construct%bsubsmnsh(0:mpol,-ntor:ntor,ns))
-      CALL cdf_read(ncid, 'bsubsmnsh(m,n,r)',                                  &
+      CALL cdf_read(ncid, vn_bsubsmns,                                         &
      &              siesta_context_construct%bsubsmnsh)
       ALLOCATE(siesta_context_construct%bsubumnch(0:mpol,-ntor:ntor,ns))
-      CALL cdf_read(ncid, 'bsubumnch(m,n,r)',                                  &
+      CALL cdf_read(ncid, vn_bsubumnc,                                         &
      &              siesta_context_construct%bsubumnch)
       ALLOCATE(siesta_context_construct%bsubvmnch(0:mpol,-ntor:ntor,ns))
-      CALL cdf_read(ncid, 'bsubvmnch(m,n,r)',                                  &
+      CALL cdf_read(ncid, vn_bsubvmnc,                                         &
      &              siesta_context_construct%bsubvmnch)
 
 !  JKsup*
       ALLOCATE(siesta_context_construct%jksupsmnsf(0:mpol,-ntor:ntor,          &
      &                                             ns))
-      CALL cdf_read(ncid, 'jksupsmnsf(m,n,r)',                                 &
+      CALL cdf_read(ncid, vn_jksupsmns,                                        &
      &              siesta_context_construct%jksupsmnsf)
       ALLOCATE(siesta_context_construct%jksupumncf(0:mpol,-ntor:ntor,          &
      &                                             ns))
-      CALL cdf_read(ncid, 'jksupumncf(m,n,r)',                                 &
+      CALL cdf_read(ncid, vn_jksupumnc,                                        &
      &              siesta_context_construct%jksupumncf)
       ALLOCATE(siesta_context_construct%jksupvmncf(0:mpol,-ntor:ntor,          &
      &                                             ns))
-      CALL cdf_read(ncid, 'jksupvmncf(m,n,r)',                                 &
+      CALL cdf_read(ncid, vn_jksupvmnc,                                        &
      &              siesta_context_construct%jksupvmncf)
 
       IF (siesta_context_construct%l_asym) THEN
 !  Pressure
          ALLOCATE(siesta_context_construct%pmnsh(0:mpol,-ntor:ntor,ns))
-         CALL cdf_read(ncid, 'pmnsh(m,n,r)',                                   &
-     &                 siesta_context_construct%pmnsh)
+         CALL cdf_read(ncid, vn_pmns, siesta_context_construct%pmnsh)
 
 !  Bsup*
          ALLOCATE(siesta_context_construct%bsupsmnch(0:mpol,-ntor:ntor,        &
      &                                               ns))
-         CALL cdf_read(ncid, 'bsupsmnch(m,n,r)',                               &
+         CALL cdf_read(ncid, vn_bsupsmnc,                                      &
      &                 siesta_context_construct%bsupsmnch)
          ALLOCATE(siesta_context_construct%bsupumnsh(0:mpol,-ntor:ntor,        &
      &                                               ns))
-         CALL cdf_read(ncid, 'bsupumnsh(m,n,r)',                               &
+         CALL cdf_read(ncid, vn_bsupumns,                                      &
      &                 siesta_context_construct%bsupumnsh)
          ALLOCATE(siesta_context_construct%bsupvmnsh(0:mpol,-ntor:ntor,        &
      &                                               ns))
-         CALL cdf_read(ncid, 'bsupvmnsh(m,n,r)',                               &
+         CALL cdf_read(ncid, vn_bsupvmns,                                      &
      &                 siesta_context_construct%bsupvmnsh)
 
 !  Bsub*
          ALLOCATE(siesta_context_construct%bsubsmnch(0:mpol,-ntor:ntor,        &
      &                                               ns))
-         CALL cdf_read(ncid, 'bsubsmnch(m,n,r)',                               &
+         CALL cdf_read(ncid, vn_bsubsmnc,                                      &
      &                 siesta_context_construct%bsubsmnch)
          ALLOCATE(siesta_context_construct%bsubumnsh(0:mpol,-ntor:ntor,        &
      &                                               ns))
-         CALL cdf_read(ncid, 'bsubumnsh(m,n,r)',                               &
+         CALL cdf_read(ncid, vn_bsubumns,                                      &
      &                 siesta_context_construct%bsubumnsh)
          ALLOCATE(siesta_context_construct%bsubvmnsh(0:mpol,-ntor:ntor,        &
      &                                               ns))
-         CALL cdf_read(ncid, 'bsubvmnsh(m,n,r)',                               &
+         CALL cdf_read(ncid, vn_bsubvmns,                                      &
      &                 siesta_context_construct%bsubvmnsh)
 
 !  JKsup*
          ALLOCATE(siesta_context_construct%jksupsmncf(0:mpol,-ntor:ntor,       &
      &                                                ns))
-         CALL cdf_read(ncid, 'jksupsmncf(m,n,r)',                              &
+         CALL cdf_read(ncid, vn_jksupsmnc,                                     &
      &                 siesta_context_construct%jksupsmncf)
          ALLOCATE(siesta_context_construct%jksupumnsf(0:mpol,-ntor:ntor,       &
      &                                                ns))
-         CALL cdf_read(ncid, 'jksupumnsf(m,n,r)',                              &
+         CALL cdf_read(ncid, vn_jksupumns,                                     &
      &                 siesta_context_construct%jksupumnsf)
          ALLOCATE(siesta_context_construct%jksupvmnsf(0:mpol,-ntor:ntor,       &
      &                                                ns))
-         CALL cdf_read(ncid, 'jksupvmnsf(m,n,r)',                              &
+         CALL cdf_read(ncid, vn_jksupvmns,                                     &
      &                 siesta_context_construct%jksupvmnsf)
       END IF
 
@@ -407,59 +406,59 @@
       CALL cdf_open(ncid, TRIM(restart_file_name), 'r', status)
       IF (status .ne. 0) STOP 'Failed'
 
-      CALL cdf_read(ncid, 'nrad', this%ns)
-      CALL cdf_read(ncid, 'mpol', this%mpol)
-      CALL cdf_read(ncid, 'ntor', this%ntor)
+      CALL cdf_read(ncid, vn_nsin, this%ns)
+      CALL cdf_read(ncid, vn_mpolin, this%mpol)
+      CALL cdf_read(ncid, vn_ntorin, this%ntor)
 
-      CALL cdf_read(ncid, 'state_flags', flags)
+      CALL cdf_read(ncid, vn_nfpin, this%nfp)
+
+      CALL cdf_read(ncid, vn_flags, flags)
       IF (this%l_asym .neqv. BTEST(flags, l_asym_flag)) THEN
          STOP 'Restart file changed parity.'
       END IF
 
 !  Pressure
-      CALL cdf_read(ncid, 'p_factor', this%p_factor)
+      CALL cdf_read(ncid, vn_p_min, this%p_min)
+      CALL cdf_read(ncid, vn_p_max, this%p_max)
 
-      CALL cdf_read(ncid, 'p_min', this%p_min)
-      CALL cdf_read(ncid, 'p_max', this%p_max)
-
-      CALL cdf_read(ncid, 'pmnch(m,n,r)', this%pmnch)
+      CALL cdf_read(ncid, vn_pmnc, this%pmnch)
 
 !  Magnetic field
-      CALL cdf_read(ncid, 'b_factor', this%b_factor)
+      CALL cdf_read(ncid, vn_b_factor, this%b_factor)
 
 !  Bsup*
-      CALL cdf_read(ncid, 'bsupsmnsh(m,n,r)', this%bsupsmnsh)
-      CALL cdf_read(ncid, 'bsupumnch(m,n,r)', this%bsupumnch)
-      CALL cdf_read(ncid, 'bsupvmnch(m,n,r)', this%bsupvmnch)
+      CALL cdf_read(ncid, vn_bsupsmns, this%bsupsmnsh)
+      CALL cdf_read(ncid, vn_bsupumnc, this%bsupumnch)
+      CALL cdf_read(ncid, vn_bsupvmnc, this%bsupvmnch)
 
 !  Bsub*
-      CALL cdf_read(ncid, 'bsubsmnsh(m,n,r)', this%bsubsmnsh)
-      CALL cdf_read(ncid, 'bsubumnch(m,n,r)', this%bsubumnch)
-      CALL cdf_read(ncid, 'bsubvmnch(m,n,r)', this%bsubvmnch)
+      CALL cdf_read(ncid, vn_bsubsmns, this%bsubsmnsh)
+      CALL cdf_read(ncid, vn_bsubumnc, this%bsubumnch)
+      CALL cdf_read(ncid, vn_bsubvmnc, this%bsubvmnch)
 
 !  JKsup*
-      CALL cdf_read(ncid, 'jksupsmnsf(m,n,r)', this%jksupsmnsf)
-      CALL cdf_read(ncid, 'jksupumncf(m,n,r)', this%jksupumncf)
-      CALL cdf_read(ncid, 'jksupvmncf(m,n,r)', this%jksupvmncf)
+      CALL cdf_read(ncid, vn_jksupsmns, this%jksupsmnsf)
+      CALL cdf_read(ncid, vn_jksupumnc, this%jksupumncf)
+      CALL cdf_read(ncid, vn_jksupvmnc, this%jksupvmncf)
 
       IF (this%l_asym) THEN
 !  Pressure
-         CALL cdf_read(ncid, 'pmnsh(m,n,r)', this%pmnsh)
+         CALL cdf_read(ncid, vn_pmns, this%pmnsh)
 
 !  Bsup*
-         CALL cdf_read(ncid, 'bsupsmnch(m,n,r)', this%bsupsmnch)
-         CALL cdf_read(ncid, 'bsupumnsh(m,n,r)', this%bsupumnsh)
-         CALL cdf_read(ncid, 'bsupvmnsh(m,n,r)', this%bsupvmnsh)
+         CALL cdf_read(ncid, vn_bsupsmnc, this%bsupsmnch)
+         CALL cdf_read(ncid, vn_bsupumns, this%bsupumnsh)
+         CALL cdf_read(ncid, vn_bsupvmns, this%bsupvmnsh)
 
 !  Bsub*
-         CALL cdf_read(ncid, 'bsubsmnch(m,n,r)', this%bsubsmnch)
-         CALL cdf_read(ncid, 'bsubumnsh(m,n,r)', this%bsubumnsh)
-         CALL cdf_read(ncid, 'bsubvmnsh(m,n,r)', this%bsubvmnsh)
+         CALL cdf_read(ncid, vn_bsubsmnc, this%bsubsmnch)
+         CALL cdf_read(ncid, vn_bsubumns, this%bsubumnsh)
+         CALL cdf_read(ncid, vn_bsubvmns, this%bsubvmnsh)
 
 !  JKsup*
-         CALL cdf_read(ncid, 'jksupsmncf(m,n,r)', this%jksupsmncf)
-         CALL cdf_read(ncid, 'jksupumnsf(m,n,r)', this%jksupumnsf)
-         CALL cdf_read(ncid, 'jksupvmnsf(m,n,r)', this%jksupvmnsf)
+         CALL cdf_read(ncid, vn_jksupsmnc, this%jksupsmncf)
+         CALL cdf_read(ncid, vn_jksupumns, this%jksupumnsf)
+         CALL cdf_read(ncid, vn_jksupvmns, this%jksupvmnsf)
       END IF
 
       CALL cdf_close(ncid)
