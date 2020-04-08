@@ -31,7 +31,8 @@
 !>     @item{lasym,            Use non stellarator symmetric terms.,             shared_data::lasym}
 !>     @item{l_vessel,         Use free-boundary grid extension to vessel wall., siesta_namelist::l_vessel}
 !>     @item{lrecon,           Add additional output to the restart file when
-!>                             used in a reconstruction context.,                shared_data::lrecon}
+!>                             used in a reconstruction context.
+!>                             DEPRICATED,                                       shared_data::lrecon}
 !>  @end_table
 !>
 !>  @table_section{siesta_algrothim_sec, Algrothim Control Variables}
@@ -195,22 +196,22 @@
       CHARACTER(LEN=siesta_namelist_name_length) :: vessel_file = ''
 
 !  Declare Namelist
-      NAMELIST/siesta_info/                                             &
+      NAMELIST/siesta_info/                                                    &
 !  Control flags
-        ladd_pert, lresistive, lrestart, l_tracing, lcolscale,          &
-        l_silo_output, l_silo_output, l_silo3D, l_output_alliter,       &
-        l_VMEC_Uniform, lasym, lrecon, l_vessel,                        &
+        ladd_pert, lresistive, lrestart, l_tracing, lcolscale,                 &
+        l_silo_output, l_silo_output, l_silo3D, l_output_alliter,              &
+        l_VMEC_Uniform, lasym, lrecon, l_vessel,                               &
 !  Algrothim Control Variables
-        niter, ftol, mupar, levmarq_param, eta_factor, nprecon,         &
-        ngmres_type, iortho,                                            &
+        niter, ftol, mupar, levmarq_param, eta_factor, nprecon,                &
+        ngmres_type, iortho,                                                   &
 !  Island parameters Island Parameters
-        mres, HelPert, HelPertA,                                        &
+        mres, HelPert, HelPertA,                                               &
 !  Input grid sizes
-        nsin, nsin_ext, mpolin, ntorin, nfpin,                          &
+        nsin, nsin_ext, mpolin, ntorin, nfpin,                                 &
 !  Output grid sizes
-        nphis, nrs, nzs, nvs, nus, nss,                                 &
+        nphis, nrs, nzs, nvs, nus, nss,                                        &
 !  File names
-        wout_file, restart_ext, mgrid_file, vessel_file,                &
+        wout_file, restart_ext, mgrid_file, vessel_file,                       &
 !  Test controls
         hesspass_test, mupar_test
 
@@ -252,15 +253,15 @@
 
 !  Initalize a default value of the I\O unit. SIESTA increments from there.
       iou_mnli = 0
-      CALL safe_open(iou_mnli, status, TRIM(namelist_file),             &
+      CALL safe_open(iou_mnli, status, TRIM(namelist_file),                    &
                     'old', 'formatted')
-      CALL assert_eq(0, status, 'siesta_namelist_read' //               &
+      CALL assert_eq(0, status, 'siesta_namelist_read' //                      &
         ': Safe_open of ' // TRIM(namelist_file) // ' failed')
 
 !  Read the namelist input file.
       READ (iou_mnli, nml=siesta_info)
       CLOSE (iou_mnli, iostat=status)
-      CALL assert_eq(0, status, 'siesta_namelist_read' //               &
+      CALL assert_eq(0, status, 'siesta_namelist_read' //                      &
         ': Error closing ' // TRIM(namelist_file) // ' failed')
 
       levmarq_param0 = levmarq_param

@@ -1031,7 +1031,7 @@
 
       context%model => model_construct(model_ne_type,                          &
      &   model_sxrem_type_a(1:num_sxrem_p), model_te_type,                     &
-     &   model_te_type, model_ze_type, ne_pp_unit, ne_min, te_min,             &
+     &   model_ti_type, model_ze_type, ne_pp_unit, ne_min, te_min,             &
      &   ti_min, ze_min, sxrem_min(1:num_sxrem_p), e_pressure_fraction,        &
      &   emission_func, equilibrium_construct_siesta(siesta,                   &
      &                                               force_solve),             &

@@ -13,7 +13,7 @@
       USE utilities, ONLY: GradientFull, to_full_mesh
       USE metrics, ONLY: tolowerh
       USE descriptor_mod, ONLY: iam
-      USE shared_data, ONLY: lasym, lrecon, unit_out
+      USE shared_data, ONLY: lasym, unit_out
       USE v3_utilities, ONLY: assert_eq
       USE stel_constants, ONLY: mu0
 
@@ -29,8 +29,6 @@
 !  can fit in the same memory.
 !>  Bit position for the lasym flag.
       INTEGER, PARAMETER           :: restart_lasym = 31
-!>  Bit position for the lrecon flag.
-      INTEGER, PARAMETER           :: restart_lrecon = 30
 
 !>  Radial Dimension names.
       CHARACTER (LEN=*), DIMENSION(1), PARAMETER ::                            &
@@ -176,6 +174,7 @@
      &                     vmec_info_construct_island
       USE metrics, ONLY: LoadGrid
       USE fourier, ONLY: m0, m1, fourier_class
+      USE stel_constants, ONLY: one
 
       IMPLICIT NONE
 
@@ -200,7 +199,6 @@
       INTEGER                                  :: nmin
       INTEGER                                  :: status
       CHARACTER (LEN=256)                      :: filename
-      INTEGER                                  :: s
 
 !  Start of executable code
       restart_read = 1
@@ -324,14 +322,12 @@
 
       fourier_context => fourier_class(mpolin, ntorin, nu_i, nv_i, nfpin, lasym)
 
-      DO s = 1, nsin
-         rmnc(:,:,s) = rmnc(:,:,s)/fourier_context%orthonorm
-         zmns(:,:,s) = zmns(:,:,s)/fourier_context%orthonorm
-         IF (lasym) THEN
-            rmns(:,:,s) = rmns(:,:,s)/fourier_context%orthonorm
-            zmnc(:,:,s) = zmnc(:,:,s)/fourier_context%orthonorm
-         END IF
-      END DO
+      CALL restart_normalize(rmnc, one)
+      CALL restart_normalize(zmns, one)
+      IF (lasym) THEN
+         CALL restart_normalize(rmns, one)
+         CALL restart_normalize(zmnc, one)
+      END IF
 
       CALL LoadGrid(status)
 
@@ -415,9 +411,6 @@
       IF (lasym) THEN
          flags = IBSET(flags, restart_lasym)
       END IF
-      IF (lrecon) THEN
-         flags = IBSET(flags, restart_lrecon)
-      END IF
 
       ALLOCATE(tempmn_w(0:mpol,-ntor:ntor,ns))
 
@@ -442,6 +435,25 @@
       CALL cdf_define(ncid, vn_wb, wb)
       CALL cdf_define(ncid, vn_wp, wp)
 
+!  Using variable with jacobian only for the dimension sizes and types. Before
+!  writting, the jacobian normalization will be removed.
+      CALL cdf_define(ncid, vn_bsupsmns,  jbsupsmnsh, dimname=restart_dims)
+      CALL cdf_define(ncid, vn_bsupumnc,  jbsupumnch, dimname=restart_dims)
+      CALL cdf_define(ncid, vn_bsupvmnc,  jbsupvmnch, dimname=restart_dims)
+      CALL cdf_define(ncid, vn_bsubsmns,  jbsupsmnsh, dimname=restart_dims)
+      CALL cdf_define(ncid, vn_bsubumnc,  jbsupumnch, dimname=restart_dims)
+      CALL cdf_define(ncid, vn_bsubvmnc,  jbsupvmnch, dimname=restart_dims)
+      CALL cdf_define(ncid, vn_jksupsmns, jbsupsmnsh, dimname=restart_dims)
+      CALL cdf_define(ncid, vn_jksupumnc, jbsupumnch, dimname=restart_dims)
+      CALL cdf_define(ncid, vn_jksupvmnc, jbsupvmnch, dimname=restart_dims)
+      CALL cdf_define(ncid, vn_pmnc,      jpmnch,     dimname=restart_dims)
+      CALL cdf_define(ncid, vn_b_factor,  b_factor)
+      CALL cdf_define(ncid, vn_p_factor,  p_factor)
+      CALL cdf_define(ncid, vn_rmajor,    rmajor)
+      CALL cdf_define(ncid, vn_p_max,     b_factor)
+      CALL cdf_define(ncid, vn_p_min,     p_factor)
+      CALL cdf_define(ncid, vn_curtor,    tempscalar)
+
       IF (lasym) THEN
          CALL cdf_define(ncid, vn_jbsupsc, jbsupsmnch, dimname=restart_dims)
          CALL cdf_define(ncid, vn_jbsupus, jbsupumnsh, dimname=restart_dims)
@@ -450,43 +462,18 @@
 
          CALL cdf_define(ncid, vn_rmns, tempmn_w, dimname=restart_dims)
          CALL cdf_define(ncid, vn_zmnc, tempmn_w, dimname=restart_dims)
-      END IF
 
-      RECON0: IF (lrecon) THEN
-!  Using variable with jacobian only for the dimension sizes and types. Before
-!  writting, the jacobian normalization will be removed.
-         CALL cdf_define(ncid, vn_bsupsmns,  jbsupsmnsh, dimname=restart_dims)
-         CALL cdf_define(ncid, vn_bsupumnc,  jbsupumnch, dimname=restart_dims)
-         CALL cdf_define(ncid, vn_bsupvmnc,  jbsupvmnch, dimname=restart_dims)
-         CALL cdf_define(ncid, vn_bsubsmns,  jbsupsmnsh, dimname=restart_dims)
-         CALL cdf_define(ncid, vn_bsubumnc,  jbsupumnch, dimname=restart_dims)
-         CALL cdf_define(ncid, vn_bsubvmnc,  jbsupvmnch, dimname=restart_dims)
-         CALL cdf_define(ncid, vn_jksupsmns, jbsupsmnsh, dimname=restart_dims)
-         CALL cdf_define(ncid, vn_jksupumnc, jbsupumnch, dimname=restart_dims)
-         CALL cdf_define(ncid, vn_jksupvmnc, jbsupvmnch, dimname=restart_dims)
-         CALL cdf_define(ncid, vn_pmnc,      jpmnch,     dimname=restart_dims)
-         CALL cdf_define(ncid, vn_b_factor,  b_factor)
-         CALL cdf_define(ncid, vn_p_factor,  p_factor)
-         CALL cdf_define(ncid, vn_rmajor,    rmajor)
-         CALL cdf_define(ncid, vn_p_max,     b_factor)
-         CALL cdf_define(ncid, vn_p_min,     p_factor)
-         CALL cdf_define(ncid, vn_curtor,    tempscalar)
-         IF (lasym) THEN
-            CALL cdf_define(ncid, vn_bsupsmnc, jbsupsmnch, dimname=restart_dims)
-            CALL cdf_define(ncid, vn_bsupumns, jbsupumnsh, dimname=restart_dims)
-            CALL cdf_define(ncid, vn_bsupvmns, jbsupvmnsh, dimname=restart_dims)
-            CALL cdf_define(ncid, vn_bsubsmnc, jbsupsmnch, dimname=restart_dims)
-            CALL cdf_define(ncid, vn_bsubumns, jbsupumnsh, dimname=restart_dims)
-            CALL cdf_define(ncid, vn_bsubvmns, jbsupvmnsh, dimname=restart_dims)
-            CALL cdf_define(ncid, vn_jksupsmnc, jbsupsmnch,                    &
-                            dimname=restart_dims)
-            CALL cdf_define(ncid, vn_jksupumns, jbsupumnsh,                    &
-                            dimname=restart_dims)
-            CALL cdf_define(ncid, vn_jksupvmns, jbsupvmnsh,                    &
-                            dimname=restart_dims)
-            CALL cdf_define(ncid, vn_pmns, jpmnsh, dimname=restart_dims)
-         END IF
-      END IF RECON0
+         CALL cdf_define(ncid, vn_bsupsmnc, jbsupsmnch, dimname=restart_dims)
+         CALL cdf_define(ncid, vn_bsupumns, jbsupumnsh, dimname=restart_dims)
+         CALL cdf_define(ncid, vn_bsupvmns, jbsupvmnsh, dimname=restart_dims)
+         CALL cdf_define(ncid, vn_bsubsmnc, jbsupsmnch, dimname=restart_dims)
+         CALL cdf_define(ncid, vn_bsubumns, jbsupumnsh, dimname=restart_dims)
+         CALL cdf_define(ncid, vn_bsubvmns, jbsupvmnsh, dimname=restart_dims)
+         CALL cdf_define(ncid, vn_jksupsmnc, jbsupsmnch, dimname=restart_dims)
+         CALL cdf_define(ncid, vn_jksupumns, jbsupumnsh, dimname=restart_dims)
+         CALL cdf_define(ncid, vn_jksupvmns, jbsupvmnsh, dimname=restart_dims)
+         CALL cdf_define(ncid, vn_pmns, jpmnsh, dimname=restart_dims)
+      END IF
 
       CALL cdf_write(ncid, vn_flags, flags)
       CALL cdf_write(ncid, vn_nsin, ns)
@@ -528,171 +515,168 @@
       CALL cdf_write(ncid, vn_wp, wp)
       CALL cdf_write(ncid, vn_rmajor, rmajor)
 
-      RECON1: IF (lrecon) THEN
-         ALLOCATE(bsupsijh(ntheta,nzeta,ns))
-         ALLOCATE(bsupuijh(ntheta,nzeta,ns))
-         ALLOCATE(bsupvijh(ntheta,nzeta,ns))
-         ALLOCATE(pijh(ntheta,nzeta,ns))
+      ALLOCATE(bsupsijh(ntheta,nzeta,ns))
+      ALLOCATE(bsupuijh(ntheta,nzeta,ns))
+      ALLOCATE(bsupvijh(ntheta,nzeta,ns))
+      ALLOCATE(pijh(ntheta,nzeta,ns))
 
-         bsupsijh = 0
-         bsupuijh = 0
-         bsupvijh = 0
-         pijh = 0
+      bsupsijh = 0
+      bsupuijh = 0
+      bsupvijh = 0
+      pijh = 0
 
-         CALL fourier_context%toijsp(jbsupsmnsh, bsupsijh, f_none, f_sin)
-         CALL fourier_context%toijsp(jbsupumnch, bsupuijh, f_none, f_cos)
-         CALL fourier_context%toijsp(jbsupvmnch, bsupvijh, f_none, f_cos)
-         CALL fourier_context%toijsp(jpmnch, pijh, f_none, f_cos)
+      CALL fourier_context%toijsp(jbsupsmnsh, bsupsijh, f_none, f_sin)
+      CALL fourier_context%toijsp(jbsupumnch, bsupuijh, f_none, f_cos)
+      CALL fourier_context%toijsp(jbsupvmnch, bsupvijh, f_none, f_cos)
+      CALL fourier_context%toijsp(jpmnch, pijh, f_none, f_cos)
 
-         CALL cdf_write(ncid, vn_p_factor, p_factor)
-         CALL cdf_write(ncid, vn_b_factor, b_factor)
+      CALL cdf_write(ncid, vn_p_factor, p_factor)
+      CALL cdf_write(ncid, vn_b_factor, b_factor)
 
-         IF (lasym) THEN
-            CALL fourier_context%toijsp(jbsupsmnch, bsupsijh, f_sum, f_cos)
-            CALL fourier_context%toijsp(jbsupumnsh, bsupuijh, f_sum, f_sin)
-            CALL fourier_context%toijsp(jbsupvmnsh, bsupvijh, f_sum, f_sin)
-            CALL fourier_context%toijsp(jpmnsh, pijh, f_sum, f_sin)
-         END IF
+      IF (lasym) THEN
+         CALL fourier_context%toijsp(jbsupsmnch, bsupsijh, f_sum, f_cos)
+         CALL fourier_context%toijsp(jbsupumnsh, bsupuijh, f_sum, f_sin)
+         CALL fourier_context%toijsp(jbsupvmnsh, bsupvijh, f_sum, f_sin)
+         CALL fourier_context%toijsp(jpmnsh, pijh, f_sum, f_sin)
+      END IF
 
-         bsupsijh(:,:,1) = 0
-         bsupuijh(:,:,1) = 0
-         bsupvijh(:,:,1) = 0
-         pijh(:,:,1) = 0
+      bsupsijh(:,:,1) = 0
+      bsupuijh(:,:,1) = 0
+      bsupvijh(:,:,1) = 0
+      pijh(:,:,1) = 0
 
 !  Remove the jacobian term.
-         bsupsijh = bsupsijh/jacobh
-         bsupuijh = bsupuijh/jacobh
-         bsupvijh = bsupvijh/jacobh
-         pijh = pijh/jacobh
+      bsupsijh = bsupsijh/jacobh
+      bsupuijh = bsupuijh/jacobh
+      bsupvijh = bsupvijh/jacobh
+      pijh = pijh/jacobh
 
-         tempscalar = MAXVAL(pijh(:,:,2:))
-         CALL cdf_write(ncid, vn_p_max, tempscalar)
-         tempscalar = MINVAL(pijh(:,:,2:))
-         CALL cdf_write(ncid, vn_p_min, tempscalar)
+      tempscalar = MAXVAL(pijh(:,:,2:))
+      CALL cdf_write(ncid, vn_p_max, tempscalar/(p_factor*mu0))
+      tempscalar = MINVAL(pijh(:,:,2:))
+      CALL cdf_write(ncid, vn_p_min, tempscalar/(p_factor*mu0))
 
-         tempmn_w = 0
+      tempmn_w = 0
 
 !  Remove the orthonorm and b_factor so these quantities can be directly summed.
-         CALL fourier_context%tomnsp(bsupsijh, tempmn_w, f_sin)
-         CALL restart_denormalize(tempmn_w, b_factor)
-         CALL cdf_write(ncid, vn_bsupsmns, tempmn_w)
+      CALL fourier_context%tomnsp(bsupsijh, tempmn_w, f_sin)
+      CALL restart_denormalize(tempmn_w, b_factor)
+      CALL cdf_write(ncid, vn_bsupsmns, tempmn_w)
 
-         CALL fourier_context%tomnsp(bsupuijh, tempmn_w, f_cos)
-         CALL restart_denormalize(tempmn_w, b_factor)
-         CALL cdf_write(ncid, vn_bsupumnc, tempmn_w)
+      CALL fourier_context%tomnsp(bsupuijh, tempmn_w, f_cos)
+      CALL restart_denormalize(tempmn_w, b_factor)
+      CALL cdf_write(ncid, vn_bsupumnc, tempmn_w)
 
-         CALL fourier_context%tomnsp(bsupvijh, tempmn_w, f_cos)
-         CALL restart_denormalize(tempmn_w, b_factor)
-         CALL cdf_write(ncid, vn_bsupvmnc, tempmn_w)
+      CALL fourier_context%tomnsp(bsupvijh, tempmn_w, f_cos)
+      CALL restart_denormalize(tempmn_w, b_factor)
+      CALL cdf_write(ncid, vn_bsupvmnc, tempmn_w)
 
 !  Remove the orthonorm and p_factor so this quantity can be directly summed.
-         CALL fourier_context%tomnsp(pijh, tempmn_w, f_cos)
-         CALL restart_denormalize(tempmn_w, p_factor*mu0)
-         CALL cdf_write(ncid, vn_pmnc, tempmn_w)
+      CALL fourier_context%tomnsp(pijh, tempmn_w, f_cos)
+      CALL restart_denormalize(tempmn_w, p_factor*mu0)
+      CALL cdf_write(ncid, vn_pmnc, tempmn_w)
 
-         ALLOCATE(bsubsijh(ntheta,nzeta,ns))
-         ALLOCATE(bsubuijh(ntheta,nzeta,ns))
-         ALLOCATE(bsubvijh(ntheta,nzeta,ns))
+      ALLOCATE(bsubsijh(ntheta,nzeta,ns))
+      ALLOCATE(bsubuijh(ntheta,nzeta,ns))
+      ALLOCATE(bsubvijh(ntheta,nzeta,ns))
 
-         CALL tolowerh(bsupsijh, bsupuijh, bsupvijh,                           &
-                       bsubsijh, bsubuijh, bsubvijh, 1, ns)
+      CALL tolowerh(bsupsijh, bsupuijh, bsupvijh,                           &
+                    bsubsijh, bsubuijh, bsubvijh, 1, ns)
 
 !  Need these to compute the currents later.
-         ALLOCATE(bsubsmnh(0:mpol,-ntor:ntor,ns))
-         ALLOCATE(bsubumnh(0:mpol,-ntor:ntor,ns))
-         ALLOCATE(bsubvmnh(0:mpol,-ntor:ntor,ns))
+      ALLOCATE(bsubsmnh(0:mpol,-ntor:ntor,ns))
+      ALLOCATE(bsubumnh(0:mpol,-ntor:ntor,ns))
+      ALLOCATE(bsubvmnh(0:mpol,-ntor:ntor,ns))
 
 !  Remove the orthonorm and b_factor so these quantities can be directly summed.
-         CALL fourier_context%tomnsp(bsubsijh, bsubsmnh, f_sin)
-         CALL restart_denormalize(bsubsmnh, b_factor)
-         CALL cdf_write(ncid, vn_bsubsmns, bsubsmnh)
+      CALL fourier_context%tomnsp(bsubsijh, bsubsmnh, f_sin)
+      CALL restart_denormalize(bsubsmnh, b_factor)
+      CALL cdf_write(ncid, vn_bsubsmns, bsubsmnh)
 
-         CALL fourier_context%tomnsp(bsubuijh, bsubumnh, f_cos)
-         CALL restart_denormalize(bsubumnh, b_factor)
-         CALL cdf_write(ncid, vn_bsubumnc, bsubumnh)
+      CALL fourier_context%tomnsp(bsubuijh, bsubumnh, f_cos)
+      CALL restart_denormalize(bsubumnh, b_factor)
+      CALL cdf_write(ncid, vn_bsubumnc, bsubumnh)
 
-         CALL fourier_context%tomnsp(bsubvijh, bsubvmnh, f_cos)
-         CALL restart_denormalize(bsubvmnh, b_factor)
-         CALL cdf_write(ncid, vn_bsubvmnc, bsubvmnh)
+      CALL fourier_context%tomnsp(bsubvijh, bsubvmnh, f_cos)
+      CALL restart_denormalize(bsubvmnh, b_factor)
+      CALL cdf_write(ncid, vn_bsubvmnc, bsubvmnh)
 
 !  Compute currents on the full mesh.
-         ALLOCATE(jksupsmnf(0:mpol,-ntor:ntor,ns))
-         ALLOCATE(jksupumnf(0:mpol,-ntor:ntor,ns))
-         ALLOCATE(jksupvmnf(0:mpol,-ntor:ntor,ns))
+      ALLOCATE(jksupsmnf(0:mpol,-ntor:ntor,ns))
+      ALLOCATE(jksupumnf(0:mpol,-ntor:ntor,ns))
+      ALLOCATE(jksupvmnf(0:mpol,-ntor:ntor,ns))
+
+      CALL curl_htof(bsubsmnh, bsubumnh, bsubvmnh,                             &
+     &               jksupsmnf, jksupumnf, jksupvmnf,                          &
+     &               f_sin, 1, ns, .false., tempscalar)
+
+      CALL restart_denormalize(jksupsmnf, b_factor)
+      CALL restart_denormalize(jksupumnf, b_factor)
+      CALL restart_denormalize(jksupvmnf, b_factor)
+
+      CALL cdf_write(ncid, vn_jksupsmns, jksupsmnf)
+      CALL cdf_write(ncid, vn_jksupumnc, jksupumnf)
+      CALL cdf_write(ncid, vn_jksupvmnc, jksupvmnf)
+
+      CALL cdf_write(ncid, vn_curtor, tempscalar)
+
+      IF (lasym) THEN
+!  Remove the orthonorm and b_factor so these quantities can be directly summed.
+         CALL fourier_context%tomnsp(bsupsijh, tempmn_w, f_cos)
+         CALL restart_denormalize(tempmn_w, b_factor)
+         CALL cdf_write(ncid, vn_bsupsmnc, tempmn_w)
+
+         CALL fourier_context%tomnsp(bsupuijh, tempmn_w, f_sin)
+         CALL restart_denormalize(tempmn_w, b_factor)
+         CALL cdf_write(ncid, vn_bsupumns, tempmn_w)
+
+         CALL fourier_context%tomnsp(bsupvijh, tempmn_w, f_sin)
+         CALL restart_denormalize(tempmn_w, b_factor)
+         CALL cdf_write(ncid, vn_bsupvmns, tempmn_w)
+
+!  Remove the orthonorm and p_factor so this quantity can be directly summed.
+         CALL fourier_context%tomnsp(pijh, tempmn_w, f_sin)
+         CALL restart_denormalize(tempmn_w, p_factor*mu0)
+         CALL cdf_write(ncid, vn_pmns, tempmn_w)
+
+!  Remove the orthonorm and b_factor so these quantities can be directly summed.
+         CALL fourier_context%tomnsp(bsubsijh, bsubsmnh, f_cos)
+         CALL restart_denormalize(tempmn_w, b_factor)
+         CALL cdf_write(ncid, vn_bsubsmnc, tempmn_w)
+
+         CALL fourier_context%tomnsp(bsubuijh, bsubumnh, f_sin)
+         CALL restart_denormalize(tempmn_w, b_factor)
+         CALL cdf_write(ncid, vn_bsubumns, tempmn_w)
+
+         CALL fourier_context%tomnsp(bsubvijh, bsubvmnh, f_sin)
+         CALL restart_denormalize(tempmn_w, b_factor)
+         CALL cdf_write(ncid, vn_bsubvmns, tempmn_w)
 
          CALL curl_htof(bsubsmnh, bsubumnh, bsubvmnh,                          &
      &                  jksupsmnf, jksupumnf, jksupvmnf,                       &
-     &                  f_sin, 1, ns, .false., tempscalar)
+     &                  f_cos, 1, ns, .false., tempscalar)
 
          CALL restart_denormalize(jksupsmnf, b_factor)
          CALL restart_denormalize(jksupumnf, b_factor)
          CALL restart_denormalize(jksupvmnf, b_factor)
 
-         CALL cdf_write(ncid, vn_jksupsmns, jksupsmnf)
-         CALL cdf_write(ncid, vn_jksupumnc, jksupumnf)
-         CALL cdf_write(ncid, vn_jksupvmnc, jksupvmnf)
+         CALL cdf_write(ncid, vn_jksupsmnc, jksupsmnf)
+         CALL cdf_write(ncid, vn_jksupumns, jksupumnf)
+         CALL cdf_write(ncid, vn_jksupvmns, jksupvmnf)
+      END IF
 
-         CALL cdf_write(ncid, vn_curtor, tempscalar)
+      DEALLOCATE(bsupsijh)
+      DEALLOCATE(bsupuijh)
+      DEALLOCATE(bsupvijh)
+      DEALLOCATE(pijh)
 
-         IF (lasym) THEN
-!  Remove the orthonorm and b_factor so these quantities can be directly summed.
-            CALL fourier_context%tomnsp(bsupsijh, tempmn_w, f_cos)
-            CALL restart_denormalize(tempmn_w, b_factor)
-            CALL cdf_write(ncid, vn_bsupsmnc, tempmn_w)
+      DEALLOCATE(bsubsmnh)
+      DEALLOCATE(bsubumnh)
+      DEALLOCATE(bsubvmnh)
 
-            CALL fourier_context%tomnsp(bsupuijh, tempmn_w, f_sin)
-            CALL restart_denormalize(tempmn_w, b_factor)
-            CALL cdf_write(ncid, vn_bsupumns, tempmn_w)
-
-            CALL fourier_context%tomnsp(bsupvijh, tempmn_w, f_sin)
-            CALL restart_denormalize(tempmn_w, b_factor)
-            CALL cdf_write(ncid, vn_bsupvmns, tempmn_w)
-
-!  Remove the orthonorm and p_factor so this quantity can be directly summed.
-            CALL fourier_context%tomnsp(pijh, tempmn_w, f_sin)
-            CALL restart_denormalize(tempmn_w, p_factor*mu0)
-            CALL cdf_write(ncid, vn_pmns, tempmn_w)
-
-!  Remove the orthonorm and b_factor so these quantities can be directly summed.
-            CALL fourier_context%tomnsp(bsubsijh, bsubsmnh, f_cos)
-            CALL restart_denormalize(tempmn_w, b_factor)
-            CALL cdf_write(ncid, vn_bsubsmnc, tempmn_w)
-
-            CALL fourier_context%tomnsp(bsubuijh, bsubumnh, f_sin)
-            CALL restart_denormalize(tempmn_w, b_factor)
-            CALL cdf_write(ncid, vn_bsubumns, tempmn_w)
-
-            CALL fourier_context%tomnsp(bsubvijh, bsubvmnh, f_sin)
-            CALL restart_denormalize(tempmn_w, b_factor)
-            CALL cdf_write(ncid, vn_bsubvmns, tempmn_w)
-
-            CALL curl_htof(bsubsmnh, bsubumnh, bsubvmnh,                       &
-     &                     jksupsmnf, jksupumnf, jksupvmnf,                    &
-     &                     f_cos, 1, ns, .false., tempscalar)
-
-            CALL restart_denormalize(jksupsmnf, b_factor)
-            CALL restart_denormalize(jksupumnf, b_factor)
-            CALL restart_denormalize(jksupvmnf, b_factor)
-
-            CALL cdf_write(ncid, vn_jksupsmnc, jksupsmnf)
-            CALL cdf_write(ncid, vn_jksupumns, jksupumnf)
-            CALL cdf_write(ncid, vn_jksupvmns, jksupvmnf)
-         END IF
-
-         DEALLOCATE(bsupsijh)
-         DEALLOCATE(bsupuijh)
-         DEALLOCATE(bsupvijh)
-         DEALLOCATE(pijh)
-
-         DEALLOCATE(bsubsmnh)
-         DEALLOCATE(bsubumnh)
-         DEALLOCATE(bsubvmnh)
-
-         DEALLOCATE(jksupsmnf)
-         DEALLOCATE(jksupumnf)
-         DEALLOCATE(jksupvmnf)
-
-      END IF RECON1
+      DEALLOCATE(jksupsmnf)
+      DEALLOCATE(jksupumnf)
+      DEALLOCATE(jksupvmnf)
 
       DEALLOCATE(tempmn_w)
 
@@ -726,28 +710,37 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (dp), INTENT(in)  :: aold(0:mpol_old,-ntor_old:ntor_old,ns_old)
-      REAL (dp), INTENT(out) :: anew(0:mpol_new,-ntor_new:ntor_new,ns_new)
-      INTEGER, INTENT(in)    :: ns_old
-      INTEGER, INTENT(in)    :: ns_new
-      INTEGER, INTENT(in)    :: mpol_old
-      INTEGER, INTENT(in)    :: mpol_new
-      INTEGER, INTENT(in)    :: ntor_old
-      INTEGER, INTENT(in)    :: ntor_new
-      INTEGER, INTENT(in)    :: nfp_old
-      INTEGER, INTENT(in)    :: nfp_new
-      LOGICAL, INTENT(in)    :: lhalf
+      REAL (dp), DIMENSION(:,:,:), INTENT(in)  :: aold
+      REAL (dp), DIMENSION(:,:,:), INTENT(out) :: anew
+      INTEGER, INTENT(in)                      :: ns_old
+      INTEGER, INTENT(in)                      :: ns_new
+      INTEGER, INTENT(in)                      :: mpol_old
+      INTEGER, INTENT(in)                      :: mpol_new
+      INTEGER, INTENT(in)                      :: ntor_old
+      INTEGER, INTENT(in)                      :: ntor_new
+      INTEGER, INTENT(in)                      :: nfp_old
+      INTEGER, INTENT(in)                      :: nfp_new
+      LOGICAL, INTENT(in)                      :: lhalf
 
 !  local variables
-      INTEGER                :: real_ntor_min
-      INTEGER                :: i_n
-      INTEGER                :: i_m
-      REAL (dp)              :: ds
-      INTEGER                :: parity
-      INTEGER                :: mpol_min
-      INTEGER                :: ntor_min
+      INTEGER                                  :: real_ntor_min
+      INTEGER                                  :: i_n
+      INTEGER                                  :: i_m
+      INTEGER                                  :: parity
+      INTEGER                                  :: mpol_min
+      INTEGER                                  :: ntor_min
+      INTEGER                                  :: mold_off
+      INTEGER                                  :: mnew_off
+      INTEGER                                  :: nold_off
+      INTEGER                                  :: nnew_off
 
 !  Start of executable code
+      mold_off = LBOUND(aold,1)
+      mnew_off = LBOUND(anew,1)
+
+      nold_off = LBOUND(aold,2) + ntor_old
+      nnew_off = LBOUND(anew,2) + ntor_new
+
       mpol_min = MIN(mpol_new, mpol_old)
       real_ntor_min = MIN(ntor_new*nfp_new, ntor_old*nfp_old)
 
@@ -770,11 +763,12 @@
                      parity = 1
                   END IF
 
-                  CALL interpit_1d(aold(i_m, i_n, :), anew(i_m, i_n, :),       &
+                  CALL interpit_1d(aold(i_m + mold_off, i_n + nold_off, :),    &
+                                   anew(i_m + mnew_off, i_n + nnew_off, :),    &
                                    ns_old, ns_new, lhalf, parity)
                END DO
             ELSE
-               anew(:, i_n, :) = 0
+               anew(:, i_n + nnew_off, :) = 0
             END IF
          END DO
       END IF
@@ -797,8 +791,8 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (dp), INTENT(in)                :: aold(ns_old)
-      REAL (dp), INTENT(out)               :: anew(ns_new)
+      REAL (dp), DIMENSION(:), INTENT(in)  :: aold
+      REAL (dp), DIMENSION(:), INTENT(out) :: anew
       INTEGER, INTENT(in)                  :: ns_old
       INTEGER, INTENT(in)                  :: ns_new
       LOGICAL, INTENT(in)                  :: lhalf
@@ -881,8 +875,8 @@
 !>  @param[inout] xmn    Fourier quantity to denormalize.
 !>  @param[in]    factor Energy scale factor.
 !-------------------------------------------------------------------------------
-      SUBROUTINE restart_denormalize(xmn, factor)
-      USE island_params, ONLY: fourier_context, mpol=>mpol_i, ntor=>ntor_i
+      SUBROUTINE restart_normalize(xmn, factor)
+      USE island_params, ONLY: fourier_context
 
       IMPLICIT NONE
 
@@ -895,8 +889,35 @@
 
 !  Start of executable code.
       DO s = 1, SIZE(xmn,3)
-         xmn(:,:,s) = fourier_context%orthonorm(0:mpol,-ntor:ntor)*xmn(:,:,s)  &
-                    / factor
+         xmn(:,:,s) = xmn(:,:,s)*factor/fourier_context%orthonorm*xmn(:,:,s)
+      END DO
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Denormalize a quantity so the value written to the restart file can
+!>         be summed directly.
+!>
+!>  This removes the orthonorm and energy scale factors for a fourier quantity.
+!>
+!>  @param[inout] xmn    Fourier quantity to denormalize.
+!>  @param[in]    factor Energy scale factor.
+!-------------------------------------------------------------------------------
+      SUBROUTINE restart_denormalize(xmn, factor)
+      USE island_params, ONLY: fourier_context
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp), DIMENSION(:,:,:) :: xmn
+      REAL (dp)                   :: factor
+
+!  Local Variables
+      INTEGER                     :: s
+
+!  Start of executable code.
+      DO s = 1, SIZE(xmn,3)
+         xmn(:,:,s) = fourier_context%orthonorm*xmn(:,:,s)/factor
       END DO
 
       END SUBROUTINE

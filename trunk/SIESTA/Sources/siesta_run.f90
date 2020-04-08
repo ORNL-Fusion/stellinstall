@@ -17,14 +17,44 @@
       IMPLICIT NONE
 
 !*******************************************************************************
+!  siesta run module parameters
+!*******************************************************************************
+!>  Clear all control bits.
+      INTEGER, PARAMETER :: siesta_run_control_clear = 0
+
+!>  Bit position to initalize mpi.
+      INTEGER, PARAMETER :: siesta_run_control_mpi = 1
+!>  Bit position to close the wout file.
+      INTEGER, PARAMETER :: siesta_run_control_wout = 2
+
+!*******************************************************************************
 !  DERIVED-TYPE DECLARATIONSf
 !  1) siesta_run base class
 !
 !*******************************************************************************
-      TYPE siesta_run_class
+      TYPE :: siesta_run_class
 !>  Timer On
          REAL (dp) :: time_on
+!>  Control state.
+         INTEGER   :: control_state
+      CONTAINS
+         PROCEDURE, PASS :: set_vmec => siesta_run_set_vmec
+         PROCEDURE, PASS :: set_restart => siesta_run_set_restart
+         PROCEDURE, PASS :: set_1d => siesta_run_set_1d
+         GENERIC         :: set => set_1d
+         PROCEDURE, PASS :: converge => siesta_run_converge
+         FINAL           :: siesta_run_destruct
       END TYPE
+
+!*******************************************************************************
+!  INTERFACE BLOCKS
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Interface for the siesta_run constructor.
+!-------------------------------------------------------------------------------
+      INTERFACE siesta_run_class
+         MODULE PROCEDURE siesta_run_construct
+      END INTERFACE
 
       CONTAINS
 
@@ -37,11 +67,16 @@
 !>  Allocates memory and initializes a @ref siesta_run_class object. Performs
 !>  all the initialization needed to operate SIESTA.
 !>
-!>  @param[in] run_comm MPI Communicator to use.
-!>  @param[in] init_mpi Instructs if MPI should be initialized.
+!>  @param[in] run_comm      MPI Communicator to use.
+!>  @param[in] verbose       Control the code screen output.
+!>  @param[in] init_mpi      Instructs if MPI should be initialized.
+!>  @param[in] close_wout    Instructs if wout file should be closed on
+!>                           deallocate.
+!>  @param[in] namelist_file Path to the siesta namelist input file.
 !>  @returns A pointer to a constructed @ref siesta_run_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION siesta_run_construct(run_comm, verbose)
+      FUNCTION siesta_run_construct(run_comm, verbose, init_mpi, close_wout,   &
+                                    namelist_file)
       USE nscalingtools, ONLY: MyEnvVariables, PARSOLVER, SIESTA_COMM
       USE descriptor_mod, ONLY: LSCALAPACK, INHESSIAN, iam, nprocs,            &
                                 nprow, npcol, icontxt, icontxt_1xp,            &
@@ -63,16 +98,31 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (siesta_run_class), POINTER :: siesta_run_construct
-      INTEGER, INTENT(in)              :: run_comm
-      LOGICAL, INTENT(in)              :: verbose
+      CLASS (siesta_run_class), POINTER :: siesta_run_construct
+      INTEGER, INTENT(in)               :: run_comm
+      LOGICAL, INTENT(in)               :: verbose
+      LOGICAL, INTENT(in)               :: init_mpi
+      LOGICAL, INTENT(in)               :: close_wout
+      CHARACTER (len=*), INTENT(in)     :: namelist_file
 
 !  local variables.
-      REAL (dp)                     :: ton
-      REAL (dp)                     :: toff
+      REAL (dp)                         :: ton
+      REAL (dp)                         :: toff
 
 !  Start of executable code
       ALLOCATE(siesta_run_construct)
+
+      siesta_run_construct%control_state = siesta_run_control_clear
+
+      IF (init_mpi) THEN
+         siesta_run_construct%control_state =                                  &
+            IBSET(siesta_run_construct%control_state, siesta_run_control_mpi)
+      END IF
+
+      IF (close_wout) THEN
+         siesta_run_construct%control_state =                                  &
+            IBSET(siesta_run_construct%control_state, siesta_run_control_wout)
+      END IF
 
       CALL siesta_error_clear_all
 
@@ -134,7 +184,7 @@
       CALL second0(ton)
       siesta_run_construct%time_on = ton
 
-      nprecon = init_data()
+      nprecon = init_data(namelist_file)
       CALL set_grid_sizes(mpolin, ntorin)
 
       CALL second0(toff)
@@ -144,7 +194,7 @@
 1000  FORMAT('nprow,npcol ',2(x,i5))
 1001  FORMAT('icontxt_global,icontxt,icontxt_1xp,icontxt_px1 ',4(x,i5))
 
-      END FUNCTION siesta_run_construct
+      END FUNCTION
 
 !*******************************************************************************
 !  DESTRUCTION SUBROUTINES
@@ -156,10 +206,8 @@
 !>  also performs the shut down procedures for SIESTA.
 !>
 !>  @param[inout] this         A @ref siesta_run_class instance.
-!>  @param[in]    finalize_mpi Instructs if to finalize the MPI call.
-!>  @param[in]    close_wout   Instructs if to finalize the close the wout file.
 !-------------------------------------------------------------------------------
-      SUBROUTINE siesta_run_destruct(this, finalize_mpi, close_wout)
+      SUBROUTINE siesta_run_destruct(this)
       USE nscalingtools, ONLY: OUTPUT_TIMINGS, GetTimes, PARSOLVER,     &
                                PARFUNCTISL, PARGMRES, SKSDBG, TOFU,     &
                                finalizeremap
@@ -181,14 +229,12 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (siesta_run_class), POINTER :: this
-      LOGICAL, INTENT(in)              :: finalize_mpi
-      LOGICAL, INTENT(in)              :: close_wout
+      TYPE (siesta_run_class), INTENT(inout) :: this
 
 !  local variables.
-      REAL (dp)                        :: ton
-      REAL (dp)                        :: toff
-      INTEGER                          :: i
+      REAL (dp)                              :: ton
+      REAL (dp)                              :: toff
+      INTEGER                                :: i
 
 !  Start of executable code
       CALL second0(toff)
@@ -253,7 +299,8 @@
  101  FORMAT(a,1p,e10.3)
  102  FORMAT(a,i5)
  
-      CALL write_output(wout_file, niter, close_wout)
+      CALL write_output(wout_file, niter,                                      &
+                        BTEST(this%control_state, siesta_run_control_wout))
       CALL write_profiles(fsq_total1)  ! SPH: write pmn, bsupXmn, ksubXmn, jvsupXmn profiles
       IF (iam .EQ. 0) THEN
          IF (lverbose) PRINT *,' Writing output to "siesta_profiles.txt" is finished!'
@@ -286,12 +333,10 @@
             FLUSH(TOFU)
          END IF
          CALL finalizeRemap
-         CALL Finalize(finalize_mpi)
+         CALL Finalize(BTEST(this%control_state, siesta_run_control_mpi))
 
       END IF
 #endif
-
-      DEALLOCATE(this)
 
 1000  FORMAT(/,' nprecon: ',i3,' LM parameter: ',1pe9.2,' mu||: ',1pe9.2,      &
              ' Symmetry Index: ',1pe9.2)
@@ -322,7 +367,8 @@
              ' Add Perturb    : ',0pf12.3/,                                    &
              ' Init State     : ',0pf12.3,                                     &
              /,'==============================',14x,'=======================')
-      END SUBROUTINE siesta_run_destruct
+
+      END SUBROUTINE
 
 !*******************************************************************************
 !  SETTER SUBROUTINES
@@ -351,10 +397,10 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (siesta_run_class), INTENT(inout) :: this
+      CLASS (siesta_run_class), INTENT(inout) :: this
 
 !  local variables
-      INTEGER                                :: istat
+      INTEGER                                 :: istat
 
 !  Start of executable code
       CALL vmec_info_set_wout(wout_file, nsin, mpolin, ntorin, nfpin)
@@ -412,7 +458,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (siesta_run_class), INTENT(inout) :: this
+      CLASS (siesta_run_class), INTENT(inout) :: this
 
 !  Start of executable code
       IF (l_vessel) THEN
@@ -435,6 +481,76 @@
 
       END SUBROUTINE
 
+!-------------------------------------------------------------------------------
+!>  @brief Set 1D parameter value.
+!>
+!>  @param[inout] this        @ref siesta_run_class instance.
+!>  @param[in]    param_name Name of the parameter to set.
+!>  @param[in]    value      Value to set the parameter to.
+!>  @param[in]    index      Array index of to set the value to.
+!-------------------------------------------------------------------------------
+      SUBROUTINE siesta_run_set_1d(this, param_name, value, index)
+      USE siesta_namelist, ONLY: helpert
+      USE siesta_error
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CLASS (siesta_run_class), INTENT(inout) :: this
+      CHARACTER (len=*), INTENT(in)           :: param_name
+      REAL (dp)                               :: value
+      INTEGER, INTENT(in)                     :: index
+
+!  Start of executable code.
+      SELECT CASE (TRIM(param_name))
+
+         CASE ('helpert')
+            helpert(index) = value
+
+         CASE DEFAULT
+            CALL siesta_error_set_error(siesta_error_param,                    &
+                                        'Warning unknown parameter name ' //   &
+                                        TRIM(param_name))
+
+      END SELECT
+
+      END SUBROUTINE
+
+!*******************************************************************************
+!  GETTER SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Get 1D parameter value.
+!>
+!>  @param[inout] this        @ref siesta_run_class instance.
+!>  @param[in]    param_name Name of the parameter to set.
+!>  @param[in]    index      Array index of to set the value to.
+!>  @returns Value of the parameter at the index.
+!-------------------------------------------------------------------------------
+      FUNCTION siesta_run_get_1d(this, param_name, index)
+      USE siesta_namelist, ONLY: helpert
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp)                            :: siesta_run_get_1d
+      CLASS (siesta_run_class), INTENT(in) :: this
+      CHARACTER (len=*), INTENT(in)        :: param_name
+      INTEGER, INTENT(in)                  :: index
+
+!  Start of executable code.
+      SELECT CASE (TRIM(param_name))
+
+         CASE ('helpert')
+            siesta_run_get_1d = helpert(index)
+
+         CASE DEFAULT
+            siesta_run_get_1d = 0.0
+
+      END SELECT
+
+      END FUNCTION
+
 !*******************************************************************************
 !  UTILITY SUBROUTINES
 !*******************************************************************************
@@ -447,17 +563,16 @@
 !>  restart file before convergence.
 !>
 !>  @param[inout] this A @ref siesta_run_class instance.
-!>  @returns True if the convergece was sucessful and false otherwise.
 !-------------------------------------------------------------------------------
       SUBROUTINE siesta_run_converge(this)
       USE evolution, ONLY: converge_diagonal, converge_blocks
-      USE descriptor_mod, ONLY: DIAGONALDONE, iam
+      USE descriptor_mod, ONLY: DIAGONALDONE
       USE siesta_namelist, ONLY: ftol, wout_file
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (siesta_run_class), INTENT(inout) :: this
+      CLASS (siesta_run_class), INTENT(inout) :: this
 
 !  Start of executable code
 !  Converge initial residues with diagonal preconditioner

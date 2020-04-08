@@ -1,5 +1,5 @@
 !*******************************************************************************
-!>  @file utilities.f90
+!>  @file siesta_pressure.f90
 !>  @brief Contains module @ref siesta_pressure
 !
 !  Note separating the Doxygen comment block here so detailed decription is
@@ -20,6 +20,9 @@
 
       CONTAINS
 
+!*******************************************************************************
+!  UTILITY SUBROUTINES
+!*******************************************************************************
 !-------------------------------------------------------------------------------
 !>  @brief advance pressure on the half radial grid from t to t + delta_t.
 !>

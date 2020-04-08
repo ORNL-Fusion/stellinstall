@@ -685,12 +685,8 @@
       lmn(:,:,ns + 1) = lmn(:,:,ns + 1)                                        &
                       / fourier_context%orthonorm(0:mpol,-ntor:ntor)
 
-!      lmn(m1:,:,1) = 0
       rmn(m1:,:,1) = 0
       zmn(m1:,:,1) = 0
-!      currumn(:,:,1) = 0
-!      currumn(m1:,:,1) = 0
-!      currvmn(m1:,:,1) = 0
 
       IF (parity .eq. f_cos) THEN
          lmn(m0,-ntor:n0,:) = 0

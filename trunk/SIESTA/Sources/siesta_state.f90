@@ -86,51 +86,50 @@
       CALL second0(toff)
       time_update_state = time_update_state + (toff - ton)
 
-      IF (.not.lprint) THEN
-         RETURN
-      END IF
+      IF (lprint) THEN
+         CALL second0(ton)
 
-      CALL second0(ton)
+         CALL Update_Diagnostics(jbsupsmnsh, jbsupumnch, jbsupumnch, jpmnch,   &
+                                 bs0(1:6), bu0(1:6), bsbu_ratio_s, pwr_spec_s, &
+                                 f_sin)
+         IF (lasym) THEN
+            CALL Update_Diagnostics(jbsupsmnch, jbsupumnsh, jbsupvmnsh,        &
+                                    jpmnsh, bs0(7:12), bu0(7:12),              &
+                                    bsbu_ratio_a, pwr_spec_a, f_cos)
+         END IF
+         lfirst = .false.
 
-      CALL Update_Diagnostics(jbsupsmnsh, jbsupumnch, jbsupumnch, jpmnch,      &
-                              bs0(1:6), bu0(1:6), bsbu_ratio_s, pwr_spec_s,    &
-                              f_sin)
-      IF (lasym) THEN
-         CALL Update_Diagnostics(jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh,   &
-                                 bs0(7:12), bu0(7:12), bsbu_ratio_a,           &
-                                 pwr_spec_a, f_cos)
-      END IF
-      lfirst = .false.
+         nsmin = MAX(1, startglobrow)
+         nsmax = MIN(endglobrow, ns)
 
-      nsmin = MAX(1, startglobrow)
-      nsmax = MIN(endglobrow, ns)
-
-      CALL init_state(.true.)
+         CALL init_state(.true.)
 
 !  Compute co-variant and contravariant components of current (times jacobian)
 !  need for divJ, BdotJ
-      lcurr_init = .true.
-      CALL divb(nsmin, nsmax)
-      CALL divj(nsmin, nsmax)
-      CALL bgradp(nsmin, nsmax)
-      CALL tflux
-      CALL bdotj_par
-      lcurr_init = .false.
+         lcurr_init = .true.
+         CALL divb(nsmin, nsmax)
+         CALL divj(nsmin, nsmax)
+         CALL bgradp(nsmin, nsmax)
+         CALL tflux
+         CALL bdotj_par
+         lcurr_init = .false.
 
-      toroidal_flux = toroidal_flux - toroidal_flux0
-      IF (iam .EQ. 0) THEN
-         IF (lverbose) THEN
-            WRITE (*,1000) ste(1), ste(2), ste(3), ste(4), divb_rms,           &
-                           toroidal_flux, wp/wb, bgradp_rms, max_bgradp,       &
-                           min_bgradp, bdotj_rms, bdotj2_rms, divj_rms
+         toroidal_flux = toroidal_flux - toroidal_flux0
+         IF (iam .eq. 0) THEN
+            IF (lverbose) THEN
+               WRITE (*,1000) ste(1), ste(2), ste(3), ste(4), divb_rms,        &
+                              toroidal_flux, wp/wb, bgradp_rms, max_bgradp,    &
+                              min_bgradp, bdotj_rms, bdotj2_rms, divj_rms
+            END IF
+            WRITE (unit_out,1000) ste(1), ste(2), ste(3), ste(4), divb_rms,    &
+                                  toroidal_flux, wp/wb, bgradp_rms,            &
+                                  max_bgradp, min_bgradp, bdotj_rms,           &
+                                  bdotj2_rms, divj_rms
          END IF
-         WRITE (unit_out,1000) ste(1), ste(2), ste(3), ste(4), divb_rms,       &
-                               toroidal_flux, wp/wb, bgradp_rms, max_bgradp,   &
-                               min_bgradp, bdotj_rms, bdotj2_rms, divj_rms
-      END IF
 
-      CALL second0(toff)
-      time_update_state = time_update_state + (toff - ton)
+         CALL second0(toff)
+         time_update_state = time_update_state + (toff - ton)
+      END IF
 
 1000  FORMAT(' SPECTRAL TRUNC ERROR - p: ',1pe11.3,' B_s: ',1pe11.3,           &
              ' B_u: ',1pe11.3,' B_v: ',1pe11.3,/,                              &

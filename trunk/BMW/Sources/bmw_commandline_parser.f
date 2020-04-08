@@ -86,7 +86,7 @@
 !-------------------------------------------------------------------------------
 !>  Base class containing a parsed bmw_commandline.
 !-------------------------------------------------------------------------------
-      TYPE bmw_commandline_parser_class
+      TYPE :: bmw_commandline_parser_class
 !>  Command name of current process.
          CHARACTER (len=max_length) :: command
 !>  Array of arguments. An argument is the form of -flag
@@ -96,7 +96,30 @@
 !>  '=' character. The value maybe blank indicating there was no value provided.
          CHARACTER (len=path_length), DIMENSION(:), POINTER ::                 &
      &      value => null()
+      CONTAINS
+         PROCEDURE, PASS ::                                                    &
+     &      get_string => bmw_commandline_parser_get_string
+         PROCEDURE, PASS ::                                                    &
+     &      get_integer => bmw_commandline_parser_get_integer
+         PROCEDURE, PASS ::                                                    &
+     &      get_real => bmw_commandline_parser_get_real
+         GENERIC         :: get => get_string, get_integer, get_real
+         PROCEDURE, PASS ::                                                    &
+     &      is_flag_set => bmw_commandline_parser_is_flag_set
+         PROCEDURE, PASS :: flag_requires_value =>                             &
+     &      bmw_commandline_parser_flag_requires_value
+         FINAL           :: bmw_commandline_parser_destruct
       END TYPE
+
+!*******************************************************************************
+!  INTERFACE BLOCKS
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Interface for the bmw_commandline_parser constructor.
+!-------------------------------------------------------------------------------
+      INTERFACE bmw_commandline_parser_class
+         MODULE PROCEDURE bmw_commandline_parser_construct
+      END INTERFACE
 
       CONTAINS
 !*******************************************************************************
@@ -119,14 +142,16 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (bmw_commandline_parser_class), POINTER  ::                         &
+      CLASS (bmw_commandline_parser_class), POINTER  ::                        &
      &   bmw_commandline_parser_construct
-      TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
+      CLASS (bmw_parallel_context_class), INTENT(in) :: parallel
 
 !  local variables
-      CHARACTER (len=max_length) :: temp
-      INTEGER                    :: num_args, i, value_index
-      REAL (rprec)               :: start_time
+      CHARACTER (len=max_length)                     :: temp
+      INTEGER                                        :: num_args
+      INTEGER                                        :: i
+      INTEGER                                        :: value_index
+      REAL (rprec)                                   :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -199,7 +224,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (bmw_commandline_parser_class), POINTER :: this
+      TYPE (bmw_commandline_parser_class), INTENT(inout) :: this
 
 !  Start of executable code
       IF (ASSOCIATED(this%arg)) THEN
@@ -211,8 +236,6 @@
          DEALLOCATE(this%value)
          this%value => null()
       END IF
-
-      DEALLOCATE(this)
 
       END SUBROUTINE
 
@@ -236,12 +259,12 @@
 
 !  Declare Arguments
       CHARACTER (len=path_length) :: bmw_commandline_parser_get_string
-      TYPE (bmw_commandline_parser_class), INTENT(in) :: this
-      CHARACTER (len=*), INTENT(in)                   :: arg
+      CLASS (bmw_commandline_parser_class), INTENT(in) :: this
+      CHARACTER (len=*), INTENT(in)                    :: arg
 
 !  Local arguments
-      INTEGER                                         :: i
-      REAL (rprec)                                    :: start_time
+      INTEGER                                          :: i
+      REAL (rprec)                                     :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -281,25 +304,25 @@
 !>  @returns The argument value.
 !-------------------------------------------------------------------------------
       FUNCTION bmw_commandline_parser_get_integer(this, arg,                   &
-     &                                        default_value)
+     &                                            default_value)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       INTEGER :: bmw_commandline_parser_get_integer
-      TYPE (bmw_commandline_parser_class), INTENT(in) :: this
-      CHARACTER (len=*), INTENT(in)                   :: arg
-      INTEGER, INTENT(in)                             :: default_value
+      CLASS (bmw_commandline_parser_class), INTENT(in) :: this
+      CHARACTER (len=*), INTENT(in)                    :: arg
+      INTEGER, INTENT(in)                              :: default_value
 
 !  Local arguments
-      CHARACTER (len=path_length)                     :: value
-      INTEGER                                         :: status
-      REAL (rprec)                                    :: start_time
+      CHARACTER (len=path_length)                      :: value
+      INTEGER                                          :: status
+      REAL (rprec)                                     :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      value = bmw_commandline_parser_get_string(this, arg)
+      value = this%get(arg)
 
       IF (TRIM(value) .eq. '') THEN
          bmw_commandline_parser_get_integer = default_value
@@ -342,19 +365,19 @@
 
 !  Declare Arguments
       REAL (rprec) :: bmw_commandline_parser_get_real
-      TYPE (bmw_commandline_parser_class), INTENT(in) :: this
-      CHARACTER (len=*), INTENT(in)                   :: arg
-      REAL (rprec), INTENT(in)                        :: default_value
+      CLASS (bmw_commandline_parser_class), INTENT(in) :: this
+      CHARACTER (len=*), INTENT(in)                    :: arg
+      REAL (rprec), INTENT(in)                         :: default_value
 
 !  Local arguments
-      CHARACTER (len=path_length)                     :: value
-      INTEGER                                         :: status
-      REAL (rprec)                                    :: start_time
+      CHARACTER (len=path_length)                      :: value
+      INTEGER                                          :: status
+      REAL (rprec)                                     :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      value = bmw_commandline_parser_get_string(this, arg)
+      value = this%get(arg)
 
       IF (TRIM(value) .eq. '') THEN
          bmw_commandline_parser_get_real = default_value
@@ -395,12 +418,12 @@
 
 !  Declare Arguments
       LOGICAL :: bmw_commandline_parser_is_flag_set
-      TYPE (bmw_commandline_parser_class), INTENT(in) :: this
-      CHARACTER (len=*), INTENT(in)                   :: arg
+      CLASS (bmw_commandline_parser_class), INTENT(in) :: this
+      CHARACTER (len=*), INTENT(in)                    :: arg
 
 !  Local arguments
-      INTEGER                                         :: i
-      REAL (rprec)                                    :: start_time
+      INTEGER                                          :: i
+      REAL (rprec)                                     :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -451,11 +474,11 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (bmw_commandline_parser_class), INTENT(in) :: this
-      INTEGER, INTENT(in)                             :: index
+      CLASS (bmw_commandline_parser_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                              :: index
 
 !  Local arguments
-      REAL (rprec)                                    :: start_time
+      REAL (rprec)                                     :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()

@@ -631,9 +631,9 @@
                                 parity, nsmin, nsmax, extend, curtor)
 
 !  Declare Arguments
-      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(in) :: asubsmnh
-      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(in) :: asubumnh
-      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(in) :: asubvmnh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in) :: asubsmnh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in) :: asubumnh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in) :: asubvmnh
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, TARGET, INTENT(inout) ::       &
          jbsupsmnf
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, TARGET, INTENT(inout) ::       &
@@ -655,9 +655,8 @@
       jbsp => jbsupsmnf
       jbup => jbsupumnf
       jbvp => jbsupvmnf
-      CALL curl_htof(asubsmnh, asubumnh, asubvmnh,                             &
-                     jbsp, jbup, jbvp, parity, nsmin, nsmax, extend,           &
-                     curtor)
+      CALL curl_htof(asubsmnh, asubumnh, asubvmnh, jbsp, jbup, jbvp,           &
+                     parity, nsmin, nsmax, extend, curtor)
 
       END SUBROUTINE
 

@@ -14,9 +14,11 @@
       USE island_params, mpol=>mpol_i, ntor=>ntor_i, ns=>ns_i
       USE island_params, ntheta=>nu_i, nzeta=>nv_i, hs=>hs_i
       USE island_params, ohs => ohs_i, mnmax=>mnmax_i, nfp=>nfp_i
-      USE hessian, ONLY: initHess, Compute_Hessian_Blocks, asym_index, levmarq_param
+      USE hessian, ONLY: initHess, Compute_Hessian_Blocks, asym_index,         &
+                         levmarq_param
       USE blocktridiagonalsolver_s, ONLY: Initialize, GetRanks
-      USE nscalingtools, ONLY: MyEnvVariables, PARSOLVER, disp, startglobrow, endglobrow, rcounts, MPI_ERR
+      USE nscalingtools, ONLY: MyEnvVariables, PARSOLVER, disp, startglobrow,  &
+                               endglobrow, rcounts, MPI_ERR
       USE shared_data, ONLY: gc, xc, neqs, gc0, xc0, fsq_total, mblk_size, ndims
       USE shared_data, ONLY: asubsmnsf, asubumncf, asubvmncf,                  &
                              fsupsmnsf, fsupumncf, fsupvmncf,                  &
@@ -181,10 +183,10 @@
 !>                          direction.
 !>  @param[inout] jbsupvmnh Contravariant B field and jacobian in the v
 !>                          direction.
-!>  @param[in]    iparity   Parity flag to indicate stellaratory symmetry.
+!>  @param[in]    parity    Parity flag to indicate stellaratory symmetry.
 !-------------------------------------------------------------------------------
       SUBROUTINE CURLA_PCHELMS(Asubsmnf,  Asubumnf,  Asubvmnf,                 &
-                               jbsupsmnh, jbsupumnh, jbsupvmnh, iparity)
+                               jbsupsmnh, jbsupumnh, jbsupvmnh, parity)
       USE utilities, ONLY: CURL_FtoH, set_bndy_fouier_m0, set_bndy_full_origin
       USE island_params, ONLY: fourier_context
 
@@ -197,7 +199,7 @@
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jbsupsmnh
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jbsupumnh
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(inout) :: jbsupvmnh
-      INTEGER, INTENT(in)                                     :: iparity
+      INTEGER, INTENT(in)                                     :: parity
 
 !  local variables
       INTEGER                                                 :: fcomb
@@ -215,7 +217,7 @@
       noff = ntor + LBOUND(asubsmnf, 2)
       nmin = nsmin
 
-      IF (iparity .EQ. f_sin) THEN
+      IF (parity .eq. f_sin) THEN
          fcomb = f_none
          fours = f_sin
          fouruv = f_cos
@@ -225,22 +227,10 @@
          fouruv = f_sin
       END IF
 
-      CALL set_bndy_fouier_m0(asubsmnf, asubumnf, asubvmnf, iparity)
-      IF (nsmin .EQ. 1) THEN
+      CALL set_bndy_fouier_m0(asubsmnf, asubumnf, asubvmnf, parity)
+      IF (nsmin .eq. 1) THEN
          CALL set_bndy_full_origin(asubsmnf, asubumnf, asubvmnf)
       END IF
-
-!  Dirichelet bc (fixed) for A_u, A_v (A_s floats) consistent with Poynting
-!  flux = 0.
-!      IF (nsmax .eq. ns .and.                                                  &
-!          lHessian     .and.                                                   &
-!          .not.lInit) THEN
-!         IF (.not.l_AsEdge) THEN
-!            asubsmnf(:,:,ns) = 0
-!         END IF
-!         asubumnf(:,:,ns) = 0
-!         asubvmnf(:,:,ns) = 0
-!      END IF
 
 !  Need this to keep Hessian symmetric
       IF (nmin .le. ns_match .and. lHessian .and. .not.lInit) THEN
@@ -250,7 +240,7 @@
       END IF
 
       CALL CURL_FtoH(asubsmnf,  asubumnf,  asubvmnf,                           &
-                     jbsupsmnh, jbsupumnh, jbsupvmnh, iparity, nmin, nsmax)
+                     jbsupsmnh, jbsupumnh, jbsupvmnh, parity, nmin, nsmax)
 
       nmin = startglobrow
 
@@ -294,8 +284,8 @@
       REAL(dp), POINTER, DIMENSION(:,:,:)                 :: ksupumnf
       REAL(dp), POINTER, DIMENSION(:,:,:)                 :: ksupvmnf
       REAL(dp), POINTER, DIMENSION(:,:,:)                 :: asubsmnf
-      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(IN) :: bsupsmnh
-      INTEGER, INTENT(IN)                                 :: iparity
+      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in) :: bsupsmnh
+      INTEGER, INTENT(in)                                 :: iparity
       REAL (dp), INTENT(inout)                            :: curtor
 
 !  Local variables
@@ -341,7 +331,7 @@
                bsubvmnh(0:mpol,-ntor:ntor,nmin:nmax), stat=istat)   
       CALL ASSERT(istat .eq. 0,'Allocation1 failed in CURLB_PCHELMS')
 
-      CALL fourier_context%tomnsp(bsubsijh, bsubsmnh(:,:,nmin:nmax), fours)          ! Compute BSUBXMNH
+      CALL fourier_context%tomnsp(bsubsijh, bsubsmnh(:,:,nmin:nmax), fours)
       CALL fourier_context%tomnsp(bsubuijh, bsubumnh(:,:,nmin:nmax), fouruv)
       CALL fourier_context%tomnsp(bsubvijh, bsubvmnh(:,:,nmin:nmax), fouruv)
 
@@ -442,12 +432,12 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (dp), DIMENSION(:,:), INTENT(IN)  :: A_r
-      REAL (dp), DIMENSION(:,:), INTENT(IN)  :: A_p
-      REAL (dp), DIMENSION(:,:), INTENT(IN)  :: A_z
-      REAL (dp), DIMENSION(:,:), INTENT(OUT) :: cA_s
-      REAL (dp), DIMENSION(:,:), INTENT(OUT) :: cA_u
-      REAL (dp), DIMENSION(:,:), INTENT(OUT) :: cA_v
+      REAL (dp), DIMENSION(:,:), INTENT(in)  :: A_r
+      REAL (dp), DIMENSION(:,:), INTENT(in)  :: A_p
+      REAL (dp), DIMENSION(:,:), INTENT(in)  :: A_z
+      REAL (dp), DIMENSION(:,:), INTENT(out) :: cA_s
+      REAL (dp), DIMENSION(:,:), INTENT(out) :: cA_u
+      REAL (dp), DIMENSION(:,:), INTENT(out) :: cA_v
 
 !  Local variables
       REAL (dp), DIMENSION(:,:), ALLOCATABLE :: rs
@@ -499,13 +489,13 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (dp), DIMENSION(:,:,:), INTENT(in)                 :: cA_s
-      REAL (dp), DIMENSION(:,:,:), INTENT(in)                 :: cA_u
-      REAL (dp), DIMENSION(:,:,:), INTENT(in)                 :: cA_v
+      REAL (dp), DIMENSION(:,:), INTENT(in)                   :: cA_s
+      REAL (dp), DIMENSION(:,:), INTENT(in)                   :: cA_u
+      REAL (dp), DIMENSION(:,:), INTENT(in)                   :: cA_v
       REAL (dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(out) :: A_s
       REAL (dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(out) :: A_u
       REAL (dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(out) :: A_v
-      INTEGER, INTENT(IN)                                     :: parity
+      INTEGER, INTENT(in)                                     :: parity
 
 !  Local variables
       INTEGER                                                 :: js
@@ -524,7 +514,7 @@
       A_u = 0
       A_v = 0
 
-      IF (parity .EQ. f_sin) THEN
+      IF (parity .eq. f_sin) THEN
 !  e_s (sin), e_u (cos), e_v (cos)
          fours = f_sin
          fouruv = f_cos
@@ -534,9 +524,9 @@
          fouruv = f_sin
       END IF
 
-      CALL fourier_context%tomnsp(cA_s, A_s(:,:,ns:ns), fours)
-      CALL fourier_context%tomnsp(cA_u, A_u(:,:,ns:ns), fouruv)
-      CALL fourier_context%tomnsp(cA_v, A_v(:,:,ns:ns), fouruv)
+      CALL fourier_context%tomnsp(cA_s, A_s(:,:,ns), fours)
+      CALL fourier_context%tomnsp(cA_u, A_u(:,:,ns), fouruv)
+      CALL fourier_context%tomnsp(cA_v, A_v(:,:,ns), fouruv)
 
 !  Extapolate the vector potential from the edge to the center.
       nmatch = 0
@@ -815,8 +805,8 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      INTEGER, INTENT(IN) :: js
-      INTEGER, INTENT(IN) :: iunit
+      INTEGER, INTENT(in) :: js
+      INTEGER, INTENT(in) :: iunit
 
 !  Local variables
       INTEGER             :: m
@@ -1059,7 +1049,7 @@
 
 !-------------------------------------------------------------------------------
 !>  @brief Check that the line integral of Bsubuij equals the integrated
-!>         toroidal current
+!>         toroidal current.
 !-------------------------------------------------------------------------------
       SUBROUTINE CHECK_CURRENT
       USE metrics, ONLY: jsupvdotA
@@ -1194,17 +1184,17 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      LOGICAL, INTENT(in)                      :: lNLinear
+      LOGICAL, INTENT(in)                    :: lNLinear
 
 !  Local variables
-      INTEGER                                  :: istat
-      REAL (dp)                                :: dphi
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: A_r
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: A_p
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: A_z
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: cA_s
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: cA_u
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: cA_v
+      INTEGER                                :: istat
+      REAL (dp)                              :: dphi
+      REAL (dp), DIMENSION(:,:), ALLOCATABLE :: A_r
+      REAL (dp), DIMENSION(:,:), ALLOCATABLE :: A_p
+      REAL (dp), DIMENSION(:,:), ALLOCATABLE :: A_z
+      REAL (dp), DIMENSION(:,:), ALLOCATABLE :: cA_s
+      REAL (dp), DIMENSION(:,:), ALLOCATABLE :: cA_u
+      REAL (dp), DIMENSION(:,:), ALLOCATABLE :: cA_v
 
 !  Start of executable code
       nsmin = startglobrow
@@ -1241,18 +1231,17 @@
          bnorm = fsq_total
 
          dphi = (2*pi)/(nfp*nzeta)
-         ALLOCATE(A_r(ntheta,nzeta,1),                                         &
-                  A_p(ntheta,nzeta,1),                                         &
-                  A_z(ntheta,nzeta,1))
+         ALLOCATE(A_r(ntheta,nzeta),                                         &
+                  A_p(ntheta,nzeta),                                         &
+                  A_z(ntheta,nzeta))
 
-         CALL bmw_exec(mgrid_file, wout_file, r1_i, z1_i, dphi, ns,            &
-                       A_r, A_p, A_z)
+         CALL bmw_exec(mgrid_file, wout_file, r1_i(:,:,ns), z1_i(:,:,ns),      &
+                       dphi, A_r, A_p, A_z)
 
-         ALLOCATE(cA_s(ntheta,nzeta,1),                                        &
-                  cA_u(ntheta,nzeta,1),                                        &
-                  cA_v(ntheta,nzeta,1))
-         CALL CYL2VMEC_A(A_r(:,:,1), A_p(:,:,1), A_z(:,:,1),                   &
-                         cA_s(:,:,1), cA_u(:,:,1), cA_v(:,:,1))
+         ALLOCATE(cA_s(ntheta,nzeta),                                          &
+                  cA_u(ntheta,nzeta),                                          &
+                  cA_v(ntheta,nzeta))
+         CALL CYL2VMEC_A(A_r, A_p, A_z, cA_s, cA_u, cA_v)
          DEALLOCATE(A_r, A_p, A_z)
 
          CALL INIT_A(cA_s, cA_u, cA_v, asubsmnsf, asubumncf, asubvmncf, f_sin)
@@ -1502,21 +1491,21 @@
 !>  @param[out] Ap   Matrix element.
 !>  @param[in]  ndim Number of dimensiona.
 !-------------------------------------------------------------------------------
-      SUBROUTINE MatVec_PCHELMS (p, Ap, ndim)
+      SUBROUTINE MatVec_PCHELMS(p, Ap, ndim)
       USE v3_utilities, ONLY: assert_eq
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL(dp), INTENT(IN)  :: p(ndim)
-      REAL(dp), INTENT(OUT) :: Ap(ndim)
-      INTEGER, INTENT(IN)   :: ndim
+      REAL(dp), INTENT(in)  :: p(ndim)
+      REAL(dp), INTENT(out) :: Ap(ndim)
+      INTEGER, INTENT(in)   :: ndim
 
 !  Start of executable code
       CALL assert_eq(neqs, ndim, ' neqs != ndim')
 
       xc = p
-      CALL Compute_Forces(.FALSE.)
+      CALL Compute_Forces(.false.)
       Ap = -gc
 
       END SUBROUTINE
@@ -1528,7 +1517,7 @@
 !>  @param[out] Ap   Local Matrix element.
 !>  @param[in]  nloc Local number of dimensiona.
 !-------------------------------------------------------------------------------
-      SUBROUTINE MatVec_par_PCHELMS (ploc, Ap, nloc)
+      SUBROUTINE MatVec_par_PCHELMS(ploc, Ap, nloc)
       USE hessian, ONLY: eps_factor
       USE blocktridiagonalsolver_s, ONLY: ParMatVec, PadSides 
       USE v3_utilities, ONLY: assert_eq
@@ -1536,9 +1525,9 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL(dp), DIMENSION(nloc), INTENT(IN)  :: ploc
-      REAL(dp), DIMENSION(nloc), INTENT(OUT) :: Ap
-      INTEGER, INTENT(IN)                    :: nloc
+      REAL(dp), DIMENSION(nloc), INTENT(in)  :: ploc
+      REAL(dp), DIMENSION(nloc), INTENT(out) :: Ap
+      INTEGER, INTENT(in)                    :: nloc
 
 !  local variables
       INTEGER                                :: myrowstart
@@ -1579,9 +1568,9 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (dp), DIMENSION(neqs), INTENT(IN) :: xcstate
-      REAL (dp), INTENT(OUT)                 :: fsq_nl
-      REAL (dp), INTENT(IN)                  :: bnorm
+      REAL (dp), DIMENSION(neqs), INTENT(in) :: xcstate
+      REAL (dp), INTENT(out)                 :: fsq_nl
+      REAL (dp), INTENT(in)                  :: bnorm
 
 !  Start of executable code
 	  WRITE (*,1000)
@@ -1592,4 +1581,4 @@
 
 	  END SUBROUTINE
 
-      END MODULE pchelms
+      END MODULE

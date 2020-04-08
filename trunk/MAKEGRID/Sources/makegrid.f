@@ -286,7 +286,7 @@
       USE stel_constants
       
       USE write_mgrid, only: mgrid_ext, mgrid_mode, lstell_sym,                & 
-     &   rmin, rmax, zmin, zmax, kp, ir, jz
+     &   rmin, rmax, zmin, zmax, kp, ir, jz, use_eddy
 
       USE makegrid_global, only: task, rmajor, aminor, nphi, ntheta,           &
      &   extcur_mgrid,                                                         &
@@ -323,6 +323,9 @@
 !    kp           Number of toroidal planes per period                      (write_mgrid)
 !    ir           Number of radial mesh points                              (write_mgrid)
 !    jz           Number of vertical mesh points                            (write_mgrid)
+!    use_eddy     Add an aditional blank coil group to store vacuum eddy
+!                 current contribution. Eddy currents are not coputed by
+!                 makegrid
 !
 !  Used in task 'mgrid_rs'. 
 !        (All variables are declared in module makegrid_global)
@@ -355,7 +358,7 @@
      &    rmajor, aminor, nphi, ntheta, extcur_mgrid,                          &
      &    cg_shift_1, cg_shift_2, cg_rot_xcent, cg_rot_theta,                  &
      &    cg_rot_phi, cg_rot_angle, l_rot_coil_center,                         &
-     &    sym_ir, sym_jz, sym_kp, sym_perform_tests
+     &    sym_ir, sym_jz, sym_kp, sym_perform_tests, use_eddy
       
 !-----------------------------------------------
 !  Start of Executable Code
@@ -392,7 +395,9 @@
       cg_rot_phi = zero
       cg_rot_angle = zero
       l_rot_coil_center = .true.
-             
+
+      use_eddy = .false.
+
       WRITE(*,*) ' Running makegrid using NLI file ',
      1           arg1
       OPEN(iou_nli, FILE=TRIM(ADJUSTL(arg1)),STATUS='OLD',IOSTAT=ferror)
@@ -550,6 +555,7 @@
       WRITE(*,*) '   kp         = ', kp
       WRITE(*,*) '   ir         = ', ir
       WRITE(*,*) '   jz         = ', jz
+      WRITE(*,*) '   use_eddy   = ', use_eddy
       WRITE(*,*)
 
       IF (rmin .lt. 0.) STOP ' rmin must be > 0 in xgrid'
@@ -621,6 +627,9 @@
       CALL parse_coils_file (coil_file)
       nfp = nfp_bs
       nextcur = SIZE(coil_group)
+      IF (use_eddy) THEN
+         nextcur = nextcur + 1
+      END IF
 
       ALLOCATE (extcur(nextcur))
 
@@ -836,7 +845,10 @@
       CALL parse_coils_file (coil_file)
       nfp = nfp_bs
       nextcur = SIZE(coil_group)
-      
+      IF (use_eddy) THEN
+         nextcur = nextcur + 1
+      END IF
+
 ! Test to make sure that nextcur <= nextcur_dim
       IF(nextcur .gt. nextcur_dim) THEN
          WRITE(*,*) 'Number of coils greater than default number of ',         &
@@ -856,8 +868,12 @@
       WRITE(*,*) ' Rotate and Shift of the Coil Groups'
       DO iextcur = 1,nextcur
          WRITE(*,*)
-         WRITE(*,*) ' Coil Group ', iextcur,' with s_name ',
-     &      coil_group(iextcur) % s_name
+         IF (iextcur .eq. nextcur .and. use_eddy) THEN
+            EXIT
+         ELSE
+            WRITE(*,*) ' Coil Group ', iextcur,' with s_name ',
+     &         coil_group(iextcur) % s_name
+         END IF
 
 !  Debug/test - spill the first coil in the coil group. Comment out if unneeded.
 !         CALL bsc_spill_coil(coil_group(iextcur) % coils(1),                   &

@@ -47,74 +47,71 @@
 !>  @param[in]  z_grid          Vertial grid points to compute the vector
 !>                              potential on.
 !>  @param[in]  dphi            Grid size in the phi direction.
-!>  @param[in]  surf_num        Surface index of the last surface.
 !>  @param[out] A_r             Vector potential in the cyclindical R direction.
 !>  @param[out] A_p             Vector potential in the cyclindical Phi
 !>                              direction.
 !>  @param[out] A_z             Vector potential in the cyclindical Z direction.
 !-------------------------------------------------------------------------------
       SUBROUTINE bmw_exec(mgrid_file_name, wout_file_name,                     &
-     &                    r_grid, z_grid, dphi, surf_num,                      &
-     &                    A_r, A_p, A_z)
+     &                    r_grid, z_grid, dphi, A_r, A_p, A_z)
       USE read_wout_mod, ONLY: nfp_vmec=>nfp
       USE island_params, ONLY: nfp_i
 
-!  dummy variables
-      CHARACTER (len=*), INTENT(in)                :: mgrid_file_name
-      CHARACTER (len=*), INTENT(in)                :: wout_file_name
-      REAL (rprec), DIMENSION(:,:,:), INTENT(in)   :: r_grid
-      REAL (rprec), DIMENSION(:,:,:), INTENT(in)   :: z_grid
-      REAL (rprec), INTENT(in)                     :: dphi
-      INTEGER, INTENT(in)                          :: surf_num
-      REAL (rprec), DIMENSION(:,:,:), INTENT(out)  :: A_r
-      REAL (rprec), DIMENSION(:,:,:), INTENT(out)  :: A_p
-      REAL (rprec), DIMENSION(:,:,:), INTENT(out)  :: A_z
+!  Declare Arguments
+      CHARACTER (len=*), INTENT(in)                 :: mgrid_file_name
+      CHARACTER (len=*), INTENT(in)                 :: wout_file_name
+      REAL (rprec), DIMENSION(:,:), INTENT(in)      :: r_grid
+      REAL (rprec), DIMENSION(:,:), INTENT(in)      :: z_grid
+      REAL (rprec), INTENT(in)                      :: dphi
+      REAL (rprec), DIMENSION(:,:), INTENT(out)     :: A_r
+      REAL (rprec), DIMENSION(:,:), INTENT(out)     :: A_p
+      REAL (rprec), DIMENSION(:,:), INTENT(out)     :: A_z
 
-!  local variables
-      TYPE (bmw_parallel_context_class), POINTER   :: parallel => null()
-      TYPE (bmw_context_class), POINTER            :: context => null()
-      TYPE (bmw_commandline_parser_class), POINTER ::                          &
+!  Local Variables
+      CLASS (bmw_parallel_context_class), POINTER :: parallel => null()
+      CLASS (bmw_context_class), POINTER            :: context => null()
+      CLASS (bmw_commandline_parser_class), POINTER ::                         &
      &   cl_parser => null()
-      INTEGER                                      :: flags
-      INTEGER                                      :: num_p
-      INTEGER                                      :: status
-      INTEGER                                      :: i
+      INTEGER                                       :: flags
+      INTEGER                                       :: num_p
+      INTEGER                                       :: status
+      INTEGER                                       :: i
+      INTEGER, DIMENSION(3)                         :: dims
 
 !  Start of executable code
       CALL profiler_construct
 
-      parallel => bmw_parallel_context_construct(MPI_COMM_WORLD)
+      parallel => bmw_parallel_context_class(MPI_COMM_WORLD)
       flags = bmw_state_flags_off
 
-      CALL bmw_parallel_context_set_threads(parallel, -1)
-      CALL bmw_parallel_context_report(parallel, output_unit)
+      CALL parallel%set_threads(-1)
+      CALL parallel%report(output_unit)
 
 !  BMW uses num_p to set the number of grid points in for the primed grid. In
 !  doing so, it mutliplies by the number of field periods in the mgrid file. If
 !  using a user defined number of field periods that is less than the amount in
 !  in mgrid, we need to scale num_p.
       num_p = SIZE(A_r, 2)*2/(nfp_vmec/nfp_i)
-      context => bmw_context_construct(mgrid_file_name,                        &
-     &                                 wout_file_name, '', flags,              &
-     &                                 num_p, parallel, output_unit)
+      context => bmw_context_class(mgrid_file_name, wout_file_name,            &
+     &                             '', flags, num_p, parallel,                 &
+     &                             output_unit)
 
-      CALL bmw_context_set_up_grid(context,                                    &
-     &                             r_grid(:,:,surf_num:surf_num),              &
-     &                             z_grid(:,:,surf_num:surf_num),              &
-     &                             dphi, parallel, output_unit)
+      dims(1) = SIZE(r_grid, 1)
+      dims(2) = SIZE(r_grid, 2)
+      dims(3) = 1
 
-      A_r = context%up_grid%a_r
-      A_p = context%up_grid%a_p
-      A_z = context%up_grid%a_z
+      CALL context%set_up_grid(RESHAPE(r_grid, dims),                          &
+     &                         RESHAPE(z_grid, dims),                          &
+     &                         dphi, parallel, output_unit)
 
-      CALL bmw_context_destruct(context)
+      A_r = RESHAPE(context%up_grid%a_r, dims(1:2))
+      A_p = RESHAPE(context%up_grid%a_p, dims(1:2))
+      A_z = RESHAPE(context%up_grid%a_z, dims(1:2))
+
+      DEALLOCATE(context)
       CALL profiler_destruct
 
-      CALL bmw_parallel_context_destruct(parallel                              &
-#if defined (MPI_OPT)
-     &                                   ,.false.                              &
-#endif
-     &                                  )
+      DEALLOCATE(parallel)
 
 1000  FORMAT('BMW ',i4,' Series.')
 
