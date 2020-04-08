@@ -18,6 +18,7 @@
 !>  @author Steve Knowlton
 !>  @author Gregorio L. Trevisan
 !>  @author Eric C. Howell
+!>  @author Andrews Wingen
 !>
 !>  The theory behind V3FIT is outlined in
 !>     Hanson et. al. doi:10.1088/0029-5515/49/7/075031
