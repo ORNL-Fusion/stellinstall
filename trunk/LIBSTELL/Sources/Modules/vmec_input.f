@@ -53,6 +53,9 @@
 !>     @item{lfull3d1out, Write out full threed1 file if force tolarance is not met., vmec_input::lfull3d1out}
 !>     @item{lwouttxt,    Write out text based woutfile. Note text based wout files
 !>                        are deprecated.,                                            vmec_input::lwouttxt}
+!>     @item{lnyquist,    Write out the full nyquest spectrum when true. Write out a
+!>                        truncated spectrum to match mpol and ntor used for the
+!>                        equilibrium.,                                               vmec_input::lnyquist}
 !>  @end_table
 !>
 !>  @table_section{vmec_radial_parameters_sec, Radial parameters.}
@@ -326,6 +329,9 @@
       LOGICAL :: lwouttxt
 !>  VMEC called from inside v3fit.
       LOGICAL :: l_v3fit
+!>  Print out full nyquest spectrum. When flase trunate the spectrum to just the
+!>  mpol, ntor values.
+      LOGICAL :: lnyquist
 
 !  Radial parameters.
 !>  @deprecated
@@ -424,6 +430,7 @@
       INTEGER                                        :: mfilter_fbdy
 !>  Filter toroidal boundary terms.
       INTEGER                                        :: nfilter_fbdy
+
 !  Rho Boundary parameters.
 !>  Rho boundary coefficients stellarator symmetric.
       REAL (rprec), DIMENSION(-ntord:ntord,0:mpol1d) :: rhoc
@@ -517,7 +524,7 @@
      &   max_main_iterations,                                                  &
 !  Control flags.
      &   lmove_axis, lmac, lforbal, lasym, lrfp, loldout, ldiagno,             &
-     &   lbsubs, lfull3d1out, lwouttxt,                                        &
+     &   lbsubs, lfull3d1out, lwouttxt, lnyquist,                              &
 !  Radial parameters.
      &   nsin, ns_array, aphi,                                                 &
 !  Fourier sizes.
@@ -611,6 +618,7 @@
       lwouttxt = .true.        ! and without netcdf
 #endif
                                ! J Geiger 2010-05-04 end
+      lnyquist = .true.
 
 !  Radial grid size.
       nsin = ns_default
