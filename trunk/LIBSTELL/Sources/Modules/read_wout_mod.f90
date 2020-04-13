@@ -244,8 +244,11 @@
          anglemse, rmid, qmid, shear, presmid, alfa, curmid, rstark,    &
          qmeas, datastark, rthom, datathom, dsiobt      
       LOGICAL :: lasym, lthreed, lwout_opened=.false.
-      CHARACTER (len=long_name):: mgrid_file, input_extension
-      CHARACTER (len=short_name):: pmass_type, pcurr_type, piota_type
+      CHARACTER (len=long_name) :: mgrid_file
+      CHARACTER (len=long_name) :: input_extension
+      CHARACTER (len=short_name) :: pmass_type
+      CHARACTER (len=short_name) :: pcurr_type
+      CHARACTER (len=short_name) :: piota_type
 
       INTEGER, PARAMETER :: norm_term_flag=0,                           &
          bad_jacobian_flag=1, more_iter_flag=2, jac75_flag=4
