@@ -20,4 +20,6 @@ target_link_libraries (xsurface ${NETCDF_LIBRARIES})
 if (MPI_Fortran_FOUND)
     target_link_libraries (xsurface ${MPI_Fortran_LIBRARIES})
 endif ()
-
+if (LAPACK_FOUND)
+    target_link_libraries (xsurface ${LAPACK_LIBRARIES})
+endif ()

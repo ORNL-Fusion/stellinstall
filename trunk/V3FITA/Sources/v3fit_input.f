@@ -1621,7 +1621,7 @@
      &   ': Safe_open of ' // TRIM(namelist_file) // ' failed')
 
 !  Write the namelist input file.
-      WRITE (iou_mnli, nml=siesta_info)
+      WRITE (iou_mnli, nml=v3fit_main_nli)
       CLOSE (iou_mnli, iostat=status)
       CALL assert_eq(0, status, 'v3fit_input_write_namelist' //                &
      &   ': Error closing ' // TRIM(namelist_file) // ' failed')
