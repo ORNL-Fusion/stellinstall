@@ -440,7 +440,7 @@
 !----------------------------
 
       IF (lColScale) THEN
-         CALL ApplyParallelScaling(levmarq_param, col_scale)
+         CALL ApplyParallelScaling(levmarq_param, col_scale, lverbose)
       ELSE 
          CALL FindMinMax_TRI (levmarq_param)
       END IF
@@ -454,7 +454,7 @@
          CALL second0(ton)
          CALL CheckConditionNumber(ns,mblk_size,anorm,rcond,info)
          CALL second0(toff)                  
-         IF (INFO .EQ. 0) THEN
+         IF (INFO .EQ. 0 .and. lverbose) THEN
             PRINT '(1x,3(a,1p,e12.3))','RCOND = ', rcond,               &
             ' ||A|| = ', ANORM,' TIME: ', toff-ton
          END IF

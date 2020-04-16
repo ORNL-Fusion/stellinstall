@@ -52,13 +52,13 @@
 !     STORE INITIAL UNPRECONDITIONED RESIDUE (BRHS=-GC AT INIT PT)
 !     SO DEVIATIONS FROM THEM CAN BE COMPUTED REPEATEDLY
 !
-      l_getfsq =.TRUE.
-      l_init_state=.TRUE.
-      fmhd=fsq_total1               !!initial fsq BEFORE application of resistive diffusion
+      l_getfsq = .TRUE.
+      l_init_state = .TRUE.
+      fmhd = fsq_total1               !!initial fsq BEFORE application of resistive diffusion
 
       ALLOCATE (brhs(neqs), stat=istat)
       CALL ASSERT(istat.eq.0,'ALLOCATION ERROR IN GMRES_FUN')
-      l_getwmhd=.TRUE.
+      l_getwmhd = .TRUE.
 
 
       CALL second0(skston)
@@ -67,9 +67,9 @@
       IF (PARFUNCTISL) THEN
          CALL gather_array(brhs)
       END IF
-      l_getwmhd=.FALSE.
+      l_getwmhd = .FALSE.
       CALL second0(skstoff)
-      gmres_funct_island_time=gmres_funct_island_time+(skstoff-skston)
+      gmres_funct_island_time = gmres_funct_island_time + (skstoff - skston)
 
       wmhd = wtotal
       fsq_min = fsq_total1
@@ -94,45 +94,54 @@
 !
       LFAST: IF (.NOT.l_Diagonal_Only .AND. lcolscale) THEN
 
-      IF (iam.EQ.0 .AND. lverbose) PRINT 925, Dmin
-925   FORMAT(' DMIN: ',1pe12.3,/,1x,'FAST CONVERGENCE SUMMARY',         &
-             /,' -------------',/,1x,'ITER',7x,'FSQ_NL',                &
+         IF (iam .EQ. 0 .AND. lverbose) THEN
+            PRINT 925, Dmin
+         END IF
+925   FORMAT(' DMIN: ',1pe12.3,/,1x,'FAST CONVERGENCE SUMMARY',                &
+             /,' -------------',/,1x,'ITER',7x,'FSQ_NL',                       &
              10x,'||X||',9x,'MAX|X|')
-      CALL ASSERT(ALL(xc.EQ.zero),' XC != 0')
-      l_getfsq=.TRUE.
-      l_linearize = .FALSE.
-      CALL funct_island
-      xc = -gc
-      eps = ABS(levmarq_param)*Dmin
-      IF (.not.l_ApplyPrecon) THEN
-         CALL Apply_Precond(xc)
-      END IF
-      xc1 = xc
-      DO j = 1, 10
-         IF (j .GT. 1) THEN
-            IF (eps .EQ. zero) GOTO 927
-            gc = xc1
-            CALL Apply_Precond(gc)
-            xc1 = eps*gc            !nth partial sum: store for next j iteration
-            xc = xc + xc1
-         END IF
+         CALL ASSERT(ALL(xc .EQ. zero), ' XC != 0')
+         l_getfsq = .TRUE.
+         l_linearize = .FALSE.
          CALL funct_island
-
-         IF (fsq_total1 .GT. fsq_min) THEN
-            bTerm = (J .GT. 1) 
-         ELSE
-            xcmin = xc
-            bTerm = (fsq_total1 .GE. 0.95_dp*fsq_min)
-            fsq_min = fsq_total1
+         xc = -gc
+         eps = ABS(levmarq_param)*Dmin
+         IF (.not.l_ApplyPrecon) THEN
+            CALL Apply_Precond(xc)
          END IF
-         IF (iam.EQ.0 .AND. lverbose) PRINT 912, j, fsq_total1,         &
-            SQRT(SUM(xc*xc)), MAXVAL(ABS(xc))
-         IF (fsq_min.LE.ftol .OR. bTerm .OR. eps.EQ.zero) EXIT
-      END DO
+         xc1 = xc
+         DO j = 1, 100
+            IF (j .GT. 1) THEN
+               IF (eps .EQ. zero) THEN
+                  GOTO 927
+               END IF
+               gc = xc1
+               CALL Apply_Precond(gc)
+               xc1 = eps*gc            !nth partial sum: store for next j iteration
+               xc = xc + xc1
+            END IF
+            CALL funct_island
+
+            IF (fsq_total1 .GT. fsq_min) THEN
+               bTerm = (j .GT. 1)
+            ELSE
+               xcmin = xc
+               bTerm = (fsq_total1 .GE. 0.95_dp*fsq_min)
+               fsq_min = fsq_total1
+            END IF
+            IF (iam .EQ. 0 .AND. lverbose) THEN
+               PRINT 912, j, fsq_total1, SQRT(SUM(xc*xc)), MAXVAL(ABS(xc))
+            END IF
+            IF (fsq_min .LE. ftol .OR.                                         &
+                bTerm             .OR.                                         &
+                eps .EQ. zero) THEN
+               EXIT
+            END IF
+         END DO
       
 !      ELSE IF (l_backslv) THEN
 !         IF (.NOT.l_ApplyPrecon) CALL Apply_Precond(gc)
-      ENDIF LFAST
+      END IF LFAST
 
  927  CONTINUE
 

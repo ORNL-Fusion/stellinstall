@@ -389,6 +389,8 @@
       USE safe_open_mod
       USE model_state
       USE file_opts
+      USE siesta_namelist, ONLY: restart_ext, wout_file,                       &
+     &                           siesta_namelist_read
 
       IMPLICIT NONE
 
@@ -414,7 +416,6 @@
       INTEGER                              :: recon_rank
       INTEGER                              :: recon_size
       INTEGER                              :: error
-      INTEGER                              :: iou_nli
       REAL (rprec)                         :: start_time
 
 !  Start of executable code
@@ -458,11 +459,7 @@
          siesta_construct%pol_rad_ratio = pol_rad_ratio
          siesta_construct%siesta_file_name = TRIM(file_name)
 
-         iou_nli = 100
-         CALL safe_open(iou_nli, error, TRIM(file_name), 'old',                &
-     &                  'formatted')
-         READ (iou_nli, nml=siesta_info)
-         CLOSE (iou_nli, iostat=error)
+         CALL siesta_namelist_read(TRIM(file_name))
          wout_file = vmec%wout_file_name
          WRITE (siesta_construct%restart_file_name,1000)                       &
      &      TRIM(restart_ext)
@@ -656,6 +653,7 @@
       SUBROUTINE siesta_set_param(this, id, i_index, j_index, value,           &
      &                            eq_comm, state_flags)
       USE model_state
+      USE siesta_namelist, ONLY: helpert
 
       IMPLICIT NONE
 
@@ -777,6 +775,7 @@
      &                                              response_object)
       USE stel_constants, only: twopi
       USE magnetic_response
+      USE siesta_namelist, ONLY: mpolin, nsin, nsin_ext
 
       IMPLICIT NONE
 
@@ -804,7 +803,7 @@
             ns = this%context%ns
             mpol = this%context%mpol
          ELSE
-            ns = nsin
+            ns = nsin + nsin_ext
             mpol = mpolin
          END IF
          numU = MAX(INT(this%pol_rad_ratio*ns), 2*mpol)
@@ -934,8 +933,9 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE siesta_set_magnetic_cache_calc(this)
       USE stel_constants, only: mu0
-      USE read_wout_mod, only: nfp, mnmax, xm, xn, rmnc, rmns, zmnc,           &
-     &                         zmns, lasym, nsvmec => ns
+      USE read_wout_mod, only: mnmax, xm, xn, rmnc, rmns, zmnc, zmns,          &
+     &                         lasym, nsvmec => ns
+      USE siesta_namelist, ONLY: mpolin, ntorin, nfpin
 
       IMPLICIT NONE
 
@@ -948,6 +948,7 @@
       INTEGER                                   :: numS, numU, numV
       INTEGER                                   :: m, n
       INTEGER                                   :: mpol, ntor
+      INTEGER                                   :: nfp
       REAL (rprec)                              :: r, rs, ru, rv
       REAL (rprec)                              :: z, zs, zu, zv
       REAL (rprec)                              :: js, ju, jv
@@ -980,9 +981,11 @@
          IF (ASSOCIATED(this%context)) THEN
             mpol = this%context%mpol
             ntor = this%context%ntor
+            nfp = this%context%nfp
          ELSE
             mpol = mpolin
             ntor = ntorin
+            nfp = nfpin
          END IF
 
 !$OMP PARALLEL
@@ -1289,9 +1292,6 @@
 
                END IF
 
-               bu = bu/this%context%b_factor
-               bv = bv/this%context%b_factor
-
                this%magnetic_cache%kruv(j,k) = -(bu*rv - bv*ru)/mu0
                this%magnetic_cache%kphiuv(j,k) = -bu*r/mu0
                this%magnetic_cache%kzuv(j,k) = -(bu*zv - bv*zu)/mu0
@@ -1381,9 +1381,6 @@
                   bu = bu + SUM(bsubus*sinmn)
                   bv = bv + SUM(bsubvs*sinmn)
                END IF
-
-               bu = bu/this%context%b_factor
-               bv = bv/this%context%b_factor
 
                kr = -(bu*rv - bv*ru)/mu0
                kp = -bu*r/mu0
@@ -1607,6 +1604,7 @@
 !>  @returns The value of the parameter.
 !-------------------------------------------------------------------------------
       FUNCTION siesta_get_param_value(this, id, i_index, j_index)
+      USE siesta_namelist, ONLY: helpert
 
       IMPLICIT NONE
 
@@ -2888,7 +2886,6 @@
 !>  @returns The plasma pressure at flux.
 !-------------------------------------------------------------------------------
       FUNCTION siesta_get_p_flux(this, flux, normalize)
-      USE read_wout_mod, only: nfp
       USE stel_constants, only: mu0
 
       IMPLICIT NONE
@@ -2907,6 +2904,7 @@
       INTEGER                                :: ihigh
       INTEGER                                :: mpol
       INTEGER                                :: ntor
+      INTEGER                                :: nfp
       INTEGER                                :: m
       INTEGER                                :: n
       REAL (rprec)                           :: start_time
@@ -2935,6 +2933,7 @@
 
       mpol = this%context%mpol
       ntor = this%context%ntor
+      nfp = this%context%nfp
 
       siesta_get_p_flux = 0.0
       DO n = -ntor, ntor
@@ -2953,7 +2952,7 @@
          END DO
       END DO
 
-!  The normalizes pressure is requested, scale the pressure to the min and max
+!  The normalizes pressure if requested, scale the pressure to the min and max
 !  pressure. Otherwise apply constants to comvert to pascals.
       IF (normalize) THEN
 !  Ensure that the pressure is not outside the bounds of pmin and pmax.
@@ -2962,9 +2961,6 @@
 
          siesta_get_p_flux = (siesta_get_p_flux - this%context%p_min)          &
      &                     / (this%context%p_max - this%context%p_min)
-      ELSE
-         siesta_get_p_flux = siesta_get_p_flux                                 &
-     &                     / (mu0*this%context%p_factor)
       END IF
 
       CALL profiler_set_stop_time('siesta_get_p_flux', start_time)
@@ -3626,8 +3622,8 @@
 !>  @returns The internal field.
 !-------------------------------------------------------------------------------
       FUNCTION siesta_get_int_b_plasma(this, flux)
-      USE read_wout_mod, only: nfp, mnmax, xm, xn, rmnc, rmns, zmnc,           &
-     &                         zmns, lasym, nsvmec => ns
+      USE read_wout_mod, only: mnmax, xm, xn, rmnc, rmns, zmnc, zmns,          &
+     &                         lasym, nsvmec => ns
 
       USE vmec_utils, ONLY : GetBcyl_WOUT
 
@@ -3650,6 +3646,7 @@
       INTEGER                                 :: ihigh_s
       INTEGER                                 :: mpol
       INTEGER                                 :: ntor
+      INTEGER                                 :: nfp
       INTEGER                                 :: m
       INTEGER                                 :: n
       REAL (rprec)                            :: r
@@ -3721,6 +3718,7 @@
 
       mpol = this%context%mpol
       ntor = this%context%ntor
+      nfp = this%context%nfp
 
       bs = 0.0
       bu = 0.0
@@ -3808,6 +3806,7 @@
 !>  @returns Size of the radial grid.
 !-------------------------------------------------------------------------------
       FUNCTION siesta_get_grid_size(this)
+      USE siesta_namelist, ONLY: nsin, nsin_ext
 
       IMPLICIT NONE
 
@@ -3824,7 +3823,7 @@
       IF (ASSOCIATED(this%context)) THEN
          siesta_get_grid_size = this%context%ns
       ELSE
-         siesta_get_grid_size = nsin
+         siesta_get_grid_size = nsin + nsin_ext
       END IF
 
       CALL profiler_set_stop_time('siesta_get_grid_size', start_time)
@@ -4108,6 +4107,7 @@
       USE data_parameters
       USE safe_open_mod
       USE siesta_error
+      USE siesta_namelist
 
       IMPLICIT NONE
 
@@ -4122,7 +4122,6 @@
 !  local variables
       INTEGER                            :: eq_size
       INTEGER                            :: eq_rank
-      INTEGER                            :: iou_nli
       INTEGER                            :: status
       INTEGER                            :: child_comm
       TYPE (siesta_run_class), POINTER   :: run_context
@@ -4148,46 +4147,22 @@
       CALL MPI_COMM_SIZE(eq_comm, eq_size, status)
 #endif
       IF (eq_rank .eq. 0) THEN
-
-         iou_nli = 100
          ladd_pert = .true.
          lresistive = .false.
          lrestart = .false.
-         CALL safe_open(iou_nli, status, TRIM(this%siesta_file_name),          &
-     &                  'replace', 'formatted', delim_in='quote')
-         WRITE (iou_nli, nml=siesta_info)
-         CLOSE (iou_nli, iostat=status)
+
+         CALL siesta_namelist_write(TRIM(this%siesta_file_name))
       END IF
 
 #if defined(MPI_OPT)
       CALL MPI_BARRIER(eq_comm, status)
 #endif
-      run_context => siesta_run_construct(eq_comm, .false.)
-      CALL siesta_run_set_vmec(run_context)
-      CALL siesta_run_converge(run_context)
-      CALL siesta_run_destruct(run_context, .false., .false.)
+      run_context => siesta_run_class(eq_comm, .false., .false.,               &
+     &                                .false., this%siesta_file_name)
+      CALL run_context%set_vmec
+      CALL run_context%converge
+      DEALLOCATE(run_context)
 
-      IF (siesta_error_state .eq. siesta_error_no_error) THEN
-
-         IF (eq_rank .eq. 0) THEN
-
-            ladd_pert = .false.
-            lresistive = .false.
-            lrestart = .true.
-            CALL safe_open(iou_nli, status, TRIM(this%siesta_file_name),          &
-     &                     'replace', 'formatted', delim_in='quote')
-            WRITE (iou_nli, nml=siesta_info)
-            CLOSE (iou_nli, iostat=status)
-         END IF
-
-#if defined(MPI_OPT)
-         CALL MPI_BARRIER(eq_comm, status)
-#endif
-         run_context => siesta_run_construct(eq_comm, .false.)
-         CALL siesta_run_set_vmec(run_context)
-         CALL siesta_run_converge(run_context)
-         CALL siesta_run_destruct(run_context, .false., .false.)
-      END IF
       siesta_converge = siesta_error_state .eq. siesta_error_no_error
 
       status = 0
@@ -4354,6 +4329,7 @@
       USE safe_open_mod
       USE siesta_context
       USE file_opts
+      USE siesta_namelist
 
       IMPLICIT NONE
 
@@ -4363,7 +4339,6 @@
 
 !  local variables
       INTEGER                       :: i
-      INTEGER                       :: iou_nl
       INTEGER                       :: status
       REAL (rprec)                  :: start_time
 
@@ -4394,12 +4369,7 @@
 !  Update the namelist input variables from the equilibrium solution.
       CALL siesta_set_namelist(this)
 
-      iou_nl = 0
-      CALL safe_open(iou_nl, status,                                           &
-     &               TRIM(this%siesta_file_name) // '_out',                    &
-     &               'replace', 'formatted', delim_in='quote')
-      WRITE (iou_nl, nml=siesta_info)
-      CLOSE (iou_nl, iostat=status)
+      CALL siesta_namelist_write(TRIM(this%siesta_file_name) // '_out')
 
       CALL move_file(TRIM(this%siesta_file_name) // '_save',                   &
      &               TRIM(this%siesta_file_name), status)
@@ -4424,6 +4394,7 @@
       USE safe_open_mod
       USE file_opts
       USE siesta_context
+      USE siesta_namelist
 
       IMPLICIT NONE
 
@@ -4449,10 +4420,7 @@
 
       WRITE (filename,1000) TRIM(this%siesta_file_name), current_step
 
-      CALL safe_open(iou_nl, status, TRIM(filename), 'replace',                &
-     &               'formatted', delim_in='none')
-      WRITE (iou_nl, nml=siesta_info)
-      CLOSE (iou_nl, iostat=status)
+      CALL siesta_namelist_write(TRIM(filename))
       CALL assert_eq(status, 0, 'Error saving input file.')
 
 !  Save the restart file by making a copy with a new name.

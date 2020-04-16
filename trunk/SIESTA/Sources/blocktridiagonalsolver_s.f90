@@ -2636,7 +2636,6 @@ SUBROUTINE SetMatrixRHS( globrow, b )
   !-----------------------------------------------------------------------------
   ! Local variables
   !-----------------------------------------------------------------------------
-  REAL(dp) :: val
   INTEGER :: i, globrowoff
 
   !-------------------------------------------
@@ -2651,15 +2650,12 @@ SUBROUTINE SetMatrixRHS( globrow, b )
     CALL ASSERT(.FALSE.,'blocktri #32')
   END IF
 
-  globrowoff = globrow-startglobrow+1
+  globrowoff = globrow - startglobrow + 1
 
   !-------------------------------------------
   ! Copy given values into allocated RHS
   !-------------------------------------------
-  DO i = 1, M
-    val = b(i)
-    lelement(1, globrowoff)%b(i,1) = val
-  END DO
+  lelement(1, globrowoff)%b(1:M,1) = b(1:M)
 
   !-------------------------------------------
   !Save a copy of this original problem
@@ -5299,10 +5295,11 @@ END SUBROUTINE FinalizeScaleFactors
 !-------------------------------------------------------------------------------
 
 !-------------------------------------------------------------------------------
-SUBROUTINE ApplyParallelScaling(lmp, colscale)
+SUBROUTINE ApplyParallelScaling(lmp, colscale, lverbose)
 !-------------------------------------------------------------------------------
 REAL(dp), INTENT(IN)    :: lmp
 REAL(dp), INTENT(INOUT) :: colscale(M,N)
+LOGICAL, INTENT(IN)     :: lverbose
 !-------------------------------------------------------------------------------
 INTEGER               :: icount, istat
 REAL(dp)              :: ton, toff, colcnd, colcnd1, temp(2)
@@ -5346,7 +5343,7 @@ DEALLOCATE(colpad)
 CALL FindMinMax_TRI(lmp)
 
 CALL second0(toff)
-IF (rank.EQ.0) PRINT '(1x,3(a,1p,e10.3))',                              &
+IF (rank.EQ.0 .and. lverbose) PRINT '(1x,3(a,1p,e10.3))',                      &
               'COLUMN-SCALING TIME: ', toff-ton, ' COLCND: ', colcnd,   &
               ' DMINL: ', DMIN_TRI*lmp
 

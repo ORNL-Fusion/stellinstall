@@ -552,9 +552,9 @@
       pijh = pijh/jacobh
 
       tempscalar = MAXVAL(pijh(:,:,2:))
-      CALL cdf_write(ncid, vn_p_max, tempscalar)
+      CALL cdf_write(ncid, vn_p_max, tempscalar/(p_factor*mu0))
       tempscalar = MINVAL(pijh(:,:,2:))
-      CALL cdf_write(ncid, vn_p_min, tempscalar)
+      CALL cdf_write(ncid, vn_p_min, tempscalar/(p_factor*mu0))
 
       tempmn_w = 0
 
