@@ -344,7 +344,7 @@
 
       CALL CURL_HtoF(bsubsmnh, bsubumnh, bsubvmnh,                             &
                      Ksupsmnf, Ksupumnf, Ksupvmnf,                             &
-                     iparity, nmin, nmax, .False., curtor)
+                     iparity, nmin, nmax, endglobrow, curtor)
 
       nmax = endglobrow
       DEALLOCATE (bsubsmnh, bsubumnh, bsubvmnh, stat=istat)   

@@ -608,7 +608,7 @@
 
       CALL curl_htof(bsubsmnh, bsubumnh, bsubvmnh,                             &
      &               jksupsmnf, jksupumnf, jksupvmnf,                          &
-     &               f_sin, 1, ns, .false., tempscalar)
+     &               f_sin, 1, ns, ns, tempscalar)
 
       CALL restart_denormalize(jksupsmnf, b_factor)
       CALL restart_denormalize(jksupumnf, b_factor)
@@ -654,7 +654,7 @@
 
          CALL curl_htof(bsubsmnh, bsubumnh, bsubvmnh,                          &
      &                  jksupsmnf, jksupumnf, jksupvmnf,                       &
-     &                  f_cos, 1, ns, .false., tempscalar)
+     &                  f_cos, 1, ns, ns, tempscalar)
 
          CALL restart_denormalize(jksupsmnf, b_factor)
          CALL restart_denormalize(jksupumnf, b_factor)

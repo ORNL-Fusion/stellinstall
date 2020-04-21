@@ -475,13 +475,12 @@
 !>  @param[in]    parity    Parity flag.
 !>  @param[in]    nsmin     Minimum radial index.
 !>  @param[in]    nsmax     Maximum radial index.
-!>  @param[in]    extend    Extend the radial index of the curl.
+!>  @param[in]    nsend     Ending row index.
 !>  @param[inout] curtor    Current enclosed at the boundary.
 !-------------------------------------------------------------------------------
       SUBROUTINE curl_htof(asubsmnh, asubumnh, asubvmnh,                       &
                            jbsupsmnf, jbsupumnf, jbsupvmnf, parity,            &
-                           nsmin, nsmax, extend, curtor)
-      USE nscalingtools, ONLY: endglobrow
+                           nsmin, nsmax, nsend, curtor)
       USE stel_constants
 
       IMPLICIT NONE
@@ -496,7 +495,7 @@
       INTEGER, INTENT(in)                                  :: parity
       INTEGER, INTENT(in)                                  :: nsmin
       INTEGER, INTENT(in)                                  :: nsmax
-      LOGICAL, INTENT(in)                                  :: extend
+      INTEGER, INTENT(in)                                  :: nsend
       REAL (dp), INTENT(inout)                             :: curtor
 
 !  Local variables
@@ -566,11 +565,7 @@
       CALL set_bndy_half_to_full_uv_ds(asubumnh, asubvmnh,                     &
                                        da_uds, da_vds, nsmin, fouruv)
 
-      IF (extend) THEN
-         nmax = MIN(ns, endglobrow + 1)
-      ELSE
-         nmax = MIN(ns, endglobrow)
-      END IF
+      nmax = MIN(ns, nsend)
       CALL assert(nmax .le. UBOUND(jbsupsmnf,3), 'UBOUND wrong in curl_htof')
 
 !  (sqrt(g)*J^X)mn
@@ -623,12 +618,12 @@
 !>  @param[in]    parity    Parity flag.
 !>  @param[in]    nsmin     Minimum radial index.
 !>  @param[in]    nsmax     Maximum radial index.
-!>  @param[in]    extend    Extend the radial index of the curl.
+!>  @param[in]    nsend     Ending row index.
 !>  @param[inout] curtor    Current enclosed at the boundary.
 !-------------------------------------------------------------------------------
       SUBROUTINE curl_htof_targ(asubsmnh, asubumnh, asubvmnh,                  &
                                 jbsupsmnf, jbsupumnf, jbsupvmnf,               &
-                                parity, nsmin, nsmax, extend, curtor)
+                                parity, nsmin, nsmax, nsend, curtor)
 
 !  Declare Arguments
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in) :: asubsmnh
@@ -643,7 +638,7 @@
       INTEGER, INTENT(IN)                                  :: parity
       INTEGER, INTENT(IN)                                  :: nsmin
       INTEGER, INTENT(IN)                                  :: nsmax
-      LOGICAL, INTENT(in)                                  :: extend
+      INTEGER, INTENT(in)                                  :: nsend
       REAL (dp), INTENT(inout)                             :: curtor
 
 !  Local variables
@@ -656,7 +651,7 @@
       jbup => jbsupumnf
       jbvp => jbsupvmnf
       CALL curl_htof(asubsmnh, asubumnh, asubvmnh, jbsp, jbup, jbvp,           &
-                     parity, nsmin, nsmax, extend, curtor)
+                     parity, nsmin, nsmax, nsend, curtor)
 
       END SUBROUTINE
 
@@ -742,6 +737,7 @@
          asubsmnf(m1 + mofff,:,1) = asubsmnh(m1 + moffh,:,2)
 
          asubumnf(:,:,1) = 0
+         asubumnf(m0 + mofff,:,1) = asubumnf(m0 + moffh,:,2)
 
          asubvmnf(:,:,1) = 0
          asubvmnf(m0 + mofff,:,1) = asubvmnh(m0 + moffh,:,2)

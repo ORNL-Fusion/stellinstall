@@ -658,7 +658,7 @@
       END IF
 
       CALL second0(skston)
-      IF (fsq_total1 .LT. fsq_min) THEN
+      IF (fsq_total1 .LT. fsq_min .and. iam .eq. 0) THEN
          fsq_min = fsq_total1
          CALL restart_write(restart_ext, wout_file)
       END IF
