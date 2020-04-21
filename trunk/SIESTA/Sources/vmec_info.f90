@@ -584,6 +584,7 @@
      &                         nfp=>nfp_i, hs=>hs_i, fourier_context
       USE descriptor_mod, ONLY: iam
       USE shared_data, ONLY: lverbose
+      USE utilities
 
       IMPLICIT NONE
 
@@ -689,17 +690,17 @@
       zmn(m1:,:,1) = 0
 
       IF (parity .eq. f_cos) THEN
-         lmn(m0,-ntor:n0,:) = 0
-         rmn(m0,-ntor:-n1,:) = 0
-         zmn(m0,-ntor:n0,:) = 0
-         currumn(m0,-ntor:-n1,:) = 0
-         currvmn(m0,-ntor:-n1,:) = 0
+         CALL set_bndy_fouier_m0(lmn, f_sin)
+         CALL set_bndy_fouier_m0(rmn, f_cos)
+         CALL set_bndy_fouier_m0(zmn, f_sin)
+         CALL set_bndy_fouier_m0(currumn, f_cos)
+         CALL set_bndy_fouier_m0(currvmn, f_cos)
       ELSE
-         lmn(m0,-ntor:-n0,:) = 0
-         rmn(m0,-ntor:n0,:) = 0
-         zmn(m0,-ntor:-n1,:) = 0
-         currumn(m0,-ntor:n0,:) = 0
-         currvmn(m0,-ntor:n0,:) = 0
+         CALL set_bndy_fouier_m0(lmn, f_cos)
+         CALL set_bndy_fouier_m0(rmn, f_sin)
+         CALL set_bndy_fouier_m0(zmn, f_cos)
+         CALL set_bndy_fouier_m0(currumn, f_sin)
+         CALL set_bndy_fouier_m0(currvmn, f_sin)
       END IF
 
       currumn(:,:,ns) = 0
