@@ -429,7 +429,7 @@
                              KxBsij, KxBuij, KxBvij, pardamp, parity)
       USE island_params, ONLY: ohs=>ohs_i, fourier_context
       USE utilities, ONLY: set_bndy_half_to_full, set_bndy_half_to_full_ds,    &
-                           set_bndy_full_origin
+                           set_bndy_full_origin, set_bndy_fouier_m0
 
       IMPLICIT NONE
 
@@ -498,7 +498,7 @@
       CALL GradientFull(pmnf_ds, pmnh)
       CALL set_bndy_half_to_full_ds(pmnh, pmnf_ds, nsmin, fours)
 
-      IF (nsmax.EQ.ns .AND. l_pedge) THEN
+      IF (nsmax .eq. ns .and. l_pedge .and. .not.l_vessel) THEN
          pmnf(:,:,ns) = 0
          pmnf(m0,0,ns) = pmnh(m0,0,ns)
       END IF
@@ -518,6 +518,7 @@
 
       DEALLOCATE(pmnf, pmnf_ds, pmnh)
 
+      CALL set_bndy_fouier_m0(fsubsmnf, fsubumnf, fsubvmnf, parity)
       IF (nsmin .eq. 1) THEN
          CALL set_bndy_full_origin(fsubsmnf, fsubumnf, fsubvmnf)
       END IF
@@ -719,33 +720,33 @@
              f_smnf(m1 + moff,:,1) = p5*f_smnf(m1 + moff,:,1)
           END IF
 
-!          IF (.not.l_push_u) THEN
-!             f_umnf(m1 + moff,:,1) = 0
-!          ELSE
-!             f_umnf(m1 + moff,:,1) = p5*f_umnf(m1 + moff,:,1)
-!          END IF
+          IF (.not.l_push_u) THEN
+             f_umnf(m0 + moff,:,1) = 0
+          ELSE
+             f_umnf(m0 + moff,:,1) = p5*f_umnf(m0 + moff,:,1)
+          END IF
 
           IF (.not.l_push_v) THEN
-             f_vmnf(:m1 + moff,:,1) = 0
+             f_vmnf(m0 + moff,:,1) = 0
           ELSE
-             f_vmnf(:m1 + moff,:,1) = p5*f_vmnf(:m1 + moff,:,1)
+             f_vmnf(m0 + moff,:,1) = p5*f_vmnf(m0 + moff,:,1)
           END IF
        END IF
 
 !  Edge boundary conditions.
-       EDGE: IF (nsmax .EQ. ns) THEN
+       IF (nsmax .eq. ns) THEN
           f_smnf(:,:,ns) = 0
-          IF (l_pedge) THEN
+          IF (l_pedge .or. .not.l_push_edge .or. l_vessel) THEN
              f_umnf(:,:,ns) = 0
-          END IF
-          IF (.not.l_push_edge) THEN
-             f_umnf(:,:,ns) = 0
-             f_vmnf(:,:,ns) = 0
           ELSE
              f_umnf(:,:,ns) = p5*f_umnf(:,:,ns)
+          END IF
+          IF (.not.l_push_edge .or. l_vessel) THEN
+             f_vmnf(:,:,ns) = 0
+          ELSE
              f_vmnf(:,:,ns) = p5*f_vmnf(:,:,ns)
           END IF
-       END IF EDGE
+       END IF
 
        CALL second0(skstoff)
        get_force_harmonics_time = get_force_harmonics_time + (skstoff - skston)

@@ -544,8 +544,8 @@
       CALL to_full_mesh(asubvmnh, asubvmnf)
 
 !  FIXME: CHECK Boundary Conditions. asubs,subu,subv don't match older version.
-      CALL set_bndy_half_to_full(asubsmnh, asubvmnh, nsmin, parity,            &
-                                 asubsmnf, asubumnf, asubvmnf)
+      CALL set_bndy_half_to_full(asubsmnh, asubumnh, asubvmnh,                 &
+                                 asubsmnf, asubumnf, asubvmnf, nsmin, parity)
 
 !  Store the total enclosed current to check against the orginal VMEC current.
       IF (parity .eq. f_sin .and. nsmax .eq. ns) THEN
@@ -702,27 +702,29 @@
 !>  vector only has m=1 components. The a_v vector only has m=0 components.
 !>
 !>  @param[in]    asubsmnh Half grid covariant s fourier quantity.
+!>  @param[in]    asubumnh Half grid covariant u fourier quantity.
 !>  @param[in]    asubvmnh Half grid covariant v fourier quantity.
-!>  @param[in]    nsmin    Minimum radial index.
-!>  @param[in]    parity   Parity flag.
 !>  @param[inout] asubsmnf Full grid covariant s fourier quantity.
 !>  @param[inout] asubumnf Full grid covariant u fourier quantity.
 !>  @param[inout] asubvmnf Full grid covariant v fourier quantity.
+!>  @param[in]    nsmin    Minimum radial index.
+!>  @param[in]    parity   Parity flag.
 !-------------------------------------------------------------------------------
-      PURE SUBROUTINE set_bndy_half_to_full_vec(asubsmnh, asubvmnh,            &
-                                                nsmin, parity,                 &
-                                                asubsmnf, asubumnf, asubvmnf)
+      PURE SUBROUTINE set_bndy_half_to_full_vec(asubsmnh, asubumnh, asubvmnh,  &
+                                                asubsmnf, asubumnf, asubvmnf,  &
+                                                nsmin, parity)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(in)    :: asubsmnh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(in)    :: asubumnh
       REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(in)    :: asubvmnh
-      INTEGER, INTENT(IN)                                     :: nsmin
-      INTEGER, INTENT(in)                                     :: parity
       REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: asubsmnf
       REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: asubumnf
       REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: asubvmnf
+      INTEGER, INTENT(IN)                                     :: nsmin
+      INTEGER, INTENT(in)                                     :: parity
 
 !  Local Variables
       INTEGER                                                 :: moffh
@@ -817,16 +819,19 @@
       INTEGER, INTENT(in)                        :: parity
 
 !  Local Variables
-      INTEGER                                    :: moff
+      INTEGER                                    :: moffh
+      INTEGER                                    :: mofff
 
 !  Start of executable code
       IF (nsmin .eq. 1) THEN
-         moff = LBOUND(aumnh, 1)
+         moffh = LBOUND(avmnh, 1)
+         mofff = LBOUND(aumnf_ds, 1)
 
          aumnf_ds(:,:,1) = 0.0
-         aumnf_ds(m0 + moff,:,1) = 2.0*ohs*aumnh(m0 + moff,:,2)
+         aumnf_ds(m1 + mofff,:,1) = 2.0*ohs*aumnh(m1 + moffh,:,2)
 
          avmnf_ds(:,:,1) = 0.0
+         avmnf_ds(m1 + mofff,:,1) = 2.0*ohs*avmnh(m1 + moffh,:,2)
       END IF
 
       CALL set_bndy_fouier_m0(aumnf_ds, parity)
@@ -866,7 +871,7 @@
          amnsf(m2 + moff:,:,1) = 0
       END IF
 
-      amnuf(:,:,1) = 0
+      amnuf(m1 + moff:,:,1) = 0
 
       amnvf(m1 + moff:,:,1) = 0
 

@@ -91,10 +91,6 @@
       esubvijf = -(jvsupsijf(:,:,nsmin:nsmax)*bsupuijf0(:,:,nsmin:nsmax) -     &
                    jvsupuijf(:,:,nsmin:nsmax)*bsupsijf0(:,:,nsmin:nsmax))
 
-      IF (nsmin .eq. 1) THEN
-         esubuijf(:,:,1) = 0
-      END IF
-
 !  Verify boundary condition: esubu,v(s=1) = 0 (tangential E vanishes at bdy =>
 !  dB^s = 0). FIXME: Does this still hold in free boundary?
       IF (nsmax .eq. ns) THEN
@@ -139,10 +135,6 @@
          esubsijf = esubsijf + resistivity*ksubsijf(:,:,nsmin:nsmax)
          esubuijf = esubuijf + resistivity*ksubuijf(:,:,nsmin:nsmax)
          esubvijf = esubvijf + resistivity*ksubvijf(:,:,nsmin:nsmax)
-
-         IF (nsmin .eq. 1) THEN
-            esubuijf(:,:,1) = 0
-         END IF
 
          DEALLOCATE (resistivity)
       END IF

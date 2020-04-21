@@ -88,13 +88,14 @@
 !>  @param[in]    Fourier iparity   Parity of the displacements.
 !-------------------------------------------------------------------------------
       SUBROUTINE InitDisplacement(gvsupsmnf, gvsupumnf, gvsupvmnf, iparity)
-      USE fourier, ONLY: f_cos, f_sin, f_none, f_sum, m0, m1, m2
+      USE fourier, ONLY: f_cos, f_sin, f_none, f_sum, m0, m1, m2, n1
       USE quantities, ONLY: jvsupsijf, jvsupuijf, jvsupvijf, mpol, ntor
       USE shared_data, ONLY: l_push_s, l_push_u, l_push_v, l_pedge,     &
                              l_push_edge, col_scale
       USE v3_utilities, ONLY: assert_eq
       USE island_params, ONLY: fourier_context
       USE utilities, ONLY: set_bndy_fouier_m0, set_bndy_full_origin
+      USE siesta_namelist, ONLY: l_vessel
 
       IMPLICIT NONE
 
@@ -141,7 +142,7 @@
             gvsupsmnf(m1,:,1) = 0
          END IF
          IF (.not.l_push_u) THEN
-            gvsupumnf(m1,:,1) = 0
+            gvsupumnf(m0,:,1) = 0
          END IF
          IF (.not.l_push_v) THEN
             gvsupvmnf(m0,:,1) = 0
@@ -150,14 +151,14 @@
 
 !  Edge boundary conditions (B_tangential = 0 => vsups = 0; J^s = 0 => F_v = 0)
 !  Note that F_v and F_u are both ~J^s at edge, so only one can be varied to
-!  prevent a dependent row in the Hessian matrix
+!  prevent a dependent row in the Hessian matrix.
+!  FIXME: These boundary conditions will only hold for non free boundary cases.
       IF (nsmax .eq. ns) THEN
          gvsupsmnf(:,:,ns) = 0
-         IF (l_pedge) THEN
+         IF (l_pedge .or. .not.l_push_edge .or. l_vessel) THEN
             gvsupumnf(:,:,ns) = 0
          END IF
-         IF (.not.l_push_edge) THEN
-            gvsupumnf(:,:,ns) = 0
+         IF (.not.l_push_edge .or. l_vessel) THEN
             gvsupvmnf(:,:,ns) = 0
          END IF
       END IF

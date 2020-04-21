@@ -155,7 +155,7 @@
       END IF
 
 !  SPH11-3-16 preserve s=1 as iso-pressure contour
-      IF (nsmax .eq. ns .and. l_pedge) THEN
+      IF (nsmax .eq. ns .and. l_pedge .and. .not.l_vessel) THEN
          pijf0(:,:,ns) = pedge
          pijf0_ds(:,:,ns) = 0
       END IF
