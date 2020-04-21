@@ -455,48 +455,48 @@
 !>
 !>  @param[in] parity Fourier parity of the pressure.
 !-------------------------------------------------------------------------------
-       SUBROUTINE FilterPressure(parity)
-       USE island_params, ONLY: fourier_context
+      SUBROUTINE FilterPressure(parity)
+      USE island_params, ONLY: fourier_context
 
-       IMPLICIT NONE
+      IMPLICIT NONE
 
 !  Declare Arguments
-       INTEGER, INTENT(in)                      :: parity
+      INTEGER, INTENT(in)                      :: parity
 
 !  local variables
-       INTEGER                                  :: fcomb
-       INTEGER                                  :: istat
-       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: pmnh
+      INTEGER                                  :: fcomb
+      INTEGER                                  :: istat
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: pmnh
 
 !  Start of executable code
-       IF (parity .eq. f_cos) THEN
-          fcomb = f_none
-       ELSE
-          fcomb = f_sum
-       END IF
+      IF (parity .eq. f_cos) THEN
+         fcomb = f_none
+      ELSE
+         fcomb = f_sum
+      END IF
 
 !  pmnh contains Nyquist-filtered (to MPOL, NTOR) Fourier harmonics of p on
 !  half mesh
-       ALLOCATE(pmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
-       CALL assert_eq(0, istat, 'Allocation error in FilterPressure')
+      ALLOCATE(pmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
+      CALL assert_eq(0, istat, 'Allocation error in FilterPressure')
 
-       CALL fourier_context%tomnsp(pijh0, pmnh, parity)
+      CALL fourier_context%tomnsp(pijh0, pmnh, parity)
        
-       IF (parity .eq. f_cos .and. nsmax .eq. ns) THEN
-          pedge = pmnh(m0,0,ns)*fourier_context%orthonorm(0,0)
-       END IF
+      IF (parity .eq. f_cos .and. nsmax .eq. ns) THEN
+         pedge = pmnh(m0,0,ns)*fourier_context%orthonorm(0,0)
+      END IF
 
 !  Spectrally filtered angle derivatives of p in real space (half mesh).
-       CALL fourier_context%toijsp(pmnh, pijh0_du, IOR(f_du, fcomb), parity)
-       CALL fourier_context%toijsp(pmnh, pijh0_dv, IOR(f_dv, fcomb), parity)
+      CALL fourier_context%toijsp(pmnh, pijh0_du, IOR(f_du, fcomb), parity)
+      CALL fourier_context%toijsp(pmnh, pijh0_dv, IOR(f_dv, fcomb), parity)
 
-       IF (l_update_state) THEN
-          CALL fourier_context%toijsp(pmnh, pfilter, fcomb, parity)
-       END IF
+      IF (l_update_state) THEN
+         CALL fourier_context%toijsp(pmnh, pfilter, fcomb, parity)
+      END IF
 
-       DEALLOCATE(pmnh)
+      DEALLOCATE(pmnh)
 
-       END SUBROUTINE
+      END SUBROUTINE
 
 !-------------------------------------------------------------------------------
 !>  @brief
@@ -507,90 +507,90 @@
 !>  @param[in] jpmnh     Pressure on the half grid.
 !>  @param[in] iparity   Fourier parity of the s component.
 !-------------------------------------------------------------------------------
-       SUBROUTINE CheckFFT(jbsupsmnh, jbsupumnh, jbsupvmnh, jpmnh, iparity)
+      SUBROUTINE CheckFFT(jbsupsmnh, jbsupumnh, jbsupvmnh, jpmnh, iparity)
 
-       IMPLICIT NONE
+      IMPLICIT NONE
 
 !  Declare Arguments
-       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in) :: jbsupsmnh
-       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in) :: jbsupumnh
-       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in) :: jbsupvmnh
-       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in) :: jpmnh
-       INTEGER, INTENT(in)                                  :: iparity
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in) :: jbsupsmnh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in) :: jbsupumnh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in) :: jbsupvmnh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in) :: jpmnh
+      INTEGER, INTENT(in)                                  :: iparity
 
 !  Local Variables
-       INTEGER                                              :: fours
-       INTEGER                                              :: fouruv
-       INTEGER                                              :: fcomb
-       INTEGER                                              :: sparity
-       INTEGER                                              :: m
-       INTEGER                                              :: mp
-       INTEGER                                              :: n
-       INTEGER                                              :: np
-       REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)             :: FFT_TEST
-       REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)             :: pmnh
-       REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)             :: temp
-       REAL (dp)                                            :: rtest
+      INTEGER                                              :: fours
+      INTEGER                                              :: fouruv
+      INTEGER                                              :: fcomb
+      INTEGER                                              :: sparity
+      INTEGER                                              :: m
+      INTEGER                                              :: mp
+      INTEGER                                              :: n
+      INTEGER                                              :: np
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)             :: FFT_TEST
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)             :: pmnh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:)             :: temp
+      REAL (dp)                                            :: rtest
 
 !  Local Parameters
-       REAL (dp), PARAMETER                                 :: rtol = 1.E-14_dp
+      REAL (dp), PARAMETER                                 :: rtol = 1.E-14_dp
 
 !  Start of executable code.
 #undef _TEST_INIT
 !#define _TEST_INIT
 #if defined(_TEST_INIT)
-       IF (iparity .EQ. f_sin) THEN
-          fours = f_sin
-          fouruv = f_cos
-          sparity = 1
-       ELSE
-          fours = f_cos
-          fouruv = f_sin
-          sparity = -1
-       END IF
+      IF (iparity .EQ. f_sin) THEN
+         fours = f_sin
+         fouruv = f_cos
+         sparity = 1
+      ELSE
+         fours = f_cos
+         fouruv = f_sin
+         sparity = -1
+      END IF
 
 !check independent variables
-       ALLOCATE (fft_test(0:mpol,-ntor:ntor,nsmin:nsmax),                      &
-                 temp(ntheta,nzeta,nsmin:nsmax),                               &
-                 pmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=m)
-       CALL assert(m.EQ.0,' Allocation failed in CheckFFT')
-       temp = bsupsijh0*jacobh(:,:,nsmin:nsmax)
-       CALL tomnsp(temp, fft_test, fours)
-       rTest = MAXVAL(ABS(fft_test - jbsupsmnh(:,:,nsmin:nsmax)))
-       CALL assert(rtest.LT.rtol, ' jbsupsmnh FFT error in siesta_init')
-       temp = bsupuijh0*jacobh(:,:,nsmin:nsmax)
-       CALL tomnsp(temp, fft_test, fouruv)
-       rTest = MAXVAL(ABS(fft_test - jbsupumnh(:,:,nsmin:nsmax)))
-       CALL assert(rTest.LT.rtol,' jbsupumnh FFT error in siesta_init')
-       temp = bsupvijh0*jacobh(:,:,nsmin:nsmax)
-       CALL tomnsp(temp, fft_test, fouruv)
-       rTest = MAXVAL(ABS(fft_test - jbsupvmnh(:,:,nsmin:nsmax)))
-       CALL assert(rTest.LT.rtol,' jbsupvmnh FFT error in siesta_init')
-       temp = pijh0*jacobh(:,:,nsmin:nsmax)
-       CALL tomnsp(temp, fft_test, fouruv)
-       rTest = MAXVAL(ABS(fft_test - jpmnh(:,:,nsmin:nsmax)))
-       CALL assert(rTest.LT.rtol,' jpmnh FFT error in siesta_init')
+      ALLOCATE (fft_test(0:mpol,-ntor:ntor,nsmin:nsmax),                       &
+                temp(ntheta,nzeta,nsmin:nsmax),                                &
+                pmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=m)
+      CALL assert(m.EQ.0,' Allocation failed in CheckFFT')
+      temp = bsupsijh0*jacobh(:,:,nsmin:nsmax)
+      CALL tomnsp(temp, fft_test, fours)
+      rTest = MAXVAL(ABS(fft_test - jbsupsmnh(:,:,nsmin:nsmax)))
+      CALL assert(rtest.LT.rtol, ' jbsupsmnh FFT error in siesta_init')
+      temp = bsupuijh0*jacobh(:,:,nsmin:nsmax)
+      CALL tomnsp(temp, fft_test, fouruv)
+      rTest = MAXVAL(ABS(fft_test - jbsupumnh(:,:,nsmin:nsmax)))
+      CALL assert(rTest.LT.rtol,' jbsupumnh FFT error in siesta_init')
+      temp = bsupvijh0*jacobh(:,:,nsmin:nsmax)
+      CALL tomnsp(temp, fft_test, fouruv)
+      rTest = MAXVAL(ABS(fft_test - jbsupvmnh(:,:,nsmin:nsmax)))
+      CALL assert(rTest.LT.rtol,' jbsupvmnh FFT error in siesta_init')
+      temp = pijh0*jacobh(:,:,nsmin:nsmax)
+      CALL tomnsp(temp, fft_test, fouruv)
+      rTest = MAXVAL(ABS(fft_test - jpmnh(:,:,nsmin:nsmax)))
+      CALL assert(rTest.LT.rtol,' jpmnh FFT error in siesta_init')
             
 ! check angle derivatives of pressure            
-       CALL tomnsp(pijh0, pmnh, fouruv)
-       CALL tomnsp(pijh0_du, fft_test, fouruv)
-       DO m = 0, mpol
-          mp = -sparity*m
-          CALL assert(MAXVAL(ABS(fft_test(m,:,:) - mp*pmnh(m,:,:))) .LE. rtol,   &
-                     ' pijh0_du FFT error in siesta_init')
-       END DO
+      CALL tomnsp(pijh0, pmnh, fouruv)
+      CALL tomnsp(pijh0_du, fft_test, fouruv)
+      DO m = 0, mpol
+         mp = -sparity*m
+         CALL assert(MAXVAL(ABS(fft_test(m,:,:) - mp*pmnh(m,:,:))) .LE. rtol,   &
+                    ' pijh0_du FFT error in siesta_init')
+      END DO
        
-       CALL tomnsp(pijh0_dv, fft_test, fouruv)
-       DO n = -ntor, ntor
-          np = -sparity*n*nfp
-          CALL assert(MAXVAL(ABS(fft_test(:,n,:) - np*pmnh(:,n,:))) .LE. rtol,   &
-                     ' pijh0_dv FFT error in siesta_init')
-       END DO
+      CALL tomnsp(pijh0_dv, fft_test, fouruv)
+      DO n = -ntor, ntor
+         np = -sparity*n*nfp
+         CALL assert(MAXVAL(ABS(fft_test(:,n,:) - np*pmnh(:,n,:))) .LE. rtol,   &
+                    ' pijh0_dv FFT error in siesta_init')
+      END DO
             
-       DEALLOCATE(fft_test, pmnh, temp)
+      DEALLOCATE(fft_test, pmnh, temp)
 #endif                       
        
-       END SUBROUTINE
+      END SUBROUTINE
 
 !-------------------------------------------------------------------------------
 !>  @brief Check that p > 0.
