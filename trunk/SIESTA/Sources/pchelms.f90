@@ -322,7 +322,7 @@
       END IF
 
       nmin = startglobrow
-      nmax = MIN(ns, endglobrow+1)
+      nmax = MIN(ns, endglobrow + 1)
       moff = LBOUND(ksupsmnf,1)
       noff = LBOUND(ksupsmnf,2) + ntor
 
@@ -571,8 +571,10 @@
 !>                       full grid.
 !>  @param[in]  jcurrvmn Contravariant VMEC current in the v direction on the
 !>                       full grid.
+!>  @param[in]  iparity  Fourier parity of the residuals.
 !-------------------------------------------------------------------------------
-      SUBROUTINE INIT_F(Fsupsmn, Fsupumn, Fsupvmn, jcurrumn, jcurrvmn)
+      SUBROUTINE INIT_F(Fsupsmn, Fsupumn, Fsupvmn, jcurrumn, jcurrvmn, iparity)
+      USE utilities, Only: set_bndy_fouier_m0, set_bndy_full_origin
 
       IMPLICIT NONE
 
@@ -582,6 +584,7 @@
       REAL (dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(out) :: Fsupvmn
       REAL (dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(in)  :: jcurrumn
       REAL (dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(in)  :: jcurrvmn
+      INTEGER, INTENT(in)                                     :: iparity
 
 !  Local variables
       INTEGER                                                 :: js
@@ -599,6 +602,11 @@
       Fsupsmn(:,:,nsmin:nsmax) = 0
       Fsupumn(:,:,nsmin:nsmax) = jcurrumn(:,:,nsmin:nsmax)
       Fsupvmn(:,:,nsmin:nsmax) = jcurrvmn(:,:,nsmin:nsmax)
+
+      CALL set_bndy_fouier_m0(Fsupsmn, Fsupumn, Fsupvmn, iparity)
+      IF (nsmin .eq. 1) THEN
+         CALL set_bndy_full_origin(Fsupsmn, Fsupumn, Fsupvmn)
+      END IF
 
 !  Smooth edge current gradient.
       DO js = nsp - 10, nsp
@@ -1102,10 +1110,10 @@
       xc = xc + xc0
 
       CALL INIT_F(Fsupsmnsf, Fsupumncf, Fsupvmncf,                             &
-                  jcurrumnc, jcurrvmnc)
+                  jcurrumnc, jcurrvmnc, f_sin)
       IF (lasym) THEN
          CALL INIT_F(Fsupsmncf, Fsupumnsf, Fsupvmnsf,                          &
-                     jcurrumns, jcurrvmns)
+                     jcurrumns, jcurrvmns, f_cos)
       END IF
       gc0 = gc
 
@@ -1168,7 +1176,7 @@
 !>  @brief Compute Fourier components of Curl(Curl(A)) - mu0J operator on full
 !>         radial grid.
 !>
-!>  @param(in) lNLinear Use Non linear equations.
+!>  @param[in] lNLinear Use Non linear equations.
 !-------------------------------------------------------------------------------
       SUBROUTINE COMPUTE_FORCES(lNLinear)
       USE shared_data, ONLY: asubsmnsf, asubumncf, asubvmncf,                  &
@@ -1220,10 +1228,10 @@
          END IF
     
          CALL INIT_F(Fsupsmnsf, Fsupumncf, Fsupvmncf,                          &
-                     jcurrumnc, jcurrvmnc)
+                     jcurrumnc, jcurrvmnc, f_sin)
          IF (lasym) THEN
             CALL INIT_F(Fsupsmncf, Fsupumnsf, Fsupvmnsf,                       &
-                        jcurrumns, jcurrvmns)
+                        jcurrumns, jcurrvmns, f_cos)
          END IF
          gc0 = gc
          
@@ -1333,10 +1341,10 @@
 !-------------------------------------------------------------------------------
 !>  @brief Apply boundary conditions.
 !>
-!>  @param(inout) Fsupsmn Contravariant current in the s direction.
-!>  @param(inout) Fsupumn Contravariant current in the u direction.
-!>  @param(inout) Fsupvmn Contravariant current in the v direction.
-!>  @param(in)    iparity Fourier parity of the residuals.
+!>  @param[inout] Fsupsmn Contravariant current in the s direction.
+!>  @param[inout] Fsupumn Contravariant current in the u direction.
+!>  @param[inout] Fsupvmn Contravariant current in the v direction.
+!>  @param[in]    iparity Fourier parity of the residuals.
 !-------------------------------------------------------------------------------
       SUBROUTINE BoundaryConditions(Fsupsmn, Fsupumn, Fsupvmn, iparity)
       USE hessian, ONLY: l_Compute_Hessian
