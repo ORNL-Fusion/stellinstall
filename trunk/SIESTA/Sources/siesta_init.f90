@@ -11,7 +11,7 @@
       USE v3_utilities, ONLY: assert, assert_eq
       USE stel_kinds
       USE descriptor_mod, ONLY: SIESTA_COMM, iam
-      USE fourier, ONLY: f_none, f_sin, f_cos, f_du, f_dv, f_sum, m0, m1
+      USE fourier, ONLY: f_none, f_sin, f_cos, f_du, f_dv, f_sum, m0, m1, m2
       USE island_params, ONLY: fourier_context
       USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
       USE quantities
@@ -410,15 +410,15 @@
       INTEGER                                              :: fcomb
 
 !  Start of executable code
-!  Check origin values
+!  Check origin values. Use these boundary conditions through out the code.
       IF (nsmin .EQ. 1) THEN
          CALL assert(ALL(jbsupsmnh(m1,:,1)    .eq. jbsupsmnh(m1,:,2)),         &
                      'bmnsh(1) != bmnsh(2)')
          CALL assert(ALL(jbsupsmnh(m0,:,1)    .eq. zero), 'bmnsh(m0:,1) != 0')
-         CALL assert(ALL(jbsupsmnh(m1+1:,:,1) .eq. zero), 'bmnsh(m2:,1) != 0')
+         CALL assert(ALL(jbsupsmnh(m2:,:,1)   .eq. zero), 'bmnsh(m2:,1) != 0')
          CALL assert(ALL(jbsupumnh(m0:m1,:,1) .eq. jbsupumnh(m0:m1,:,2)),      &
                      'bmnuh(1) != bmnuh(2)')
-         CALL assert(ALL(jbsupumnh(m1+1:,:,1) .eq. zero), 'bmnuh(m2:,1) != 0')
+         CALL assert(ALL(jbsupumnh(m2:,:,1)   .eq. zero), 'bmnuh(m2:,1) != 0')
          CALL assert(ALL(jbsupvmnh(m0,:,1)    .eq. jbsupvmnh(m0,:,2)),         &
                      'bmnvh(m0,1) != bmnvh(m0,2)')
          CALL assert(ALL(jbsupvmnh(m1:,:,1)   .eq. zero), 'bmnvh(m1:,1) != 0')

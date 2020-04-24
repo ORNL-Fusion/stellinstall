@@ -233,11 +233,11 @@
       END IF
 
 !  Need this to keep Hessian symmetric
-      IF (nmin .le. ns_match .and. lHessian .and. .not.lInit) THEN
-          nmatch = MIN(ns_match, nsmax)
-          asubumnf(m1 + moff,:,nmin:nmatch) = 0
-          asubvmnf(m1 + moff,:,nmin:nmatch) = 0
-      END IF
+!      IF (nmin .le. ns_match .and. lHessian .and. .not.lInit) THEN
+!          nmatch = MIN(ns_match, nsmax)
+!          asubumnf(m1 + moff,:,nmin:nmatch) = 0
+!          asubvmnf(m1 + moff,:,nmin:nmatch) = 0
+!      END IF
 
       CALL CURL_FtoH(asubsmnf,  asubumnf,  asubvmnf,                           &
                      jbsupsmnh, jbsupumnh, jbsupvmnh, parity, nmin, nsmax)
@@ -1239,8 +1239,8 @@
          bnorm = fsq_total
 
          dphi = (2*pi)/(nfp*nzeta)
-         ALLOCATE(A_r(ntheta,nzeta),                                         &
-                  A_p(ntheta,nzeta),                                         &
+         ALLOCATE(A_r(ntheta,nzeta),                                           &
+                  A_p(ntheta,nzeta),                                           &
                   A_z(ntheta,nzeta))
 
          CALL bmw_exec(mgrid_file, wout_file, r1_i(:,:,ns), z1_i(:,:,ns),      &
@@ -1359,7 +1359,7 @@
       INTEGER, INTENT(in)                                      :: iparity
 
 !  Local variables
-      INTEGER                                                  :: nmatch
+!      INTEGER                                                  :: nmatch
 
 !  Start of executable code
       IF (endglobrow .EQ. ns) THEN
@@ -1376,11 +1376,11 @@
       END IF
 
 !  Preserve surfaces for js < ns_match
-      IF (ns_match .GE. nsmin) THEN
-         nmatch = MIN(ns_match, nsmax)
-         fsupumn(m1,:,nsmin:nmatch) = 0
-         fsupvmn(m1,:,nsmin:nmatch) = 0
-      END IF
+!      IF (ns_match .GE. nsmin) THEN
+!         nmatch = MIN(ns_match, nsmax)
+!         fsupumn(m1,:,nsmin:nmatch) = 0
+!         fsupvmn(m1,:,nsmin:nmatch) = 0
+!      END IF
       
       END SUBROUTINE
 

@@ -698,8 +698,9 @@
 !>  @brief Set fouier boundary conditions for full grid vector quantity
 !>         converted from half grid.
 !>
-!>  At the center of the grid, the a_u basis vector is zero. The a_s basis
-!>  vector only has m=1 components. The a_v vector only has m=0 components.
+!>  At the center of the grid, the a_u basis vector only has m=0 and m=1
+!>  components. The a_s basis vector only has m=1 components. The a_v vector
+!>  only has m=0 components. See @ref siesta_init::GetFields.
 !>
 !>  @param[in]    asubsmnh Half grid covariant s fourier quantity.
 !>  @param[in]    asubumnh Half grid covariant u fourier quantity.
@@ -739,7 +740,8 @@
          asubsmnf(m1 + mofff,:,1) = asubsmnh(m1 + moffh,:,2)
 
          asubumnf(:,:,1) = 0
-         asubumnf(m0 + mofff,:,1) = asubumnf(m0 + moffh,:,2)
+         asubumnf(m0 + mofff,:,1) = asubumnh(m0 + moffh,:,2)
+         asubumnf(m1 + mofff,:,1) = asubumnh(m1 + moffh,:,2)
 
          asubvmnf(:,:,1) = 0
          asubvmnf(m0 + mofff,:,1) = asubvmnh(m0 + moffh,:,2)
@@ -774,14 +776,16 @@
       INTEGER, INTENT(in)                        :: parity
 
 !  Local Variables
-      INTEGER                                    :: moff
+      INTEGER                                    :: moffh
+      INTEGER                                    :: mofff
 
 !  Start of executable code
       IF (nsmin .eq. 1) THEN
-         moff = LBOUND(amnh, 1)
+         moffh = LBOUND(amnh, 1)
+         mofff = LBOUND(amnf_ds, 1)
 
          amnf_ds(:,:,1) = 0.0
-         amnf_ds(m1 + moff,:,1) = 2.0*ohs*amnh(m1 + moff,:,2)
+         amnf_ds(m1 + mofff,:,1) = 2.0*ohs*amnh(m1 + moffh,:,2)
       END IF
 
       CALL set_bndy_fouier_m0(amnf_ds, parity)
@@ -818,24 +822,9 @@
       INTEGER, INTENT(IN)                        :: nsmin
       INTEGER, INTENT(in)                        :: parity
 
-!  Local Variables
-      INTEGER                                    :: moffh
-      INTEGER                                    :: mofff
-
 !  Start of executable code
-      IF (nsmin .eq. 1) THEN
-         moffh = LBOUND(avmnh, 1)
-         mofff = LBOUND(aumnf_ds, 1)
-
-         aumnf_ds(:,:,1) = 0.0
-         aumnf_ds(m1 + mofff,:,1) = 2.0*ohs*aumnh(m1 + moffh,:,2)
-
-         avmnf_ds(:,:,1) = 0.0
-         avmnf_ds(m1 + mofff,:,1) = 2.0*ohs*avmnh(m1 + moffh,:,2)
-      END IF
-
-      CALL set_bndy_fouier_m0(aumnf_ds, parity)
-      CALL set_bndy_fouier_m0(avmnf_ds, parity)
+      CALL set_bndy_half_to_full_ds(aumnh, aumnf_ds, nsmin, parity)
+      CALL set_bndy_half_to_full_ds(avmnh, avmnf_ds, nsmin, parity)
 
       END SUBROUTINE
 
@@ -845,7 +834,7 @@
 !>
 !>  At the center of the grid, a vector quantity should have only m=1 modes in
 !>  the s direction, no modes in the u direction and only m=0 modes in the v
-!>  direction.
+!>  direction. See @ref siesta_init::GetFields.
 !>
 !>  @param[inout] amnsf  Full grid fourier quantity for s component.
 !>  @param[inout] amnuf  Full grid fourier quantity for u component.
@@ -869,9 +858,8 @@
       amnsf(m0 + moff,:,1) = 0
       IF (m2 + moff .lt. UBOUND(amnsf, 1)) THEN
          amnsf(m2 + moff:,:,1) = 0
+         amnuf(m2 + moff:,:,1) = 0
       END IF
-
-      amnuf(m1 + moff:,:,1) = 0
 
       amnvf(m1 + moff:,:,1) = 0
 

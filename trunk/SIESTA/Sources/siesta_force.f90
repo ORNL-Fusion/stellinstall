@@ -581,7 +581,8 @@
 !>  @brief Final computation of the MHD covariant Fourier force components.
 !>
 !>  Add pressure gradients and parallel damping (to Hessian), and scale 
-!>  and print boundary values.
+!>  and print boundary values. See @ref siesta_init::GetFields for boundary
+!>  conditions.
 !>
 !>  @param[inout] pardamp   Parallel damping.
 !>  @param[inout] f_smnf  Covariant component of the mhd force in the s
@@ -722,8 +723,10 @@
 
           IF (.not.l_push_u) THEN
              f_umnf(m0 + moff,:,1) = 0
+             f_umnf(m1 + moff,:,1) = 0
           ELSE
              f_umnf(m0 + moff,:,1) = p5*f_umnf(m0 + moff,:,1)
+             f_umnf(m1 + moff,:,1) = p5*f_umnf(m1 + moff,:,1)
           END IF
 
           IF (.not.l_push_v) THEN

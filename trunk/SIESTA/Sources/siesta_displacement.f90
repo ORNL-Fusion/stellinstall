@@ -80,7 +80,8 @@
 !-------------------------------------------------------------------------------
 !>  @param Initalized variational displacements for a single parity.
 !>
-!>  Applied boundary controls.
+!>  Applied boundary controls. See @ref siesta_init::GetFields for boundary
+!>  conditions.
 !>
 !>  @param[inout] gvsupsmnf Contravariant dispalcement in s direction.
 !>  @param[inout] gvsupumnf Contravariant dispalcement in u direction.
@@ -132,10 +133,9 @@
 
       CALL set_bndy_fouier_m0(gvsupsmnf, gvsupumnf, gvsupvmnf, fours)
 
-!  Origin boundary conditions (evolve m = 1 F_u, F_s, m = 0 F_v)
+!  Origin boundary conditions (evolve m = 1 F_u, F_s, m = 0 F_v), See
+!  siesta_init::GetFields for boundary conditions.
       IF (nsmin .eq. 1) THEN
-!  FIXME: Check if this should be here. Seems to converge faster if this is
-!         commented out.
          CALL set_bndy_full_origin(gvsupsmnf, gvsupumnf, gvsupvmnf)
 
          IF (.not.l_push_s) THEN
@@ -143,6 +143,7 @@
          END IF
          IF (.not.l_push_u) THEN
             gvsupumnf(m0,:,1) = 0
+            gvsupumnf(m1,:,1) = 0
          END IF
          IF (.not.l_push_v) THEN
             gvsupvmnf(m0,:,1) = 0

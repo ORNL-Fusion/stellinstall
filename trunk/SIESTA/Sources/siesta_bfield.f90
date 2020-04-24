@@ -252,14 +252,15 @@
       DEALLOCATE(esubsmnf, esubumnf, esubvmnf)
 
 !  Boundary conditions at origin (Used to compute bfields at origin in
-!  siesta_init and siesta_forces).
+!  siesta_init and siesta_forces). See siesta_init::GetFields for boundary
+!  conditions.
       IF (nsmin .eq. 1) THEN
          djbsupsmnh(:,:,1) = 0
          djbsupsmnh(m1,:,1) = djbsupsmnh(m1,:,2)
          djbsupumnh(:,:,1) = 0
          djbsupumnh(m0:m1,:,1) = djbsupumnh(m0:m1,:,2)
          djbsupvmnh(:,:,1) = 0
-         djbsupvmnh(m0,:,1) = djbsupvmnh(m0,:,2);
+         djbsupvmnh(m0,:,1) = djbsupvmnh(m0,:,2)
       END IF
 
 !  Calculate increment of the magnetic field harmonics: use Euler scheme with dt
