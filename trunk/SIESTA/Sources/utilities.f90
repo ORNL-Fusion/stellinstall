@@ -584,7 +584,7 @@
          END DO
       END DO
 
-      DEALLOCATE(asubsmnf, asubumnf,  asubvmnf, da_uds, da_vds)
+      DEALLOCATE(asubsmnf, asubumnf, asubvmnf, da_uds, da_vds)
 
 !  Avoid fp failure in debug mode
       jbsupsmnf(:,:,nmax+1:UBOUND(jbsupsmnf,3)) = 0

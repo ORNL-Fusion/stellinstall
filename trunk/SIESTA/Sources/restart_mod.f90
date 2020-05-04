@@ -515,6 +515,9 @@
       CALL cdf_write(ncid, vn_wp, wp)
       CALL cdf_write(ncid, vn_rmajor, rmajor)
 
+      CALL cdf_write(ncid, vn_p_factor, p_factor)
+      CALL cdf_write(ncid, vn_b_factor, b_factor)
+
       ALLOCATE(bsupsijh(ntheta,nzeta,ns))
       ALLOCATE(bsupuijh(ntheta,nzeta,ns))
       ALLOCATE(bsupvijh(ntheta,nzeta,ns))
@@ -529,9 +532,6 @@
       CALL fourier_context%toijsp(jbsupumnch, bsupuijh, f_none, f_cos)
       CALL fourier_context%toijsp(jbsupvmnch, bsupvijh, f_none, f_cos)
       CALL fourier_context%toijsp(jpmnch, pijh, f_none, f_cos)
-
-      CALL cdf_write(ncid, vn_p_factor, p_factor)
-      CALL cdf_write(ncid, vn_b_factor, b_factor)
 
       IF (lasym) THEN
          CALL fourier_context%toijsp(jbsupsmnch, bsupsijh, f_sum, f_cos)

@@ -367,10 +367,10 @@
 
 !NEED THESE FOR CURRENT CALCULATION AT ORIGIN
       gss(:,1) = gss(:,2)
-      gsu(:,1) = 0
+      gsu(:,1) = gsu(:,2)
       gsv(:,1) = gsv(:,2)
-      guu(:,1) = 0
-      guv(:,1) = 0
+      guu(:,1) = guu(:,2)
+      guv(:,1) = guv(:,2)
       gvv(:,1) = gvv(:,2)
 
       mintest = MINVAL(sqrtg(:,2:))
@@ -423,44 +423,58 @@
 !  Compute upper metric elements (inverse of lower matrix) on full mesh.
 !  NOTE: DET == 1/det|Gij| == 1/sqrtg(full)**2
       DO js = 1, ns_i
-         det(:) = gssf(:,js)*(guuf(:,js)*gvvf(:,js) - guvf(:,js)*guvf(:,js))   &
-                + gsuf(:,js)*(guvf(:,js)*gsvf(:,js) - gsuf(:,js)*gvvf(:,js))   &
-                + gsvf(:,js)*(gsuf(:,js)*guvf(:,js) - gsvf(:,js)*guuf(:,js))
-         IF (ANY(det .LE. zero)) THEN
-            IF (iam .EQ. 0) THEN
-               WRITE (*,1000) js
-            END IF
-            IF (js .EQ. ns_i) THEN
-               det(:) = sqrtg(:,ns_i)**2
-               gssf(:,ns_i) = gss(:,ns_i)
-               guuf(:,ns_i) = guu(:,ns_i)
-               gvvf(:,ns_i) = gvv(:,ns_i)
-               gsuf(:,ns_i) = gsu(:,ns_i)
-               guvf(:,ns_i) = guv(:,ns_i)
-               gsvf(:,ns_i) = gsv(:,ns_i)
-            ELSE
-               det(:) = ((sqrtg(:,js) + sqrtg(:,js + 1))/2)**2
-            END IF
-         END IF
-         det = one/det
-         hss(:,js) = det(:)*                                             &
-                    (guuf(:,js)*gvvf(:,js) - guvf(:,js)*guvf(:,js))
-         hsu(:,js) = det(:)*                                             &
-                    (guvf(:,js)*gsvf(:,js) - gsuf(:,js)*gvvf(:,js))
-         hsv(:,js) = det(:)*                                             &
-                    (gsuf(:,js)*guvf(:,js) - gsvf(:,js)*guuf(:,js))
-         huu(:,js) = det(:)*                                             &
-                    (gssf(:,js)*gvvf(:,js) - gsvf(:,js)*gsvf(:,js))
-         huv(:,js) = det(:)*                                             &
-                    (gsvf(:,js)*gsuf(:,js) - gssf(:,js)*guvf(:,js))
-         hvv(:,js) = det(:)*                                             &
-                    (gssf(:,js)*guuf(:,js) - gsuf(:,js)*gsuf(:,js))
+         det(:) = gsvf(:,js)*gsvf(:,js)*guuf(:,js)                             &
+                - 2*gsuf(:,js)*gsvf(:,js)*guvf(:,js)                           &
+                + gssf(:,js)*guvf(:,js)*guvf(:,js)                             &
+                + gsuf(:,js)*gsuf(:,js)*gvvf(:,js)                             &
+                - gssf(:,js)*guuf(:,js)*gvvf(:,js)
 
+          hss(:,js) = (guvf(:,js)*guvf(:,js) - guuf(:,js)*gvvf(:,js))/det
+          hsu(:,js) = (gsuf(:,js)*gvvf(:,js) - gsvf(:,js)*guvf(:,js))/det
+          hsv(:,js) = (gsvf(:,js)*guuf(:,js) - gsuf(:,js)*guvf(:,js))/det
+          huu(:,js) = (gsvf(:,js)*gsvf(:,js) - gssf(:,js)*gvvf(:,js))/det
+          huv(:,js) = (gssf(:,js)*guvf(:,js) - gsuf(:,js)*gsvf(:,js))/det
+          hvv(:,js) = (gsuf(:,js)*gsuf(:,js) - gssf(:,js)*guuf(:,js))/det
       END DO
+
+      CALL check_metrics
 
 1000  FORMAT('Determinant |gijf| <= 0 at js = ',i4)
 
       END SUBROUTINE full_mesh_metrics
+
+!-------------------------------------------------------------------------------
+!>  @ brief Test to check that we computed the upper metric elements correctly.
+!>
+!>  Check that the metric elements conform to the following relation to machine
+!>  precission.
+!>
+!>    hij*gjk = delta_ik                                                     (1)
+!>
+!>  Note the repeated index implys a sum.
+!-------------------------------------------------------------------------------
+      SUBROUTINE check_metrics
+
+      IMPLICIT NONE
+
+!  Local Parameters
+      REAL (dp), PARAMETER :: tolarance = 1.0E15
+
+!  Start executable code.
+      CALL ASSERT(ALL(ABS(hss*gssf + hsu*gsuf + hsv*gsvf - 1) .lt. tolarance), &
+                      's Diagonal metric element failed.')
+      CALL ASSERT(ALL(ABS(hsu*gsuf + huu*guuf + huv*guvf - 1) .lt. tolarance), &
+                      'u Diagonal metric element failed.')
+      CALL ASSERT(ALL(ABS(hsv*gsvf + huv*guvf + hvv*gvvf - 1) .lt. tolarance), &
+                      'v Diagonal metric element failed.')
+      CALL ASSERT(ALL(ABS(hss*gsuf + hsu*guuf + hsv*guvf) .lt. tolarance),     &
+                      'su Off diagonal metric element failed.')
+      CALL ASSERT(ALL(ABS(hss*gsvf + hsu*guvf + hsv*gvvf) .lt. tolarance),     &
+                      'sv Off diagonal metric element failed.')
+      CALL ASSERT(ALL(ABS(hsu*gsvf + huu*guvf + huv*gvvf) .lt. tolarance),     &
+                      'uv Off diagonal metric element failed.')
+
+      END SUBROUTINE
 
 !-------------------------------------------------------------------------------
 !>  @brief Converts to contravariant component full grid.
