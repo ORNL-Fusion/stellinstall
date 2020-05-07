@@ -588,18 +588,10 @@
       ALLOCATE(bsubumnh(0:mpol,-ntor:ntor,ns))
       ALLOCATE(bsubvmnh(0:mpol,-ntor:ntor,ns))
 
-!  Remove the orthonorm and b_factor so these quantities can be directly summed.
+!  Need to compute current before denormalizing quantities.
       CALL fourier_context%tomnsp(bsubsijh, bsubsmnh, f_sin)
-      CALL restart_denormalize(bsubsmnh, b_factor)
-      CALL cdf_write(ncid, vn_bsubsmns, bsubsmnh)
-
       CALL fourier_context%tomnsp(bsubuijh, bsubumnh, f_cos)
-      CALL restart_denormalize(bsubumnh, b_factor)
-      CALL cdf_write(ncid, vn_bsubumnc, bsubumnh)
-
       CALL fourier_context%tomnsp(bsubvijh, bsubvmnh, f_cos)
-      CALL restart_denormalize(bsubvmnh, b_factor)
-      CALL cdf_write(ncid, vn_bsubvmnc, bsubvmnh)
 
 !  Compute currents on the full mesh.
       ALLOCATE(jksupsmnf(0:mpol,-ntor:ntor,ns))
@@ -609,6 +601,15 @@
       CALL curl_htof(bsubsmnh, bsubumnh, bsubvmnh,                             &
      &               jksupsmnf, jksupumnf, jksupvmnf,                          &
      &               f_sin, 1, ns, ns, tempscalar)
+
+!  Remove the orthonorm and b_factor so these quantities can be directly summed.
+      CALL restart_denormalize(bsubsmnh, b_factor)
+      CALL restart_denormalize(bsubvmnh, b_factor)
+      CALL restart_denormalize(bsubumnh, b_factor)
+
+      CALL cdf_write(ncid, vn_bsubsmns, bsubsmnh)
+      CALL cdf_write(ncid, vn_bsubumnc, bsubumnh)
+      CALL cdf_write(ncid, vn_bsubvmnc, bsubvmnh)
 
       CALL restart_denormalize(jksupsmnf, b_factor)
       CALL restart_denormalize(jksupumnf, b_factor)
@@ -639,22 +640,23 @@
          CALL restart_denormalize(tempmn_w, p_factor*mu0)
          CALL cdf_write(ncid, vn_pmns, tempmn_w)
 
-!  Remove the orthonorm and b_factor so these quantities can be directly summed.
+!  Need to compute current before denormalizing quantities.
          CALL fourier_context%tomnsp(bsubsijh, bsubsmnh, f_cos)
-         CALL restart_denormalize(tempmn_w, b_factor)
-         CALL cdf_write(ncid, vn_bsubsmnc, tempmn_w)
-
          CALL fourier_context%tomnsp(bsubuijh, bsubumnh, f_sin)
-         CALL restart_denormalize(tempmn_w, b_factor)
-         CALL cdf_write(ncid, vn_bsubumns, tempmn_w)
-
          CALL fourier_context%tomnsp(bsubvijh, bsubvmnh, f_sin)
-         CALL restart_denormalize(tempmn_w, b_factor)
-         CALL cdf_write(ncid, vn_bsubvmns, tempmn_w)
 
          CALL curl_htof(bsubsmnh, bsubumnh, bsubvmnh,                          &
      &                  jksupsmnf, jksupumnf, jksupvmnf,                       &
      &                  f_cos, 1, ns, ns, tempscalar)
+
+!  Remove the orthonorm and b_factor so these quantities can be directly summed.
+         CALL restart_denormalize(bsubsmnh, b_factor)
+         CALL restart_denormalize(bsubumnh, b_factor)
+         CALL restart_denormalize(bsubvmnh, b_factor)
+
+         CALL cdf_write(ncid, vn_bsubsmnc, bsubsmnh)
+         CALL cdf_write(ncid, vn_bsubumns, bsubumnh)
+         CALL cdf_write(ncid, vn_bsubvmns, bsubvmnh)
 
          CALL restart_denormalize(jksupsmnf, b_factor)
          CALL restart_denormalize(jksupumnf, b_factor)
