@@ -189,6 +189,28 @@ C-----------------------------------------------
      1         Dcurr(i), Dwell(i), Dgeod(i)
       END DO
 
+      WRITE(nmerc,195)
+ 195  FORMAT(/,6x,'S',8x,'E1',8x,'E2pH2',8x,'F1',8x,'F2',8x,'F3',
+     1     8x,'H1',8x,'DMerc_GL',/,100('-'))
+      DO i = 2,ns1
+         ! Now converting to Glasser's notation (via C.C. Hegna's manuscript)
+         ! 1/4 - E - F - H > 0
+         ! E = E1 + E2   F = F1 + F2 + F3  H = H1 + H2
+         E1_GL(i) = - presp(i) * vpp(i) * tbb(i) / (shear(i) * shear(i))
+         F1_GL(i) = presp(i) * presp(i) * tpp(i) * tbb(i)   
+     1                 / (shear(i) * shear(i))
+         F2_GL(i) = tbb(i) * tjj(i) / (shear(i) * shear(i))
+         F3_GL(i) = - tjb(i) * tjb(i)  / (shear(i) * shear(i))
+         H1_GL(i) =   tjb(i)  / shear(i) 
+         E2pH2_GL(i) = - ip(i) * tbb(i)  / shear(i)
+
+         Dmerc_GL(i)  = 0.25 - (E1_GL(i) + E2pH2_GL(i) + 
+     1                          F1_GL(i) + F2_GL(i) + F3_GL(i) 
+     2                        + H1_GL(i) )
+         WRITE(nmerc,100) sj(i), E1_GL(i), E2pH2_GL(i), F1_GL(i),  
+     1                 F2_GL(i), F3_GL(i), H1_GL(i), Dmerc_GL(i)
+      END DO
+
       CLOSE (nmerc)
 
       END SUBROUTINE mercier
