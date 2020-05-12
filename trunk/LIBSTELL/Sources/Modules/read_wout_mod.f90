@@ -69,6 +69,9 @@
         vn_bdotb = 'bdotb', vn_overr = 'over_r',                        &
         vn_bgrv = 'bdotgradv', vn_merc = 'DMerc', vn_mshear = 'DShear', &
         vn_mwell = 'DWell', vn_mcurr = 'DCurr', vn_mgeo = 'DGeod',      &
+        vn_e1_gl = 'E1_GL', vn_e2ph2_gl = 'E2pH2_GL',                   &
+        vn_f1_gl = 'F1_GL', vn_f2_gl = 'F2_GL', vn_f3_gl = 'F3_GL',     &
+        vn_h1_gl = 'H1_GL', vn_merc_gl = 'DMerc_GL',                    &
         vn_equif = 'equif', vn_fsq = 'fsqt', vn_wdot = 'wdot',          &
         vn_ftolv = 'ftolv', vn_fsql= 'fsql', vn_fsqr = 'fsqr',          &
         vn_fsqz = 'fsqz',                                               &
@@ -157,6 +160,12 @@
         ln_phip = 'tor flux deriv over 2pi half',                       &
         ln_jdotb = 'J dot B', ln_bgrv = 'B dot grad v',                 &
         ln_bdotb = 'B dot B',                                           &
+
+        ln_merc_gl = 'Mercier criterion (Glasser version)',             &
+        ln_e1_gl = 'E1 (Glasser)', ln_e2ph2_gl = 'E2 + H2 (Glasser)',   &
+        ln_f1_gl = 'F1 (Glasser)', ln_f2_gl = 'F2 (Glasser)',           &
+        ln_f3_gl = 'F3 (Glasser)', ln_h1_gl = 'H1 (Glasser)',           &
+
         ln_merc = 'Mercier criterion', ln_mshear = 'Shear Mercier',     &
         ln_mwell = 'Well Mercier', ln_mcurr = 'Current Mercier',        &
         ln_mgeo = 'Geodesic Mercier', ln_equif='Average force balance', &
@@ -239,6 +248,7 @@
          xm_nyq, xn_nyq, phip, buco, bvco, vp, overr, jcuru, jcurv,     & 
          specw, jdotb, bdotb, bdotgradv, fsqt, wdot, am, ac, ai,        & 
          am_aux_s, am_aux_f, ac_aux_s, ac_aux_f, ai_aux_s, ai_aux_f,    &
+         Dmerc_gl, e1_gl, e2ph2_gl, f1_gl, f2_gl, f3_gl, h1_gl,         &
          Dmerc, Dshear, Dwell, Dcurr, Dgeod, equif, extcur,             &
          sknots, ystark, y2stark, pknots, ythom, y2thom,                &
          anglemse, rmid, qmid, shear, presmid, alfa, curmid, rstark,    &
@@ -459,6 +469,8 @@
         chipf(ns),                                                      &
         vp(ns), overr(ns), jcuru(ns), jcurv(ns), specw(ns), Dmerc(ns),  &
         Dshear(ns), Dwell(ns), Dcurr(ns), Dgeod(ns), equif(ns),         &
+        dmerc_gl(ns), e1_gl(ns), e2ph2_gl(ns), f1_gl(ns), f2_gl(ns),    &
+        f3_gl(ns), h1_gl(ns),                                           &
         raxis(0:ntor,2), zaxis(0:ntor,2), jdotb(ns), bdotb(ns),         &
         bdotgradv(ns), am(0:20), ac(0:20),  ai(0:20),                   &
         fsqt(nstore_seq), wdot(nstore_seq), stat = istat(6))
@@ -990,6 +1002,21 @@
       CALL cdf_inquire(nwout, vn_equif, dimlens)
       ALLOCATE (equif(dimlens(1)), stat = ierror)
 
+      CALL cdf_inquire(nwout, vn_merc_gl, dimlens)
+      ALLOCATE (Dmerc_gl(dimlens(1)), stat = ierror)
+      CALL cdf_inquire(nwout, vn_e1_gl, dimlens)
+      ALLOCATE (e1_gl(dimlens(1)), stat = ierror)
+      CALL cdf_inquire(nwout, vn_e2ph2_gl, dimlens)
+      ALLOCATE (e2ph2_gl(dimlens(1)), stat = ierror)
+      CALL cdf_inquire(nwout, vn_f1_gl, dimlens)
+      ALLOCATE (f1_gl(dimlens(1)), stat = ierror)
+      CALL cdf_inquire(nwout, vn_f2_gl, dimlens)
+      ALLOCATE (f2_gl(dimlens(1)), stat = ierror)
+      CALL cdf_inquire(nwout, vn_f3_gl, dimlens)
+      ALLOCATE (f3_gl(dimlens(1)), stat = ierror)
+      CALL cdf_inquire(nwout, vn_h1_gl, dimlens)
+      ALLOCATE (h1_gl(dimlens(1)), stat = ierror)
+
       CALL cdf_inquire(nwout, vn_fsq, dimlens)
       ALLOCATE (fsqt(dimlens(1)), stat = ierror)
       CALL cdf_inquire(nwout, vn_wdot, dimlens)
@@ -1222,6 +1249,14 @@
       CALL cdf_read(nwout, vn_mcurr, Dcurr)
       CALL cdf_read(nwout, vn_mgeo, Dgeod)
       CALL cdf_read(nwout, vn_equif, equif)
+
+      CALL cdf_read(nwout, vn_merc_gl, Dmerc_gl)
+      CALL cdf_read(nwout, vn_e1_gl, e1_gl)
+      CALL cdf_read(nwout, vn_e2ph2_gl, e2ph2_gl)
+      CALL cdf_read(nwout, vn_f1_gl, f1_gl)
+      CALL cdf_read(nwout, vn_f2_gl, f2_gl)
+      CALL cdf_read(nwout, vn_f3_gl, f3_gl)
+      CALL cdf_read(nwout, vn_h1_gl, h1_gl)
 
       CALL cdf_read(nwout, vn_fsq, fsqt)
       CALL cdf_read(nwout, vn_wdot, wdot)
@@ -1695,6 +1730,7 @@
         bsubvmnc, bsubsmns, bsupumnc, bsupvmnc, currvmnc, iotas, mass,  &
         pres, beta_vol, phip, buco, bvco, phi, vp, jcuru, am, ac, ai,   &
         jcurv, specw, Dmerc, Dshear, Dwell, Dcurr, Dgeod, equif, jdotb, &
+        dmerc_gl, e1_gl, e2ph2_gl, f1_gl, f2_gl, f3_gl, h1_gl,          &
         bdotb, bdotgradv, raxis, zaxis, fsqt, wdot, stat=istat(3))
  
       IF (ALLOCATED(potsin)) DEALLOCATE (potsin)

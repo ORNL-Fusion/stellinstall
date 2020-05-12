@@ -64,6 +64,9 @@
      &  vn_bsupumns_sur, vn_bsupvmns_sur,
      &  vn_currumnc, vn_currumns, vn_currvmnc, vn_currvmns,    !MRC 8-12-16
 
+     &  vn_merc_gl, vn_e1_gl, vn_e2ph2_gl, vn_f1_gl, vn_f2_gl,
+     &  vn_f3_gl, vn_h1_gl,                                    !JCS 4-16-20
+
      1  ln_magen, ln_therm, ln_gam, ln_maxr, ln_minr, ln_maxz, ln_fp,
      2  ln_radnod, ln_polmod, ln_tormod, ln_maxmod, ln_maxit, ln_actit,
      2  ln_maxpot, ln_potsin, ln_potcos,
@@ -86,11 +89,15 @@
      F  ln_bmns, ln_bsubumns, ln_bsubvmns, ln_bsubsmnc, ln_bsupumns, 
      G  ln_bsupvmns, ln_rbc, ln_zbs, ln_rbs, ln_zbc,
 
+     &  ln_merc_gl, ln_e1_gl, ln_e2ph2_gl, ln_f1_gl, ln_f2_gl,
+     &  ln_f3_gl, ln_h1_gl,                                    !JCS 4-16-20
+
      &  ln_bsubumnc_sur, ln_bsubvmnc_sur,          !MRC 10-15-15
      &  ln_bsupumnc_sur, ln_bsupvmnc_sur,
      &  ln_bsubumns_sur, ln_bsubvmns_sur,
      &  ln_bsupumns_sur, ln_bsupvmns_sur,
      &  ln_currumnc, ln_currumns, ln_currvmnc, ln_currvmns
+
 
 !------------------DEC$ ELSE !to use safe_open_mod in any case (J.Geiger)
 #endif
@@ -480,6 +487,21 @@
       CALL cdf_define(nwout, vn_bdotb, bdotb,
      1                dimname=r1dim)
       CALL cdf_define(nwout, vn_bgrv, bdotgradv,
+     1                dimname=r1dim)
+
+      CALL cdf_define(nwout, vn_merc_gl, Dmerc_gl,
+     1                dimname=r1dim)
+      CALL cdf_define(nwout, vn_e1_gl, e1_gl,
+     1                dimname=r1dim)
+      CALL cdf_define(nwout, vn_e2ph2_gl, e2ph2_gl,
+     1                dimname=r1dim)
+      CALL cdf_define(nwout, vn_f1_gl, e1_gl,
+     1                dimname=r1dim)
+      CALL cdf_define(nwout, vn_f2_gl, f2_gl,
+     1                dimname=r1dim)
+      CALL cdf_define(nwout, vn_f3_gl, f3_gl,
+     1                dimname=r1dim)
+      CALL cdf_define(nwout, vn_h1_gl, h1_gl,
      1                dimname=r1dim)
 
       CALL cdf_define(nwout, vn_merc, Dmerc,
@@ -1301,6 +1323,14 @@
       CALL cdf_write(nwout, vn_mcurr, Dcurr)
       CALL cdf_write(nwout, vn_mgeo, Dgeod)
       CALL cdf_write(nwout, vn_equif, equif)
+
+      CALL cdf_write(nwout, vn_merc_gl, Dmerc_gl)
+      CALL cdf_write(nwout, vn_e1_gl, e1_gl)
+      CALL cdf_write(nwout, vn_e2ph2_gl, e2ph2_gl)
+      CALL cdf_write(nwout, vn_f1_gl, f1_gl)
+      CALL cdf_write(nwout, vn_f2_gl, f2_gl)
+      CALL cdf_write(nwout, vn_f3_gl, f3_gl)
+      CALL cdf_write(nwout, vn_h1_gl, h1_gl)
 
       CALL cdf_write(nwout, vn_fsq, fsqt(1:nstore_seq))
       CALL cdf_write(nwout, vn_wdot, wdot(1:nstore_seq))  
