@@ -52,10 +52,9 @@
 !>  Limiter iso zgrid.
          REAL (rprec), DIMENSION(:), POINTER     :: zgrid => null()
       CONTAINS
-         PROCEDURE                          ::                                 &
-     &      get_max_fval => limiter_grid_get_max_fval
-         PROCEDURE                          ::                                 &
-     &      get_type => limiter_grid_get_type
+         PROCEDURE :: get_max_fval => limiter_grid_get_max_fval
+         PROCEDURE :: get_type => limiter_grid_get_type
+         FINAL     :: limiter_grid_destruct
       END TYPE
 
 !*******************************************************************************
@@ -161,7 +160,7 @@
       SUBROUTINE limiter_grid_destruct(this)
 
 !  Declare Arguments
-      TYPE (limiter_grid_class), POINTER :: this
+      TYPE (limiter_grid_class), INTENT(inout) :: this
 
 !  Start of executable code
       IF (ASSOCIATED(this%phi)) THEN
@@ -224,9 +223,6 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      limiter_grid_get_max_fval = -1.0E10
-      rphiz_at_max = 0.0
-
       ALLOCATE(fval(num_theta))
       bivariate_object => bivariate_construct(1, num_theta)
 
@@ -236,10 +232,8 @@
      &                       this%grid(:,:,phi_index), fval)
 
       index = MAXLOC(fval, 1)
-      IF (fval(index) .gt. limiter_grid_get_max_fval) THEN
-         limiter_grid_get_max_fval = fval(index)
-          rphiz_at_max = (/ r(index), this%phi(phi_index),  z(index) /)
-      END IF
+      limiter_grid_get_max_fval = fval(index)
+      rphiz_at_max = (/ r(index), this%phi(phi_index),  z(index) /)
 
       CALL bivariate_destruct(bivariate_object)
       DEALLOCATE(fval)

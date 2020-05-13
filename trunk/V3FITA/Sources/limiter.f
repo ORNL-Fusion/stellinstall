@@ -47,6 +47,7 @@
      &      get_type => limiter_get_type
          PROCEDURE                           ::                                &
      &      get_max_fval => limiter_get_max_fval
+         FINAL                               :: limiter_destruct
       END TYPE
 
 !*******************************************************************************
@@ -70,7 +71,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      CLASS (limiter_class), INTENT(inout) :: this
+      TYPE (limiter_class), INTENT(inout) :: this
 
 !  Start of executable code
       IF (ASSOCIATED(this%phi)) THEN
@@ -137,13 +138,15 @@
 
 !  Loop over each phi plane. r, z are allocated by equilibrium_get_plasma_edge.
 !  There is no need to allocate and deallocate r and z for each phi angle.
+         fval_max = -1.0E10
+
          DO phi_index = 1, SIZE(this%phi)
             num_theta =                                                        &
      &         equilibrium_get_plasma_edge(a_model%equilibrium,                &
      &                                     this%phi(phi_index), r, z)
 
-           fval_max = this%get_max_fval(num_theta, phi_index, r, z,            &
-     &                                  rphiz_at_max)
+           fval_max = MAX(this%get_max_fval(num_theta, phi_index, r, z,        &
+     &                                      rphiz_at_max), fval_max)
          END DO
 
          IF (this%on_edge) THEN
