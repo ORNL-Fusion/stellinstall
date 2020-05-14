@@ -111,6 +111,8 @@
 
       ALLOCATE(limiter_grid_construct)
 
+      limiter_grid_construct%on_edge = on_edge
+
       CALL cdf_open(lgrid_iou, TRIM(lgrid_file), 'r', status)
       CALL assert_eq(0, status, 'limiter_grid_construct: ' //                  &
      &               'failed to open ', TRIM(lgrid_file))

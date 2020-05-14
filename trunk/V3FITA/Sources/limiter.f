@@ -145,8 +145,8 @@
      &         equilibrium_get_plasma_edge(a_model%equilibrium,                &
      &                                     this%phi(phi_index), r, z)
 
-           fval_max = MAX(this%get_max_fval(num_theta, phi_index, r, z,        &
-     &                                      rphiz_at_max), fval_max)
+            fval_max = MAX(this%get_max_fval(num_theta, phi_index, r, z,       &
+     &                                       rphiz_at_max), fval_max)
          END DO
 
          IF (this%on_edge) THEN
