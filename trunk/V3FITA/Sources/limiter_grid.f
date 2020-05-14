@@ -217,7 +217,7 @@
       REAL (rprec), DIMENSION(3), INTENT(out) :: rphiz_at_max
 
 !  local variables
-      TYPE (bivariate_type), POINTER          :: bivariate_object
+      CLASS (bivariate_class), POINTER        :: bivariate_obj
       INTEGER                                 :: index
       REAL (rprec), DIMENSION(:), ALLOCATABLE :: fval
       REAL (rprec)                            :: start_time
@@ -226,18 +226,16 @@
       start_time = profiler_get_start_time()
 
       ALLOCATE(fval(num_theta))
-      bivariate_object => bivariate_construct(1, num_theta)
+      bivariate_obj => bivariate_class(1, num_theta)
 
-      CALL bivariate_set_grids(bivariate_object, r, z, this%rgrid,             &
-     &                         this%zgrid)
-      CALL bivariate_get_4pt(bivariate_object,                                 &
-     &                       this%grid(:,:,phi_index), fval)
+      CALL bivariate_obj%set_grids(r, z, this%rgrid, this%zgrid)
+      CALL bivariate_obj%get_4pt(this%grid(:,:,phi_index), fval)
 
       index = MAXLOC(fval, 1)
       limiter_grid_get_max_fval = fval(index)
       rphiz_at_max = (/ r(index), this%phi(phi_index),  z(index) /)
 
-      CALL bivariate_destruct(bivariate_object)
+      DEALLOCATE(bivariate_obj)
       DEALLOCATE(fval)
 
       CALL profiler_set_stop_time('limiter_grid_get_max_fval',                 &

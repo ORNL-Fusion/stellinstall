@@ -360,7 +360,7 @@
 !  local variables
       INTEGER                                   :: phi, num_phi, r, z
       INTEGER                                   :: numrvol, numzvol
-      TYPE (bivariate_type), POINTER            :: bivariate_object
+      TYPE (bivariate_class), POINTER           :: bivariate_obj
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: rgrid
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: zgrid
       REAL (rprec), DIMENSION(:,:,:), POINTER   :: rvolgrid
@@ -438,32 +438,30 @@
          END DO
 
 !  Create a bivariate object to do the interpolation.
-         bivariate_object => bivariate_construct(numrvol, numzvol)
+         bivariate_obj => bivariate_class(numrvol, numzvol)
 
 !  Sum over grid points for each toroidal plane
          DO phi = 1, num_phi
-            CALL bivariate_set_grids(bivariate_object,                         &
-     &                               rvolgrid(:,:,phi),                        &
-     &                               zvolgrid(:,:,phi),                        &
-     &                               rgrid, zgrid)
+            CALL bivariate_obj%set_grids(rvolgrid(:,:,phi),                    &
+     &                                   zvolgrid(:,:,phi),                    &
+     &                                   rgrid, zgrid)
 
 !  Interpolate from the diagnotic grid points to the volume grid points.
             CALL compression_decompress(this%response%a_r(phi)%p)
-            CALL bivariate_get_4pt(bivariate_object,                           &
-     &                             this%response%a_r(phi)%p%data_buffer,       &
-     &                             response_rvol)
+            CALL bivariate_obj%get_4pt(                                        &
+     &              this%response%a_r(phi)%p%data_buffer, response_rvol)
             CALL compression_cleanup(this%response%a_r(phi)%p)
 
             CALL compression_decompress(this%response%a_f(phi)%p)
-            CALL bivariate_get_4pt(bivariate_object,                           &
-     &                             this%response%a_f(phi)%p%data_buffer,       &
-     &                             response_phivol)
+            CALL bivariate_obj%get_4pt(                                        &
+     &               this%response%a_f(phi)%p%data_buffer,                     &
+     &               response_phivol)
             CALL compression_cleanup(this%response%a_f(phi)%p)
 
             CALL compression_decompress(this%response%a_z(phi)%p)
-            CALL bivariate_get_4pt(bivariate_object,                           &
-     &                             this%response%a_z(phi)%p%data_buffer,       &
-     &                             response_zvol)
+            CALL bivariate_obj%get_4pt(                                        &
+     &               this%response%a_z(phi)%p%data_buffer,                     &
+     &               response_zvol)
             CALL compression_cleanup(this%response%a_z(phi)%p)
 
 !  J_plasma * A_diag
@@ -476,7 +474,7 @@
      &                  + SUM(sumrz(1,:) + sumrz(numrvol,:))/2.0
          END DO
 
-         CALL bivariate_destruct(bivariate_object)
+         DEALLOCATE(bivariate_obj)
 
 !  Correct for stellarator symetry.
          magnetic_get_modeled_signal_coil(2) = SUM(sumphi)
