@@ -144,8 +144,6 @@
 !  Start of executable code
 
 !  Get rid of all components
-      CALL limiter_destruct(this)
-
       this%arz = 0.0
       this%rc = 0.0
       this%zc = 0.0
@@ -245,8 +243,8 @@
 
 !  Compute function
       e = 0.0
-      DO i = 0, 4
-         DO j = 0, 4
+      DO j = 0, 4
+         DO i = 0, 4
             e = e                                                              &
      &        + this%arz(i,j)*((r - this%rc)**i)*((z - this%zc)**j)
          END DO
@@ -254,8 +252,8 @@
 
 !  Compute de/dr
       er = 0.0
-      DO i = 1, 4
-         DO j = 0, 4
+      DO j = 1, 4
+         DO i = 0, 4
             er = er                                                            &
      &         + this%arz(i,j)*i*((r - this%rc)**(i-1)) *                      &
      &           ((z - this%zc)**j)
@@ -264,8 +262,8 @@
 
 !  Compute de/dz
       ez = 0.0
-      DO i = 0, 4
-         DO j = 1, 4
+      DO j = 0, 4
+         DO i = 1, 4
             ez = ez                                                            &
      &          + this%arz(i,j)*j*((r - this%rc)**i) *                         &
      &            ((z - this%zc)**(j - 1))
