@@ -24,7 +24,7 @@
 !-------------------------------------------------------------------------------
 !>  An object containing persistent data for the bivariate interpolation.
 !-------------------------------------------------------------------------------
-      TYPE bivariate_type
+      TYPE :: bivariate_class
 !>  Number of interpolation points.
          INTEGER                            :: nsu
 !>  Number of interpolation points.
@@ -45,18 +45,22 @@
          REAL(rprec), DIMENSION(:), POINTER :: w21_bi => null()
 !>  Upper right interpolation weight.
          REAL(rprec), DIMENSION(:), POINTER :: w22_bi => null()
+      CONTAINS
+         PROCEDURE :: set_grids_1d => bivariate_set_grids_1d
+         PROCEDURE :: set_grids_2d => bivariate_set_grids_2d
+         GENERIC   :: set_grids => set_grids_1d, set_grids_2d
+         PROCEDURE :: get_4pt => bivariate_get_4pt
+         FINAL     :: bivariate_destruct
       END TYPE
 
 *******************************************************************************
 !  INTERFACE BLOCKS
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  Interface for the setting of @ref bivariate_type types either using
-!>  @ref bivariate_set_grids_1d or @ref bivariate_set_grids_2d.
+!>  Interface for bivariate constructor.
 !-------------------------------------------------------------------------------
-      INTERFACE bivariate_set_grids
-         MODULE PROCEDURE bivariate_set_grids_1d,                              &
-     &                    bivariate_set_grids_2d
+      INTERFACE bivariate_class
+         MODULE PROCEDURE bivariate_construct
       END INTERFACE
 
       CONTAINS
@@ -77,12 +81,12 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (bivariate_type), POINTER :: bivariate_construct
-      INTEGER, INTENT(in)            :: ns
-      INTEGER, INTENT(in)            :: nu
+      CLASS (bivariate_class), POINTER :: bivariate_construct
+      INTEGER, INTENT(in)              :: ns
+      INTEGER, INTENT(in)              :: nu
 
 !  local variables
-      REAL (rprec)                   :: start_time
+      REAL (rprec)                     :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -119,7 +123,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (bivariate_type), POINTER :: this
+      TYPE (bivariate_class), INTENT(inout) :: this
 
 !  Start of executable code
       IF (ASSOCIATED(this%irz11_bi)) THEN
@@ -162,8 +166,6 @@
          this%w22_bi => null()
       END IF
 
-      DEALLOCATE(this)
-
       END SUBROUTINE
 
 !*******************************************************************************
@@ -188,25 +190,34 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (bivariate_type), INTENT(inout)    :: this
-      REAL(rprec), DIMENSION(:,:), INTENT(in) :: rsu
-      REAL(rprec), DIMENSION(:,:), INTENT(in) :: zsu
-      REAL(rprec), DIMENSION(:), INTENT(in)   :: rgrid
-      REAL(rprec), DIMENSION(:), INTENT(in)   :: zgrid
+      CLASS (bivariate_class), INTENT(inout)   :: this
+      REAL (rprec), DIMENSION(:,:), INTENT(in) :: rsu
+      REAL (rprec), DIMENSION(:,:), INTENT(in) :: zsu
+      REAL (rprec), DIMENSION(:), INTENT(in)   :: rgrid
+      REAL (rprec), DIMENSION(:), INTENT(in)   :: zgrid
 
 !  local variables
-      INTEGER                                 :: ku, js
-      INTEGER                                 :: ns, nu
-      INTEGER                                 :: nr, nz
-      INTEGER                                 :: index1d
-      INTEGER                                 :: ir, jz
-      INTEGER                                 :: ir1, jz1
-      REAL(rprec)                             :: rad0, zee0
-      REAL(rprec)                             :: ri, zj
-      REAL(rprec)                             :: pr, qz
-      REAL(rprec)                             :: temp
-      REAL(rprec)                             :: delr, delz
-      REAL (rprec)                            :: start_time
+      INTEGER                                  :: ku
+      INTEGER                                  :: js
+      INTEGER                                  :: ns
+      INTEGER                                  :: nu
+      INTEGER                                  :: nr
+      INTEGER                                  :: nz
+      INTEGER                                  :: index1d
+      INTEGER                                  :: ir
+      INTEGER                                  :: jz
+      INTEGER                                  :: ir1
+      INTEGER                                  :: jz1
+      REAL (rprec)                             :: rad0
+      REAL (rprec)                             :: zee0
+      REAL (rprec)                             :: ri
+      REAL (rprec)                             :: zj
+      REAL (rprec)                             :: pr
+      REAL (rprec)                             :: qz
+      REAL (rprec)                             :: temp
+      REAL (rprec)                             :: delr
+      REAL (rprec)                             :: delz
+      REAL (rprec)                             :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -226,9 +237,8 @@
          DO js = 1, ns
 
             index1d = index1d + 1
-!
-!       CHECK THAT BOUNDARY POINTS ARE INSIDE GRID.  IF NOT, STOP!
-!
+
+!  Check that boundary points are inside grid. Stop if not.
             rad0 = rsu(js, ku)
             zee0 = zsu(js, ku)
 
@@ -236,25 +246,21 @@
      &          zee0.lt.zgrid(1) .or. zee0.gt.zgrid(nz)) THEN
                STOP 'Plasma point outside response function grid!'
             END IF
-!
-!       DETERMINE INTEGER INDICES (IR,JZ) FOR LOWER LEFT R, Z CORNER GRID POINT
-!
+
+!  Detremine integer indices (ir, jz) for the lower left R, Z corner grid point.
             ir = INT((rad0 - rgrid(1))/delr) + 1
             jz = INT((zee0 - zgrid(1))/delz) + 1
             ir1 = MIN(nr, ir + 1)
             jz1 = MIN(nz, jz + 1)
 
-!
-!        STORE INDICES IN 1D ARRAYS
-!
+!  Store indices in 1d attays.
             this%irz11_bi(index1d) = ir  + nr*(jz - 1)
             this%irz22_bi(index1d) = ir1 + nr*(jz1 - 1)
             this%irz12_bi(index1d) = ir  + nr*(jz1 - 1)
             this%irz21_bi(index1d) = ir1 + nr*(jz - 1)
-!
-!       COMPUTE RI, ZJ AND PR , QZ AT GRID POINT (IR , JZ)
-!       ALSO, COMPUTE WEIGHTS WIJ FOR 4 CORNER GRID POINTS
-!
+
+!  Compute (ri, zj) and (pr, qz) at grid point (ir, jz) also compute weights
+!  for the 4 corner grid points.
             ri = rgrid(ir)
             zj = zgrid(jz)
             pr = (rad0 - ri)/delr
@@ -291,25 +297,33 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (bivariate_type), INTENT(inout)  :: this
-      REAL(rprec), DIMENSION(:), INTENT(in) :: rsu
-      REAL(rprec), DIMENSION(:), INTENT(in) :: zsu
-      REAL(rprec), DIMENSION(:), INTENT(in) :: rgrid
-      REAL(rprec), DIMENSION(:), INTENT(in) :: zgrid
+      CLASS (bivariate_class), INTENT(inout) :: this
+      REAL (rprec), DIMENSION(:), INTENT(in) :: rsu
+      REAL (rprec), DIMENSION(:), INTENT(in) :: zsu
+      REAL (rprec), DIMENSION(:), INTENT(in) :: rgrid
+      REAL (rprec), DIMENSION(:), INTENT(in) :: zgrid
 
 !  local variables
-      INTEGER                               :: ku
-      INTEGER                               :: ns, nu
-      INTEGER                               :: nr, nz
-      INTEGER                               :: index1d
-      INTEGER                               :: ir, jz
-      INTEGER                               :: ir1, jz1
-      REAL(rprec)                           :: rad0, zee0
-      REAL(rprec)                           :: ri, zj
-      REAL(rprec)                           :: pr, qz
-      REAL(rprec)                           :: temp
-      REAL(rprec)                           :: delr, delz
-      REAL (rprec)                          :: start_time
+      INTEGER                                :: ku
+      INTEGER                                :: ns
+      INTEGER                                :: nu
+      INTEGER                                :: nr
+      INTEGER                                :: nz
+      INTEGER                                :: index1d
+      INTEGER                                :: ir
+      INTEGER                                :: jz
+      INTEGER                                :: ir1
+      INTEGER                                :: jz1
+      REAL (rprec)                           :: rad0
+      REAL (rprec)                           :: zee0
+      REAL (rprec)                           :: ri
+      REAL (rprec)                           :: zj
+      REAL (rprec)                           :: pr
+      REAL (rprec)                           :: qz
+      REAL (rprec)                           :: temp
+      REAL (rprec)                           :: delr
+      REAL (rprec)                           :: delz
+      REAL (rprec)                           :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -389,21 +403,20 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE bivariate_get_4pt(this, resp_rz, resp_su)
       IMPLICIT NONE
-      TYPE (bivariate_type), INTENT(inout)          :: this
-      REAL(rprec), DIMENSION(this%nrz), INTENT(in)  :: resp_rz
-      REAL(rprec), DIMENSION(this%nsu), INTENT(out) :: resp_su
+      CLASS (bivariate_class), INTENT(inout)         :: this
+      REAL (rprec), DIMENSION(this%nrz), INTENT(in)  :: resp_rz
+      REAL (rprec), DIMENSION(this%nsu), INTENT(out) :: resp_su
 
 !  local variables
-      INTEGER                                       :: jsu
-      REAL (rprec)                                  :: start_time
+      INTEGER                                        :: jsu
+      REAL (rprec)                                   :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
       DO jsu = 1, this%nsu
-!
-!       COMPUTE RESPONSE AT R, PHI (fixed kin), Z BY 4-PT INTERPOLATION
-!
+
+!  Compute repsonse at R, Phi (fixed kin), Z by 4 point interpolation.
          resp_su(jsu) = this%w11_bi(jsu)*resp_rz(this%irz11_bi(jsu))           &
      &                + this%w22_bi(jsu)*resp_rz(this%irz22_bi(jsu))           &
      &                + this%w21_bi(jsu)*resp_rz(this%irz21_bi(jsu))           &
