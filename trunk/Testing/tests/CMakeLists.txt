@@ -18,5 +18,4 @@ add_subdirectory (lasym_boundary)
 add_subdirectory (preconditioner_test)
 add_subdirectory (niter_test)
 add_subdirectory (rho_boundary_test)
-add_subdirectory (gridlimiter_test)
-
+add_subdirectory (limiter_test)
