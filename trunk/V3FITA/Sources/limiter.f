@@ -120,8 +120,8 @@
       REAL (rprec), DIMENSION(:), POINTER     :: z
       INTEGER                                 :: num_theta
       INTEGER                                 :: phi_index
-      REAL (rprec), DIMENSION(3)              :: rphiz_at_max
-      REAL (rprec)                            :: fval_max
+      REAL (rprec), DIMENSION(3)              :: rphiz
+      REAL (rprec)                            :: fval
       REAL (rprec)                            :: start_time
 
 !  Start of executable code
@@ -138,23 +138,25 @@
 
 !  Loop over each phi plane. r, z are allocated by equilibrium_get_plasma_edge.
 !  There is no need to allocate and deallocate r and z for each phi angle.
-         fval_max = -1.0E10
+         limiter_get_modeled_signal(1) = -1.0E10
 
          DO phi_index = 1, SIZE(this%phi)
             num_theta =                                                        &
      &         equilibrium_get_plasma_edge(a_model%equilibrium,                &
      &                                     this%phi(phi_index), r, z)
 
-            fval_max = MAX(this%get_max_fval(num_theta, phi_index, r, z,       &
-     &                                       rphiz_at_max), fval_max)
+            fval = this%get_max_fval(num_theta, phi_index, r, z, rphiz)
+
+            IF (fval .gt. limiter_get_modeled_signal(1)) THEN
+               limiter_get_modeled_signal(1) = fval
+               limiter_get_modeled_signal(2:4) = rphiz
+            END IF
          END DO
 
-         IF (this%on_edge) THEN
-            limiter_get_modeled_signal(1) = fval_max
-         ELSE
-            limiter_get_modeled_signal(1) = MAX(fval_max, 0.0)
+         IF (.not.this%on_edge) THEN
+            limiter_get_modeled_signal(1) =                                    &
+     &         MAX(limiter_get_modeled_signal(1), 0.0)
          END IF
-         limiter_get_modeled_signal(2:4) = rphiz_at_max
 
 !  Dealloctae r and z since they are no longer needed.
          IF (ASSOCIATED(r)) THEN
