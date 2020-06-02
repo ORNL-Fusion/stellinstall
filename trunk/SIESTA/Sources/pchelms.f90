@@ -619,10 +619,6 @@
       CALL fourier_context%tomnsp(cA_s, A_s(:,:,1:ns:ns-1), fours)
       CALL fourier_context%tomnsp(cA_u, A_u(:,:,1:ns:ns-1), fouruv)
       CALL fourier_context%tomnsp(cA_v, A_v(:,:,1:ns:ns-1), fouruv)
-      IF (iam .eq. 1) THEN
-      WRITE (*,*) A_v(:,:,1)
-      WRITE (*,*) A_v(:,:,ns)
-      END IF
 
       A_s(:,:,ns) = A_s(:,:,ns) - A_s(:,:,1)
       A_u(:,:,ns) = A_u(:,:,ns) - A_u(:,:,1)
