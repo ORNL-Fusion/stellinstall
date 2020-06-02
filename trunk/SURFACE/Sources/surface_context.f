@@ -331,7 +331,7 @@
 
 !  NOTE: The proper VC current for the coupling surface requires a minus sign
 !        here (-n_hat X B_in). However, the field produced by this current is
-!        meant to cancel out the field due to currents encoded so B_vc = -B_im.
+!        meant to cancel out the field due to currents enclosed so B_vc = -B_im.
 !        For the coupling ignore the minus so the currents can be used without
 !        adding additonal signs.
          this%k_x(i) = (this%y_normal(i)*bz - this%z_normal(i)*by)/mu0

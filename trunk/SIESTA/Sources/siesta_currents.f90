@@ -361,9 +361,9 @@
       CALL fourier_context%tomnsp(bsubvijh, bsubvmnh, fouruv)
 
       IF (lcurr) THEN
-         nmax = endglobrow + 1
+         nmax = MIN(endglobrow + 1, ns)
       ELSE
-         nmax = endglobrow
+         nmax = MIN(endglobrow, ns)
       END IF
 
       CALL CURL_HtoF(bsubsmnh, bsubumnh, bsubvmnh,                             &

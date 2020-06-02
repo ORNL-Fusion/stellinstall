@@ -36,8 +36,8 @@
       END INTERFACE
 
 !-------------------------------------------------------------------------------
-!>  Interface to convert between full and half mesh using either
-!>  @ref to_half_mesh or @ref to_half_mesh_p
+!>  Interface to take the gradianet from full to half mesh using either
+!>  @ref GradientHalf or @ref GradientHalf_p
 !-------------------------------------------------------------------------------
       INTERFACE GradientHalf
          MODULE PROCEDURE GradientHalf, GradientHalf_p
@@ -518,7 +518,7 @@
       INTEGER                                              :: fours
       INTEGER                                              :: fouruv
 
-!  Start of executable code
+!  Start of executable code.
       CALL assert(nsmin .ge. LBOUND(jbsupsmnf,3), 'LBOUND wrong in curl_htof')
 
       IF (parity .eq. f_sin) THEN
@@ -682,14 +682,10 @@
 !  Start of executable code
       IF (nsmin .eq. 1) THEN
          amnf(:,:,1) = 0.0
-         amnf(m0:m1,:,1) = amnh(m0:m1,:,2)
+         amnf(m0,:,1) = amnh(m0,:,2)
       END IF
 
-      IF (parity .eq. f_cos) THEN
-         amnf(m0,-ntor:-n1,:) = 0.0
-      ELSE
-         amnf(m0,-ntor:n0,:) = 0.0
-      END IF
+      CALL set_bndy_fouier_m0(amnf, parity)
 
       END SUBROUTINE
 

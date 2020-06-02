@@ -20,6 +20,7 @@
       USE nscalingtools, ONLY: startglobrow, endglobrow, PARSOLVER, MPI_ERR
       USE utilities, ONLY: to_half_mesh, to_full_mesh
       USE siesta_namelist, ONLY: l_vessel
+      USE siesta_test
 
       IMPLICIT NONE
 
@@ -269,7 +270,7 @@
       IMPLICIT NONE
 
 !  Local variables.
-      INTEGER                                  :: istat               ,i,j,k
+      INTEGER                                  :: istat
       INTEGER                                  :: l
       REAL (dp)                                :: sum1
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: tempmn_sym

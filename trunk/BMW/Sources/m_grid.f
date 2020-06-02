@@ -373,6 +373,20 @@
 !*******************************************************************************
 !  UTILITY SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Interpolate the vector potential at a point.
+!>
+!>  This interpolates the vector potential to from the mgrid grid to an
+!>  arbitrary point. This performs a trilinear interpolation.
+!>
+!>  @param[in]  this A @ref m_grid_class instance.
+!>  @param[in]  r    Radial position to interpolate to.
+!>  @param[in]  phi  Phi position to interpolate to.
+!>  @param[in]  z    Vertical position to interpolate to.
+!>  @param[out] ar   Interpolated radial component of the vector potential.
+!>  @param[out] ap   Interpolated phi component of the vector potential.
+!>  @param[out] az   Interpolated vertial component of the vector potential.
+!-------------------------------------------------------------------------------
       PURE FUNCTION m_grid_intf(w1, w2, x)
 
       IMPLICIT NONE

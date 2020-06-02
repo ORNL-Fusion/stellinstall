@@ -790,7 +790,8 @@
 !  Set up "knots" on initial (vmec, svmec ~ phi) mesh and factor for taking out
 !  (putting back) [sqrt(s)]**m factor for odd m.
       hsv = one/(ns_vmec - 1)
-      snodes_vmec(1) = 0;  fac1(1) = 1;
+      snodes_vmec(1) = 0
+      fac1(1) = 1
       DO js = 2, ns_vmec
          snodes_vmec(js) = hsv*(js - offset)
          fac1(js) = one/SQRT(snodes_vmec(js))     !regularization factor: sqrt(FLUX) for odd modes
@@ -816,7 +817,7 @@
          y_vmec = ymn_vmec(modes,:)
          mp = xm_in(modes)
 
-         IF (istat.EQ.0 .and. mp.GT.0) THEN
+         IF (istat .eq. 0 .and. mp .gt. 0) THEN
             IF (MOD(mp,2) .eq. 1) THEN
                expm = 1
             ELSE

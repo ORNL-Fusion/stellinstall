@@ -386,8 +386,8 @@
 
 !  Declare Arguments
       CLASS (unprimed_grid_class), POINTER :: unprimed_grid_construct_a
-      TYPE (m_grid_class), INTENT(in)                :: mgrid
-      TYPE (primed_grid_class), INTENT(in)           :: pgrid
+      CLASS (m_grid_class), INTENT(in)               :: mgrid
+      CLASS (primed_grid_class), INTENT(in)          :: pgrid
       REAL (rprec), DIMENSION(:,:,:), INTENT(in)     :: r_grid
       REAL (rprec), DIMENSION(:,:,:), INTENT(in)     :: z_grid
       REAL (rprec), INTENT(in)                       :: dphi
@@ -522,7 +522,7 @@
 
 !  Interpolate from the mgrid grid to the unprimed R Z grid to add the vacuum
 !  vector potential.
-         CALL m_grid_interpolate(mgrid, r, phi(aj), z,                         &
+         CALL mgrid%interpolate(r, phi(aj), z,                                 &
      &           unprimed_grid_construct_a%a_r(ai,aj,ak),                      &
      &           unprimed_grid_construct_a%a_p(ai,aj,ak),                      &
      &           unprimed_grid_construct_a%a_z(ai,aj,ak))

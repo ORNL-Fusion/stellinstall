@@ -50,7 +50,6 @@
 !  FIXME: Remove these. They should either be passed in as arguments.
       INTEGER, PRIVATE            :: nsmin
       INTEGER, PRIVATE            :: nsmax
-      INTEGER, PRIVATE            :: ns_match
 
     !Added SKS
       LOGICAL, PRIVATE            :: linit
@@ -83,15 +82,15 @@
       IMPLICIT NONE
 
 !  local variables
-      INTEGER                     :: istat
-      INTEGER                     :: js
-      REAL (dp)                   :: ton
-      REAL (dp)                   :: toff
-      LOGICAL                     :: flag
-      LOGICAL                     :: lcolscale_save
+      INTEGER              :: istat
+      INTEGER              :: js
+      REAL (dp)            :: ton
+      REAL (dp)            :: toff
+      LOGICAL              :: flag
+      LOGICAL              :: lcolscale_save
 
 !  local parameters
-      REAL (dp), PARAMETER        :: levmarq_param_inital = 1.E-6_dp
+      REAL (dp), PARAMETER :: levmarq_param_inital = 1.E-6_dp
 
 !  Start of executable code
       siesta_curtor = 0.0
@@ -147,7 +146,10 @@
 #endif
 
       IF (lverbose .and. iam .EQ. 0) THEN
-         WRITE (*,1003) divb_rms, siesta_curtor, vmec_curtor
+         WRITE (*,1003) divb_rms, siesta_curtor, vmec_curtor,                  &
+     &      twopi*asubvmncf(1,ntor + 1,ns)*fourier_context%orthonorm(0,0) -    &
+     &      twopi*asubvmncf(1,ntor + 1,1)*fourier_context%orthonorm(0,0),      &
+     &      -twopi*asubumncf(1,ntor + 1,ns)*fourier_context%orthonorm(0,0)
       END IF
 
       CALL CHECK_CURRENT
@@ -164,6 +166,7 @@
 1002  FORMAT(' PCHELMS HESSIAN SOLVER TIME: ',f10.1,'s')
 1003  FORMAT(/,' |DivB| (normed) = ',1p,e12.3,/,                               &
              /,' SIESTA Curtor : ',e12.4,' VMEC Curtor : 'e12.4,               &
+             /' <chiedge> = ',e12.4,' <phiedge>',e12.4,                        &
              /,'-----------------------------------------------',              &
              /,'ENDING PCHELMS',                                               &
              /,'-----------------------------------------------')
@@ -208,7 +211,6 @@
       INTEGER                                                 :: moff
       INTEGER                                                 :: noff
       INTEGER                                                 :: nmin
-      INTEGER                                                 :: nmatch
 
       INTEGER :: m,n
 
@@ -232,12 +234,13 @@
          CALL set_bndy_full_origin(asubsmnf, asubumnf, asubvmnf)
       END IF
 
-!  Need this to keep Hessian symmetric
-!      IF (nmin .le. ns_match .and. lHessian .and. .not.lInit) THEN
-!          nmatch = MIN(ns_match, nsmax)
-!          asubumnf(m1 + moff,:,nmin:nmatch) = 0
-!          asubvmnf(m1 + moff,:,nmin:nmatch) = 0
-!      END IF
+!  At s=0, the poloidal and toroidal flux are zero. This implies that the m=0,
+!  n=0 components of A_u (~Poloidal Flux) and A_v (~Toroidal Flux) should be
+!  zero. Note no need to check the partity since the sine terms are already zero
+!  here.
+      Asubsmnf(:,:,1) = 0
+      Asubumnf(m0 + moff, n0 + noff, 1) = 0
+      Asubvmnf(m0 + moff, n0 + noff, 1) = 0
 
       CALL CURL_FtoH(asubsmnf,  asubumnf,  asubvmnf,                           &
                      jbsupsmnh, jbsupumnh, jbsupvmnh, parity, nmin, nsmax)
@@ -392,17 +395,23 @@
 !  Origin boundary conditions: If asubs(0,:,1) = 0 in curla, must set
 !                              ksupsmnf(0,:,1) = 0 here for hessian symmetry.
 !  Need factor of 1/2 for hessian symmetry at js=1
-!      IF (nmin .eq. 1) THEN
-!         ksupsmnf(:,:,1) = 0
-!         ksupumnf(:,:,1) = 0
-!         ksupvmnf(m0+moff,:,1) = 0.5*ksupvmnf(m0+moff,:,1)
-!         ksupvmnf(m1+moff,:,1) = 0
-!      END IF
-!      IF (nmax .eq. ns) THEN
-!         ksupsmnf(:,:,ns) = 0.5*ksupsmnf(:,:,ns)
-!         ksupumnf(:,:,ns) = 0.5*ksupumnf(:,:,ns)
-!         ksupvmnf(:,:,ns) = 0.5*ksupvmnf(:,:,ns)
-!      END IF
+      IF (nmin .eq. 1) THEN
+         ksupsmnf(:,:,1) = 0
+
+         ksupumnf(m0+moff,:,1) = 0.5*ksupumnf(m0+moff,:,1)
+         ksupumnf(m1+moff,:,1) = 0.5*ksupumnf(m1+moff,:,1)
+         ksupumnf(m2+moff:,:,1) = 0.0
+         ksupumnf(m0+moff,n0+noff,1) = 0.0
+
+         ksupvmnf(m0+moff,:,1) = 0.5*ksupvmnf(m0+moff,:,1)
+         ksupvmnf(m1+moff:,:,1) = 0.0
+         ksupvmnf(m0+moff,n0+noff,1) = 0.0
+      END IF
+      IF (nmax .eq. ns) THEN
+         ksupsmnf(:,:,ns) = 0.5*ksupsmnf(:,:,ns)
+         ksupumnf(:,:,ns) = 0.5*ksupumnf(:,:,ns)
+         ksupvmnf(:,:,ns) = 0.5*ksupvmnf(:,:,ns)
+      END IF
 
 !  Flip sign to get correct diagonal sign (>0).
       ksupsmnf(:,:,nmin:nmax) = -ksupsmnf(:,:,nmin:nmax)
@@ -428,36 +437,121 @@
 !>                   last surface grid.
 !-------------------------------------------------------------------------------
       SUBROUTINE CYL2VMEC_A(A_r, A_p, A_z, cA_s, cA_u, cA_v)
+      USE shared_data, ONLY: lasym
+      USE utilities, ONLY: to_half_mesh
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (dp), DIMENSION(:,:), INTENT(in)  :: A_r
-      REAL (dp), DIMENSION(:,:), INTENT(in)  :: A_p
-      REAL (dp), DIMENSION(:,:), INTENT(in)  :: A_z
-      REAL (dp), DIMENSION(:,:), INTENT(out) :: cA_s
-      REAL (dp), DIMENSION(:,:), INTENT(out) :: cA_u
-      REAL (dp), DIMENSION(:,:), INTENT(out) :: cA_v
+      REAL (dp), DIMENSION(:,:,:), INTENT(inout) :: A_r
+      REAL (dp), DIMENSION(:,:,:), INTENT(inout) :: A_p
+      REAL (dp), DIMENSION(:,:,:), INTENT(inout) :: A_z
+      REAL (dp), DIMENSION(:,:,:), INTENT(out)   :: cA_s
+      REAL (dp), DIMENSION(:,:,:), INTENT(out)   :: cA_u
+      REAL (dp), DIMENSION(:,:,:), INTENT(out)   :: cA_v
 
 !  Local variables
-      REAL (dp), DIMENSION(:,:), ALLOCATABLE :: rs
-      REAL (dp), DIMENSION(:,:), ALLOCATABLE :: zs
-      INTEGER                                :: u
-      INTEGER                                :: v
-      INTEGER                                :: js
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE   :: rsij_h
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE   :: zsij_h
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE   :: rs
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE   :: zs
+      INTEGER                                    :: u
+      INTEGER                                    :: v
+      INTEGER                                    :: js
 
 !  Start of executable code
-      ALLOCATE(rs(ntheta, nzeta))
-      ALLOCATE(zs(ntheta, nzeta))
-      rs = (r1_i(:,:,ns) - r1_i(:,:,ns - 1))*ohs
-      zs = (z1_i(:,:,ns) - z1_i(:,:,ns - 1))*ohs
+      ALLOCATE(rsij_h(ntheta, nzeta, ns))
+      ALLOCATE(zsij_h(ntheta, nzeta, ns))
+      ALLOCATE(rs(ntheta, nzeta, ns))
+      ALLOCATE(zs(ntheta, nzeta, ns))
 
-      cA_s(:,:) = A_r(:,:)*rs(:,:) + A_z(:,:)*zs(:,:)
-      cA_u(:,:) = A_r(:,:)*ru_i(:,:,ns) + A_z(:,:)*zu_i(:,:,ns)
-      cA_v(:,:) = A_r(:,:)*rv_i(:,:,ns) + A_z(:,:)*zv_i(:,:,ns)                &
-                + A_p(:,:)*r1_i(:,:,ns)
+!  Try taking the gradient after converting to fourier space in get_e_s
+      CALL to_half_mesh(r1_i, rsij_h)
+      CALL to_half_mesh(z1_i, zsij_h)
 
-      DEALLOCATE(rs,zs)
+      rs = 0
+      zs = 0
+
+      CALL get_e_s(rsij_h, zsij_h, rs, zs, f_cos)
+      IF (lasym) THEN
+         CALL get_e_s(rsij_h, zsij_h, rs, zs, f_sin)
+      END IF
+
+      cA_s = A_r*rs(:,:,1:ns:ns-1) + A_z*zs(:,:,1:ns:ns-1)
+      cA_u = A_r*ru_i(:,:,1:ns:ns-1) + A_z*zu_i(:,:,1:ns:ns-1)
+      cA_v = A_r*rv_i(:,:,1:ns:ns-1) + A_z*zv_i(:,:,1:ns:ns-1)                 &
+           + A_p*r1_i(:,:,1:ns:ns-1)
+
+      DEALLOCATE(rsij_h)
+      DEALLOCATE(zsij_h)
+      DEALLOCATE(rs)
+      DEALLOCATE(zs)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the e_s basis vector.
+!>
+!>  @param[in]    rij_h  Real space R on the half grid.
+!>  @param[in]    zij_h  Real space Z on the half grid.
+!>  @param[inout] rs     R' on the full grid.
+!>  @param[inout] zs     Z' on the full grid.
+!>  @param[in]    parity Fourier parity.
+!-------------------------------------------------------------------------------
+      SUBROUTINE get_e_s(rij_h, zij_h, rs, zs, parity)
+      USE utilities, ONLY: GradientFull, set_bndy_half_to_full_ds
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (dp), DIMENSION(:,:,:), INTENT(in)    :: rij_h
+      REAL (dp), DIMENSION(:,:,:), INTENT(in)    :: zij_h
+      REAL (dp), DIMENSION(:,:,:), INTENT(inout) :: rs
+      REAL (dp), DIMENSION(:,:,:), INTENT(inout) :: zs
+      INTEGER, INTENT(in)                        :: parity
+
+!  Local variables
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE   :: rmn_h
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE   :: zmn_h
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE   :: drdsmn_f
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE   :: dzdsmn_f
+      INTEGER                                    :: comb
+      INTEGER                                    :: r_parity
+      INTEGER                                    :: z_parity
+
+!  Start of executable code
+      IF (parity .eq. f_cos) THEN
+         comb = f_none
+         r_parity = f_cos
+         z_parity = f_sin
+      ELSE
+         comb = f_sum
+         r_parity = f_sin
+         z_parity = f_cos
+      END IF
+
+      ALLOCATE(rmn_h(0:mpol,-ntor:ntor,ns))
+      ALLOCATE(zmn_h(0:mpol,-ntor:ntor,ns))
+
+      CALL fourier_context%tomnsp(rij_h, rmn_h, r_parity)
+      CALL fourier_context%tomnsp(zij_h, zmn_h, z_parity)
+
+      ALLOCATE(drdsmn_f(0:mpol,-ntor:ntor,ns))
+      ALLOCATE(dzdsmn_f(0:mpol,-ntor:ntor,ns))
+
+      CALL GradientFull(drdsmn_f, rmn_h)
+      CALL GradientFull(dzdsmn_f, zmn_h)
+
+      CALL set_bndy_half_to_full_ds(rmn_h, drdsmn_f, 1, r_parity)
+      CALL set_bndy_half_to_full_ds(zmn_h, dzdsmn_f, 1, z_parity)
+
+      CALL fourier_context%toijsp(drdsmn_f, rs, comb, r_parity)
+      CALL fourier_context%toijsp(dzdsmn_f, zs, comb, z_parity)
+
+      DEALLOCATE(rmn_h)
+      DEALLOCATE(zmn_h)
+      DEALLOCATE(drdsmn_f)
+      DEALLOCATE(dzdsmn_f)
 
       END SUBROUTINE
 
@@ -489,9 +583,9 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (dp), DIMENSION(:,:), INTENT(in)                   :: cA_s
-      REAL (dp), DIMENSION(:,:), INTENT(in)                   :: cA_u
-      REAL (dp), DIMENSION(:,:), INTENT(in)                   :: cA_v
+      REAL (dp), DIMENSION(:,:,:), INTENT(in)                 :: cA_s
+      REAL (dp), DIMENSION(:,:,:), INTENT(in)                 :: cA_u
+      REAL (dp), DIMENSION(:,:,:), INTENT(in)                 :: cA_v
       REAL (dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(out) :: A_s
       REAL (dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(out) :: A_u
       REAL (dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(out) :: A_v
@@ -501,10 +595,8 @@
       INTEGER                                                 :: js
       INTEGER                                                 :: m
       INTEGER                                                 :: n
-      INTEGER                                                 :: nmatch
       INTEGER                                                 :: fours
       INTEGER                                                 :: fouruv
-      REAL (dp)                                               :: t1
       REAL (dp)                                               :: p1
       REAL (dp)                                               :: q1
 
@@ -524,15 +616,21 @@
          fouruv = f_sin
       END IF
 
-      CALL fourier_context%tomnsp(cA_s, A_s(:,:,ns), fours)
-      CALL fourier_context%tomnsp(cA_u, A_u(:,:,ns), fouruv)
-      CALL fourier_context%tomnsp(cA_v, A_v(:,:,ns), fouruv)
+      CALL fourier_context%tomnsp(cA_s, A_s(:,:,1:ns:ns-1), fours)
+      CALL fourier_context%tomnsp(cA_u, A_u(:,:,1:ns:ns-1), fouruv)
+      CALL fourier_context%tomnsp(cA_v, A_v(:,:,1:ns:ns-1), fouruv)
+      IF (iam .eq. 1) THEN
+      WRITE (*,*) A_v(:,:,1)
+      WRITE (*,*) A_v(:,:,ns)
+      END IF
+
+      A_s(:,:,ns) = A_s(:,:,ns) - A_s(:,:,1)
+      A_u(:,:,ns) = A_u(:,:,ns) - A_u(:,:,1)
+      A_v(:,:,ns) = A_v(:,:,ns) - A_v(:,:,1)
 
 !  Extapolate the vector potential from the edge to the center.
-      nmatch = 0
-      t1 = 1 
-      DO js = 1, ns
-         p1 = REAL(js-1,dp)/(ns-1)
+      DO js = 1, ns - 1
+         p1 = REAL(js - 1,dp)/(ns - 1)
          p1 = p1*p1
          q1 = 1                   !p1 ~ flux
          DO m = 0, mpol
@@ -541,11 +639,6 @@
                A_s(m,n,js) = A_s(m,n,ns)*q1
                A_u(m,n,js) = A_u(m,n,ns)*q1
                A_v(m,n,js) = A_v(m,n,ns)*q1
-               IF (nmatch .gt. 0) THEN
-                  A_s(m,n,js) = t1*A_s(m,n,js) + (1 - t1)*A_s(m,n,nmatch)
-                  A_u(m,n,js) = t1*A_u(m,n,js) + (1 - t1)*A_u(m,n,nmatch)
-                  A_v(m,n,js) = t1*A_v(m,n,js) + (1 - t1)*A_v(m,n,nmatch)
-               END IF
             END DO
          END DO
       END DO
@@ -596,8 +689,8 @@
       nsmin = startglobrow
       nsmax = endglobrow
       
-      CALL ASSERT(ALL(jcurrumn(:,:,nsp+1:).EQ.0._dp), 'jcurumn != 0 in vacuum!')
-      CALL ASSERT(ALL(jcurrvmn(:,:,nsp+1:).EQ.0._dp), 'jcurvmn != 0 in vacuum!')
+      CALL ASSERT(ALL(jcurrumn(:,:,nsp+1:).eq.0._dp), 'jcurumn != 0 in vacuum!')
+      CALL ASSERT(ALL(jcurrvmn(:,:,nsp+1:).eq.0._dp), 'jcurvmn != 0 in vacuum!')
 
       Fsupsmn(:,:,nsmin:nsmax) = 0
       Fsupumn(:,:,nsmin:nsmax) = jcurrumn(:,:,nsmin:nsmax)
@@ -609,23 +702,11 @@
       END IF
 
 !  Smooth edge current gradient.
-      DO js = nsp - 10, nsp
-         t1 = 1 - REAL(js-1,dp)/(nsp-1)
-         Fsupumn(:,:,js) = t1*Fsupumn(:,:,js)
-         Fsupvmn(:,:,js) = t1*Fsupvmn(:,:,js)
-      END DO
-
-!      Fsupumn(:,:,1) = 0
-!      IF (iparity .eq. 0) THEN
-!         Fsupvmn(m1:,:,1) = 0
-!      ELSE
-!         Fsupvmn(m1:,:,1) = 0
-!      END IF
-
-!IMPROVES CONVERGENCE BY SUPPRESSING jac*B^u(m=1) NEAR AXIS (AT LEAST FOR W7X CASE)
-!      IF (ns_match .GT. 0) RETURN
-!      Fsupumn(m1,:,1:nsp/4) = 0
-!      Fsupvmn(m1,:,1:nsp/4) = 0
+!      DO js = nsp - 10, nsp
+!         t1 = 1 - REAL(js-1,dp)/(nsp-1)
+!         Fsupumn(:,:,js) = t1*Fsupumn(:,:,js)
+!         Fsupvmn(:,:,js) = t1*Fsupvmn(:,:,js)
+!      END DO
 
       END SUBROUTINE
 
@@ -1192,22 +1273,21 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      LOGICAL, INTENT(in)                    :: lNLinear
+      LOGICAL, INTENT(in)                      :: lNLinear
 
 !  Local variables
-      INTEGER                                :: istat
-      REAL (dp)                              :: dphi
-      REAL (dp), DIMENSION(:,:), ALLOCATABLE :: A_r
-      REAL (dp), DIMENSION(:,:), ALLOCATABLE :: A_p
-      REAL (dp), DIMENSION(:,:), ALLOCATABLE :: A_z
-      REAL (dp), DIMENSION(:,:), ALLOCATABLE :: cA_s
-      REAL (dp), DIMENSION(:,:), ALLOCATABLE :: cA_u
-      REAL (dp), DIMENSION(:,:), ALLOCATABLE :: cA_v
+      INTEGER                                  :: istat
+      REAL (dp)                                :: dphi
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: A_r
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: A_p
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: A_z
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: cA_s
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: cA_u
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: cA_v
 
 !  Start of executable code
       nsmin = startglobrow
       nsmax = MIN(ns,endglobrow + 1)
-      ns_match = 0  !nsp /4
 
 !  FIXME: All this initalizion should be somewhere else.
       IF (bnorm .LT. 0) THEN
@@ -1238,17 +1318,18 @@
          CALL GetFSQ_PCHELMS
          bnorm = fsq_total
 
-         dphi = (2*pi)/(nfp*nzeta)
-         ALLOCATE(A_r(ntheta,nzeta),                                           &
-                  A_p(ntheta,nzeta),                                           &
-                  A_z(ntheta,nzeta))
+         dphi = twopi/(nfp*nzeta)
+         ALLOCATE(A_r(ntheta,nzeta,2),                                         &
+                  A_p(ntheta,nzeta,2),                                         &
+                  A_z(ntheta,nzeta,2))
 
-         CALL bmw_exec(mgrid_file, wout_file, r1_i(:,:,ns), z1_i(:,:,ns),      &
+         CALL bmw_exec(mgrid_file, wout_file,                                  &
+                       r1_i(:,:,1:ns:ns-1), z1_i(:,:,1:ns:ns-1),               &
                        dphi, A_r, A_p, A_z)
 
-         ALLOCATE(cA_s(ntheta,nzeta),                                          &
-                  cA_u(ntheta,nzeta),                                          &
-                  cA_v(ntheta,nzeta))
+         ALLOCATE(cA_s(ntheta,nzeta,2),                                          &
+                  cA_u(ntheta,nzeta,2),                                          &
+                  cA_v(ntheta,nzeta,2))
          CALL CYL2VMEC_A(A_r, A_p, A_z, cA_s, cA_u, cA_v)
          DEALLOCATE(A_r, A_p, A_z)
 
@@ -1257,6 +1338,15 @@
             CALL INIT_A(cA_s, cA_u, cA_v, asubsmncf, asubumnsf, asubvmnsf,     &
                         f_cos)
          END IF
+
+         IF (iam .eq. 0) THEN
+            WRITE (*,*) '<chiedge> = ',                                        &
+               twopi*asubvmncf(1,ntor + 1,ns)*fourier_context%orthonorm(0,0) - &
+               twopi*asubvmncf(1,ntor + 1,1)*fourier_context%orthonorm(0,0)
+            WRITE (*,*) '<phiedge> = ',                                        &
+               -twopi*asubumncf(1,ntor + 1,ns)*fourier_context%orthonorm(0,0)
+         END IF
+
          DEALLOCATE(cA_s, cA_u, cA_v)
 
          xc0 = xc
@@ -1358,11 +1448,8 @@
       REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(inout) :: Fsupvmn
       INTEGER, INTENT(in)                                      :: iparity
 
-!  Local variables
-!      INTEGER                                                  :: nmatch
-
 !  Start of executable code
-      IF (endglobrow .EQ. ns) THEN
+      IF (endglobrow .eq. ns) THEN
          IF (.not.l_AsEdge) THEN
             fsupsmn(:,:,ns) = 0
          END IF
@@ -1374,13 +1461,6 @@
       IF (startglobrow .eq. 1) THEN
          CALL set_bndy_full_origin(Fsupsmn, Fsupumn, Fsupvmn)
       END IF
-
-!  Preserve surfaces for js < ns_match
-!      IF (ns_match .GE. nsmin) THEN
-!         nmatch = MIN(ns_match, nsmax)
-!         fsupumn(m1,:,nsmin:nmatch) = 0
-!         fsupvmn(m1,:,nsmin:nmatch) = 0
-!      END IF
       
       END SUBROUTINE
 
@@ -1550,7 +1630,7 @@
       myrowstart = (startglobrow - 1)*mblk_size + 1
       myrowend = myrowstart + nloc - 1
 
-      ALLOCATE (p(ns*mblk_size), stat=istat)
+      ALLOCATE(p(ns*mblk_size), stat=istat)
       CALL assert_eq(0, istat, 'Allocation error in matvec_par')
 
       p(myrowstart:myrowend) = ploc
@@ -1560,7 +1640,7 @@
       CALL Compute_Forces(.false.)
       Ap = -gc(myrowstart:myrowend)
 
-      DEALLOCATE (p)
+      DEALLOCATE(p)
 
       END SUBROUTINE
 
@@ -1583,7 +1663,6 @@
 !  Start of executable code
 	  WRITE (*,1000)
 	  fsq_nl = 1
-	  RETURN
 
 1000  FORMAT('PCHELMS should not get here.')
 

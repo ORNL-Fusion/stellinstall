@@ -126,8 +126,6 @@
          n2 = MIN(ns, endglobrow)
          n1 = MAX(2, nsmin)
          wp = signjac*(twopi*twopi*hs_i)*SUM(pijh(:,:,n1:n2)*wint(:,:,n1:n2))
-         n1 = nsmin
-         n2 = nsmax
 #if defined(MPI_OPT)
          IF (PARSOLVER) THEN
 !  FIXME: All reduce is not deterministic. This causes a divergent run sequence.
