@@ -1,0 +1,14 @@
+# CMake-related
+CMakeFiles
+cmake_install.cmake
+CTestTestfile.cmake
+CMakeCache.txt
+CMakeDoxy*
+Makefile
+
+# build output
+build
+
+# tests
+input.test.vmec
+*.dot
