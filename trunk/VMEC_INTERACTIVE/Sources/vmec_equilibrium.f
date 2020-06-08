@@ -352,14 +352,10 @@
       l_v3fit = .true.
 
       vmec_construct_eq%vmec_file_name = TRIM(file_name)
-
-!  Only the rank zero reconstruction pool runs the inital convergence. Initalize
-!  VMEC on that pool then broad cast the size of the largest NS value to the
-!  children. This ensures that they are allocated with the correct grid sizes.
-
+      
       IF (recon_rank .eq. 0) THEN
-         write(*,*) '*** Calling runvmec from vmec_construct_eq ...'
-         CALL runvmec(ictrl_array, file_name, vmec_lscreen, eq_comm)
+         write(*,*) '*** Calling runvmec from construct...'
+         CALL runvmec(ictrl_array, file_name, .false., eq_comm)
          
          vmec_construct_eq%ns_index = MAXLOC(ns_array, 1)
          IF (eq_rank .eq. 0) THEN
@@ -367,7 +363,8 @@
      &                     0, recon_comm, error)
          END IF
       END IF
-
+      
+      
 !  Check for errors in runvmec.
       SELECT CASE (ictrl_array(2))
 

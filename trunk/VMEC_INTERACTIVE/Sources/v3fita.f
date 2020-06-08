@@ -65,25 +65,26 @@
 #else
      &                       0, 0)
 #endif
+      IF (eq_rank .eq. 0) THEN
+         write(*,*) 'vmec wout filename: "',                                 &
+     &              trim(vmec%wout_file_name),'"'
       
-      write(*,*) 'vmec wout filename: "',trim(vmec%wout_file_name),'"'
-      
-      
+
 !  Solve equilibrium
-      WRITE (*,*) ' *** Starting initial equilibrium ' //                   &
+         WRITE (*,*) ' *** Starting initial equilibrium ' //                   &
      &               'convergence (rec)'
-      WRITE (context%runlog_iou,*) ' *** Starting initial ' //              &
-     &                             'equilibrium convergence'
+         WRITE (context%runlog_iou,*) ' *** Starting initial ' //              &
+     &                                'equilibrium convergence'
+      end if
       
 #if defined (MPI_OPT)
-      CALL MPI_BCAST(mpi_equilibrium_task, 1, MPI_INTEGER, 0,               &
-     &               context%equilibrium_comm, error)
+c       CALL MPI_BCAST(mpi_equilibrium_task, 1, MPI_INTEGER, 0,               &
+c      &               context%equilibrium_comm, error)
 
       CALL MPI_BCAST(num_iter, 1, MPI_INTEGER, 0,                           &
      &               context%equilibrium_comm, error)
 #endif
 
-      eq_steps = 1
       eq_converged = vmec_converge(vmec, num_iter,                          &
      &                             context%runlog_iou,                      &
 #if defined(MPI_OPT)
@@ -96,80 +97,82 @@
       CALL assert(eq_converged,                                             &
      &               'task_reconstruct no inital convergence')
      
-     
 
-#if defined(MPI_OPT)
-!  Sync the number of equilibrium steps the inital convergence took so that the'
-!  child processes start in the same place.
-      CALL MPI_BCAST(eq_steps, 1, MPI_INTEGER, 0,                           &
-     &               context%reconstruction_comm, error)
-#endif
+      if (eq_rank .eq. 0) then
+         WRITE (*,*)
+         WRITE (*,1002) 0
 
-      WRITE (*,*)
-      WRITE (*,1002) 0
-
-      WRITE (context%runlog_iou,*)
-      WRITE (context%runlog_iou,1002) 0
+         WRITE (context%runlog_iou,*)
+         WRITE (context%runlog_iou,1002) 0
       
-      IF (write_input) THEN
-         CALL vmec_write_input(vmec, 0)
-      END IF
+         IF (write_input) THEN
+            CALL vmec_write_input(vmec, 0)
+         END IF
+      end if
 
       am_id = vmec_get_param_id(vmec, 'am')
       
-      
-      
       restart_step = 1
       DO i = restart_step, 10
-         WRITE (*,*)
-         WRITE (*,1002) i
+         
+         if (eq_rank .eq. 0) then
+            WRITE (*,*)
+            WRITE (*,1002) i
 
-         WRITE (context%runlog_iou,*)
-         WRITE (context%runlog_iou,1002) i
+            WRITE (context%runlog_iou,*)
+            WRITE (context%runlog_iou,1002) i
+         end if
 
 !   change parameter: central pressure
          call vmec_set_param(vmec, am_id, 0, 0, real(i,8)*1000.0,              &
 #if defined(MPI_OPT)
-     &                           context%equilibrium_comm, state_flags)
+     &                       context%equilibrium_comm, state_flags)
 #else
-     &                           0, state_flags)
+     &                       0, state_flags)
 #endif
          
          call vmec_set_param(vmec, am_id, 1, 0, -real(i,8)*1000.0,             &
 #if defined(MPI_OPT)
-     &                           context%equilibrium_comm, state_flags)
+     &                       context%equilibrium_comm, state_flags)
 #else
-     &                           0, state_flags)
+     &                       0, state_flags)
 #endif
 
-         
-         write(*,*) 'central pressure: ',real(i,8),' kPa'
+         if (eq_rank .eq. 0) then
+            write(*,*) 'central pressure: ',real(i,8),' kPa'
+         end if
          
 !   converge vmec
          IF (vmec_converge(vmec, num_iter, context%runlog_iou,                 &
 #if defined(MPI_OPT)
-     &                           context%equilibrium_comm)) THEN
+     &                     context%equilibrium_comm)) THEN
 #else
-     &                           0)) THEN
+     &                     0)) THEN
 #endif
-            write(*,*) 'equilibrium converged :-)'
+            if (eq_rank .eq. 0) then
+               write(*,*) 'equilibrium converged :-)'
+            
 !  Step was successful. Post process the result.
 
-            IF (write_input) THEN
-               CALL vmec_write_input(vmec, i)
-            END IF
+               IF (write_input) THEN
+                  CALL vmec_write_input(vmec, i)
+               END IF
+            end if
          ELSE
-            write(*,*) 'equilibrium not converged :-('
+            if (eq_rank .eq. 0) then
+               write(*,*) 'equilibrium not converged :-('
+            end if
 !  Step was not successful. Exit the loop.
             EXIT
          END IF
+         
       END DO
 
 #if defined(MPI_OPT)
-      CALL MPI_BCAST(mpi_quit_task, 1, MPI_INTEGER, 0,                         &
-     &               context%reconstruction_comm, error)
-      CALL MPI_BCAST(mpi_quit_task, 1, MPI_INTEGER, 0,                         &
-     &               context%equilibrium_comm, error)
+c       CALL MPI_BCAST(mpi_quit_task, 1, MPI_INTEGER, 0,                         &
+c      &               context%reconstruction_comm, error)
+c       CALL MPI_BCAST(mpi_quit_task, 1, MPI_INTEGER, 0,                         &
+c      &               context%equilibrium_comm, error)
 #endif
 
       CALL profiler_set_stop_time('task_reconstruct', start_time)
@@ -184,8 +187,8 @@
       IF (eq_rank .eq. 0) THEN
          recon_rank = 0
 #if defined(MPI_OPT)
-         CALL MPI_COMM_RANK(context%reconstruction_comm, recon_rank,           &
-     &                      error)
+c          CALL MPI_COMM_RANK(context%reconstruction_comm, recon_rank,           &
+c      &                      error)
 #endif
 
          IF (recon_rank .eq. 0) THEN
@@ -316,14 +319,15 @@
      &                       context%reconstruction_comm, error)
       END IF
 
+      WRITE (*,1001) mpi_rank + 1, recon_rank + 1, eq_rank + 1
+      
       CALL MPI_BARRIER(context%global_comm, error)
 #endif
 
       CALL profiler_set_stop_time('config_parallelism', start_time)
 
-1000  FORMAT('Using ',i4,' threads.')
 1001  FORMAT('Configured global process ',i5,', recon process ',i5,            &
-     &       ', eq process ',i5,' task ',a)
+     &       ', eq process ',i5)
 
       END SUBROUTINE
 
