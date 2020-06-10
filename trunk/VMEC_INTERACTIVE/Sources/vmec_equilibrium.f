@@ -233,9 +233,9 @@
 !-------------------------------------------------------------------------------
       TYPE vmec_class
 !>  File name of the output of vmec.
-         CHARACTER (len=path_length)            :: wout_file_name
+         CHARACTER (len=255)            :: wout_file_name
 !>  File name of the vmec namelist inout file.
-         CHARACTER (len=path_length)            :: vmec_file_name
+         CHARACTER (len=255)            :: vmec_file_name
 
 !>  VMEC context.
          TYPE (vmec_context_class), POINTER     ::                             &
@@ -286,8 +286,7 @@
 !>                               model changed.
 !>  @returns A pointer to a constructed @ref vmec_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION vmec_construct_eq(file_name, iou,                               &
-     &                           eq_comm, recon_comm)
+      FUNCTION vmec_construct_eq(file_name, iou, eq_comm)
       USE vmec_params, only: restart_flag, readin_flag, timestep_flag,         &
      &                       successful_term_flag, norm_term_flag,             &
      &                       more_iter_flag
@@ -302,7 +301,6 @@
       CHARACTER (len=*), INTENT(in)        :: file_name
       INTEGER, INTENT(in)                  :: iou
       INTEGER, INTENT(in)                  :: eq_comm
-      INTEGER, INTENT(in)                  :: recon_comm
 
 !  local variables
       INTEGER                              :: i
@@ -324,12 +322,6 @@
       recon_size = 1
 #if defined(MPI_OPT)
       CALL MPI_COMM_RANK(eq_comm, eq_rank, error)
-
-      IF (eq_rank .eq. 0) THEN
-         CALL MPI_COMM_RANK(recon_comm, recon_rank, error)
-         CALL MPI_COMM_SIZE(recon_comm, recon_size, error)
-      END IF
-      CALL MPI_BCAST(recon_rank, 1, MPI_INTEGER, 0, eq_comm, error)
 #endif
 
       IF (eq_rank .eq. 0) THEN
@@ -353,17 +345,10 @@
 
       vmec_construct_eq%vmec_file_name = TRIM(file_name)
       
-      IF (recon_rank .eq. 0) THEN
-         write(*,*) '*** Calling runvmec from construct...'
-         CALL runvmec(ictrl_array, file_name, .false., eq_comm)
-         
-         vmec_construct_eq%ns_index = MAXLOC(ns_array, 1)
-         IF (eq_rank .eq. 0) THEN
-            CALL MPI_BCAST(vmec_construct_eq%ns_index, 1, MPI_INTEGER,         &
-     &                     0, recon_comm, error)
-         END IF
-      END IF
+      write(*,*) '*** Calling runvmec from construct...'
+      CALL runvmec(ictrl_array, file_name, .false., eq_comm)
       
+      vmec_construct_eq%ns_index = MAXLOC(ns_array, 1)
       
 !  Check for errors in runvmec.
       SELECT CASE (ictrl_array(2))
@@ -449,11 +434,9 @@
 !>  @param[in]    value       The value of the parameter.
 !>  @param[in]    eq_comm     MPI communicator for the child equilibrium
 !>                            processes.
-!>  @param[inout] state_flags Bitwise flags to indicate which parts of the model
-!>                            changed.
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_set_param(this, id, i_index, j_index, value,             &
-     &                          eq_comm, state_flags)
+     &                          eq_comm)
       USE vmec_input, only: rbc, zbs, rbs, zbc,                                &
      &                      ac, ac_aux_s, ac_aux_f,                            &
      &                      ai, ai_aux_s, ai_aux_f,                            &
@@ -463,7 +446,6 @@
       USE xstuff, only: xc, xcdot
       USE vmec_main, only: irzloff, currv, ivac
       USE stel_constants, only: mu0
-      USE model_state
 
       IMPLICIT NONE
 
@@ -474,7 +456,6 @@
       INTEGER, INTENT(in)              :: j_index
       REAL (rprec), INTENT(in)         :: value
       INTEGER, INTENT(in)              :: eq_comm
-      INTEGER, INTENT(inout)           :: state_flags
 
 !  local variables
       REAL (rprec)                     :: phiedge_ratio
@@ -487,7 +468,6 @@
       SELECT CASE (id)
 
          CASE (vmec_rbc_id)
-            state_flags = IBSET(state_flags, model_state_vmec_flag)
             rbc(i_index, j_index) = value
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
@@ -497,7 +477,6 @@
             END IF
 
          CASE (vmec_zbs_id)
-            state_flags = IBSET(state_flags, model_state_vmec_flag)
             zbs(i_index, j_index) = value
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
@@ -507,7 +486,6 @@
             END IF
 
          CASE (vmec_rbs_id)
-            state_flags = IBSET(state_flags, model_state_vmec_flag)
             rbs(i_index, j_index) = value
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
@@ -517,7 +495,6 @@
             END IF
 
          CASE (vmec_zbc_id)
-            state_flags = IBSET(state_flags, model_state_vmec_flag)
             zbc(i_index, j_index) = value
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
@@ -527,68 +504,54 @@
             END IF
 
          CASE (vmec_ac_id)
-            state_flags = IBSET(state_flags, model_state_vmec_flag)
             ac(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_ac_aux_s_id)
-            state_flags = IBSET(state_flags, model_state_vmec_flag)
             ac_aux_s(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_ac_aux_f_id)
-            state_flags = IBSET(state_flags, model_state_vmec_flag)
             ac_aux_f(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_ai_id)
-            state_flags = IBSET(state_flags, model_state_vmec_flag)
             ai(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_ai_aux_s_id)
-            state_flags = IBSET(state_flags, model_state_vmec_flag)
             ai_aux_s(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_ai_aux_f_id)
-            state_flags = IBSET(state_flags, model_state_vmec_flag)
             ai_aux_f(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_am_id)
-            state_flags = IBSET(state_flags, model_state_vmec_flag)
             am(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_am_aux_s_id)
-            state_flags = IBSET(state_flags, model_state_vmec_flag)
             am_aux_s(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_am_aux_f_id)
-            state_flags = IBSET(state_flags, model_state_vmec_flag)
             am_aux_f(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_extcur_id)
-            state_flags = IBSET(state_flags, model_state_vmec_flag)
             extcur(i_index) = value
 #if defined(MPI_OPT)
-            CALL MPI_BCAST(mpi_mgrid_task, 1, MPI_INTEGER, 0, eq_comm,         &
-     &                     error)
             CALL MPI_BCAST(i_index, 1, MPI_INTEGER, 0, eq_comm, error)
 #endif
             CALL vmec_read_vac_file(this, i_index, eq_comm)
 
          CASE (vmec_curtor_id)
-            state_flags = IBSET(state_flags, model_state_vmec_flag)
             curtor = value
             currv = mu0*curtor
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_phiedge_id)
-            state_flags = IBSET(state_flags, model_state_vmec_flag)
             IF (phiedge .ne. 0.0) THEN
                phiedge_ratio = value/phiedge
             ELSE
@@ -603,12 +566,10 @@
             CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_pres_scale_id)
-            state_flags = IBSET(state_flags, model_state_vmec_flag)
             pres_scale = value
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_bloat_id)
-            state_flags = IBSET(state_flags, model_state_vmec_flag)
             bloat = value
             CALL profil1d(xc, xcdot, .false.)
             CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
@@ -616,7 +577,6 @@
          CASE DEFAULT
 !>  @todo FIXME: Consider throwing a fatal error here instead of silently doing
 !>  nothing.
-            state_flags = state_flags
 
       END SELECT
 
@@ -1105,7 +1065,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER(len=data_name_length) :: vmec_get_param_name
+      CHARACTER(len=255) :: vmec_get_param_name
       TYPE (vmec_class), INTENT(in)   :: this
       INTEGER, INTENT(in)             :: id
 
@@ -1694,105 +1654,6 @@
 
 1000  FORMAT(a,'_',i0.3)
 
-      END SUBROUTINE
-
-!*******************************************************************************
-!  MPI SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Syncronize the vmec state to children.
-!>
-!>  Syncs data between the parent and child processes. If MPI support is not
-!>  compiled in this subroutine reduces to a no op.
-!>
-!>  @param[inout] this       A @ref vmec_class instance.
-!>  @param[in]    recon_comm MPI communicator for the reconstruction processes.
-!-------------------------------------------------------------------------------
-      SUBROUTINE vmec_sync_state(this, recon_comm)
-      USE read_wout_mod, only: read_wout_file, LoadRZL
-      USE file_opts
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-       TYPE (vmec_class), INTENT(inout) :: this
-       INTEGER, INTENT(in)              :: recon_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                           :: i
-      INTEGER                           :: error
-      INTEGER                           :: mpi_rank
-
-!  Start of executable code
-      CALL MPI_COMM_RANK(recon_comm, mpi_rank, error)
-
-!  The barrier ensures that the wout is ready to be copied from the parent
-!  directory. Otherwise a child process can try to copy a wout file that does
-!  not exist.
-      CALL MPI_BARRIER(recon_comm, error)
-
-!  If this is the child process, load the wout file.
-      IF (mpi_rank .gt. 0) THEN
-         CALL copy_file(build_path('..', this%wout_file_name),                 &
-     &                  TRIM(this%wout_file_name), error)
-
-         CALL read_wout_file(this%wout_file_name, error)
-         CALL assert_eq(error, 0, 'Error reading synced wout file.')
-         CALL LoadRZL
-
-      END IF
-
-      CALL vmec_context_sync_state(this%vmec_context_save, recon_comm)
-
-#endif
-      END SUBROUTINE
-
-!-------------------------------------------------------------------------------
-!>  @brief Syncronize a child vmec state to the parent.
-!>
-!>  Syncs data between a child and the parent process. If MPI support is not
-!>  compiled in this subroutine reduces to a no op.
-!>
-!>  @param[inout] this       A @ref vmec_class instance.
-!>  @param[in]    index      Reconstruction rank to sync.
-!>  @param[in]    recon_comm MPI communicator for the reconstruction processes.
-!-------------------------------------------------------------------------------
-      SUBROUTINE vmec_sync_child(this, index, recon_comm)
-      USE read_wout_mod, only: read_wout_file, LoadRZL
-      USE file_opts
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (vmec_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)              :: index
-      INTEGER, INTENT(in)              :: recon_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                           :: error
-      INTEGER                           :: mpi_rank
-
-!  Start of executable code
-      CALL MPI_COMM_RANK(recon_comm, mpi_rank, error)
-
-!  If this is the parent process, load the wout file.
-      IF (mpi_rank .eq. 0) THEN
-         CALL copy_file(build_path(process_dir(index + 1),                     &
-     &                             this%wout_file_name),                       &
-     &                  TRIM(this%wout_file_name), error)
-
-         CALL read_wout_file(this%wout_file_name, error)
-         CALL assert_eq(error, 0, 'Error reading synced wout file.')
-         CALL LoadRZL
-
-      END IF
-
-      CALL vmec_context_sync_child(this%vmec_context_save, index,              &
-     &                             recon_comm)
-
-#endif
       END SUBROUTINE
 
 !*******************************************************************************

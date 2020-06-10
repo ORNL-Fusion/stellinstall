@@ -10,7 +10,6 @@
 !*******************************************************************************
       MODULE vmec_context
       USE stel_kinds
-      USE data_parameters
       USE xstuff
       USE vmec_input, Only: raxis_cc, raxis_cs, zaxis_cc, zaxis_cs
       USE v3f_vmec_comm

@@ -2,13 +2,14 @@
 
 #include <unistd.h> // for sleep()
 
+#include <mpi.h>
+
+/*
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <memory>
 #include <string>
-
-#include <mpi.h>
 
 #include <grpc/grpc.h>
 #include <grpcpp/server.h>
@@ -29,10 +30,10 @@ using grpc::Status;
 using vmec_interactive::InitialInputFile;
 using vmec_interactive::StatusMsg;
 using vmec_interactive::SetParameterMsg;
-using vmec_interactive::VmecInteractive;
+using vmec_interactive::VmecInteractive;*/
 
 /** setup the interactive VMEC */
-extern "C" void vi_setup(void);
+extern "C" void vi_setup(int* mpi_comm);
 
 /** set an input parameter for the interactive VMEC */
 extern "C" void vi_set(double* centralPressure);
@@ -45,7 +46,7 @@ extern "C" void vi_exit(void);
 
 extern "C" void get_world_comm_from_fortran(int* world_comm);
 
-
+/*
 class VmecInteractiveImpl final : public VmecInteractive::Service {
   
 public:
@@ -84,61 +85,34 @@ void RunServer() {
   server->Wait();
   
   delete service;
-}
+}*/
 
 int main(int argc, char** argv) {
-  
-  // Initialize the MPI environment
-  MPI_Init(NULL, NULL);
-  
-  MPI_Comm comm_world = MPI_COMM_WORLD;
-  
-  // Get the number of processes
-  int world_size;
-  MPI_Comm_size(comm_world, &world_size);
-  
-  // Get the rank of the process
-  int world_rank;
-    MPI_Comm_rank(comm_world, &world_rank);
-  
-    std::cout << "world size: " << world_size << " rank: " << world_rank << std::endl;
+    // Initialize the MPI environment
+    MPI_Init(NULL, NULL);
+   
+    MPI_Comm comm_world = MPI_COMM_WORLD;
+
+    int mpi_comm_f = MPI_Comm_c2f(comm_world);
+   
+   
+    // setup the interactive VMEC service and converge initially
+    vi_setup(&mpi_comm_f);
     
-    if (world_rank == 0) {
-        RunServer();
+    int error = 0;
+    double centralPressure = 0.0;
+    for (int i=0; i<3; ++i) {
+    
+        centralPressure = (i+1.0)*1000.0;
+        vi_set(&centralPressure);
+        
+        vi_get(&error);
     }
-    
-    MPI_Barrier(comm_world);
-    
+
+  
+    vi_exit();
     
     MPI_Finalize();
-    
-//     // setup the interactive VMEC service and converge initially
-//     vi_setup();
-//     
-//     int world_comm_from_fortran = -1;
-//     get_world_comm_from_fortran(&world_comm_from_fortran);
-//   
-//     MPI_Comm comm_world = MPI_Comm_f2c(world_comm_from_fortran);
-//   
-//     
-//     
-//     
-//     
-//         
-//     int error = 0;
-//     double centralPressure = 0.0;
-//     for (int i=0; i<10; ++i) {
-//     
-//         centralPressure = 1000.0 + i;
-//         vi_set(&centralPressure);
-//         
-//         vi_get(&error);
-//         
-//         MPI_Barrier(comm_world);
-//     }
-// 
-//   
-//     vi_exit();
-  
+
     return 0;
 }
