@@ -30,7 +30,7 @@
       INTEGER                             :: mpi_rank = 0
 #if defined (MPI_OPT)
       INTEGER                             :: mpi_size
-      integer                             :: mpi_comm = 0
+      integer                             :: mpi_comm
 #else
       integer, parameter                  :: mpi_comm = 0
 #endif
@@ -51,6 +51,7 @@
 #if defined(MPI_OPT)
       integer, intent(in) :: my_mpi_comm
       
+!  first executable statement for MPI case is here  !
       mpi_comm = my_mpi_comm
 #endif
       
