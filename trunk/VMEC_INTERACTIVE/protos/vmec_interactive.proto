@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "gov.ornl.vmec.interactive";
+option java_outer_classname = "VmecInteractiveProto";
+
+package vmec_interactive;
+
+// Interface exported by the server.
+service VmecInteractive {
+  
+  rpc Setup(InitialInputFile) returns (StatusMsg) {}
+  
+  rpc SetParameter(SetParameterMsg) returns (StatusMsg) {}
+  
+  rpc GetParameter(GetParameterMsg) returns (ParameterMsg) {}
+  
+  rpc Shutdown(ShutdownMsg) returns (StatusMsg) {}
+}
+
+message InitialInputFile {
+  string inputFilename = 1;
+}
+
+message StatusMsg {
+  int32 status = 1;
+}
+
+message SetParameterMsg {
+  int32 parameterId = 1;
+  double parameterValue = 2;
+}
+
+message GetParameterMsg {
+  int32 parameterId = 1;
+}
+
+message ParameterMsg {
+  double parameterValue = 1;
+}
+
+message ShutdownMsg {
+}
+

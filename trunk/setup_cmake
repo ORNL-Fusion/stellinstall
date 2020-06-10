@@ -422,11 +422,14 @@ then
 	      -DNETCDF_C_LIB_PATH=/home/dg6/spack/opt/spack/linux-ubuntu18.04-x86_64/gcc-7.3.0/netcdf-4.7.0-cryif4blmrhr2i43pif2scmlwv3yu3nq/lib           \
 	      -DUSE_FAST_COPY=ON
 
-elif [ $MACHINE_ID == "Nebuchadnezaar"     ]
+elif [ $MACHINE_ID == "Nebuchadnezaar" ] ||
+     [ $MACHINE_ID == "Z820" ]
 then
-        # Config for Jonathan Schilling's laptop (IPP HGW).
+        # Config for Jonathan Schilling's machines.
         cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE                      \
-              -DCMAKE_Fortran_COMPILER=gfortran                          \
+              -DCMAKE_Fortran_COMPILER=mpif90                          \
+              -DCMAKE_C_COMPILER=mpicc                    \
+	          -DCMAKE_CXX_COMPILER=mpicxx                 \
               -DNETCDF_INC_PATH=/usr/include/                      \
               -DNETCDF_LIB_PATH=/usr/lib                           \
               -DEXTRA_FLAGS="-fopenmp -DNEW_CODE -Wuninitialized -fallow-argument-mismatch" \

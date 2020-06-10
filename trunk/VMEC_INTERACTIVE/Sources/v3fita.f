@@ -1,11 +1,16 @@
-      PROGRAM v3fit
+! setup of _v_mec _i_nteractive
+      module vmec_interactive
+      
       USE v3fit_context
       USE profiler
-      use vmec_equilibrium
+      USE vmec_equilibrium
 
-      IMPLICIT NONE
+      implicit none
+      
+      integer :: i ! iteration / call number
+      integer                             :: am_id
 
-!  local variables
+      !  local variables
       TYPE (v3fit_context_class), POINTER :: context => null()
       TYPE (vmec_class), POINTER          :: vmec => null()
       REAL (rprec)                        :: time_start, time_end
@@ -14,16 +19,41 @@
       
       INTEGER                             :: eq_steps
       INTEGER                             :: restart_step
-      INTEGER                             :: i, error
+      INTEGER                             :: error
       LOGICAL                             :: eq_converged
       LOGICAL                             :: write_input
       REAL (rprec)                        :: start_time
       integer                             :: num_iter = 0
-      integer                             :: am_id
-      integer ::  state_flags = 0
+      integer :: state_flags = 0
+
+      logical :: is_changed = .false.
       
+      ! TODO: make this a parameter
       character(len=*), parameter :: vmec_nli_filename =                       &
      &                               'input.vmec.test'
+      
+      contains
+
+      subroutine get_world_comm_from_fortran(world_comm)                       &
+     &           bind (C, name="get_world_comm_from_fortran")
+      use iso_c_binding
+      implicit none
+      
+      integer(C_INT), intent(out) :: world_comm
+      
+      world_comm = context%global_comm
+      
+      end subroutine
+      
+      
+      subroutine vi_setup() bind (C, name="vi_setup")
+      use iso_c_binding
+      
+      
+      
+      implicit none
+      
+      i = 0
       
 !  Start of executable code
 
@@ -110,11 +140,62 @@ c      &               context%equilibrium_comm, error)
          END IF
       end if
 
+      
+      
+1002  FORMAT('  *** Reconstruction step ',i4)
+
+      
+
+      end subroutine vi_setup
+      
+! set an input variable value
+      subroutine vi_set(centralPressure) bind (C, name="vi_set")
+      use iso_c_binding
+      implicit none
+      
+      real(C_DOUBLE), intent(in) :: centralPressure
+      
+      
       am_id = vmec_get_param_id(vmec, 'am')
       
-      restart_step = 1
-      DO i = restart_step, 10
+      
+      !   change parameter: central pressure
+      call vmec_set_param(vmec, am_id, 0, 0, centralPressure,              &
+#if defined(MPI_OPT)
+     &                    context%equilibrium_comm, state_flags)
+#else
+     &                    0, state_flags)
+#endif
          
+      call vmec_set_param(vmec, am_id, 1, 0, -centralPressure,             &
+#if defined(MPI_OPT)
+     &                    context%equilibrium_comm, state_flags)
+#else
+     &                    0, state_flags)
+#endif
+
+      if (eq_rank .eq. 0) then
+         write(*,*) 'central pressure: ',centralPressure,' Pa'
+      end if
+      
+      is_changed = .true.
+
+      end subroutine vi_set
+      
+      
+      
+      
+      
+! get an input or output variable value from VMEC
+      subroutine vi_get(error) bind (C, name="vi_get")
+      use iso_c_binding
+      implicit none
+      
+      integer, intent(inout) :: error
+      
+      if (is_changed) then
+         i = i+1
+      
          if (eq_rank .eq. 0) then
             WRITE (*,*)
             WRITE (*,1002) i
@@ -123,24 +204,7 @@ c      &               context%equilibrium_comm, error)
             WRITE (context%runlog_iou,1002) i
          end if
 
-!   change parameter: central pressure
-         call vmec_set_param(vmec, am_id, 0, 0, real(i,8)*1000.0,              &
-#if defined(MPI_OPT)
-     &                       context%equilibrium_comm, state_flags)
-#else
-     &                       0, state_flags)
-#endif
-         
-         call vmec_set_param(vmec, am_id, 1, 0, -real(i,8)*1000.0,             &
-#if defined(MPI_OPT)
-     &                       context%equilibrium_comm, state_flags)
-#else
-     &                       0, state_flags)
-#endif
 
-         if (eq_rank .eq. 0) then
-            write(*,*) 'central pressure: ',real(i,8),' kPa'
-         end if
          
 !   converge vmec
          IF (vmec_converge(vmec, num_iter, context%runlog_iou,                 &
@@ -158,16 +222,32 @@ c      &               context%equilibrium_comm, error)
                   CALL vmec_write_input(vmec, i)
                END IF
             end if
+            error = 0
          ELSE
             if (eq_rank .eq. 0) then
                write(*,*) 'equilibrium not converged :-('
             end if
 !  Step was not successful. Exit the loop.
-            EXIT
+            error = 1
          END IF
-         
-      END DO
-
+      
+      
+      end if
+      
+      
+1002  FORMAT('  *** Reconstruction step ',i4)
+      
+      
+      end subroutine vi_get
+      
+      
+      
+!  controlled shutdown of the interactive VMEC service
+      subroutine vi_exit() bind (C, name="vi_exit")
+      use iso_c_binding
+      implicit none
+      
+      
 #if defined(MPI_OPT)
 c       CALL MPI_BCAST(mpi_quit_task, 1, MPI_INTEGER, 0,                         &
 c      &               context%reconstruction_comm, error)
@@ -212,11 +292,11 @@ c      &                      error)
 #endif
 
 1000  FORMAT('  *** V3FIT run time (s): ',f10.2)
-1001  FORMAT('nrstep 'i4,' completed. May be reconstructed.')
-1002  FORMAT('  *** Reconstruction step ',i4)
-1003  FORMAT('Initial g^2 = ',es12.5)
 
-      END PROGRAM
+      end subroutine vi_exit
+      
+      
+      
       
 !*******************************************************************************
 !  INITIALIZE SUBROUTINES
@@ -331,3 +411,4 @@ c      &                      error)
 
       END SUBROUTINE
 
+      end module

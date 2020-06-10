@@ -5,5 +5,6 @@ list (APPEND vmec_interactive_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/vmec_equilibrium.f
 	${CMAKE_CURRENT_SOURCE_DIR}/v3fit_context.f
 	${CMAKE_CURRENT_SOURCE_DIR}/vmec_context.f
+	${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
 )
 set (vmec_interactive_sources "${vmec_interactive_sources}" PARENT_SCOPE)
