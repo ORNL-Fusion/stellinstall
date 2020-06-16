@@ -1647,7 +1647,7 @@
          WHERE (MOD(INT(xm_nyq_),2) .EQ. 1)
             t1 = 0.5_dp*(shalf(js+1)*bsubsmnc_(:,js+1)                         &
                +         shalf(js)  *bsubsmnc_(:,js)) / sfull(js)
-            bu0 = bsubumns_(:,js  )/shalf(js+1)
+            bu0 = bsubumns_(:,js  )/shalf(js)
             bu1 = bsubumns_(:,js+1)/shalf(js+1)
             t2 = ohs*(bu1-bu0)*sfull(js) + 0.25_dp*(bu0+bu1)/sfull(js)
             bv0 = bsubvmns_(:,js  )/shalf(js)
