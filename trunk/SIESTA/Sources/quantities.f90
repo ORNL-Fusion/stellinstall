@@ -719,6 +719,7 @@
                DO np = -ntor, ntor
                   DO mp = 0, mpol
                      mnp = mnp + 1
+!  Node the phip term is folded into the solve for lambda.
                      atemp = (m*mp*gvv(:,js) + n*nfp*np*nfp*guu(:,js) -        &
                               nfp*(m*np + mp*n)*guv(:,js))/jacobh(:,js)
 
@@ -747,12 +748,10 @@
          CALL solver(amat, brhs, mnmax*n2, 1, info)
          CALL ASSERT(info.EQ.0,'INFO != 0 IN RECOMPUTE_LAMBDA')
 
-! Divide by phiph -> old style
+!  The we really solved for phip*lambda so divide of that component.
          lmns(:,js) = brhs(:,1)/(orthonorm*phiph(js))
-!!         lmns(:,js) = brhs(:,1)/orthonorm/phiph(js)
          IF (lasym) THEN
             lmnc(:,js) = brhs(:,2)/(orthonorm*phiph(js))
-!!            lmnc(:,js) = brhs(:,2)/orthonorm/phiph(js)
          END IF
       END DO
 
