@@ -243,10 +243,10 @@
 !>  This uses the biot-savart to set a vitual current on an arbitrary
 !>  surface. The vitual current is taken from the jump condition assuming the
 !>  surface is a perfect conductor. At each point in the surface, the plasma
-!>  current in volumn integrated.
+!>  current in volume integrated.
 !>
 !>    b = mu0/4pi Int Int Int (Jsupu*esubu + Jsupv*esubv) X
-!>                            (x - xp)/(x - xp)*signJ*J*da*du*dv             (1)
+!>                            (x - xp)/|x - xp|^3*signJ*J*da*du*dv           (1)
 !>
 !>  Where the primed (p) variables are the values on the last closed flux
 !>  surface grid.

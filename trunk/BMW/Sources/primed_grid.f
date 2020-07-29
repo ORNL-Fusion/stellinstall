@@ -258,7 +258,6 @@
 !$OMP& SCHEDULE(STATIC)
       DO i = parallel%start(num_v_use), parallel%end(num_v_use)
          x = (i - 0.5)*primed_grid_construct_both%dv
-!         WRITE (*,*) x     ! TEMP
          cosv(i) = COS(x)
          sinv(i) = SIN(x)
          cosnv(:,i) = COS(xn*x)
