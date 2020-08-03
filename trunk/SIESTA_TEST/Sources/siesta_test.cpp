@@ -5,6 +5,7 @@
 
 #include "vmec_quantities.hpp"
 #include "siesta_quantities.hpp"
+#include "commandline_parser.hpp"
 
 void dump(const vmec_quantities &vmec,
           const siesta_quantities &siesta,
@@ -601,8 +602,10 @@ void test_jbsupv(const vmec_quantities &vmec,
 }
 
 int main(int argc, const char * argv[]) {
-    const vmec_quantities vmec("/Users/m4c/Research/SIESTA/Free Boundary/simple/wout_test.vmec.nc");
-    const siesta_quantities siesta("/Users/m4c/Research/SIESTA/Free Boundary/simple/siesta_restart_w7x.nc");
+    const commandline_parser args(argc, argv);
+
+    const vmec_quantities vmec(args.get("-wout_file"));
+    const siesta_quantities siesta(args.get("-restart_file"));
 
     test_r(vmec, siesta);
     test_r_prime(vmec, siesta);
