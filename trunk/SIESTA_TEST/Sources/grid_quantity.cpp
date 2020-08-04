@@ -54,18 +54,16 @@ double full_grid::get(const double s) const {
 //------------------------------------------------------------------------------
 ///  @brief Get a radial derivative at a s position.
 ///
-///  @param[in] s Radial s position.
-///  @returns The interpolated derivative at a s position.
+///  @returns The radial derivative on the half grid.
 //------------------------------------------------------------------------------
-double full_grid::get_prime(const double s) const {
+half_grid full_grid::get_prime() const {
     std::vector<double> temp(buffer.size());
 
     for (size_t i = 1, e = buffer.size(); i < e; i++) {
         temp[i] = (buffer[i] - buffer[i - 1])/ds;
     }
 
-    const half_grid half(temp);
-    return half.get(s);
+    return half_grid(temp);
 }
 
 //******************************************************************************
@@ -112,23 +110,4 @@ double half_grid::get(const double s) const {
 
         return weight_high*buffer[i_high] + weight_low*buffer[i_low];
     }
-}
-
-//------------------------------------------------------------------------------
-///  @brief Get a radial derivative at a s position.
-///
-///  @param[in] s Radial s position.
-///  @returns The interpolated derivative at a s position.
-//------------------------------------------------------------------------------
-double half_grid::get_prime(const double s) const {
-    std::vector<double> temp(buffer.size());
-
-    for (size_t i = 1, e = buffer.size() - 1; i < e; i++) {
-        temp[i] = (buffer[i + 1] - buffer[i])/ds;
-    }
-    temp[buffer.size() - 1] = temp[buffer.size() - 2];
-    temp[0] = temp[1];
-
-    const full_grid full(temp);
-    return full.get(s);
 }

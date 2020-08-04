@@ -189,7 +189,7 @@ int main(int argc, const char * argv[]) {
     RUN_TEST_3D(vmec, siesta, get_r,     "test_r3",     0.04, 0.2,  1.0E-4);
     RUN_TEST_3D(vmec, siesta, get_r,     "test_r4",     0.2,  1.0,  1.0E-5);
 
-//    RUN_TEST_3D(vmec, siesta, get_r_prime, "test_r_prime", 0.0, 1.0, 1.0E-5);
+    RUN_TEST_3D(vmec, siesta, get_r_prime, "test_r_prime", 0.0, 1.0, 1.0E-5);
 
     RUN_TEST_3D(vmec, siesta, get_dr_du, "test_dr_du1", 0.0,  0.01, 1.0E-2);
     RUN_TEST_3D(vmec, siesta, get_dr_du, "test_dr_du2", 0.01, 0.04, 1.0E-3);

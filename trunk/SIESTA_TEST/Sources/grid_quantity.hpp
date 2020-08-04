@@ -37,15 +37,9 @@ public:
 ///  @returns The interpolated s position.
 //------------------------------------------------------------------------------
     virtual double get(const double s) const=0;
-
-//------------------------------------------------------------------------------
-///  @brief Get a radial derivative at a s position.
-///
-///  @param[in] s Radial s position.
-///  @returns The interpolated derivative at a s position.
-//------------------------------------------------------------------------------
-    virtual double get_prime(const double s) const=0;
 };
+
+class half_grid;
 
 //------------------------------------------------------------------------------
 ///  @brief A full grid quantity.
@@ -73,10 +67,9 @@ public:
 //------------------------------------------------------------------------------
 ///  @brief Get a radial derivative at a s position.
 ///
-///  @param[in] s Radial s position.
-///  @returns The interpolated derivative at a s position.
+///  @returns The radial derivative on the half grid.
 //------------------------------------------------------------------------------
-    double get_prime(const double s) const final;
+    half_grid get_prime() const;
 };
 
 //------------------------------------------------------------------------------
@@ -101,14 +94,6 @@ public:
 ///  @returns The interpolated s position.
 //------------------------------------------------------------------------------
     double get(const double s) const final;
-
-//------------------------------------------------------------------------------
-///  @brief Get a radial derivative at a s position.
-///
-///  @param[in] s Radial s position.
-///  @returns The interpolated derivative at a s position.
-//------------------------------------------------------------------------------
-    double get_prime(const double s) const final;
 };
 
 //------------------------------------------------------------------------------
@@ -130,6 +115,13 @@ public:
     vmec_grid(const std::vector<double> &buffer) : grid(buffer) {}
 
 //------------------------------------------------------------------------------
+///  @brief Vmec radial quantity.
+///
+///  @param[in] grid A radial grid quantity.
+//------------------------------------------------------------------------------
+    vmec_grid(const GRID_CLASS &grid) : grid(grid.buffer) {}
+
+//------------------------------------------------------------------------------
 ///  @brief Get a value at a radial s position.
 ///
 ///  @param[in] s Radial s position.
@@ -137,16 +129,6 @@ public:
 //------------------------------------------------------------------------------
     double get(const double s) const {
         return grid.get(s);
-    }
-
-//------------------------------------------------------------------------------
-///  @brief Get a radial derivative at a s position.
-///
-///  @param[in] s Radial s position.
-///  @returns The interpolated derivative at a s position.
-//------------------------------------------------------------------------------
-    double get_prime(const double s) const {
-        return 2.0*sqrt(s)*grid.get_prime(s);
     }
 };
 
@@ -169,6 +151,13 @@ public:
     siesta_grid(const std::vector<double> &buffer) : grid(buffer) {}
 
 //------------------------------------------------------------------------------
+///  @brief Siesta radial quantity.
+///
+///  @param[in] grid A radial grid quantity.
+//------------------------------------------------------------------------------
+    siesta_grid(const GRID_CLASS &grid) : grid(grid.buffer) {}
+
+//------------------------------------------------------------------------------
 ///  @brief Get a value at a radial s position.
 ///
 ///  s_vmec = s_siesta^2
@@ -178,18 +167,6 @@ public:
 //------------------------------------------------------------------------------
     double get(const double s) const {
         return grid.get(sqrt(s));
-    }
-
-//------------------------------------------------------------------------------
-///  @brief Get a radial derivative at a s position.
-///
-///  s_vmec = s_siesta^2. This puts an extra 2*s when taking radial derivatives.
-///
-///  @param[in] s Radial s position vmec grid.
-///  @returns The interpolated derivative at a s position.
-//------------------------------------------------------------------------------
-    double get_prime(const double s) const {
-        return grid.get_prime(sqrt(s));
     }
 };
 
@@ -239,28 +216,6 @@ public:
 
         for (size_t i = 0, e = m.size(); i < e; i++) {
             temp += quantity[i].get(s)*func.f(m[i]*u - n[i]*v);
-        }
-
-        return temp;
-    }
-
-//------------------------------------------------------------------------------
-///  @brief Get a value at a radial s position.
-///
-///  s_vmec = s_siesta^2
-///
-///  @param[in] s Radial s position.
-///  @param[in] u Poloidal u position.
-///  @param[in] v Toroidal v position.
-///  @returns The interpolated s position.
-//------------------------------------------------------------------------------
-    double get_prime(const double s,
-                     const double u,
-                     const double v) const {
-        double temp = 0.0;
-
-        for (size_t i = 0, e = m.size(); i < e; i++) {
-            temp += quantity[i].get_prime(s)*func.f(m[i]*u - n[i]*v);
         }
 
         return temp;
@@ -366,31 +321,6 @@ public:
             for (ssize_t n = -ntor, en = ntor; n <= en; n++) {
                 const size_t ni = n + ntor;
                 temp += quantity[m][ni].get(s)*func.f(m*u + n*nfp*v);
-            }
-        }
-
-        return temp;
-    }
-
-//------------------------------------------------------------------------------
-///  @brief Get a value at a radial s position.
-///
-///  s_vmec = s_siesta^2
-///
-///  @param[in] s Radial s position.
-///  @param[in] u Poloidal u position.
-///  @param[in] v Toroidal v position.
-///  @returns The interpolated s position.
-//------------------------------------------------------------------------------
-    double get_prime(const double s,
-                     const double u,
-                     const double v) const {
-        double temp = 0.0;
-
-        for (size_t m = 0, em = mpol; m <= em; m++) {
-            for (ssize_t n = -ntor, en = ntor; n <= en; n++) {
-                const size_t ni = n + ntor;
-                temp += quantity[m][ni].get_prime(s)*func.f(m*u + n*nfp*v);
             }
         }
 

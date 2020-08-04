@@ -22,8 +22,12 @@ class siesta_quantities {
 public:
 ///  r
     const siesta_fourier<full_grid, cosine> r;
+///  drds
+    const siesta_fourier<half_grid, cosine> drds;
 ///  z
     const siesta_fourier<full_grid, sine> z;
+///  dzds
+    const siesta_fourier<half_grid, sine> dzds;
 ///  Radial derivative of toroidal flux.
     const siesta_grid<full_grid> phipf;
 ///  Radial derivative of poloidal flux.
@@ -50,7 +54,9 @@ public:
 //------------------------------------------------------------------------------
     siesta_quantities(const std::string &restart_file) :
     r(load_fourier<full_grid, cosine> (restart_file, "rmnc_m_n_r_")),
+    drds(to_prime(r)),
     z(load_fourier<full_grid, sine> (restart_file, "zmns_m_n_r_")),
+    dzds(to_prime(z)),
     phipf(load<full_grid> (restart_file, "phipf_r_")),
     chipf(load<full_grid> (restart_file, "chipf_r_")),
     jbsups(load_fourier_denorm<half_grid, sine> (restart_file, "JBsupssh_m_n_r_")),
@@ -215,6 +221,31 @@ public:
     }
 
 //------------------------------------------------------------------------------
+///  @brief Convert full grid quantity to half grid primed.
+///
+///  @param[in] siesta A full grid siesta quantity to take the derivative of.
+//------------------------------------------------------------------------------
+    template<class PARITY>
+    static siesta_fourier<half_grid, PARITY> to_prime(const siesta_fourier<full_grid, PARITY> siesta) {
+        siesta_quantity<half_grid> half_quanity;
+
+        for (const siesta_quantity_1d<full_grid> slice : siesta.quantity) {
+            siesta_quantity_1d<half_grid> half_slice;
+
+            for (const siesta_grid<full_grid> &q : slice) {
+                half_slice.push_back(siesta_grid<half_grid> (q.grid.get_prime()));
+            }
+
+            half_quanity.push_back(half_slice);
+        }
+
+        return siesta_fourier<half_grid, PARITY> (half_quanity,
+                                                  siesta.mpol,
+                                                  siesta.ntor,
+                                                  siesta.nfp);
+    }
+
+//------------------------------------------------------------------------------
 ///  @brief Get R quantity.
 ///
 ///  @param[in] s Radial position.
@@ -235,7 +266,7 @@ public:
 ///  @returns R' at the s,u,v position.
 //------------------------------------------------------------------------------
     double get_r_prime(const double s, const double u, const double v) const {
-        return r.get_prime(s, u, v);
+        return drds.get(s, u, v);
     }
 
 //------------------------------------------------------------------------------
@@ -283,7 +314,7 @@ public:
 ///  @returns R' at the s,u,v position.
 //------------------------------------------------------------------------------
     double get_z_prime(const double s, const double u, const double v) const {
-        return z.get_prime(s, u, v);
+        return dzds.get(s, u, v);
     }
 
 //------------------------------------------------------------------------------

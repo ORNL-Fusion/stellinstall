@@ -21,8 +21,12 @@ class vmec_quantities {
 public:
 ///  r
     const vmec_fourier<full_grid, cosine> r;
+///  drds
+    const vmec_fourier<half_grid, cosine> drds;
 ///  z
     const vmec_fourier<full_grid, sine> z;
+///  dzds
+    const vmec_fourier<half_grid, sine> dzds;
 ///  Radial derivative of toroidal flux.
     const vmec_grid<full_grid> phipf;
 ///  Radial derivative of poloidal flux.
@@ -45,7 +49,9 @@ public:
 //------------------------------------------------------------------------------
     vmec_quantities(const std::string &wout_file) :
     r(load_fourier<full_grid, cosine> (wout_file, "rmnc")),
+    drds(to_prime(r)),
     z(load_fourier<full_grid, sine> (wout_file, "zmns")),
+    dzds(to_prime(z)),
     phipf(load<full_grid> (wout_file, "phipf")),
     chipf(load<full_grid> (wout_file, "chipf")),
     signj(load_scalar<int> (wout_file, "signgs")),
@@ -198,6 +204,22 @@ public:
     }
 
 //------------------------------------------------------------------------------
+///  @brief Convert full grid quantity to half grid primed.
+///
+///  @param[in] vmec A full grid vmec quantity to take the derivative of.
+//------------------------------------------------------------------------------
+    template<class PARITY>
+    static vmec_fourier<half_grid, PARITY> to_prime(const vmec_fourier<full_grid, PARITY> vmec) {
+        vmec_quantity<half_grid> half_quanity;
+
+        for (const vmec_grid<full_grid> &q : vmec.quantity) {
+            half_quanity.push_back(vmec_grid<half_grid> (q.grid.get_prime()));
+        }
+
+        return vmec_fourier<half_grid, PARITY> (half_quanity,  vmec.m,  vmec.n);
+    }
+
+//------------------------------------------------------------------------------
 ///  @brief Get R quantity.
 ///
 ///  @param[in] s Radial position.
@@ -218,7 +240,7 @@ public:
 ///  @returns R' at the s,u,v position.
 //------------------------------------------------------------------------------
     double get_r_prime(const double s, const double u, const double v) const {
-        return r.get_prime(s, u, v);
+        return 2.0*sqrt(s)*drds.get(s, u, v);
     }
 
 //------------------------------------------------------------------------------
@@ -266,7 +288,7 @@ public:
 ///  @returns R' at the s,u,v position.
 //------------------------------------------------------------------------------
     double get_z_prime(const double s, const double u, const double v) const {
-        return z.get_prime(s, u, v);
+        return 2.0*sqrt(s)*dzds.get(s, u, v);
     }
 
 //------------------------------------------------------------------------------
