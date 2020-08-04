@@ -153,66 +153,218 @@ public:
     template<class GIRD_CLASS, class PARITY>
     static siesta_fourier<GIRD_CLASS, PARITY> load_fourier_denorm(const std::string &restart_file,
                                                                   const std::string &name) {
-            int ncid;
-            nc_open(restart_file.c_str(), NC_NOWRITE, &ncid);
+        int ncid;
+        nc_open(restart_file.c_str(), NC_NOWRITE, &ncid);
 
-            int varid;
-            int nrad;
-            nc_inq_varid(ncid, "nrad", &varid);
-            nc_get_var(ncid, varid, &nrad);
+        int varid;
+        int nrad;
+        nc_inq_varid(ncid, "nrad", &varid);
+        nc_get_var(ncid, varid, &nrad);
 
-            int mpol;
-            nc_inq_varid(ncid, "mpol", &varid);
-            nc_get_var(ncid, varid, &mpol);
+        int mpol;
+        nc_inq_varid(ncid, "mpol", &varid);
+        nc_get_var(ncid, varid, &mpol);
 
-            int ntor;
-            nc_inq_varid(ncid, "ntor", &varid);
-            nc_get_var(ncid, varid, &ntor);
+        int ntor;
+        nc_inq_varid(ncid, "ntor", &varid);
+        nc_get_var(ncid, varid, &ntor);
 
-            int nfp;
-            nc_inq_varid(ncid, "nfp", &varid);
-            nc_get_var(ncid, varid, &nfp);
+        int nfp;
+        nc_inq_varid(ncid, "nfp", &varid);
+        nc_get_var(ncid, varid, &nfp);
 
-            double bfactor;
-            nc_inq_varid(ncid, "b_factor", &varid);
-            nc_get_var(ncid, varid, &bfactor);
+        double bfactor;
+        nc_inq_varid(ncid, "b_factor", &varid);
+        nc_get_var(ncid, varid, &bfactor);
 
-            siesta_quantity<GIRD_CLASS> quantity;
-            for (size_t m = 0, em = mpol; m <= em; m++) {
-                for (ssize_t n = -ntor, en = ntor; n <= en; n++) {
-                    const size_t ni = n + ntor;
+        siesta_quantity<GIRD_CLASS> quantity;
+        for (size_t m = 0, em = mpol; m <= em; m++) {
+            for (ssize_t n = -ntor, en = ntor; n <= en; n++) {
+                const size_t ni = n + ntor;
 
-                    std::vector<double> temp(nrad);
-                    nc_inq_varid(ncid, name.c_str(), &varid);
+                std::vector<double> temp(nrad);
+                nc_inq_varid(ncid, name.c_str(), &varid);
 
-                    const std::array<size_t, 3> start = {0, ni, m};
-                    const std::array<size_t, 3> end = {static_cast<size_t> (nrad), 1, 1};
-                    nc_get_vara(ncid, varid,
-                                start.data(), end.data(),
-                                temp.data());
+                const std::array<size_t, 3> start = {0, ni, m};
+                const std::array<size_t, 3> end = {static_cast<size_t> (nrad), 1, 1};
+                nc_get_vara(ncid, varid,
+                            start.data(), end.data(),
+                            temp.data());
 
-                    for (size_t i = 0; i < nrad; i++) {
-                        if (m == 0 && n == 0) {
-                            temp[i] = temp[i]/bfactor;
-                        } else {
-                            temp[i] = sqrt(2.0)*temp[i]/bfactor;
-                        }
-                    }
-
-                    if (n == -ntor) {
-                        siesta_quantity_1d<GIRD_CLASS> new_grid;
-                        new_grid.push_back(temp);
-                        quantity.push_back(new_grid);
+                for (size_t i = 0; i < nrad; i++) {
+                    if (m == 0 && n == 0) {
+                        temp[i] = temp[i]/bfactor;
                     } else {
-                        quantity[m].push_back(siesta_grid<GIRD_CLASS> (temp));
+                        temp[i] = sqrt(2.0)*temp[i]/bfactor;
                     }
                 }
+
+                if (n == -ntor) {
+                    siesta_quantity_1d<GIRD_CLASS> new_grid;
+                    new_grid.push_back(temp);
+                    quantity.push_back(new_grid);
+                } else {
+                    quantity[m].push_back(siesta_grid<GIRD_CLASS> (temp));
+                }
             }
-
-            nc_close(ncid);
-
-            return siesta_fourier<GIRD_CLASS, PARITY> (quantity, mpol, ntor, nfp);
         }
+
+        nc_close(ncid);
+
+        return siesta_fourier<GIRD_CLASS, PARITY> (quantity, mpol, ntor, nfp);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get R quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns R at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_r(const double s, const double u, const double v) const {
+        return r.get(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get R' quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns R' at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_r_prime(const double s, const double u, const double v) const {
+        return r.get_prime(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get dRdu quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns dRdu at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_dr_du(const double s, const double u, const double v) const {
+        return r.get_du(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get dRdv quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns dRdv at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_dr_dv(const double s, const double u, const double v) const {
+        return r.get_dv(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get Z quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns Z at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_z(const double s, const double u, const double v) const {
+        return z.get(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get Z' quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns R' at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_z_prime(const double s, const double u, const double v) const {
+        return z.get_prime(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get dZdu quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns dZdu at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_dz_du(const double s, const double u, const double v) const {
+        return z.get_du(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get dZdv quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns dZdv at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_dz_dv(const double s, const double u, const double v) const {
+        return z.get_dv(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get phipf quantity.
+///
+///  @param[in] s Radial position.
+///  @returns phipf at the s position.
+//------------------------------------------------------------------------------
+    double get_phipf(const double s) const {
+        return phipf.get(s);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get chipf quantity.
+///
+///  @param[in] s Radial position.
+///  @returns chipf at the s position.
+//------------------------------------------------------------------------------
+    double get_chipf(const double s) const {
+        return chipf.get(s);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get jbsups quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns jbsups at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_jbsups(const double s, const double u, const double v) const {
+        return jbsups.get(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get jbsupu quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns jbsupu at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_jbsupu(const double s, const double u, const double v) const {
+        return jbsupu.get(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get jbsupv quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns jbsupv at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_jbsupv(const double s, const double u, const double v) const {
+        return jbsupv.get(s, u, v);
+    }
 };
 
 #endif

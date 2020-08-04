@@ -196,6 +196,158 @@ public:
 
         return vmec_fourier<GIRD_CLASS, PARITY> (quantity, xm, xn);
     }
+
+//------------------------------------------------------------------------------
+///  @brief Get R quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns R at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_r(const double s, const double u, const double v) const {
+        return r.get(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get R' quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns R' at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_r_prime(const double s, const double u, const double v) const {
+        return r.get_prime(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get dRdu quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns dRdu at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_dr_du(const double s, const double u, const double v) const {
+        return r.get_du(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get dRdv quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns dRdv at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_dr_dv(const double s, const double u, const double v) const {
+        return r.get_dv(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get Z quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns Z at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_z(const double s, const double u, const double v) const {
+        return z.get(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get Z' quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns R' at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_z_prime(const double s, const double u, const double v) const {
+        return z.get_prime(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get dZdu quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns dZdu at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_dz_du(const double s, const double u, const double v) const {
+        return z.get_du(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get dZdv quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns dZdv at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_dz_dv(const double s, const double u, const double v) const {
+        return z.get_dv(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get phipf quantity.
+///
+///  @param[in] s Radial position.
+///  @returns phipf at the s position.
+//------------------------------------------------------------------------------
+    double get_phipf(const double s) const {
+        return signj*sqrt(s)*phipf.get(s)/M_PI;
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get chipf quantity.
+///
+///  @param[in] s Radial position.
+///  @returns chipf at the s position.
+//------------------------------------------------------------------------------
+    double get_chipf(const double s) const {
+        return signj*sqrt(s)*chipf.get(s)/M_PI;
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get jbsups quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns jbsups at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_jbsups(const double s, const double u, const double v) const {
+        return 0.0;
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get jbsupu quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns jbsupu at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_jbsupu(const double s, const double u, const double v) const {
+        return 2.0*sqrt(s)*j.get(s, u, v)*bsupu.get(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get jbsupv quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns jbsupv at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_jbsupv(const double s, const double u, const double v) const {
+        return 2.0*sqrt(s)*j.get(s, u, v)*bsupv.get(s, u, v);
+    }
 };
 
 #endif
