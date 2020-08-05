@@ -41,6 +41,8 @@ public:
     const vmec_fourier<half_grid, cosine> bsupv;
 ///  Total toroidal current.
     const double curtor;
+///  Pressure
+    const vmec_grid<full_grid> p;
 
 //------------------------------------------------------------------------------
 ///  @brief Vmec quantities.
@@ -60,7 +62,8 @@ public:
     j(load_fourier_nyq<half_grid, cosine> (wout_file, "gmnc")),
     bsupu(load_fourier_nyq<half_grid, cosine> (wout_file, "bsupumnc")),
     bsupv(load_fourier_nyq<half_grid, cosine> (wout_file, "bsupvmnc")),
-    curtor(load_scalar<double> (wout_file, "ctor")) {}
+    curtor(load_scalar<double> (wout_file, "ctor")),
+    p(load<full_grid> (wout_file, "presf")) {}
 
 //------------------------------------------------------------------------------
 ///  @brief Factory method to load a scalar vmec quantity.
@@ -445,6 +448,16 @@ public:
 //------------------------------------------------------------------------------
     double get_divb(const double s, const double u, const double v) const {
         return get_dbsupu_du(s,u,v) + get_dbsupv_dv(s,u,v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get pressure quantity.
+///
+///  @param[in] s Radial position.
+///  @returns Pressure at the s position.
+//------------------------------------------------------------------------------
+    double get_pressure(const double s) const {
+        return p.get(s);
     }
 };
 

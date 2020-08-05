@@ -44,6 +44,7 @@
 ///     @item2{@fixed_width{curtor},      Check total toroidal current.}
 ///     @item2{@fixed_width{vmec_divb},   Check vmec diveregence of B.}
 ///     @item2{@fixed_width{siesta_divb}, Check siesta diveregence of B.}
+///     @item2{@fixed_width{pressure},    Check profiles of pressure.}
 ///  @end_table
 ///
 ///  @section siesta_test_cl_pasring_prog_ref_sec Programmers Reference

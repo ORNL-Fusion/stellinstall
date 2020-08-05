@@ -17,6 +17,16 @@ test([&vmec]   (const double s, const double u, const double v) { \
      name, tol, min, max)                                         \
 )
 
+#define RUN_TEST_13D(vmec, siesta, method, name, min, max, tol)(  \
+test([&vmec]   (const double s) {                                 \
+        return vmec.method(s);                                    \
+     },                                                           \
+     [&siesta] (const double s) {                                 \
+        return siesta.method(s, 0.0, 0.0);                        \
+     },                                                           \
+     name, tol, min, max)                                         \
+)
+
 #define RUN_TEST_1D(vmec, siesta, method, name, min, max, tol)( \
 test([&vmec]   (const double s) {return vmec.method(s);},       \
      [&siesta] (const double s) {return siesta.method(s);},     \
@@ -289,62 +299,62 @@ int main(int argc, const char * argv[]) {
         const double tol = args.get<double> ("-tol");
         const double min = args.get<double> ("-min");
         const double max = args.get<double> ("-max");
-        RUN_TEST_3D(vmec, siesta, get_r, test_name, min,  max, tol);
+        RUN_TEST_3D(vmec, siesta, get_r, test_name, min, max, tol);
     } else if (test_name == "z") {
         const double tol = args.get<double> ("-tol");
         const double min = args.get<double> ("-min");
         const double max = args.get<double> ("-max");
-        RUN_TEST_3D(vmec, siesta, get_z, test_name, min,  max, tol);
+        RUN_TEST_3D(vmec, siesta, get_z, test_name, min, max, tol);
     } else if (test_name == "drdu") {
         const double tol = args.get<double> ("-tol");
         const double min = args.get<double> ("-min");
         const double max = args.get<double> ("-max");
-        RUN_TEST_3D(vmec, siesta, get_dr_du, test_name, min,  max, tol);
+        RUN_TEST_3D(vmec, siesta, get_dr_du, test_name, min, max, tol);
     } else if (test_name == "drdv") {
         const double tol = args.get<double> ("-tol");
         const double min = args.get<double> ("-min");
         const double max = args.get<double> ("-max");
-        RUN_TEST_3D(vmec, siesta, get_dr_dv, test_name, min,  max, tol);
+        RUN_TEST_3D(vmec, siesta, get_dr_dv, test_name, min, max, tol);
     } else if (test_name == "dzdu") {
         const double tol = args.get<double> ("-tol");
         const double min = args.get<double> ("-min");
         const double max = args.get<double> ("-max");
-        RUN_TEST_3D(vmec, siesta, get_dz_du, test_name, min,  max, tol);
+        RUN_TEST_3D(vmec, siesta, get_dz_du, test_name, min, max, tol);
     } else if (test_name == "dzdv") {
         const double tol = args.get<double> ("-tol");
         const double min = args.get<double> ("-min");
         const double max = args.get<double> ("-max");
-        RUN_TEST_3D(vmec, siesta, get_dz_dv, test_name, min,  max, tol);
+        RUN_TEST_3D(vmec, siesta, get_dz_dv, test_name, min, max, tol);
     } else if (test_name == "phipf") {
         const double tol = args.get<double> ("-tol");
         const double min = args.get<double> ("-min");
         const double max = args.get<double> ("-max");
-        RUN_TEST_1D(vmec, siesta, get_phipf, test_name, min,  max, tol);
+        RUN_TEST_1D(vmec, siesta, get_phipf, test_name, min, max, tol);
     } else if (test_name == "chipf") {
         const double tol = args.get<double> ("-tol");
         const double min = args.get<double> ("-min");
         const double max = args.get<double> ("-max");
-        RUN_TEST_1D(vmec, siesta, get_chipf, test_name, min,  max, tol);
+        RUN_TEST_1D(vmec, siesta, get_chipf, test_name, min, max, tol);
     } else if (test_name == "jbsups") {
         const double tol = args.get<double> ("-tol");
         const double min = args.get<double> ("-min");
         const double max = args.get<double> ("-max");
-        RUN_TEST_3D(vmec, siesta, get_jbsups, test_name, min,  max, tol);
+        RUN_TEST_3D(vmec, siesta, get_jbsups, test_name, min, max, tol);
     } else if (test_name == "jbsupu") {
         const double tol = args.get<double> ("-tol");
         const double min = args.get<double> ("-min");
         const double max = args.get<double> ("-max");
-        RUN_TEST_3D(vmec, siesta, get_jbsupu, test_name, min,  max, tol);
+        RUN_TEST_3D(vmec, siesta, get_jbsupu, test_name, min, max, tol);
     } else if (test_name == "jbsupv") {
         const double tol = args.get<double> ("-tol");
         const double min = args.get<double> ("-min");
         const double max = args.get<double> ("-max");
-        RUN_TEST_3D(vmec, siesta, get_jbsupv, test_name, min,  max, tol);
+        RUN_TEST_3D(vmec, siesta, get_jbsupv, test_name, min, max, tol);
     } else if (test_name == "jacobian") {
         const double tol = args.get<double> ("-tol");
         const double min = args.get<double> ("-min");
         const double max = args.get<double> ("-max");
-        RUN_TEST_3D(vmec, siesta, get_jacobian, test_name, min,  max, tol);
+        RUN_TEST_3D(vmec, siesta, get_jacobian, test_name, min, max, tol);
     } else if (test_name == "curtor") {
         const double tol = args.get<double> ("-tol");
         RUN_TEST_0D(vmec, siesta, get_curtor, test_name, tol);
@@ -352,12 +362,17 @@ int main(int argc, const char * argv[]) {
         const double tol = args.get<double> ("-tol");
         const double min = args.get<double> ("-min");
         const double max = args.get<double> ("-max");
-        RUN_TEST_DIV(vmec, get_divb, test_name, min,  max, tol);
+        RUN_TEST_DIV(vmec, get_divb, test_name, min, max, tol);
     } else if (test_name == "siesta_divb") {
         const double tol = args.get<double> ("-tol");
         const double min = args.get<double> ("-min");
         const double max = args.get<double> ("-max");
-        RUN_TEST_DIV(siesta, get_divb, test_name, min,  max, tol);
+        RUN_TEST_DIV(siesta, get_divb, test_name, min, max, tol);
+    } else if (test_name == "pressure") {
+        const double tol = args.get<double> ("-tol");
+        const double min = args.get<double> ("-min");
+        const double max = args.get<double> ("-max");
+        RUN_TEST_13D(vmec, siesta, get_pressure, test_name, min, max, tol);
     } else {
         std::cout << "Unknown test name " << test_name << "." << std::endl;
     }

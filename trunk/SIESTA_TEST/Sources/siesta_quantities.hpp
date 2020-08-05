@@ -48,6 +48,8 @@ public:
     const siesta_fourier<half_grid, cosine> bsupv;
 ///  Total toroidal current.
     const double curtor;
+///  Pressure
+    const siesta_fourier<half_grid, cosine> p;
 
 //------------------------------------------------------------------------------
 ///  @brief Siesta quantities.
@@ -70,7 +72,8 @@ public:
     bsups(load_fourier<half_grid, sine> (restart_file, "bsupsmnsh_m_n_r_")),
     bsupu(load_fourier<half_grid, cosine> (restart_file, "bsupumnch_m_n_r_")),
     bsupv(load_fourier<half_grid, cosine> (restart_file, "bsupvmnch_m_n_r_")),
-    curtor(load_scalar(restart_file, "curtor")) {}
+    curtor(load_scalar(restart_file, "curtor")),
+    p(load_fourier<half_grid, cosine> (restart_file, "pmnch_m_n_r_")) {}
 
 //------------------------------------------------------------------------------
 ///  @brief Factory method to load a siesta quantity.
@@ -518,6 +521,18 @@ public:
 //------------------------------------------------------------------------------
     double get_divb(const double s, const double u, const double v) const {
         return get_djbsups_ds(s,u,v) + get_djbsupu_du(s,u,v) + get_djbsupv_dv(s,u,v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get pressure.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns Pressure at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_pressure(const double s, const double u, const double v) const {
+        return p.get(s,u,v);
     }
 };
 
