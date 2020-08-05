@@ -34,6 +34,8 @@ public:
     const siesta_grid<full_grid> chipf;
 ///  JB^s
     const siesta_fourier<half_grid, sine> jbsups;
+///  dJB^sds
+    const siesta_fourier<full_grid, sine> djbsupsds;
 ///  JB^u
     const siesta_fourier<half_grid, cosine> jbsupu;
 ///  JB^v
@@ -44,6 +46,8 @@ public:
     const siesta_fourier<half_grid, cosine> bsupu;
 ///  JB^v
     const siesta_fourier<half_grid, cosine> bsupv;
+///  Total toroidal current.
+    const double curtor;
 
 //------------------------------------------------------------------------------
 ///  @brief Siesta quantities.
@@ -60,11 +64,13 @@ public:
     phipf(load<full_grid> (restart_file, "phipf_r_")),
     chipf(load<full_grid> (restart_file, "chipf_r_")),
     jbsups(load_fourier_denorm<half_grid, sine> (restart_file, "JBsupssh_m_n_r_")),
+    djbsupsds(to_prime(jbsups)),
     jbsupu(load_fourier_denorm<half_grid, cosine> (restart_file, "JBsupuch_m_n_r_")),
     jbsupv(load_fourier_denorm<half_grid, cosine> (restart_file, "JBsupvch_m_n_r_")),
     bsups(load_fourier<half_grid, sine> (restart_file, "bsupsmnsh_m_n_r_")),
     bsupu(load_fourier<half_grid, cosine> (restart_file, "bsupumnch_m_n_r_")),
-    bsupv(load_fourier<half_grid, cosine> (restart_file, "bsupvmnch_m_n_r_")) {}
+    bsupv(load_fourier<half_grid, cosine> (restart_file, "bsupvmnch_m_n_r_")),
+    curtor(load_scalar(restart_file, "curtor")) {}
 
 //------------------------------------------------------------------------------
 ///  @brief Factory method to load a siesta quantity.
@@ -90,6 +96,27 @@ public:
         nc_close(ncid);
 
         return siesta_grid<GIRD_CLASS> (temp);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Factory method to load a scalar siesta quantity.
+///
+///  @param[in] restart_file File name of a siesta restart file.
+///  @param[in] name          Name of the quantity to load.
+//------------------------------------------------------------------------------
+    static double load_scalar(const std::string &restart_file,
+                              const std::string &name) {
+        int ncid;
+        nc_open(restart_file.c_str(), NC_NOWRITE, &ncid);
+
+        int varid;
+        double temp;
+        nc_inq_varid(ncid, "curtor", &varid);
+        nc_get_var(ncid, varid, &temp);
+
+        nc_close(ncid);
+
+        return temp;
     }
 
 //------------------------------------------------------------------------------
@@ -246,6 +273,32 @@ public:
     }
 
 //------------------------------------------------------------------------------
+///  @brief Convert full grid quantity to half grid primed.
+///
+///  @param[in] siesta A full grid siesta quantity to take the derivative of.
+//------------------------------------------------------------------------------
+    template<class PARITY>
+    static siesta_fourier<full_grid, PARITY> to_prime(const siesta_fourier<half_grid, PARITY> siesta) {
+        siesta_quantity<full_grid> full_quanity;
+
+        for (size_t m = 0, em = siesta.mpol; m <= em; m++) {
+            siesta_quantity_1d<full_grid> full_slice;
+
+            for (ssize_t n = - siesta.ntor, en = siesta.ntor; n <= en; n++) {
+                const size_t ni = n + siesta.ntor;
+                full_slice.push_back(siesta_grid<full_grid> (siesta.quantity[m][ni].grid.get_prime(static_cast<double> (m))));
+            }
+
+            full_quanity.push_back(full_slice);
+        }
+
+        return siesta_fourier<full_grid, PARITY> (full_quanity,
+                                                  siesta.mpol,
+                                                  siesta.ntor,
+                                                  siesta.nfp);
+    }
+
+//------------------------------------------------------------------------------
 ///  @brief Get R quantity.
 ///
 ///  @param[in] s Radial position.
@@ -395,6 +448,76 @@ public:
 //------------------------------------------------------------------------------
     double get_jbsupv(const double s, const double u, const double v) const {
         return jbsupv.get(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get jacobian.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns jacobian at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_jacobian(const double s, const double u, const double v) const {
+        return get_r(s, u, v)*(get_dr_du(s, u, v)*get_z_prime(s, u, v) -
+                               get_r_prime(s, u, v)*get_dz_du(s, u, v));
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get total toroidal current.
+///
+///  @returns The total toroidal current.
+//------------------------------------------------------------------------------
+    double get_curtor() const {
+        return curtor;
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get djbsupsds quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns djbsupsds at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_djbsups_ds(const double s, const double u, const double v) const {
+        return djbsupsds.get(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get djbsupudu quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns djbsupudu at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_djbsupu_du(const double s, const double u, const double v) const {
+        return jbsupu.get_du(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get djbsupvdv quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns djbsupvdv at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_djbsupv_dv(const double s, const double u, const double v) const {
+        return jbsupv.get_dv(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get divergence of B.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns Div B at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_divb(const double s, const double u, const double v) const {
+        return get_djbsups_ds(s,u,v) + get_djbsupu_du(s,u,v) + get_djbsupv_dv(s,u,v);
     }
 };
 

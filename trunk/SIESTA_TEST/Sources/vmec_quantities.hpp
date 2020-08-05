@@ -39,6 +39,8 @@ public:
     const vmec_fourier<half_grid, cosine> bsupu;
 ///  B^v
     const vmec_fourier<half_grid, cosine> bsupv;
+///  Total toroidal current.
+    const double curtor;
 
 //------------------------------------------------------------------------------
 ///  @brief Vmec quantities.
@@ -57,7 +59,8 @@ public:
     signj(load_scalar<int> (wout_file, "signgs")),
     j(load_fourier_nyq<half_grid, cosine> (wout_file, "gmnc")),
     bsupu(load_fourier_nyq<half_grid, cosine> (wout_file, "bsupumnc")),
-    bsupv(load_fourier_nyq<half_grid, cosine> (wout_file, "bsupvmnc")) {}
+    bsupv(load_fourier_nyq<half_grid, cosine> (wout_file, "bsupvmnc")),
+    curtor(load_scalar<double> (wout_file, "ctor")) {}
 
 //------------------------------------------------------------------------------
 ///  @brief Factory method to load a scalar vmec quantity.
@@ -220,6 +223,22 @@ public:
     }
 
 //------------------------------------------------------------------------------
+///  @brief Convert full grid quantity to half grid primed.
+///
+///  @param[in] vmec A full grid vmec quantity to take the derivative of.
+//------------------------------------------------------------------------------
+    template<class PARITY>
+    static vmec_fourier<full_grid, PARITY> to_prime(const vmec_fourier<half_grid, PARITY> vmec) {
+        vmec_quantity<full_grid> full_quanity;
+
+        for (size_t i = 0, e = vmec.m.size(); i < e; i++) {
+            full_quanity.push_back(vmec_grid<full_grid> (vmec.quantity[i].grid.get_prime(vmec.m[i])));
+        }
+
+        return vmec_fourier<full_grid, PARITY> (full_quanity,  vmec.m,  vmec.n);
+    }
+
+//------------------------------------------------------------------------------
 ///  @brief Get R quantity.
 ///
 ///  @param[in] s Radial position.
@@ -369,6 +388,63 @@ public:
 //------------------------------------------------------------------------------
     double get_jbsupv(const double s, const double u, const double v) const {
         return 2.0*sqrt(s)*j.get(s, u, v)*bsupv.get(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get jacobian.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns jacobian at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_jacobian(const double s, const double u, const double v) const {
+        return 2.0*sqrt(s)*j.get(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get total toroidal current.
+///
+///  @returns The total toroidal current.
+//------------------------------------------------------------------------------
+    double get_curtor() const {
+        return curtor;
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get dbsupudu quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns dbsupudu at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_dbsupu_du(const double s, const double u, const double v) const {
+        return 2.0*sqrt(s)*j.get(s, u, v)*bsupu.get_du(s, u, v) + 2.0*sqrt(s)*j.get_du(s, u, v)*bsupu.get(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get dbsupvdv quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns dbsupvdv at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_dbsupv_dv(const double s, const double u, const double v) const {
+        return 2.0*sqrt(s)*j.get(s, u, v)*bsupv.get_dv(s, u, v) + 2.0*sqrt(s)*j.get_dv(s, u, v)*bsupv.get(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get divergence of B.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns Div B at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_divb(const double s, const double u, const double v) const {
+        return get_dbsupu_du(s,u,v) + get_dbsupv_dv(s,u,v);
     }
 };
 

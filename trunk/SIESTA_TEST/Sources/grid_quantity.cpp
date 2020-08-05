@@ -111,3 +111,25 @@ double half_grid::get(const double s) const {
         return weight_high*buffer[i_high] + weight_low*buffer[i_low];
     }
 }
+
+//------------------------------------------------------------------------------
+///  @brief Get a radial derivative at a s position.
+///
+///  @param[in] m Poloidal mode number.
+///  @returns The radial derivative on the half grid.
+//------------------------------------------------------------------------------
+full_grid half_grid::get_prime(const double m) const {
+    std::vector<double> temp(buffer.size());
+
+    for (size_t i = 1, e = buffer.size(); i < e; i++) {
+        temp[i] = (buffer[i] - buffer[i - 1])/ds;
+    }
+    temp[temp.size() - 1] = temp[temp.size() - 2];
+    if (m == 1.0) {
+        temp[0] = temp[1];
+    } else {
+        temp[0] = 0.0;
+    }
+
+    return full_grid(temp);
+}

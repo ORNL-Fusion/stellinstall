@@ -21,9 +21,9 @@
                                endglobrow, rcounts, MPI_ERR
       USE shared_data, ONLY: gc, xc, neqs, gc0, xc0, fsq_total, mblk_size, ndims
       USE shared_data, ONLY: asubsmnsf, asubumncf, asubvmncf,                  &
-                             fsupsmnsf, fsupumncf, fsupvmncf,                  &
-                             asubsmncf, asubumnsf, asubvmnsf,                  &
-                             fsupsmncf, fsupumnsf, fsupvmnsf
+                             asubsmncf, asubumnsf, asubvmnsf
+      USE quantities, ONLY: fsupsmnsf, fsupumncf, fsupvmncf,                   &
+                            fsupsmncf, fsupumnsf, fsupvmnsf
       USE shared_data, ONLY: torflux, polflux, nsp, r1_i, z1_i, ru_i,          &
                              zu_i, rv_i, zv_i, lcolscale
       USE descriptor_mod, ONLY: iam, nprocs, lscalapack, INHESSIAN, SIESTA_COMM
@@ -1079,8 +1079,7 @@
 !>  @brief The the current residual.
 !-------------------------------------------------------------------------------
       SUBROUTINE GETFSQ_PCHELMS
-      USE shared_data, ONLY: fsupsmnsf, fsupumncf, fsupvmncf,                  &
-                             fsupsmncf, fsupumnsf, fsupvmnsf, lasym
+      USE shared_data, ONLY: lasym
       USE mpi_inc
 
       IMPLICIT NONE
@@ -1256,11 +1255,7 @@
 !>  @param[in] lNLinear Use Non linear equations.
 !-------------------------------------------------------------------------------
       SUBROUTINE COMPUTE_FORCES(lNLinear)
-      USE shared_data, ONLY: asubsmnsf, asubumncf, asubvmncf,                  &
-                             fsupsmnsf, fsupumncf, fsupvmncf,                  &
-                             asubsmncf, asubumnsf, asubvmnsf,                  &
-                             fsupsmncf, fsupumnsf, fsupvmnsf, neqs,            &
-                             siesta_curtor, lasym
+      USE shared_data, ONLY: neqs, siesta_curtor, lasym
       USE bmw_run, ONLY: bmw_exec
       USE siesta_namelist, ONLY: wout_file, mgrid_file
       USE island_params, ONLY: fourier_context

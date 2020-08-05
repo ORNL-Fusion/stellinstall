@@ -398,14 +398,14 @@
 !>  positive definiteness of metric tensor.
 !-------------------------------------------------------------------------------
       SUBROUTINE full_mesh_metrics
-      USE island_params, nuv=>nuv_i, nzeta=>nv_i, ntheta=>nu_i!, ns=>ns_i
+      USE island_params, nuv=>nuv_i
 
       IMPLICIT NONE  
 
 !  Local variables
-      INTEGER                   :: istat
-      INTEGER                   :: js
-      REAL (dp), DIMENSION(nuv) :: det
+      INTEGER                              :: istat
+      INTEGER                              :: js
+      REAL (dp), DIMENSION(:), ALLOCATABLE :: det
 
 !  Start executable code.
       ALLOCATE(gssf(nuv,ns_i), guuf(nuv,ns_i), gvvf(nuv,ns_i),                 &
@@ -419,6 +419,8 @@
       CALL to_full_mesh(gsu, gsuf)
       CALL to_full_mesh(gsv, gsvf)
       CALL to_full_mesh(guv, guvf)
+
+      ALLOCATE(det(nuv))
 
 !  Compute upper metric elements (inverse of lower matrix) on full mesh.
 !  NOTE: DET == 1/det|Gij| == 1/sqrtg(full)**2
@@ -436,6 +438,8 @@
           huv(:,js) = (gssf(:,js)*guvf(:,js) - gsuf(:,js)*gsvf(:,js))/det
           hvv(:,js) = (gsuf(:,js)*gsuf(:,js) - gssf(:,js)*guuf(:,js))/det
       END DO
+
+      DEALLOCATE(det)
 
       CALL check_metrics
 

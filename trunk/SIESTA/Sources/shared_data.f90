@@ -184,18 +184,6 @@
 !>  Covariant vector potential for non-stellator symmetric v component on full
 !>  grid.
       REAL (dp), DIMENSION(:,:,:), POINTER        :: asubvmnsf
-!>  Contravariant force for stellarator symmetric s component on full grid.
-      REAL (dp), DIMENSION(:,:,:), POINTER        :: fsupsmnsf
-!>  Contravariant force for stellarator non-symmetric s component on full grid.
-      REAL (dp), DIMENSION(:,:,:), POINTER        :: fsupsmncf
-!>  Contravariant force for stellarator symmetric u component on full grid.
-      REAL (dp), DIMENSION(:,:,:), POINTER        :: fsupumncf
-!>  Contravariant force for stellarator non-symmetric u component on full grid.
-      REAL (dp), DIMENSION(:,:,:), POINTER        :: fsupumnsf
-!>  Contravariant force for stellarator symmetric v component on full grid.
-      REAL (dp), DIMENSION(:,:,:), POINTER        :: fsupvmncf
-!>  Contravariant force for stellarator non-symmetric v component on full grid.
-      REAL (dp), DIMENSION(:,:,:), POINTER        :: fsupvmnsf
       
 !  Flags to control evolving origin and edge.
 !>  Solve u,v components at s=1.

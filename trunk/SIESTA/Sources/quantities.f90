@@ -876,6 +876,7 @@
       USE fourier, ONLY: f_none, f_cos, f_sin, f_sum
       USE metrics, ONLY: toupper
       USE utilities, ONLY: set_bndy_full_origin
+      USE hessian, ONLY: gather_array
 
 !  Local Variables
       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: fsubsijf
@@ -933,6 +934,10 @@
          CALL set_bndy_full_origin(fsupsmncf, fsupumnsf, fsupvmnsf)
       END IF
 
+      CALL gather_array(fsupsmncf)
+      CALL gather_array(fsupumnsf)
+      CALL gather_array(fsupvmnsf)
+
       IF (lasym) THEN
          CALL fourier_context%tomnsp(fsupsijf, fsupsmnsf(:,:,nsmin:nsmax),     &
                                      f_sin)
@@ -944,6 +949,10 @@
          IF (nsmin .eq. 1) THEN
             CALL set_bndy_full_origin(fsupsmnsf, fsupumncf, fsupvmncf)
          END IF
+
+         CALL gather_array(fsupsmnsf)
+         CALL gather_array(fsupumncf)
+         CALL gather_array(fsupvmncf)
       END IF
 
       DEALLOCATE(fsupsijf, fsupuijf, fsupvijf, stat=istat)

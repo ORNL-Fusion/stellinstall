@@ -94,6 +94,14 @@ public:
 ///  @returns The interpolated s position.
 //------------------------------------------------------------------------------
     double get(const double s) const final;
+
+//------------------------------------------------------------------------------
+///  @brief Get a radial derivative at a s position.
+///
+///  @param[in] m Poloidal mode number.
+///  @returns The radial derivative on the half grid.
+//------------------------------------------------------------------------------
+    full_grid get_prime(const double m) const;
 };
 
 //------------------------------------------------------------------------------

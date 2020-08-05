@@ -21,8 +21,30 @@
 ///     @item3{@fixed_width{-h},            N, Displays the help text and exits the program.}
 ///     @item3{@fixed_width{-wout_file},    Y, Specify the mgrid input file name.}
 ///     @item3{@fixed_width{-restart_file}, Y, Specify the wout input file name.}
+///     @item3{@fixed_width{-test_name},    Y, Name of the test to run.}
+///     @item3{@fixed_width{-tol}           Y, Tolarance value.}
+///     @item3{@fixed_width{-min}           Y, Minimum radial value.}
+///     @item3{@fixed_width{-max}           Y, Maximum radial value.}
 ///  @end_table
 ///
+///  @section siesta_test_cl_test_names_sec Test names.
+///  @begin_table
+///     @item2{@fixed_width{r},           Check profiles of r.}
+///     @item2{@fixed_width{z},           Check profiles of z.}
+///     @item2{@fixed_width{drdu},        Check profiles of drdu.}
+///     @item2{@fixed_width{drdv},        Check profiles of drdv.}
+///     @item2{@fixed_width{dzdu},        Check profiles of dzdu.}
+///     @item2{@fixed_width{dzdv},        Check profiles of dzdv.}
+///     @item2{@fixed_width{phipf},       Check profiles of phipf.}
+///     @item2{@fixed_width{chipf},       Check profiles of chipf.}
+///     @item2{@fixed_width{jbsups},      Check profiles of jbsups.}
+///     @item2{@fixed_width{jbsupu},      Check profiles of jbsupu.}
+///     @item2{@fixed_width{jbsupv},      Check profiles of jbsupv.}
+///     @item2{@fixed_width{jacobian},    Check profiles of jbsupu.}
+///     @item2{@fixed_width{curtor},      Check total toroidal current.}
+///     @item2{@fixed_width{vmec_divb},   Check vmec diveregence of B.}
+///     @item2{@fixed_width{siesta_divb}, Check siesta diveregence of B.}
+///  @end_table
 ///
 ///  @section siesta_test_cl_pasring_prog_ref_sec Programmers Reference
 ///  Reference material for the coding to implement command line parsing is found
@@ -39,6 +61,7 @@
 #include <iostream>
 #include <map>
 #include <string>
+#include <sstream>
 
 ///  Type for the argument map.
 typedef std::map<std::string, std::string> arg_map;
@@ -110,12 +133,31 @@ public:
     }
 
 //------------------------------------------------------------------------------
-///  @brief Check if command arg was set.
+///  @brief Get the value of the agument.
 ///
 ///  @param[in] key Commandline key to check.
 ///  @returns True if the key was set.
 //------------------------------------------------------------------------------
-    std::string get(const std::string &key) const {
+    template<typename TYPE>
+    TYPE get(const std::string &key) const {
+        if (!this->is_set(key)) {
+            help();
+        }
+
+        std::stringstream value_stream(commands.at(key));
+        TYPE temp;
+        value_stream >> temp;
+
+        return temp;
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get the value of the agument.
+///
+///  @param[in] key Commandline key to check.
+///  @returns True if the key was set.
+//------------------------------------------------------------------------------
+    template<> std::string get<std::string> (const std::string &key) const {
         if (!this->is_set(key)) {
             help();
         }
@@ -140,6 +182,15 @@ public:
         std::cout << "  -wout_file    Y Path to the VMEC wout file.                                   " << std::endl;
         std::cout << "                                                                                " << std::endl;
         std::cout << "  -restart_file Y Path to the SIESTA restart file.                              " << std::endl;
+        std::cout << "                                                                                " << std::endl;
+        std::cout << "  -test_name    Y Name of the test to run.                                      " << std::endl;
+        std::cout << "                                                                                " << std::endl;
+        std::cout << "  -tol          Y Tolarance value.                                              " << std::endl;
+        std::cout << "                                                                                " << std::endl;
+        std::cout << "  -min          Y Minimum radial value.                                         " << std::endl;
+        std::cout << "                                                                                " << std::endl;
+        std::cout << "  -max          Y Maximum radial value.                                         " << std::endl;
+        std::cout << "                                                                                " << std::endl;
         std::cout << std::endl;
 
         exit(0);

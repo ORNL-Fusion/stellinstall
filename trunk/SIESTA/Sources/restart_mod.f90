@@ -121,6 +121,30 @@
       CHARACTER (len=*), PARAMETER :: vn_jksupvmns = 'jksupvmnsf(m,n,r)'
 !>  Name for the restart file jksupvmnc.
       CHARACTER (len=*), PARAMETER :: vn_jksupvmnc = 'jksupvmncf(m,n,r)'
+!>  Name for the restart file fsupsmns.
+      CHARACTER (len=*), PARAMETER :: vn_fsupsmns = 'fsupsmnsf(m,n,r)'
+!>  Name for the restart file fsupsmnc.
+      CHARACTER (len=*), PARAMETER :: vn_fsupsmnc = 'fsupsmncf(m,n,r)'
+!>  Name for the restart file fsupumns.
+      CHARACTER (len=*), PARAMETER :: vn_fsupumns = 'fsupumnsf(m,n,r)'
+!>  Name for the restart file fsupumnc.
+      CHARACTER (len=*), PARAMETER :: vn_fsupumnc = 'fsupumncf(m,n,r)'
+!>  Name for the restart file fsupvmns.
+      CHARACTER (len=*), PARAMETER :: vn_fsupvmns = 'fsupvmnsf(m,n,r)'
+!>  Name for the restart file fsupvmnc.
+      CHARACTER (len=*), PARAMETER :: vn_fsupvmnc = 'fsupvmncf(m,n,r)'
+!>  Name for the restart file fsubsmns.
+      CHARACTER (len=*), PARAMETER :: vn_fsubsmns = 'fsubsmnsf(m,n,r)'
+!>  Name for the restart file fsubsmnc.
+      CHARACTER (len=*), PARAMETER :: vn_fsubsmnc = 'fsubsmncf(m,n,r)'
+!>  Name for the restart file fsubumns.
+      CHARACTER (len=*), PARAMETER :: vn_fsubumns = 'fsubumnsf(m,n,r)'
+!>  Name for the restart file fsubumnc.
+      CHARACTER (len=*), PARAMETER :: vn_fsubumnc = 'fsubumncf(m,n,r)'
+!>  Name for the restart file fsubvmns.
+      CHARACTER (len=*), PARAMETER :: vn_fsubvmns = 'fsubvmnsf(m,n,r)'
+!>  Name for the restart file fsubvmnc.
+      CHARACTER (len=*), PARAMETER :: vn_fsubvmnc = 'fsubvmncf(m,n,r)'
 
 !>  Name for the restart file p_factor.
       CHARACTER (len=*), PARAMETER :: vn_p_factor = 'p_factor'
@@ -360,8 +384,12 @@
                             jbsupumnsh, jbsupumnch,                            &
                             jbsupvmnsh, jbsupvmnch,                            &
                             jpmnsh,     jpmnch,                                &
+                            fsubsmncf, fsubumnsf, fsubvmnsf,                   &
+                            fsubsmnsf, fsubumncf, fsubvmncf,                   &
+                            fsupsmncf, fsupumnsf, fsupvmnsf,                   &
+                            fsupsmnsf, fsupumncf, fsupvmncf,                   &
                             b_factor,   p_factor, jacobh
-      USE fourier, ONLY: f_cos, f_sin, f_sum, f_none
+      USE fourier, ONLY: f_cos, f_sin, f_sum, f_none, n0, m0
       USE island_params, ONLY: nfp => nfp_i, chipf => chipf_i,                 &
                                phipf => phipf_i, wb => wb_i, wp => wp_i,       &
                                rmajor => rmajor_i, fourier_context,            &
@@ -446,6 +474,12 @@
       CALL cdf_define(ncid, vn_jksupsmns, jbsupsmnsh, dimname=restart_dims)
       CALL cdf_define(ncid, vn_jksupumnc, jbsupumnch, dimname=restart_dims)
       CALL cdf_define(ncid, vn_jksupvmnc, jbsupvmnch, dimname=restart_dims)
+      CALL cdf_define(ncid, vn_fsupsmnc,  jbsupsmnsh, dimname=restart_dims)
+      CALL cdf_define(ncid, vn_fsupumns,  jbsupumnch, dimname=restart_dims)
+      CALL cdf_define(ncid, vn_fsupvmns,  jbsupvmnch, dimname=restart_dims)
+      CALL cdf_define(ncid, vn_fsubsmnc,  jbsupsmnsh, dimname=restart_dims)
+      CALL cdf_define(ncid, vn_fsubumns,  jbsupumnch, dimname=restart_dims)
+      CALL cdf_define(ncid, vn_fsubvmns,  jbsupvmnch, dimname=restart_dims)
       CALL cdf_define(ncid, vn_pmnc,      jpmnch,     dimname=restart_dims)
       CALL cdf_define(ncid, vn_b_factor,  b_factor)
       CALL cdf_define(ncid, vn_p_factor,  p_factor)
@@ -472,6 +506,12 @@
          CALL cdf_define(ncid, vn_jksupsmnc, jbsupsmnch, dimname=restart_dims)
          CALL cdf_define(ncid, vn_jksupumns, jbsupumnsh, dimname=restart_dims)
          CALL cdf_define(ncid, vn_jksupvmns, jbsupvmnsh, dimname=restart_dims)
+         CALL cdf_define(ncid, vn_fsupsmns,  jbsupsmnsh, dimname=restart_dims)
+         CALL cdf_define(ncid, vn_fsupumnc,  jbsupumnch, dimname=restart_dims)
+         CALL cdf_define(ncid, vn_fsupvmnc,  jbsupvmnch, dimname=restart_dims)
+         CALL cdf_define(ncid, vn_fsubsmns,  jbsupsmnsh, dimname=restart_dims)
+         CALL cdf_define(ncid, vn_fsubumnc,  jbsupumnch, dimname=restart_dims)
+         CALL cdf_define(ncid, vn_fsubvmnc,  jbsupvmnch, dimname=restart_dims)
          CALL cdf_define(ncid, vn_pmns, jpmnsh, dimname=restart_dims)
       END IF
 
@@ -571,6 +611,30 @@
       CALL restart_denormalize(tempmn_w, b_factor)
       CALL cdf_write(ncid, vn_bsupvmnc, tempmn_w)
 
+      tempmn_w = fsubsmncf
+      CALL restart_denormalize(tempmn_w, 1.0_dp)
+      CALL cdf_write(ncid, vn_fsubsmnc, tempmn_w)
+
+      tempmn_w = fsubumnsf
+      CALL restart_denormalize(tempmn_w, 1.0_dp)
+      CALL cdf_write(ncid, vn_fsubumns, tempmn_w)
+
+      tempmn_w = fsubvmnsf
+      CALL restart_denormalize(tempmn_w, 1.0_dp)
+      CALL cdf_write(ncid, vn_fsubvmns, tempmn_w)
+
+      tempmn_w = fsupsmncf
+      CALL restart_denormalize(tempmn_w, 1.0_dp)
+      CALL cdf_write(ncid, vn_fsupsmnc, tempmn_w)
+
+      tempmn_w = fsupumnsf
+      CALL restart_denormalize(tempmn_w, 1.0_dp)
+      CALL cdf_write(ncid, vn_fsupumns, tempmn_w)
+
+      tempmn_w = fsupvmnsf
+      CALL restart_denormalize(tempmn_w, 1.0_dp)
+      CALL cdf_write(ncid, vn_fsupvmns, tempmn_w)
+
 !  Remove the orthonorm and p_factor so this quantity can be directly summed.
       CALL fourier_context%tomnsp(pijh, tempmn_w, f_cos)
       CALL restart_denormalize(tempmn_w, p_factor*mu0)
@@ -619,6 +683,7 @@
       CALL cdf_write(ncid, vn_jksupumnc, jksupumnf)
       CALL cdf_write(ncid, vn_jksupvmnc, jksupvmnf)
 
+      tempscalar = -fourier_context%orthonorm(m0,n0)*tempscalar/b_factor
       CALL cdf_write(ncid, vn_curtor, tempscalar)
 
       IF (lasym) THEN
@@ -634,6 +699,30 @@
          CALL fourier_context%tomnsp(bsupvijh, tempmn_w, f_sin)
          CALL restart_denormalize(tempmn_w, b_factor)
          CALL cdf_write(ncid, vn_bsupvmns, tempmn_w)
+
+         tempmn_w = fsubsmnsf
+         CALL restart_denormalize(tempmn_w, 1.0_dp)
+         CALL cdf_write(ncid, vn_fsubsmns, tempmn_w)
+
+         tempmn_w = fsubumncf
+         CALL restart_denormalize(tempmn_w, 1.0_dp)
+         CALL cdf_write(ncid, vn_fsubumnc, tempmn_w)
+
+         tempmn_w = fsubvmncf
+         CALL restart_denormalize(tempmn_w, 1.0_dp)
+         CALL cdf_write(ncid, vn_fsubvmnc, tempmn_w)
+
+         tempmn_w = fsupsmnsf
+         CALL restart_denormalize(tempmn_w, 1.0_dp)
+         CALL cdf_write(ncid, vn_fsupsmns, tempmn_w)
+
+         tempmn_w = fsupumncf
+         CALL restart_denormalize(tempmn_w, 1.0_dp)
+         CALL cdf_write(ncid, vn_fsupumnc, tempmn_w)
+
+         tempmn_w = fsupvmncf
+         CALL restart_denormalize(tempmn_w, 1.0_dp)
+         CALL cdf_write(ncid, vn_fsupvmnc, tempmn_w)
 
 !  Remove the orthonorm and p_factor so this quantity can be directly summed.
          CALL fourier_context%tomnsp(pijh, tempmn_w, f_sin)
