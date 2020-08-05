@@ -1,28 +1,19 @@
  &SIESTA_INFO
  ETA_FACTOR = 1.E-4
-!HESSPASS_TEST = -2 
  LCOLSCALE = T
-! L_VESSEL = F
  LADD_PERT = F
  LRESISTIVE = F
  LRESTART   = F
  LRECON    = T
  lasym     = F
  NITER = 1
-! NITER = 1000
  NSIN      = 100
-! NSIN_EXT  = 70
-! MPOLIN    = 1 ! 12
-! NTORIN    = 0 ! 8
  MPOLIN    = 5 ! 12
  NTORIN    = 0 ! 8
-! NTORIN    = 1 ! 8
  FTOL      = 1.E-25,
  levmarq_param = 1.0E-1,
  MUPAR     =  0.0
  WOUT_FILE      = 'wout_test.vmec.nc',
-! MGRID_FILE     = '/Users/m4c/Research/W7-X/mgrid/large/mgrid_w7x.nc'
-! VESSEL_FILE    = 'vessel_w7x.dat'
  RESTART_EXT    = 'restart_w7x',
  MRES    = 2,
  HELPERT = 5.0E-4,
@@ -32,14 +23,3 @@
  NSS = 101
  NPHIS = 2
  /
-
- !POINCARE
- !L_TRACING = T
- !NVS = 100
- !NUS = 101
- !NSS = 101
-
-
- !CURRENT
- !l_silo_output = T
- !l_silo3d = F
