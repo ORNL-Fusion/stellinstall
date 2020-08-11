@@ -58,7 +58,7 @@ add_test (NAME    siesta_init_jacobian_test
           COMMAND ${EXECUTABLE_OUTPUT_PATH}/xsiesta_test -wout_file=${CMAKE_CURRENT_BINARY_DIR}/wout_test.vmec.nc -restart_file=${CMAKE_CURRENT_BINARY_DIR}/siesta_restart_w7x.nc -test_name=jacobian -min=0.0 -max=1.0 -tol=1.0E-4)
 
 add_test (NAME    siesta_init_jbsups_test
-          COMMAND ${EXECUTABLE_OUTPUT_PATH}/xsiesta_test -wout_file=${CMAKE_CURRENT_BINARY_DIR}/wout_test.vmec.nc -restart_file=${CMAKE_CURRENT_BINARY_DIR}/siesta_restart_w7x.nc -test_name=jbsups -min=0.0 -max=1.0 -tol=1.0E-5)
+          COMMAND ${EXECUTABLE_OUTPUT_PATH}/xsiesta_test -wout_file=${CMAKE_CURRENT_BINARY_DIR}/wout_test.vmec.nc -restart_file=${CMAKE_CURRENT_BINARY_DIR}/siesta_restart_w7x.nc -test_name=jbsups -min=0.0 -max=1.0 -tol=1.0E-20)
 add_test (NAME    siesta_init_jbsupu_test
           COMMAND ${EXECUTABLE_OUTPUT_PATH}/xsiesta_test -wout_file=${CMAKE_CURRENT_BINARY_DIR}/wout_test.vmec.nc -restart_file=${CMAKE_CURRENT_BINARY_DIR}/siesta_restart_w7x.nc -test_name=jbsupu -min=0.0 -max=1.0 -tol=1.0E-4)
 add_test (NAME    siesta_init_jbsupv_test
@@ -71,3 +71,20 @@ add_test (NAME    siesta_init_siesta_divb_test
 
 add_test (NAME    siesta_init_siesta_pressure_test
     COMMAND ${EXECUTABLE_OUTPUT_PATH}/xsiesta_test -wout_file=${CMAKE_CURRENT_BINARY_DIR}/wout_test.vmec.nc -restart_file=${CMAKE_CURRENT_BINARY_DIR}/siesta_restart_w7x.nc -test_name=pressure -min=0.0 -max=1.0 -tol=1.0)
+
+add_test (NAME    siesta_init_bsups_test
+          COMMAND ${EXECUTABLE_OUTPUT_PATH}/xsiesta_test -wout_file=${CMAKE_CURRENT_BINARY_DIR}/wout_test.vmec.nc -restart_file=${CMAKE_CURRENT_BINARY_DIR}/siesta_restart_w7x.nc -test_name=bsups -min=0.0 -max=1.0 -tol=1.0E-20)
+add_test (NAME    siesta_init_bsupu_test
+          COMMAND ${EXECUTABLE_OUTPUT_PATH}/xsiesta_test -wout_file=${CMAKE_CURRENT_BINARY_DIR}/wout_test.vmec.nc -restart_file=${CMAKE_CURRENT_BINARY_DIR}/siesta_restart_w7x.nc -test_name=bsupu -min=0.005 -max=0.99 -tol=1.0E-3 -relative)
+add_test (NAME    siesta_init_bsupv_test
+          COMMAND ${EXECUTABLE_OUTPUT_PATH}/xsiesta_test -wout_file=${CMAKE_CURRENT_BINARY_DIR}/wout_test.vmec.nc -restart_file=${CMAKE_CURRENT_BINARY_DIR}/siesta_restart_w7x.nc -test_name=bsupv -min=0.015 -max=0.99 -tol=2.0E-3 -relative)
+
+add_test (NAME    siesta_init_bsubu_test
+          COMMAND ${EXECUTABLE_OUTPUT_PATH}/xsiesta_test -wout_file=${CMAKE_CURRENT_BINARY_DIR}/wout_test.vmec.nc -restart_file=${CMAKE_CURRENT_BINARY_DIR}/siesta_restart_w7x.nc -test_name=bsubu -min=0.005 -max=1.0 -tol=2.0E-1 -relative)
+add_test (NAME    siesta_init_bsubv_test
+          COMMAND ${EXECUTABLE_OUTPUT_PATH}/xsiesta_test -wout_file=${CMAKE_CURRENT_BINARY_DIR}/wout_test.vmec.nc -restart_file=${CMAKE_CURRENT_BINARY_DIR}/siesta_restart_w7x.nc -test_name=bsubv -min=0.005 -max=1.0 -tol=1.0E-5 -relative)
+
+add_test (NAME    siesta_init_jksups_test
+          COMMAND ${EXECUTABLE_OUTPUT_PATH}/xsiesta_test -wout_file=${CMAKE_CURRENT_BINARY_DIR}/wout_test.vmec.nc -restart_file=${CMAKE_CURRENT_BINARY_DIR}/siesta_restart_w7x.nc -test_name=jbsups -min=0.0 -max=1.0 -tol=1.0E-10)
+add_test (NAME    siesta_init_jksupu_test
+          COMMAND ${EXECUTABLE_OUTPUT_PATH}/xsiesta_test -wout_file=${CMAKE_CURRENT_BINARY_DIR}/wout_test.vmec.nc -restart_file=${CMAKE_CURRENT_BINARY_DIR}/siesta_restart_w7x.nc -test_name=jbsupu -min=0.0 -max=1.0 -tol=2.0 -relative)

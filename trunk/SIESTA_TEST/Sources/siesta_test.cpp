@@ -425,12 +425,30 @@ int main(int argc, const char * argv[]) {
         RUN_TEST_1D(vmec, siesta, get_phipf, test_name, args);
     } else if (test_name == "chipf") {
         RUN_TEST_1D(vmec, siesta, get_chipf, test_name, args);
+    } else if (test_name == "bsups") {
+        RUN_TEST_3D(vmec, siesta, get_bsups, test_name, args);
+    } else if (test_name == "bsupu") {
+        RUN_TEST_3D(vmec, siesta, get_bsupu, test_name, args);
+    } else if (test_name == "bsupv") {
+        RUN_TEST_3D(vmec, siesta, get_bsupv, test_name, args);
+    } else if (test_name == "bsubs") {
+        RUN_TEST_3D(vmec, siesta, get_bsubs, test_name, args);
+    } else if (test_name == "bsubu") {
+        RUN_TEST_3D(vmec, siesta, get_bsubu, test_name, args);
+    } else if (test_name == "bsubv") {
+        RUN_TEST_3D(vmec, siesta, get_bsubv, test_name, args);
     } else if (test_name == "jbsups") {
         RUN_TEST_3D(vmec, siesta, get_jbsups, test_name, args);
     } else if (test_name == "jbsupu") {
         RUN_TEST_3D(vmec, siesta, get_jbsupu, test_name, args);
     } else if (test_name == "jbsupv") {
         RUN_TEST_3D(vmec, siesta, get_jbsupv, test_name, args);
+    } else if (test_name == "jksups") {
+        RUN_TEST_3D(vmec, siesta, get_jksups, test_name, args);
+    } else if (test_name == "jksupu") {
+        RUN_TEST_3D(vmec, siesta, get_jksupu, test_name, args);
+    } else if (test_name == "jksupv") {
+        RUN_TEST_3D(vmec, siesta, get_jksupv, test_name, args);
     } else if (test_name == "jacobian") {
         RUN_TEST_3D(vmec, siesta, get_jacobian, test_name, args);
     } else if (test_name == "curtor") {

@@ -41,10 +41,19 @@
 ///     @item2{@fixed_width{dzdv},        Check profiles of dzdv.}
 ///     @item2{@fixed_width{phipf},       Check profiles of phipf.}
 ///     @item2{@fixed_width{chipf},       Check profiles of chipf.}
+///     @item2{@fixed_width{bsups},       Check profiles of bsups.}
+///     @item2{@fixed_width{bsupu},       Check profiles of bsupu.}
+///     @item2{@fixed_width{bsupv},       Check profiles of bsupv.}
+///     @item2{@fixed_width{bsubs},       Check profiles of bsubs.}
+///     @item2{@fixed_width{bsubu},       Check profiles of bsubu.}
+///     @item2{@fixed_width{bsubv},       Check profiles of bsubv.}
 ///     @item2{@fixed_width{jbsups},      Check profiles of jbsups.}
 ///     @item2{@fixed_width{jbsupu},      Check profiles of jbsupu.}
 ///     @item2{@fixed_width{jbsupv},      Check profiles of jbsupv.}
-///     @item2{@fixed_width{jacobian},    Check profiles of jbsupu.}
+///     @item2{@fixed_width{jksups},      Check profiles of jksups.}
+///     @item2{@fixed_width{jksupu},      Check profiles of jksupu.}
+///     @item2{@fixed_width{jksupv},      Check profiles of jksupv.}
+///     @item2{@fixed_width{jacobian},    Check profiles of the jacobian.}
 ///     @item2{@fixed_width{curtor},      Check total toroidal current.}
 ///     @item2{@fixed_width{vmec_divb},   Check vmec diveregence of B.}
 ///     @item2{@fixed_width{siesta_divb}, Check siesta diveregence of B.}

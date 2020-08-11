@@ -44,6 +44,18 @@ public:
     const siesta_fourier<half_grid, cosine> bsupu;
 ///  JB^v
     const siesta_fourier<half_grid, cosine> bsupv;
+///  B_s
+    const siesta_fourier<half_grid, sine> bsubs;
+///  B_u
+    const siesta_fourier<half_grid, cosine> bsubu;
+///  B_v
+    const siesta_fourier<half_grid, cosine> bsubv;
+///  JK^s
+    const siesta_fourier<full_grid, sine> jksups;
+///  JK^u
+    const siesta_fourier<full_grid, cosine> jksupu;
+///  JK^v
+    const siesta_fourier<full_grid, cosine> jksupv;
 ///  Total toroidal current.
     const double curtor;
 ///  Pressure
@@ -70,6 +82,12 @@ public:
     bsups(load_fourier<half_grid, sine> (restart_file, "bsupsmnsh_m_n_r_")),
     bsupu(load_fourier<half_grid, cosine> (restart_file, "bsupumnch_m_n_r_")),
     bsupv(load_fourier<half_grid, cosine> (restart_file, "bsupvmnch_m_n_r_")),
+    bsubs(load_fourier<half_grid, sine> (restart_file, "bsubsmnsh_m_n_r_")),
+    bsubu(load_fourier<half_grid, cosine> (restart_file, "bsubumnch_m_n_r_")),
+    bsubv(load_fourier<half_grid, cosine> (restart_file, "bsubvmnch_m_n_r_")),
+    jksups(load_fourier<full_grid, sine> (restart_file, "jksupsmnsf_m_n_r_")),
+    jksupu(load_fourier<full_grid, cosine> (restart_file, "jksupumncf_m_n_r_")),
+    jksupv(load_fourier<full_grid, cosine> (restart_file, "jksupvmncf_m_n_r_")),
     curtor(load_scalar(restart_file, "curtor")),
     p(load_fourier<half_grid, cosine> (restart_file, "pmnch_m_n_r_")) {}
 
@@ -413,6 +431,114 @@ public:
 //------------------------------------------------------------------------------
     double get_chipf(const double s) const {
         return chipf.get(s);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get bsups quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns bsups at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_bsups(const double s, const double u, const double v) const {
+        return bsups.get(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get bsupu quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns bsupu at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_bsupu(const double s, const double u, const double v) const {
+        return bsupu.get(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get bsupv quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns bsupv at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_bsupv(const double s, const double u, const double v) const {
+        return bsupv.get(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get bsubs quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns bsubs at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_bsubs(const double s, const double u, const double v) const {
+        return bsubs.get(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get bsubu quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns bsubu at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_bsubu(const double s, const double u, const double v) const {
+        return bsubu.get(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get bsubv quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns bsubv at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_bsubv(const double s, const double u, const double v) const {
+        return bsubv.get(s, u, v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get jksups quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns jksups at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_jksups(const double s, const double u, const double v) const {
+        return jksups.get(s, u, v)/(M_PI*4.0E-7);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get jksupu quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns jksupu at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_jksupu(const double s, const double u, const double v) const {
+        return jksupu.get(s, u, v)/(M_PI*4.0E-7);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get jksupv quantity.
+///
+///  @param[in] s Radial position.
+///  @param[in] u Radial position.
+///  @param[in] v Radial position.
+///  @returns jksupv at the s,u,v position.
+//------------------------------------------------------------------------------
+    double get_jksupv(const double s, const double u, const double v) const {
+        return jksupv.get(s, u, v)/(M_PI*4.0E-7);
     }
 
 //------------------------------------------------------------------------------
