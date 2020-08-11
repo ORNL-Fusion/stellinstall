@@ -9,8 +9,6 @@
 #include <string>
 #include <netcdf.h>
 
-#include <iostream>
-
 #include "grid_quantity.hpp"
 
 //------------------------------------------------------------------------------

@@ -22,9 +22,13 @@
 ///     @item3{@fixed_width{-wout_file},    Y, Specify the mgrid input file name.}
 ///     @item3{@fixed_width{-restart_file}, Y, Specify the wout input file name.}
 ///     @item3{@fixed_width{-test_name},    Y, Name of the test to run.}
-///     @item3{@fixed_width{-tol}           Y, Tolarance value.}
-///     @item3{@fixed_width{-min}           Y, Minimum radial value.}
-///     @item3{@fixed_width{-max}           Y, Maximum radial value.}
+///     @item3{@fixed_width{-tol},          Y, Tolarance value.}
+///     @item3{@fixed_width{-min},          Y, Minimum radial value.}
+///     @item3{@fixed_width{-max},          Y, Maximum radial value.}
+///     @item3{@fixed_width{-relative},     N, Use relative error.}
+///     @item3{@fixed_width{-dump},         N, Dump values to the screen.}
+///     @item3{@fixed_width{-u},            Y, Poloidal angle to dump.}
+///     @item3{@fixed_width{-v},            Y, Toroidal angle to dump.}
 ///  @end_table
 ///
 ///  @section siesta_test_cl_test_names_sec Test names.
@@ -137,7 +141,7 @@ public:
 ///  @brief Get the value of the agument.
 ///
 ///  @param[in] key Commandline key to check.
-///  @returns True if the key was set.
+///  @returns Value of the argument.
 //------------------------------------------------------------------------------
     template<typename TYPE>
     TYPE get(const std::string &key) const {
@@ -153,10 +157,10 @@ public:
     }
 
 //------------------------------------------------------------------------------
-///  @brief Get the value of the agument.
+///  @brief Get the string value of the agument.
 ///
 ///  @param[in] key Commandline key to check.
-///  @returns True if the key was set.
+///  @returns String value of the argument.
 //------------------------------------------------------------------------------
     template<> std::string get<std::string> (const std::string &key) const {
         if (!this->is_set(key)) {
@@ -191,6 +195,14 @@ public:
         std::cout << "  -min          Y Minimum radial value.                                         " << std::endl;
         std::cout << "                                                                                " << std::endl;
         std::cout << "  -max          Y Maximum radial value.                                         " << std::endl;
+        std::cout << "                                                                                " << std::endl;
+        std::cout << "  -relative     N Use relative error.                                           " << std::endl;
+        std::cout << "                                                                                " << std::endl;
+        std::cout << "  -dump         N Dump values to the screen.                                    " << std::endl;
+        std::cout << "                                                                                " << std::endl;
+        std::cout << "  -u            Y Poloidal angle to dump.                                       " << std::endl;
+        std::cout << "                                                                                " << std::endl;
+        std::cout << "  -v            Y Toroidal angle to dump..                                      " << std::endl;
         std::cout << "                                                                                " << std::endl;
         std::cout << std::endl;
 

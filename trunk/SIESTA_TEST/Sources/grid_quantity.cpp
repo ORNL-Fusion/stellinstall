@@ -92,16 +92,6 @@ double half_grid::get(const double s) const {
         const double index = (2.0 - 4.0*s - ds*buffer.size() + 2.0*s*buffer.size())
                            / (2.0 - 2.0*ds);
 
-        if (index < 1 || index > buffer.size() - 1) {
-            std::cout << std::endl;
-            std::cout << std::endl;
-            std::cout << s << std::endl;
-            std::cout << ds*0.5 << std::endl;
-            std::cout << index << std::endl;
-            std::cout << std::endl;
-            exit(1);
-        }
-
         const size_t i_low = static_cast<size_t> (floor(index));
         const size_t i_high = i_low + 1;
 
