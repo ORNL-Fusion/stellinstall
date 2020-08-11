@@ -118,6 +118,10 @@
 !>     @item{zaxis_cc,    Magnetic axis Z cosine coeffiecents.,            @ref read_wout_mod::zaxis}
 !>     @item{zaxis_cs,    Magnetic axis Z sine coeffiecents.,              @ref read_wout_mod::zaxis}
 !>     @item{qfact,       Safety factor profile.,                          @ref read_wout_mod::qfact}
+!>     @item{pres,        Half grid pressure. Should only be used when
+!>                        reconstructing a pressure profile parameter.,    @ref read_wout_mod::pres}
+!>     @item{presf,       Full grid pressure. Should only be used when
+!>                        reconstructing a pressure profile parameter.,    @ref read_wout_mod::pres}
 !>  @end_table
 !*******************************************************************************
 !>  @file vmec_equilibrium.f
@@ -240,74 +244,78 @@
       INTEGER, PARAMETER :: vmec_zaxis_cs_id    = 57
 !>  1D Array of full grid safety factor. Defined in read_wout_mod.
       INTEGER, PARAMETER :: vmec_qfact_id       = 58
+!>  1D Array of full grid safety factor. Defined in read_wout_mod.
+      INTEGER, PARAMETER :: vmec_pres_id        = 59
+!>  1D Array of full grid safety factor. Defined in read_wout_mod.
+      INTEGER, PARAMETER :: vmec_presf_id       = 60
 
 !  Auxiliary Model Parameters
 !>  1D Array of function density profile parameters. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ne_b_id     = 59
+      INTEGER, PARAMETER :: vmec_pp_ne_b_id     = 61
 !>  1D Array of segment density profile s poitions. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ne_as_id    = 60
+      INTEGER, PARAMETER :: vmec_pp_ne_as_id    = 62
 !>  1D Array of segment density profile f values. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ne_af_id    = 61
+      INTEGER, PARAMETER :: vmec_pp_ne_af_id    = 63
 !>  1D Array of function sxrem profile parameters. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_sxrem_b_id  = 62
+      INTEGER, PARAMETER :: vmec_pp_sxrem_b_id  = 64
 !>  1D Array of segment sxrem profile s poitions. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_sxrem_as_id = 63
+      INTEGER, PARAMETER :: vmec_pp_sxrem_as_id = 65
 !>  1D Array of segment sxrem profile f values. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_sxrem_af_id = 64
+      INTEGER, PARAMETER :: vmec_pp_sxrem_af_id = 66
 !>  1D Array of function electron temperature profile parameters. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_te_b_id     = 65
+      INTEGER, PARAMETER :: vmec_pp_te_b_id     = 67
 !>  1D Array of segment electron temperature profile s poitions. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_te_as_id    = 66
+      INTEGER, PARAMETER :: vmec_pp_te_as_id    = 68
 !>  1D Array of segment electron temperature profile f values. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_te_af_id    = 67
+      INTEGER, PARAMETER :: vmec_pp_te_af_id    = 69
 !>  1D Array of function ion temperature profile parameters. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ti_b_id     = 68
+      INTEGER, PARAMETER :: vmec_pp_ti_b_id     = 70
 !>  1D Array of segment ion temperature profile s poitions. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ti_as_id    = 69
+      INTEGER, PARAMETER :: vmec_pp_ti_as_id    = 71
 !>  1D Array of segment ion temperature profile f values. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ti_af_id    = 70
+      INTEGER, PARAMETER :: vmec_pp_ti_af_id    = 72
 !>  1D Array of function zeff profile parameters. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ze_b_id     = 71
+      INTEGER, PARAMETER :: vmec_pp_ze_b_id     = 73
 !>  1D Array of segment zeff profile s poitions. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ze_as_id    = 72
+      INTEGER, PARAMETER :: vmec_pp_ze_as_id    = 74
 !>  1D Array of segment zeff profile f values. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ze_af_id    = 73
+      INTEGER, PARAMETER :: vmec_pp_ze_af_id    = 75
 
 !  Derived Parameters
 !>  Internal inducance. Defined in @ref v3f_vmec_comm. Computed in @ref eqfor.
-      INTEGER, PARAMETER :: vmec_vvc_smaleli_id = 74
+      INTEGER, PARAMETER :: vmec_vvc_smaleli_id = 76
 !>  Mean elongation. Defined in @ref v3f_vmec_comm. Computed in @ref eqfor.
-      INTEGER, PARAMETER :: vmec_vvc_kappa_p_id = 75
+      INTEGER, PARAMETER :: vmec_vvc_kappa_p_id = 77
 !>  Total Beta. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_betatot_id     = 76
+      INTEGER, PARAMETER :: vmec_betatot_id     = 78
 !>  Poloidal Beta. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_betapol_id     = 77
+      INTEGER, PARAMETER :: vmec_betapol_id     = 79
 !>  Toroidal Beta. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_betator_id     = 78
+      INTEGER, PARAMETER :: vmec_betator_id     = 80
 !>  Beta on axis. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_betaxis_id     = 79
+      INTEGER, PARAMETER :: vmec_betaxis_id     = 81
 !>  Poloidal current density. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_jcuru_id       = 80
+      INTEGER, PARAMETER :: vmec_jcuru_id       = 82
 !>  Toroidal current density. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_jcurv_id       = 81
+      INTEGER, PARAMETER :: vmec_jcurv_id       = 83
 !>  Current density in direction of b field. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_jdotb_id       = 82
+      INTEGER, PARAMETER :: vmec_jdotb_id       = 84
 
 !>  Plasma Phi offset. This is a parameter to allow changing the phi angle of a
 !>  quasi helical state in an RFP. Defined in @ref vmec_equilibrium.
-      INTEGER, PARAMETER :: vmec_phi_offset_id  = 83
+      INTEGER, PARAMETER :: vmec_phi_offset_id  = 85
 !>  Plasma z offset. This is a parameter to allow changing the vertical shift of
 !>  the plasma
-      INTEGER, PARAMETER :: vmec_z_offset_id    = 84
+      INTEGER, PARAMETER :: vmec_z_offset_id    = 86
 
 !>  Virtual casing grid points for vacuum field measurements.
       INTEGER, PARAMETER :: magnetic_cache_vc_min_grid_points = 101
@@ -2190,6 +2198,12 @@
          CASE ('qfact')
             vmec_get_param_id = vmec_qfact_id
 
+         CASE ('pres')
+            vmec_get_param_id = vmec_pres_id
+
+         CASE ('presf')
+            vmec_get_param_id = vmec_presf_id
+
          CASE ('pp_ne_b')
             vmec_get_param_id = vmec_pp_ne_b_id
 
@@ -2303,7 +2317,7 @@
      &                         bsubsmns, bsupumnc, bsupvmnc,                   &
      &                         bsubumns, bsubvmns,                             &
      &                         bsubsmnc, bsupumns, bsupvmns,                   &
-     &                         phi, iotaf, iotas,                              &
+     &                         phi, iotaf, iotas, pres, presf,                 &
      &                         betatot, betapol, betator, betaxis,             &
      &                         jcuru, jcurv, jdotb, raxis, zaxis, qfact
       USE v3f_vmec_comm
@@ -2456,6 +2470,12 @@
 
          CASE (vmec_qfact_id)
             vmec_get_param_value = qfact(i_index)
+
+         CASE (vmec_pres_id)
+            vmec_get_param_value = pres(i_index)
+
+         CASE (vmec_presf_id)
+            vmec_get_param_value = presf(i_index)
 
          CASE (vmec_pp_ne_b_id)
             vmec_get_param_value = this%ne%b(i_index)
@@ -2701,6 +2721,12 @@
 
          CASE (vmec_qfact_id)
             vmec_get_param_name = 'qfact'
+
+         CASE (vmec_pres_id)
+            vmec_get_param_name = 'pres'
+
+         CASE (vmec_presf_id)
+            vmec_get_param_name = 'presf'
 
          CASE (vmec_pp_ne_b_id)
             vmec_get_param_name = 'pp_ne_b'
@@ -5042,7 +5068,8 @@
      &         vmec_extcur_id, vmec_phi_id, vmec_iotaf_id,                     &
      &         vmec_iotas_id, vmec_jcuru_id, vmec_jcurv_id,                    &
      &         vmec_jdotb_id, vmec_raxis_cc_id, vmec_raxis_cs_id,              &
-     &         vmec_zaxis_cc_id, vmec_zaxis_cs_id, vmec_qfact_id)
+     &         vmec_zaxis_cc_id, vmec_zaxis_cs_id, vmec_qfact_id,              &
+     &         vmec_pres_id, vmec_presf_id)
             vmec_is_1d_array = .true.
 
          CASE DEFAULT
