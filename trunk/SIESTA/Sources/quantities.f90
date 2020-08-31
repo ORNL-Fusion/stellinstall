@@ -20,7 +20,6 @@
       USE nscalingtools, ONLY: startglobrow, endglobrow, PARSOLVER, MPI_ERR
       USE utilities, ONLY: to_half_mesh, to_full_mesh
       USE siesta_namelist, ONLY: l_vessel
-      USE siesta_test
 
       IMPLICIT NONE
 
