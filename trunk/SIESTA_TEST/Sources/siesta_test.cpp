@@ -459,6 +459,8 @@ int main(int argc, const char * argv[]) {
         RUN_TEST_DIV(siesta, get_divb, test_name, args);
     } else if (test_name == "pressure") {
         RUN_TEST_13D(vmec, siesta, get_pressure, test_name, args);
+    } else if (test_name == "test") {
+        RUN_TEST_1D(vmec, siesta, get_test, test_name, args);
     } else {
         std::cout << "Unknown test name " << test_name << "." << std::endl;
     }

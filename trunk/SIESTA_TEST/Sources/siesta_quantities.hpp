@@ -18,6 +18,8 @@
 //------------------------------------------------------------------------------
 class siesta_quantities {
 public:
+/// test function
+    const siesta_grid<full_grid> test_full;
 ///  r
     const siesta_fourier<full_grid, cosine> r;
 ///  drds
@@ -69,6 +71,7 @@ public:
 ///  @param[in] restart_file File name of a restart file.
 //------------------------------------------------------------------------------
     siesta_quantities(const std::string &restart_file) :
+    test_full(make_full()),
     r(load_fourier<full_grid, cosine> (restart_file, "rmnc_m_n_r_")),
     drds(to_prime(r)),
     z(load_fourier<full_grid, sine> (restart_file, "zmns_m_n_r_")),
@@ -92,10 +95,29 @@ public:
     p(load_fourier<half_grid, cosine> (restart_file, "pmnch_m_n_r_")) {}
 
 //------------------------------------------------------------------------------
+///  @brief Factory method to make a test quantity.
+///
+///  @returns A constructed test quantity.
+//------------------------------------------------------------------------------
+    static siesta_grid<full_grid> make_full() {
+        std::vector<double> temp(100);
+
+        for (size_t i = 0; i < 100; i++) {
+            double s = static_cast<double> (i)/99.0;
+            s *= s;
+
+            temp[i] = cos(s);
+        }
+
+        return siesta_grid<full_grid> (temp);
+    }
+
+//------------------------------------------------------------------------------
 ///  @brief Factory method to load a siesta quantity.
 ///
 ///  @param[in] restart_file File name of a siesta restart file.
 ///  @param[in] name          Name of the quantity to load.
+///  @returns A constructed siesta grid quantity.
 //------------------------------------------------------------------------------
     template<class GIRD_CLASS>
     static siesta_grid<GIRD_CLASS> load(const std::string &restart_file,
@@ -122,6 +144,7 @@ public:
 ///
 ///  @param[in] restart_file File name of a siesta restart file.
 ///  @param[in] name          Name of the quantity to load.
+///  @returns A constructed scalar quantity.
 //------------------------------------------------------------------------------
     static double load_scalar(const std::string &restart_file,
                               const std::string &name) {
@@ -143,6 +166,7 @@ public:
 ///
 ///  @param[in] restart_file File name of a siesta restart file.
 ///  @param[in] name         Name of the quantity to load.
+///  @returns A constructed siesta fourier quantity.
 //------------------------------------------------------------------------------
     template<class GIRD_CLASS, class PARITY>
     static siesta_fourier<GIRD_CLASS, PARITY> load_fourier(const std::string &restart_file,
@@ -201,6 +225,7 @@ public:
 ///
 ///  @param[in] restart_file File name of a siesta restart file.
 ///  @param[in] name         Name of the quantity to load.
+///  @returns A constructed denormalized siesta fourier quantity.
 //------------------------------------------------------------------------------
     template<class GIRD_CLASS, class PARITY>
     static siesta_fourier<GIRD_CLASS, PARITY> load_fourier_denorm(const std::string &restart_file,
@@ -270,6 +295,7 @@ public:
 ///  @brief Convert full grid quantity to half grid primed.
 ///
 ///  @param[in] siesta A full grid siesta quantity to take the derivative of.
+///  @returns A half grid derivative.
 //------------------------------------------------------------------------------
     template<class PARITY>
     static siesta_fourier<half_grid, PARITY> to_prime(const siesta_fourier<full_grid, PARITY> siesta) {
@@ -295,6 +321,7 @@ public:
 ///  @brief Convert full grid quantity to half grid primed.
 ///
 ///  @param[in] siesta A full grid siesta quantity to take the derivative of.
+///  @returns A full grid derivative.
 //------------------------------------------------------------------------------
     template<class PARITY>
     static siesta_fourier<full_grid, PARITY> to_prime(const siesta_fourier<half_grid, PARITY> siesta) {
@@ -657,6 +684,16 @@ public:
 //------------------------------------------------------------------------------
     double get_pressure(const double s, const double u, const double v) const {
         return p.get(s,u,v);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get test quantity.
+///
+///  @param[in] s Radial position.
+///  @returns Test value at the s position.
+//------------------------------------------------------------------------------
+    double get_test(const double s) const {
+        return test_full.get(s);
     }
 };
 

@@ -8,5 +8,6 @@ list (APPEND siesta_test_sources
     ${CMAKE_CURRENT_SOURCE_DIR}/siesta_quantities.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vmec_quantities.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/commandline_parser.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/commandline_parser.cpp
 )
 set (siesta_test_sources "${siesta_test_sources}" PARENT_SCOPE)

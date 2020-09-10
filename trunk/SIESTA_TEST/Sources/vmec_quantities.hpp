@@ -19,6 +19,8 @@
 //------------------------------------------------------------------------------
 class vmec_quantities {
 public:
+/// test function
+    const vmec_grid<full_grid> test_full;
 ///  r
     const vmec_fourier<full_grid, cosine> r;
 ///  drds
@@ -62,6 +64,7 @@ public:
 ///  @param[in] wout_file File name of a vmec wout file.
 //------------------------------------------------------------------------------
     vmec_quantities(const std::string &wout_file) :
+    test_full(make_full()),
     r(load_fourier<full_grid, cosine> (wout_file, "rmnc")),
     drds(to_prime(r)),
     z(load_fourier<full_grid, sine> (wout_file, "zmns")),
@@ -81,10 +84,28 @@ public:
     p(load<full_grid> (wout_file, "presf")) {}
 
 //------------------------------------------------------------------------------
+///  @brief Factory method to make a test quantity.
+///
+///  @returns A constructed test quantity.
+//------------------------------------------------------------------------------
+    static vmec_grid<full_grid> make_full() {
+        std::vector<double> temp(100);
+
+        for (size_t i = 0; i < 100; i++) {
+            const double s = static_cast<double> (i)/99.0;
+
+            temp[i] = cos(s);
+        }
+
+        return vmec_grid<full_grid> (temp);
+    }
+
+//------------------------------------------------------------------------------
 ///  @brief Factory method to load a scalar vmec quantity.
 ///
 ///  @param[in] wout_file File name of a vmec wout file.
 ///  @param[in] name      Name of the quantity to load.
+///  @returns A constructed scalar quantity.
 //------------------------------------------------------------------------------
     template<typename TYPE>
     static double load_scalar(const std::string &wout_file,
@@ -107,6 +128,7 @@ public:
 ///
 ///  @param[in] wout_file File name of a vmec wout file.
 ///  @param[in] name      Name of the quantity to load.
+///  @returns A constructed vmec grid quantity.
 //------------------------------------------------------------------------------
     template<class GIRD_CLASS>
     static vmec_grid<GIRD_CLASS> load(const std::string &wout_file,
@@ -133,6 +155,7 @@ public:
 ///
 ///  @param[in] wout_file File name of a vmec wout file.
 ///  @param[in] name      Name of the quantity to load.
+///  @returns A constructed vmec fourier quantity.
 //------------------------------------------------------------------------------
     template<class GIRD_CLASS, class PARITY>
     static vmec_fourier<GIRD_CLASS, PARITY> load_fourier(const std::string &wout_file,
@@ -181,6 +204,7 @@ public:
 ///
 ///  @param[in] wout_file File name of a vmec wout file.
 ///  @param[in] name      Name of the nyquest quantity to load.
+///  @returns A constructed vmec nyquest fourier quantity.
 //------------------------------------------------------------------------------
     template<class GIRD_CLASS, class PARITY>
     static vmec_fourier<GIRD_CLASS, PARITY> load_fourier_nyq(const std::string &wout_file,
@@ -228,6 +252,7 @@ public:
 ///  @brief Convert full grid quantity to half grid primed.
 ///
 ///  @param[in] vmec A full grid vmec quantity to take the derivative of.
+///  @returns A half grid derivative.
 //------------------------------------------------------------------------------
     template<class PARITY>
     static vmec_fourier<half_grid, PARITY> to_prime(const vmec_fourier<full_grid, PARITY> vmec) {
@@ -244,6 +269,7 @@ public:
 ///  @brief Convert full grid quantity to half grid primed.
 ///
 ///  @param[in] vmec A full grid vmec quantity to take the derivative of.
+///  @returns A full grid derivative.
 //------------------------------------------------------------------------------
     template<class PARITY>
     static vmec_fourier<full_grid, PARITY> to_prime(const vmec_fourier<half_grid, PARITY> vmec) {
@@ -581,6 +607,16 @@ public:
 //------------------------------------------------------------------------------
     double get_pressure(const double s) const {
         return p.get(s);
+    }
+
+//------------------------------------------------------------------------------
+///  @brief Get test quantity.
+///
+///  @param[in] s Radial position.
+///  @returns Test value at the s position.
+//------------------------------------------------------------------------------
+    double get_test(const double s) const {
+        return test_full.get(s);
     }
 };
 

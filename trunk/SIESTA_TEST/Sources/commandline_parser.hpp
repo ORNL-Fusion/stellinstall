@@ -33,6 +33,7 @@
 ///
 ///  @section siesta_test_cl_test_names_sec Test names.
 ///  @begin_table
+///     @item2{@fixed_width{test},        Check a test profile of a known function.}
 ///     @item2{@fixed_width{r},           Check profiles of r.}
 ///     @item2{@fixed_width{z},           Check profiles of z.}
 ///     @item2{@fixed_width{drdu},        Check profiles of drdu.}
@@ -154,7 +155,7 @@ public:
 //------------------------------------------------------------------------------
     template<typename TYPE>
     TYPE get(const std::string &key) const {
-        if (!this->is_set(key)) {
+        if (!is_set(key)) {
             help();
         }
 
@@ -163,20 +164,6 @@ public:
         value_stream >> temp;
 
         return temp;
-    }
-
-//------------------------------------------------------------------------------
-///  @brief Get the string value of the agument.
-///
-///  @param[in] key Commandline key to check.
-///  @returns String value of the argument.
-//------------------------------------------------------------------------------
-    template<> std::string get<std::string> (const std::string &key) const {
-        if (!this->is_set(key)) {
-            help();
-        }
-
-        return commands.at(key);
     }
 
 //------------------------------------------------------------------------------
