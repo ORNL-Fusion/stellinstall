@@ -2,6 +2,7 @@
 #include <iostream>
 #include <random>
 #include <chrono>
+#include <functional>
 
 #include "vmec_quantities.hpp"
 #include "siesta_quantities.hpp"
