@@ -59,7 +59,8 @@
 !>  Interface for the bmw_commandline_parser constructor.
 !-------------------------------------------------------------------------------
       INTERFACE m_grid_class
-         MODULE PROCEDURE m_grid_construct
+         MODULE PROCEDURE m_grid_construct,                                    &
+     &                    m_grid_construct_plasma
       END INTERFACE
 
       CONTAINS
@@ -191,6 +192,81 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref m_grid_class object.
+!>
+!>  Allocates memory and initializes a @ref m_grid_class for plasma only
+!>  responce on a manual grid.
+!>
+!>  @param[in] num_r    Number of radial points.
+!>  @param[in] num_p    Number of toroidal points.
+!>  @param[in] num_z    Number of vertical points.
+!>  @param[in] rmax     Maximum radial position.
+!>  @param[in] rmin     Minimum radial position.
+!>  @param[in] zmax     Maximum vertical position.
+!>  @param[in] zmin     Minimum vertical position.
+!>  @param[in] parallel @ref bmw_parallel_context_class object instance.
+!>  @param[in] io_unit  Unit number to write messages to.
+!>  @returns A pointer to a constructed @ref m_grid_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION m_grid_construct_plasma(num_r, num_p, num_z,                    &
+     &                                 rmax, rmin, zmax, zmin,                 &
+     &                                 parallel, io_unit)
+      USE read_wout_mod, Only: nfp
+      USE bmw_parallel_context
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CLASS (m_grid_class), POINTER :: m_grid_construct_plasma
+      INTEGER, INTENT(in)                            :: num_r
+      INTEGER, INTENT(in)                            :: num_p
+      INTEGER, INTENT(in)                            :: num_z
+      REAL (rprec), INTENT(in)                       :: rmax
+      REAL (rprec), INTENT(in)                       :: rmin
+      REAL (rprec), INTENT(in)                       :: zmax
+      REAL (rprec), INTENT(in)                       :: zmin
+      CLASS (bmw_parallel_context_class), INTENT(in) :: parallel
+      INTEGER, INTENT(in)                            :: io_unit
+
+!  local variables
+      REAL (rprec)                                   :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      ALLOCATE(m_grid_construct_plasma)
+
+      m_grid_construct_plasma%nfp = nfp
+
+      m_grid_construct_plasma%rmax = rmax
+      m_grid_construct_plasma%zmax = zmax
+      m_grid_construct_plasma%rmin = rmin
+      m_grid_construct_plasma%zmin = zmin
+
+      m_grid_construct_plasma%dr = (m_grid_construct_plasma%rmax -             &
+     &                              m_grid_construct_plasma%rmin)              &
+     &                           / (num_r - 1.0)
+      m_grid_construct_plasma%dz = (m_grid_construct_plasma%zmax -             &
+     &                              m_grid_construct_plasma%zmin)              &
+     &                           / (num_z - 1.0)
+
+      ALLOCATE(m_grid_construct_plasma%a_r(num_r, num_z, num_p))
+      ALLOCATE(m_grid_construct_plasma%a_p(num_r, num_z, num_p))
+      ALLOCATE(m_grid_construct_plasma%a_z(num_r, num_z, num_p))
+
+!$OMP PARALLEL
+!$OMP WORKSHARE
+      m_grid_construct_plasma%a_r = 0.0
+      m_grid_construct_plasma%a_p = 0.0
+      m_grid_construct_plasma%a_z = 0.0
+!$OMP END WORKSHARE
+!$OMP END PARALLEL
+
+      CALL profiler_set_stop_time('m_grid_construct_plasma', start_time)
+
+      END FUNCTION
+
 !*******************************************************************************
 !  DESTRUCTION SUBROUTINES
 !*******************************************************************************
@@ -266,7 +342,7 @@
       INTEGER                          :: ilow
       INTEGER                          :: ihigh
       INTEGER                          :: jlow
-      INTEGER                           :: jhigh
+      INTEGER                          :: jhigh
       INTEGER                          :: klow
       INTEGER                          :: khigh
 

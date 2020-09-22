@@ -70,10 +70,10 @@
       cl_parser => bmw_commandline_parser_class(parallel)
 
 !  Check if the required flags are set.
-      IF (.not.cl_parser%is_flag_set('-mgridf')) THEN
-         WRITE (*,1001) '-mgridf'
-         CALL bmw_commandline_parser_print_help
-      END IF
+!      IF (.not.cl_parser%is_flag_set('-mgridf')) THEN
+!         WRITE (*,1001) '-mgridf'
+!         CALL bmw_commandline_parser_print_help
+!      END IF
       IF (.not.cl_parser%is_flag_set('-woutf')) THEN
          WRITE (*,1001) '-woutf'
          CALL bmw_commandline_parser_print_help
@@ -118,10 +118,23 @@
       END IF
       CALL parallel%report(io_unit)
 
-      context => bmw_context_class(cl_parser%get('-mgridf'),                   &
-     &                             cl_parser%get('-woutf'),                    &
-     &                             cl_parser%get('-siestaf'),                  &
-     &                             flags, num_p, parallel, io_unit)
+      IF (cl_parser%is_flag_set('-mgridf')) THEN
+         context => bmw_context_class(cl_parser%get('-mgridf'),                &
+     &                                cl_parser%get('-woutf'),                 &
+     &                                cl_parser%get('-siestaf'),               &
+     &                                flags, num_p, parallel, io_unit)
+      ELSE
+         num_p = cl_parser%get('-num_p', 1)
+         context => bmw_context_class(cl_parser%get('-woutf'),                 &
+     &                                cl_parser%get('-siestaf'), flags,        &
+     &                                cl_parser%get('-num_r', 1), num_p,       &
+     &                                cl_parser%get('-num_z', 1),              &
+     &                                cl_parser%get('-rmax', 0.0_dp),          &
+     &                                cl_parser%get('-rmin', 0.0_dp),          &
+     &                                cl_parser%get('-zmax', 0.0_dp),          &
+     &                                cl_parser%get('-zmin', 0.0_dp),          &
+     &                                parallel, io_unit)
+      END IF
       CALL context%set_up_grid(cl_parser%get('-p_start', -1),                  &
      &                         cl_parser%get('-p_end', -1),                    &
      &                         parallel, io_unit)
