@@ -31,20 +31,15 @@
          REAL (rprec), DIMENSION(:), POINTER :: y
 !>  Array of z points on the current surface.
          REAL (rprec), DIMENSION(:), POINTER :: z
-!>  Normal component in r direction.
-         REAL (rprec), DIMENSION(:), POINTER :: x_normal
-!>  Normal component in phi direction.
-         REAL (rprec), DIMENSION(:), POINTER :: y_normal
-!>  Normal component in z direction.
-         REAL (rprec), DIMENSION(:), POINTER :: z_normal
 !>  Virtual Surface current in the r direction.
-         REAL (rprec), DIMENSION(:), POINTER :: k_x
+         REAL (rprec), DIMENSION(:), POINTER :: a_x
 !>  Virtual Surface current in the phi direction.
-         REAL (rprec), DIMENSION(:), POINTER :: k_y
+         REAL (rprec), DIMENSION(:), POINTER :: a_y
 !>  Virtual Surface current in the z direction.
-         REAL (rprec), DIMENSION(:), POINTER :: k_z
+         REAL (rprec), DIMENSION(:), POINTER :: a_z
       CONTAINS
-         PROCEDURE, PASS :: set_current => surface_context_set_current
+         PROCEDURE, PASS :: set_vector_potential =>                            &
+     &      surface_context_set_vector_potential
          PROCEDURE, PASS :: write => surface_context_write
          FINAL :: surface_context_destruct
       END TYPE
@@ -60,6 +55,7 @@
 !*******************************************************************************
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
+
 !-------------------------------------------------------------------------------
 !>  @brief Construct a @ref surface_context_class object.
 !>
@@ -133,20 +129,13 @@
       ALLOCATE(surface_context_construct%y(size))
       ALLOCATE(surface_context_construct%z(size))
 
-      ALLOCATE(surface_context_construct%x_normal(size))
-      ALLOCATE(surface_context_construct%y_normal(size))
-      ALLOCATE(surface_context_construct%z_normal(size))
-
-      ALLOCATE(surface_context_construct%k_x(size))
-      ALLOCATE(surface_context_construct%k_y(size))
-      ALLOCATE(surface_context_construct%k_z(size))
+      ALLOCATE(surface_context_construct%a_x(size))
+      ALLOCATE(surface_context_construct%a_y(size))
+      ALLOCATE(surface_context_construct%a_z(size))
 
       status = NF_INQ_VARID(ncid, 'x', xid)
       status = NF_INQ_VARID(ncid, 'y', yid)
       status = NF_INQ_VARID(ncid, 'z', zid)
-      status = NF_INQ_VARID(ncid, 'x_norm', xnid)
-      status = NF_INQ_VARID(ncid, 'y_norm', ynid)
-      status = NF_INQ_VARID(ncid, 'z_norm', znid)
 
       status = NF_GET_VARA_DOUBLE(ncid, xid, 1, size,                          &
      &                            surface_context_construct%x)
@@ -154,12 +143,6 @@
      &                            surface_context_construct%y)
       status = NF_GET_VARA_DOUBLE(ncid, zid, 1, size,                          &
      &                            surface_context_construct%z)
-      status = NF_GET_VARA_DOUBLE(ncid, xnid, 1, size,                         &
-     &                            surface_context_construct%x_normal)
-      status = NF_GET_VARA_DOUBLE(ncid, ynid, 1, size,                         &
-     &                            surface_context_construct%y_normal)
-      status = NF_GET_VARA_DOUBLE(ncid, znid, 1, size,                         &
-     &                            surface_context_construct%z_normal)
 
       CALL profiler_set_stop_time('surface_context_construct',                 &
      &                            start_time)
@@ -202,34 +185,19 @@
          this%z => null()
       END IF
 
-      IF (ASSOCIATED(this%x_normal)) THEN
-         DEALLOCATE(this%x_normal)
-         this%x_normal => null()
+      IF (ASSOCIATED(this%a_x)) THEN
+         DEALLOCATE(this%a_x)
+         this%a_x => null()
       END IF
 
-      IF (ASSOCIATED(this%y_normal)) THEN
-         DEALLOCATE(this%y_normal)
-         this%y_normal => null()
+      IF (ASSOCIATED(this%a_y)) THEN
+         DEALLOCATE(this%a_y)
+         this%a_y => null()
       END IF
 
-      IF (ASSOCIATED(this%z_normal)) THEN
-         DEALLOCATE(this%z_normal)
-         this%z_normal => null()
-      END IF
-
-      IF (ASSOCIATED(this%k_x)) THEN
-         DEALLOCATE(this%k_x)
-         this%k_x => null()
-      END IF
-
-      IF (ASSOCIATED(this%k_y)) THEN
-         DEALLOCATE(this%k_y)
-         this%k_y => null()
-      END IF
-
-      IF (ASSOCIATED(this%k_z)) THEN
-         DEALLOCATE(this%k_z)
-         this%k_z => null()
+      IF (ASSOCIATED(this%a_z)) THEN
+         DEALLOCATE(this%a_z)
+         this%a_z => null()
       END IF
 
       END SUBROUTINE
@@ -238,15 +206,14 @@
 !  SETTER SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  @brief Set the virtual current on the surface.
+!>  @brief Set the vector potential on the surface.
 !>
-!>  This uses the biot-savart to set a vitual current on an arbitrary
-!>  surface. The vitual current is taken from the jump condition assuming the
-!>  surface is a perfect conductor. At each point in the surface, the plasma
+!>  This uses the biot-savart to set a vector potential on an arbitrary
+!>  surface. At each point in the surface, the plasma
 !>  current in volume integrated.
 !>
-!>    b = mu0/4pi Int Int Int (Jsupu*esubu + Jsupv*esubv) X
-!>                            (x - xp)/|x - xp|^3*signJ*J*da*du*dv           (1)
+!>    b = mu0/4pi Int Int Int (Jsupu*esubu + Jsupv*esubv) /
+!>        |x - xp|*signJ*J*da*du*dv                                          (1)
 !>
 !>  Where the primed (p) variables are the values on the last closed flux
 !>  surface grid.
@@ -256,7 +223,8 @@
 !>  @param[in]    parallel @ref bmw_parallel_context_class object instance.
 !>  @returns A pointer to a constructed @ref bmw_context_class object.
 !-------------------------------------------------------------------------------
-      SUBROUTINE surface_context_set_current(this, io_unit, parallel)
+      SUBROUTINE surface_context_set_vector_potential(this, io_unit,           &
+     &                                                parallel)
       USE bmw_parallel_context
       USE stel_constants, ONLY: twopi, mu0
       USE read_wout_mod, ONLY: ns, rmnc, rmns, zmnc, zmns, xm, xn,             &
@@ -283,9 +251,6 @@
       REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE    :: ly
       REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE    :: lz
       REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE    :: l
-      REAL (rprec)                                   :: bx
-      REAL (rprec)                                   :: by
-      REAL (rprec)                                   :: bz
       INTEGER                                        :: i
       CLASS (primed_grid_class), POINTER             :: p_grid
 
@@ -301,7 +266,7 @@
 
 !$OMP PARALLEL
 !$OMP& DEFAULT(SHARED)
-!$OMP& PRIVATE(i, lx, ly, lz, l, bx, by, bz)
+!$OMP& PRIVATE(i, lx, ly, lz, l)
 
       ALLOCATE(lx(SIZE(p_grid%x, 1),                                           &
      &            SIZE(p_grid%x, 2),                                           &
@@ -323,20 +288,11 @@
          ly = this%y(i) - p_grid%y
          lz = this%z(i) - p_grid%z
 
-         l = SQRT(lx*lx + ly*ly + lz*lz)**3.0
+         l = SQRT(lx*lx + ly*ly + lz*lz)
 
-         bx = SUM((p_grid%j_y*lz - p_grid%j_z*ly)/l)*p_grid%dvol
-         by = SUM((p_grid%j_z*lx - p_grid%j_x*lz)/l)*p_grid%dvol
-         bz = SUM((p_grid%j_x*ly - p_grid%j_y*lx)/l)*p_grid%dvol
-
-!  NOTE: The proper VC current for the coupling surface requires a minus sign
-!        here (-n_hat X B_in). However, the field produced by this current is
-!        meant to cancel out the field due to currents enclosed so B_vc = -B_im.
-!        For the coupling ignore the minus so the currents can be used without
-!        adding additonal signs.
-         this%k_x(i) = (this%y_normal(i)*bz - this%z_normal(i)*by)/mu0
-         this%k_y(i) = (this%z_normal(i)*bx - this%x_normal(i)*bz)/mu0
-         this%k_z(i) = (this%x_normal(i)*by - this%y_normal(i)*bx)/mu0
+         this%a_x(i) = SUM(p_grid%j_x/l)*p_grid%dvol
+         this%a_y(i) = SUM(p_grid%j_y/l)*p_grid%dvol
+         this%a_z(i) = SUM(p_grid%j_z/l)*p_grid%dvol
 
 !  Progress Reporting
          IF (parallel%offset .eq. 0) THEN
@@ -363,9 +319,9 @@
 !$OMP END PARALLEL
 
       IF (parallel%stride .gt. 1) THEN
-         CALL parallel%reduce(this%k_x)
-         CALL parallel%reduce(this%k_y)
-         CALL parallel%reduce(this%k_z)
+         CALL parallel%reduce(this%a_x)
+         CALL parallel%reduce(this%a_y)
+         CALL parallel%reduce(this%a_z)
       END IF
 
       DEALLOCATE(p_grid)
@@ -406,9 +362,9 @@
       REAL (rprec)                                   :: start_time
       INTEGER                                        :: ncid
       INTEGER                                        :: size_dim
-      INTEGER                                        :: kxid
-      INTEGER                                        :: kyid
-      INTEGER                                        :: kzid
+      INTEGER                                        :: axid
+      INTEGER                                        :: ayid
+      INTEGER                                        :: azid
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -418,33 +374,33 @@
 
          status = NF_INQ_DIMID(ncid, 'size', size_dim)
 
-         status = NF_INQ_VARID(ncid, 'k_x', kxid)
+         status = NF_INQ_VARID(ncid, 'a_x', axid)
          IF (status .ne. NF_NOERR) THEN
             status = NF_REDEF(ncid)
-            status = NF_DEF_VAR(ncid, 'k_x', NF_DOUBLE, 1, size_dim,           &
-     &                          kxid)
+            status = NF_DEF_VAR(ncid, 'a_x', NF_DOUBLE, 1, size_dim,           &
+     &                          axid)
          END IF
-         status = NF_INQ_VARID(ncid, 'k_y', kyid)
+         status = NF_INQ_VARID(ncid, 'a_y', ayid)
          IF (status .ne. NF_NOERR) THEN
             status = NF_REDEF(ncid)
-            status = NF_DEF_VAR(ncid, 'k_y', NF_DOUBLE, 1, size_dim,           &
-     &                          kyid)
+            status = NF_DEF_VAR(ncid, 'a_y', NF_DOUBLE, 1, size_dim,           &
+     &                          ayid)
          END IF
-         status = NF_INQ_VARID(ncid, 'k_z', kzid)
+         status = NF_INQ_VARID(ncid, 'a_z', azid)
          IF (status .ne. NF_NOERR) THEN
             status = NF_REDEF(ncid)
-            status = NF_DEF_VAR(ncid, 'k_z', NF_DOUBLE, 1, size_dim,           &
-     &                          kzid)
+            status = NF_DEF_VAR(ncid, 'a_z', NF_DOUBLE, 1, size_dim,           &
+     &                          azid)
          END IF
 
          status = NF_ENDDEF(ncid)
 
-         status = NF_PUT_VARA_DOUBLE(ncid, kxid, 1, SIZE(this%x),              &
-     &                               this%k_x)
-         status = NF_PUT_VARA_DOUBLE(ncid, kyid, 1, SIZE(this%x),              &
-     &                               this%k_y)
-         status = NF_PUT_VARA_DOUBLE(ncid, kzid, 1, SIZE(this%x),              &
-     &                               this%k_z)
+         status = NF_PUT_VARA_DOUBLE(ncid, axid, 1, SIZE(this%x),              &
+     &                               this%a_x)
+         status = NF_PUT_VARA_DOUBLE(ncid, ayid, 1, SIZE(this%x),              &
+     &                               this%a_y)
+         status = NF_PUT_VARA_DOUBLE(ncid, azid, 1, SIZE(this%x),              &
+     &                               this%a_z)
 
          status = NF_CLOSE(ncid)
       END IF
