@@ -336,7 +336,6 @@ then
               -DNETCDF_LIB_PATH="${NETCDF_HOME}/lib"      \
               -DSCALAPACK_LIB="${MKLROOT}/lib/intel64/libmkl_scalapack_lp64.a;${MKLROOT}/lib/intel64/libmkl_intel_lp64.a;${MKLROOT}/lib/intel64/libmkl_intel_thread.a;${MKLROOT}/lib/intel64/libmkl_core.a;${MKLROOT}/lib/intel64/libmkl_blacs_intelmpi_lp64.a" \
               -DEXTRA_FLAGS="-liomp5 -lpthread -qopenmp -I${MKLROOT}/include/intel64/lp64 -I${MKLROOT}/include -DNEW_CODE -assume byterecl -convert big_endian -g -traceback -O3" \
-              -DUSE_PARVMEC=ON       \
               -DUSE_FAST_COPY=ON      \
 	      .
               #-DEXTRA_FLAGS="-liomp5 -lpthread -qopenmp -I${MKLROOT}/include/intel64/lp64 -I${MKLROOT}/include -DNEW_CODE -assume byterecl -convert big_endian -g -traceback -O3" \
