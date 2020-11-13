@@ -338,20 +338,32 @@ C
         outfile = arg1(1:ilen-4)//'_puncture_'//TRIM(type_in)//'.dat'
       ENDIF
 
-      INQUIRE(file=TRIM(outfile), exist= l_ex)
-      IF (l_ex) THEN
-        OPEN(unit = 21, file = TRIM(outfile), status = "old"
-     &     , access = "append")                                             ! Open output file as APPEND, since then several runs can be done to complete Poincare plot
+!  Check if the file exists first on the head process. Create a new one or open
+!  if it doesn't exist.
+      IF (myid .eq. 0) THEN
+         INQUIRE(file=TRIM(outfile), exist= l_ex)
+         IF (l_ex) THEN
+            OPEN(unit = 21, file = TRIM(outfile), status = "old",
+     &           access = "append")
+         ELSE
+            OPEN(unit = 21, file = TRIM(outfile), status = "new")
+         END IF
+
+         IF (type_in == 'poloidal') THEN
+            WRITE(21,*) " &   phi    s   r   phi"
+         ELSE IF (type_in == 'toroidal') THEN
+            WRITE(21,*) " &   tht   s   r   z"
+         END IF
+#if defined(MPI_OPT)
+         call MPI_BARRIER(MPI_COMM_WORLD,ierr_mpi)
+#endif
       ELSE
-        OPEN(unit = 21, file = TRIM(outfile), status = "new")               ! Write out headers if new file
-      IF(myid .eq. 0) THEN
-        IF (type_in == 'poloidal') THEN
-          WRITE(21,*) " &   phi    s   r   phi" 
-        ELSEIF (type_in == 'toroidal') THEN
-          WRITE(21,*) " &   tht   s   r   z" 
-        ENDIF
-      ENDIF      !IF(myid .eq. 0) THEN
-      ENDIF
+#if defined(MPI_OPT)
+         call MPI_BARRIER(MPI_COMM_WORLD,ierr_mpi)
+#endif
+         OPEN(unit = 21, file = TRIM(outfile), status = "old",
+     &        access = "append")
+      END IF
 
       CALL alloc_lsode                                                      ! Prepare LSODE
 

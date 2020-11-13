@@ -360,9 +360,15 @@
       CALL fourier_context%tomnsp(bsubuijh, bsubumnh, fouruv)
       CALL fourier_context%tomnsp(bsubvijh, bsubvmnh, fouruv)
 
+      IF (lcurr) THEN
+         nmax = MIN(endglobrow + 1, ns)
+      ELSE
+         nmax = MIN(endglobrow, ns)
+      END IF
+
       CALL CURL_HtoF(bsubsmnh, bsubumnh, bsubvmnh,                             &
                      ksupsmnf, ksupumnf, ksupvmnf,                             &
-                     iparity, nsmin, nsmax, lcurr, curtor)
+                     iparity, nsmin, nsmax, nmax, curtor)
 
 !  Diagnostics
       DIAGNO: IF (l_update_state) THEN

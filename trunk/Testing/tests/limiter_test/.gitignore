@@ -1,0 +1,15 @@
+dcon_vmec.txt
+extcur.simple_kp36
+input.vmec_out
+jxbout_vmec.nc
+limiter.dat.nc
+mercier.vmec
+mgrid_simple_kp36.nc
+recout.input.grid.v3fit
+recout.input.iso.v3fit
+result.input.grid.v3fit.nc
+result.input.iso.v3fit.nc
+runlog.input.grid.v3fit
+runlog.input.iso.v3fit
+threed1.vmec
+wout_vmec.nc

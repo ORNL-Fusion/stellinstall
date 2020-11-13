@@ -246,13 +246,15 @@
 
 !  Local Variables
       REAL (dp)                                :: facmin
+      REAL (dp)                                :: fsq_start
       INTEGER                                  :: iter
-      INTEGER                                  :: j
+!      INTEGER                                  :: j
 
 !  Start if executable code.
       facmin = 3
       l_init_state = .false.
       l_getfsq = .true.
+      fsq_start = fsq_total1
 
       IF (iam .eq. 0 .and. lverbose) THEN
          WRITE (*,1000)
@@ -262,6 +264,25 @@
       iter = 0
       fsq_min = HUGE(fsq_min)
 
+      CALL funct_island
+      DO WHILE(fsq_total1 .lt. fsq_min)
+         IF (fsq_total1 .lt. fsq_start) THEN
+            xcmin = xc
+         END IF
+         fsq_min = fsq_total1
+         iter = iter + 1
+         IF (iam .eq. 0 .and. lverbose) THEN
+            WRITE (*,1001) iter, fsq_total1, SQRT(SUM(xc*xc)),                 &
+                           MAXVAL(ABS(xc)), facmin
+            facmin = facmin/SQRT2
+         END IF
+         xc = xc/SQRT2
+         CALL funct_island
+      END DO
+
+      fsq_min = MIN(fsq_min, fsq_start)
+
+#if 0
       DO j = 1, 100
          CALL funct_island
          IF (fsq_total1 .lt. fsq_min) THEN
@@ -286,6 +307,7 @@
          END IF
          xc = xc/SQRT2
       END DO
+#endif
 
 1000  FORMAT(/,1x,'LINE SEARCH - SCAN ||X|| FOR MIN FSQ_NL',/,1x,15('-'),      &
              /,1x,'ITER',7x,'FSQ_NL',10x,'||X||',9x,'MAX|X|',10x,'FAC')

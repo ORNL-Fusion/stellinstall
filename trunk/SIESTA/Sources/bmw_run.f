@@ -60,12 +60,12 @@
 !  Declare Arguments
       CHARACTER (len=*), INTENT(in)                 :: mgrid_file_name
       CHARACTER (len=*), INTENT(in)                 :: wout_file_name
-      REAL (rprec), DIMENSION(:,:), INTENT(in)      :: r_grid
-      REAL (rprec), DIMENSION(:,:), INTENT(in)      :: z_grid
+      REAL (rprec), DIMENSION(:,:,:), INTENT(in)    :: r_grid
+      REAL (rprec), DIMENSION(:,:,:), INTENT(in)    :: z_grid
       REAL (rprec), INTENT(in)                      :: dphi
-      REAL (rprec), DIMENSION(:,:), INTENT(out)     :: A_r
-      REAL (rprec), DIMENSION(:,:), INTENT(out)     :: A_p
-      REAL (rprec), DIMENSION(:,:), INTENT(out)     :: A_z
+      REAL (rprec), DIMENSION(:,:,:), INTENT(out)   :: A_r
+      REAL (rprec), DIMENSION(:,:,:), INTENT(out)   :: A_p
+      REAL (rprec), DIMENSION(:,:,:), INTENT(out)   :: A_z
 
 !  Local Variables
       CLASS (bmw_parallel_context_class), POINTER :: parallel => null()
@@ -75,7 +75,6 @@
       INTEGER                                       :: flags
       INTEGER                                       :: num_p
       INTEGER                                       :: status
-      INTEGER                                       :: i
       INTEGER, DIMENSION(3)                         :: dims
 
 !  Start of executable code
@@ -87,26 +86,26 @@
       CALL parallel%set_threads(-1)
       CALL parallel%report(output_unit)
 
-!  BMW uses num_p to set the number of grid points in for the primed grid. In
-!  doing so, it mutliplies by the number of field periods in the mgrid file. If
-!  using a user defined number of field periods that is less than the amount in
-!  in mgrid, we need to scale num_p.
-      num_p = SIZE(A_r, 2)*2/(nfp_vmec/nfp_i)
+!  BMW uses num_p to set the number of grid points for the primed grid. In doing
+!  so, it mutliplies by the number of field periods in the mgrid file. If using
+!  a user defined number of field periods that is less than the amount in mgrid,
+!  we need to scale num_p.
+      num_p = SIZE(A_r, 2)*2.0/(nfp_vmec/nfp_i)
       context => bmw_context_class(mgrid_file_name, wout_file_name,            &
      &                             '', flags, num_p, parallel,                 &
      &                             output_unit)
 
       dims(1) = SIZE(r_grid, 1)
       dims(2) = SIZE(r_grid, 2)
-      dims(3) = 1
+      dims(3) = SIZE(r_grid, 3)
 
       CALL context%set_up_grid(RESHAPE(r_grid, dims),                          &
      &                         RESHAPE(z_grid, dims),                          &
      &                         dphi, parallel, output_unit)
 
-      A_r = RESHAPE(context%up_grid%a_r, dims(1:2))
-      A_p = RESHAPE(context%up_grid%a_p, dims(1:2))
-      A_z = RESHAPE(context%up_grid%a_z, dims(1:2))
+      A_r = context%up_grid%a_r
+      A_p = context%up_grid%a_p
+      A_z = context%up_grid%a_z
 
       DEALLOCATE(context)
       CALL profiler_destruct

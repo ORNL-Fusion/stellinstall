@@ -5,9 +5,8 @@
 !  Note separating the Doxygen comment block here so detailed decription is
 !  found in the Module not the file.
 !
-!>  SURFACE is a code for computing the virual surface on an arbitray wall
-!>  structure. This uses the biot-savart law to compute the interior magnetic
-!>  field.
+!>  SURFACE is a code for computing the vector potential on an arbitray wall
+!>  structure. This uses the biot-savart law to compute the vector potential.
 !>
 !>  @author Mark Cianciosa
 !*******************************************************************************
@@ -82,7 +81,7 @@
       context => surface_context_class(cl_parser%get('-woutf'),                &
      &                                 cl_parser%get('-surff'),                &
      &                                 parallel, io_unit)
-      CALL context%set_current(io_unit, parallel)
+      CALL context%set_vector_potential(io_unit, parallel)
       CALL context%write(cl_parser%get('-surff'), io_unit, parallel)
 
       DEALLOCATE(context)

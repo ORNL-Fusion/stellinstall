@@ -149,7 +149,7 @@
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  @brief Construct a @ref fourier_class object..
+!>  @brief Construct a @ref fourier_class object.
 !>
 !>  Allocates memory and initializes a @ref fourier_class object. Computes the
 !>  othronorm and cosine and sine buffers.

@@ -53,7 +53,8 @@
 !>  Interface for the bmw_context constructor.
 !-------------------------------------------------------------------------------
       INTERFACE bmw_context_class
-         MODULE PROCEDURE bmw_context_construct
+         MODULE PROCEDURE bmw_context_construct,                               &
+     &                    bmw_context_construct_plasma
       END INTERFACE
 
       CONTAINS
@@ -127,6 +128,91 @@
      &                     flags, siesta_file_name, parallel, io_unit)
 
       CALL profiler_set_stop_time('bmw_context_construct', start_time)
+
+1000  FORMAT(a,' is an invalid wout file.')
+1001  FORMAT(a,' is not a free boundary wout file.')
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref bmw_context_class object.
+!>
+!>  Allocates memory and initializes a @ref bmw_context_class object.
+!>
+!>  @param[in] mgrid_file_name  Path and name of the mgrid file.
+!>  @param[in] wout_file_name   Path and name of the wout file.
+!>  @param[in] siesta_file_name Path and name of the siesta file.
+!>  @param[in] flags            Option flags.
+!>  @param[in] num_r            Number of radial points.
+!>  @param[in] num_p            Number of toroidal points.
+!>  @param[in] num_z            Number of vertical points.
+!>  @param[in] rmax             Maximum radial position.
+!>  @param[in] rmin             Minimum radial position.
+!>  @param[in] zmax             Maximum vertical position.
+!>  @param[in] zmin             Minimum vertical position.
+!>  @param[in] parallel         @ref bmw_parallel_context_class object instance.
+!>  @param[in] io_unit          Unit number to write messages to.
+!>  @returns A pointer to a constructed @ref bmw_context_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION bmw_context_construct_plasma(wout_file_name,                    &
+     &                                      siesta_file_name, flags,           &
+     &                                      num_r, num_p, num_z,               &
+     &                                      rmax, rmin, zmax, zmin,            &
+     &                                      parallel, io_unit)
+      USE read_wout_mod, Only: read_wout_file, extcur
+      USE bmw_state_flags, Only: bmw_state_flags_mgrid
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CLASS (bmw_context_class), POINTER :: bmw_context_construct_plasma
+      CHARACTER (len=*), INTENT(in)                  :: wout_file_name
+      CHARACTER (len=*), INTENT(in)                  :: siesta_file_name
+      INTEGER, INTENT(in)                            :: flags
+      INTEGER, INTENT(in)                            :: num_r
+      INTEGER, INTENT(in)                            :: num_p
+      INTEGER, INTENT(in)                            :: num_z
+      REAL (rprec), INTENT(in)                       :: rmax
+      REAL (rprec), INTENT(in)                       :: rmin
+      REAL (rprec), INTENT(in)                       :: zmax
+      REAL (rprec), INTENT(in)                       :: zmin
+      CLASS (bmw_parallel_context_class), INTENT(in) :: parallel
+      INTEGER, INTENT(in)                            :: io_unit
+
+!  local variables
+      REAL (rprec)                                   :: start_time
+      INTEGER                                        :: status
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      ALLOCATE(bmw_context_construct_plasma)
+
+      CALL read_wout_file(wout_file_name, status)
+      IF (status .ne. 0) THEN
+         IF (parallel%offset .eq. 0) THEN
+            WRITE (io_unit,1000) TRIM(wout_file_name)
+         END IF
+         CALL bmw_parallel_context_abort(status)
+      END IF
+      IF (.not.ALLOCATED(extcur)) THEN
+         IF (parallel%offset .eq. 0) THEN
+            WRITE (io_unit,1001) TRIM(wout_file_name)
+         END IF
+         CALL bmw_parallel_context_abort(status)
+      END IF
+
+      bmw_context_construct_plasma%m_grid =>                                   &
+     &   m_grid_class(num_r, num_p, num_z, rmax, rmin, zmax, zmin,             &
+     &                parallel, io_unit)
+
+      bmw_context_construct_plasma%p_grid =>                                   &
+     &   primed_grid_class(                                                    &
+     &      num_p*bmw_context_construct_plasma%m_grid%nfp,                     &
+     &      flags, siesta_file_name, parallel, io_unit)
+
+      CALL profiler_set_stop_time('bmw_context_construct_plasma',              &
+     &                            start_time)
 
 1000  FORMAT(a,' is an invalid wout file.')
 1001  FORMAT(a,' is not a free boundary wout file.')

@@ -36,8 +36,8 @@
       END INTERFACE
 
 !-------------------------------------------------------------------------------
-!>  Interface to convert between full and half mesh using either
-!>  @ref to_half_mesh or @ref to_half_mesh_p
+!>  Interface to take the gradianet from full to half mesh using either
+!>  @ref GradientHalf or @ref GradientHalf_p
 !-------------------------------------------------------------------------------
       INTERFACE GradientHalf
          MODULE PROCEDURE GradientHalf, GradientHalf_p
@@ -475,13 +475,12 @@
 !>  @param[in]    parity    Parity flag.
 !>  @param[in]    nsmin     Minimum radial index.
 !>  @param[in]    nsmax     Maximum radial index.
-!>  @param[in]    extend    Extend the radial index of the curl.
+!>  @param[in]    nsend     Ending row index.
 !>  @param[inout] curtor    Current enclosed at the boundary.
 !-------------------------------------------------------------------------------
       SUBROUTINE curl_htof(asubsmnh, asubumnh, asubvmnh,                       &
                            jbsupsmnf, jbsupumnf, jbsupvmnf, parity,            &
-                           nsmin, nsmax, extend, curtor)
-      USE nscalingtools, ONLY: endglobrow
+                           nsmin, nsmax, nsend, curtor)
       USE stel_constants
 
       IMPLICIT NONE
@@ -496,7 +495,7 @@
       INTEGER, INTENT(in)                                  :: parity
       INTEGER, INTENT(in)                                  :: nsmin
       INTEGER, INTENT(in)                                  :: nsmax
-      LOGICAL, INTENT(in)                                  :: extend
+      INTEGER, INTENT(in)                                  :: nsend
       REAL (dp), INTENT(inout)                             :: curtor
 
 !  Local variables
@@ -519,7 +518,7 @@
       INTEGER                                              :: fours
       INTEGER                                              :: fouruv
 
-!  Start of executable code
+!  Start of executable code.
       CALL assert(nsmin .ge. LBOUND(jbsupsmnf,3), 'LBOUND wrong in curl_htof')
 
       IF (parity .eq. f_sin) THEN
@@ -545,8 +544,8 @@
       CALL to_full_mesh(asubvmnh, asubvmnf)
 
 !  FIXME: CHECK Boundary Conditions. asubs,subu,subv don't match older version.
-      CALL set_bndy_half_to_full(asubsmnh, asubvmnh, nsmin, parity,            &
-                                 asubsmnf, asubumnf, asubvmnf)
+      CALL set_bndy_half_to_full(asubsmnh, asubumnh, asubvmnh,                 &
+                                 asubsmnf, asubumnf, asubvmnf, nsmin, parity)
 
 !  Store the total enclosed current to check against the orginal VMEC current.
       IF (parity .eq. f_sin .and. nsmax .eq. ns) THEN
@@ -566,11 +565,7 @@
       CALL set_bndy_half_to_full_uv_ds(asubumnh, asubvmnh,                     &
                                        da_uds, da_vds, nsmin, fouruv)
 
-      IF (extend) THEN
-         nmax = MIN(ns, endglobrow + 1)
-      ELSE
-         nmax = MIN(ns, endglobrow)
-      END IF
+      nmax = MIN(ns, nsend)
       CALL assert(nmax .le. UBOUND(jbsupsmnf,3), 'UBOUND wrong in curl_htof')
 
 !  (sqrt(g)*J^X)mn
@@ -589,7 +584,7 @@
          END DO
       END DO
 
-      DEALLOCATE(asubsmnf, asubumnf,  asubvmnf, da_uds, da_vds)
+      DEALLOCATE(asubsmnf, asubumnf, asubvmnf, da_uds, da_vds)
 
 !  Avoid fp failure in debug mode
       jbsupsmnf(:,:,nmax+1:UBOUND(jbsupsmnf,3)) = 0
@@ -623,12 +618,12 @@
 !>  @param[in]    parity    Parity flag.
 !>  @param[in]    nsmin     Minimum radial index.
 !>  @param[in]    nsmax     Maximum radial index.
-!>  @param[in]    extend    Extend the radial index of the curl.
+!>  @param[in]    nsend     Ending row index.
 !>  @param[inout] curtor    Current enclosed at the boundary.
 !-------------------------------------------------------------------------------
       SUBROUTINE curl_htof_targ(asubsmnh, asubumnh, asubvmnh,                  &
                                 jbsupsmnf, jbsupumnf, jbsupvmnf,               &
-                                parity, nsmin, nsmax, extend, curtor)
+                                parity, nsmin, nsmax, nsend, curtor)
 
 !  Declare Arguments
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(in) :: asubsmnh
@@ -643,7 +638,7 @@
       INTEGER, INTENT(IN)                                  :: parity
       INTEGER, INTENT(IN)                                  :: nsmin
       INTEGER, INTENT(IN)                                  :: nsmax
-      LOGICAL, INTENT(in)                                  :: extend
+      INTEGER, INTENT(in)                                  :: nsend
       REAL (dp), INTENT(inout)                             :: curtor
 
 !  Local variables
@@ -656,7 +651,7 @@
       jbup => jbsupumnf
       jbvp => jbsupvmnf
       CALL curl_htof(asubsmnh, asubumnh, asubvmnh, jbsp, jbup, jbvp,           &
-                     parity, nsmin, nsmax, extend, curtor)
+                     parity, nsmin, nsmax, nsend, curtor)
 
       END SUBROUTINE
 
@@ -687,14 +682,10 @@
 !  Start of executable code
       IF (nsmin .eq. 1) THEN
          amnf(:,:,1) = 0.0
-         amnf(m0:m1,:,1) = amnh(m0:m1,:,2)
+         amnf(m0,:,1) = amnh(m0,:,2)
       END IF
 
-      IF (parity .eq. f_cos) THEN
-         amnf(m0,-ntor:-n1,:) = 0.0
-      ELSE
-         amnf(m0,-ntor:n0,:) = 0.0
-      END IF
+      CALL set_bndy_fouier_m0(amnf, parity)
 
       END SUBROUTINE
 
@@ -703,31 +694,34 @@
 !>  @brief Set fouier boundary conditions for full grid vector quantity
 !>         converted from half grid.
 !>
-!>  At the center of the grid, the a_u basis vector is zero. The a_s basis
-!>  vector only has m=1 components. The a_v vector only has m=0 components.
+!>  At the center of the grid, the a_u basis vector only has m=0 and m=1
+!>  components. The a_s basis vector only has m=1 components. The a_v vector
+!>  only has m=0 components. See @ref siesta_init::GetFields.
 !>
 !>  @param[in]    asubsmnh Half grid covariant s fourier quantity.
+!>  @param[in]    asubumnh Half grid covariant u fourier quantity.
 !>  @param[in]    asubvmnh Half grid covariant v fourier quantity.
-!>  @param[in]    nsmin    Minimum radial index.
-!>  @param[in]    parity   Parity flag.
 !>  @param[inout] asubsmnf Full grid covariant s fourier quantity.
 !>  @param[inout] asubumnf Full grid covariant u fourier quantity.
 !>  @param[inout] asubvmnf Full grid covariant v fourier quantity.
+!>  @param[in]    nsmin    Minimum radial index.
+!>  @param[in]    parity   Parity flag.
 !-------------------------------------------------------------------------------
-      PURE SUBROUTINE set_bndy_half_to_full_vec(asubsmnh, asubvmnh,            &
-                                                nsmin, parity,                 &
-                                                asubsmnf, asubumnf, asubvmnf)
+      PURE SUBROUTINE set_bndy_half_to_full_vec(asubsmnh, asubumnh, asubvmnh,  &
+                                                asubsmnf, asubumnf, asubvmnf,  &
+                                                nsmin, parity)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(in)    :: asubsmnh
+      REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(in)    :: asubumnh
       REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(in)    :: asubvmnh
-      INTEGER, INTENT(IN)                                     :: nsmin
-      INTEGER, INTENT(in)                                     :: parity
       REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: asubsmnf
       REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: asubumnf
       REAL (dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(inout) :: asubvmnf
+      INTEGER, INTENT(IN)                                     :: nsmin
+      INTEGER, INTENT(in)                                     :: parity
 
 !  Local Variables
       INTEGER                                                 :: moffh
@@ -742,6 +736,8 @@
          asubsmnf(m1 + mofff,:,1) = asubsmnh(m1 + moffh,:,2)
 
          asubumnf(:,:,1) = 0
+         asubumnf(m0 + mofff,:,1) = asubumnh(m0 + moffh,:,2)
+         asubumnf(m1 + mofff,:,1) = asubumnh(m1 + moffh,:,2)
 
          asubvmnf(:,:,1) = 0
          asubvmnf(m0 + mofff,:,1) = asubvmnh(m0 + moffh,:,2)
@@ -776,14 +772,16 @@
       INTEGER, INTENT(in)                        :: parity
 
 !  Local Variables
-      INTEGER                                    :: moff
+      INTEGER                                    :: moffh
+      INTEGER                                    :: mofff
 
 !  Start of executable code
       IF (nsmin .eq. 1) THEN
-         moff = LBOUND(amnh, 1)
+         moffh = LBOUND(amnh, 1)
+         mofff = LBOUND(amnf_ds, 1)
 
          amnf_ds(:,:,1) = 0.0
-         amnf_ds(m1 + moff,:,1) = 2.0*ohs*amnh(m1 + moff,:,2)
+         amnf_ds(m1 + mofff,:,1) = 2.0*ohs*amnh(m1 + moffh,:,2)
       END IF
 
       CALL set_bndy_fouier_m0(amnf_ds, parity)
@@ -820,21 +818,9 @@
       INTEGER, INTENT(IN)                        :: nsmin
       INTEGER, INTENT(in)                        :: parity
 
-!  Local Variables
-      INTEGER                                    :: moff
-
 !  Start of executable code
-      IF (nsmin .eq. 1) THEN
-         moff = LBOUND(aumnh, 1)
-
-         aumnf_ds(:,:,1) = 0.0
-         aumnf_ds(m0 + moff,:,1) = 2.0*ohs*aumnh(m0 + moff,:,2)
-
-         avmnf_ds(:,:,1) = 0.0
-      END IF
-
-      CALL set_bndy_fouier_m0(aumnf_ds, parity)
-      CALL set_bndy_fouier_m0(avmnf_ds, parity)
+      CALL set_bndy_half_to_full_ds(aumnh, aumnf_ds, nsmin, parity)
+      CALL set_bndy_half_to_full_ds(avmnh, avmnf_ds, nsmin, parity)
 
       END SUBROUTINE
 
@@ -844,7 +830,7 @@
 !>
 !>  At the center of the grid, a vector quantity should have only m=1 modes in
 !>  the s direction, no modes in the u direction and only m=0 modes in the v
-!>  direction.
+!>  direction. See @ref siesta_init::GetFields.
 !>
 !>  @param[inout] amnsf  Full grid fourier quantity for s component.
 !>  @param[inout] amnuf  Full grid fourier quantity for u component.
@@ -868,9 +854,8 @@
       amnsf(m0 + moff,:,1) = 0
       IF (m2 + moff .lt. UBOUND(amnsf, 1)) THEN
          amnsf(m2 + moff:,:,1) = 0
+         amnuf(m2 + moff:,:,1) = 0
       END IF
-
-      amnuf(:,:,1) = 0
 
       amnvf(m1 + moff:,:,1) = 0
 

@@ -218,7 +218,7 @@
 !            l_iterate=.FALSE.
          END IF
 
-!  Stop is lack of progress.
+!  Stop if lack of progress.
          IF (nprecon .gt. 2 .and. ABS(1 - fsq_ratio1) .lt. 1.E-2_dp) THEN
             levm_scale = levm_scale/3
             nrow = nrow + 1
@@ -283,8 +283,7 @@
       IF (l_push_u) THEN
          l_push_s = .false.
       END IF
-!      l_push_edge = .true.
-      l_push_edge = .false.
+      l_push_edge = .true.
 
       scale_s = hs
       scale_u = SQRT(scale_s)
@@ -406,7 +405,7 @@
       IF (fsq_total1 .lt. 1.E-6_dp) THEN
 !      IF (fsq_total1 .lt. 1.E-8_dp) THEN
 
-!  Pseudo-transient continuation: Turn ogg for constant levmarq_param, muPar
+!  Pseudo-transient continuation: Turn off for constant levmarq_param, muPar
 !  option.
          f2 = fsq_total1*1.E12_dp
 
@@ -658,7 +657,7 @@
       END IF
 
       CALL second0(skston)
-      IF (fsq_total1 .LT. fsq_min) THEN
+      IF (fsq_total1 .LT. fsq_min .and. iam .eq. 0) THEN
          fsq_min = fsq_total1
          CALL restart_write(restart_ext, wout_file)
       END IF

@@ -31,9 +31,16 @@
 !>                                       the last index.}
 !>     @item3{@fixed_width{-para},    Y, Configures openmp parallelism. The value of this flag sets the maximum
 !>                                       number of threads to use. A value of @fixed_width{-1} uses the default.}
-!>     @item3{@fixed_width{-force},   Y, Force override of error conditions. To prevent loss of valid data, BMW will
+!>     @item3{@fixed_width{-force},   N, Force override of error conditions. To prevent loss of valid data, BMW will
 !>                                       terminate if an error condition is triggerd. This flag overrides that error
 !>                                       potential overwritting valid data.}
+!>     @item3{@fixed_width{-num_r},   Y, Number radial points. Note not used when mgridf is specified.}
+!>     @item3{@fixed_width{-num_p},   Y, Number toroidal points. Note not used when mgridf is specified.}
+!>     @item3{@fixed_width{-num_z},   Y, Number vertial points. Note not used when mgridf is specified.}
+!>     @item3{@fixed_width{-rmax},    Y, Maximum radial grid. Note not used when mgridf is specified.}
+!>     @item3{@fixed_width{-rmin},    Y, Minimum radial grid. Note not used when mgridf is specified.}
+!>     @item3{@fixed_width{-zmax},    Y, Maximum vertical grid. Note not used when mgridf is specified.}
+!>     @item3{@fixed_width{-zmin},    Y, Minimum vertical grid. Note not used when mgridf is specified.}
 !>  @end_table
 !>
 !>  @note
@@ -558,14 +565,33 @@
 !$    WRITE(*,*) '             run with. A value of -1 means use the   '
 !$    WRITE(*,*) '             default number of threads.              '
 !$    WRITE(*,*) '                                                     '
-!     WRITE(*,*) '                                                     '
 !     WRITE(*,*) '  -force   N Force override of error conditions. To  '
 !     WRITE(*,*) '             prevent loss of valid data, BMW will    '
 !     WRITE(*,*) '             terminate if an error condition is      '
 !     WRITE(*,*) '             triggerd. This flag overrides that error'
 !     WRITE(*,*) '             potential overwritting valid data.      '
 !     WRITE(*,*) '                                                     '
-
+      WRITE(*,*) '  -num_r   Y Number radial points. Note not used when'
+      WRITE(*,*) '             mgridf is specified.                    '
+      WRITE(*,*) '                                                     '
+      WRITE(*,*) '  -num_p   Y Number toroidal points. Note not used   '
+      WRITE(*,*) '             when mgridf is specified.               '
+      WRITE(*,*) '                                                     '
+      WRITE(*,*) '  -num_z   Y Number vertial points. Note not used    '
+      WRITE(*,*) '             when mgridf is specified.               '
+      WRITE(*,*) '                                                     '
+      WRITE(*,*) '  -rmax    Y Maximum radial grid. Note not used when '
+      WRITE(*,*) '             mgridf is specified.                    '
+      WRITE(*,*) '                                                     '
+      WRITE(*,*) '  -rmin    Y Minimum radial grid. Note not used when '
+      WRITE(*,*) '             mgridf is specified.                    '
+      WRITE(*,*) '                                                     '
+      WRITE(*,*) '  -zmax    Y Maximum vertical grid. Note not used    '
+      WRITE(*,*) '             when mgridf is specified.               '
+      WRITE(*,*) '                                                     '
+      WRITE(*,*) '  -zmin    Y Minimum vertical grid. Note not used    '
+      WRITE(*,*) '             when mgridf is specified.               '
+      WRITE(*,*) '                                                     '
       CALL bmw_parallel_context_abort(0)
 
       END SUBROUTINE

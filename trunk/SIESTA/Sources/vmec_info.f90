@@ -495,9 +495,6 @@
      REAL (dp), DIMENSION(:,:), INTENT(in)  :: ymn_vmec
      REAL (dp), DIMENSION(:,:), INTENT(out) :: ymn_ghost
 
-!  Local variables
-     INTEGER                                :: modes
-
 !  Start of executable code
      ymn_ghost(:,2:ns_vmec) = ymn_vmec(:,2:ns_vmec)
      ymn_ghost(:,ns_vmec + 1) = 2*ymn_vmec(:,ns_vmec)                          &
@@ -584,6 +581,7 @@
      &                         nfp=>nfp_i, hs=>hs_i, fourier_context
       USE descriptor_mod, ONLY: iam
       USE shared_data, ONLY: lverbose
+      USE utilities
 
       IMPLICIT NONE
 
@@ -646,13 +644,12 @@
                IF (parity .eq. f_sin) THEN
                   s1 = -SIGN(1,n)
                END IF
-               rmn(m,n_abs,:) = rmn(m,n_abs,:) + s1*rmn_spl(mn_mode,:)
-               zmn(m,n_abs,:) = zmn(m,n_abs,:) + s2*zmn_spl(mn_mode,:)
-               lmn(m,n_abs,:) = lmn(m,n_abs,:) + s2*lmn_spl(mn_mode,:)*iflipj
-               currumn(m,n_abs,:) = currumn(m,n_abs,:)                         &
-                                  + s1*currumn_spl(mn_mode,:)
-               currvmn(m,n_abs,:) = currvmn(m,n_abs,:)                         &
-                                  + s1*currvmn_spl(mn_mode,:)
+
+               rmn(m,n_abs,:) = s1*rmn_spl(mn_mode,:)
+               zmn(m,n_abs,:) = s2*zmn_spl(mn_mode,:)
+               lmn(m,n_abs,:) = s2*lmn_spl(mn_mode,:)*iflipj
+               currumn(m,n_abs,:) = s1*currumn_spl(mn_mode,:)
+               currvmn(m,n_abs,:) = s1*currvmn_spl(mn_mode,:)
             ELSE
                rmn(m,-n*iflipj,:) = rmn_spl(mn_mode,:)
                zmn(m,-n*iflipj,:) = zmn_spl(mn_mode,:)*iflipj
@@ -669,17 +666,10 @@
          lmn(:,:,js) = lmn(:,:,js)/fourier_context%orthonorm(0:mpol,-ntor:ntor)
          rmn(:,:,js) = rmn(:,:,js)/fourier_context%orthonorm(0:mpol,-ntor:ntor)
          zmn(:,:,js) = zmn(:,:,js)/fourier_context%orthonorm(0:mpol,-ntor:ntor)
-!         IF (js .eq. 1) THEN
-!            currumn(:,:,js) = currumn(:,:,js)                                 &
-!                            / fourier_context%orthonorm(0:mpol,-ntor:ntor)
-!            currvmn(:,:,js) = currvmn(:,:,js)                                 &
-!                            / fourier_context%orthonorm(0:mpol,-ntor:ntor)
-!         ELSE
-            currumn(:,:,js) = 2*hs*(js - 1)*currumn(:,:,js)                    &
-                            / fourier_context%orthonorm(0:mpol,-ntor:ntor)
-            currvmn(:,:,js) = 2*hs*(js - 1)*currvmn(:,:,js)                    &
-                            / fourier_context%orthonorm(0:mpol,-ntor:ntor)
-!         END IF
+         currumn(:,:,js) = 2*hs*(js - 1)*currumn(:,:,js)                       &
+                         / fourier_context%orthonorm(0:mpol,-ntor:ntor)
+         currvmn(:,:,js) = 2*hs*(js - 1)*currvmn(:,:,js)                       &
+                         / fourier_context%orthonorm(0:mpol,-ntor:ntor)
       END DO
 
       lmn(:,:,ns + 1) = lmn(:,:,ns + 1)                                        &
@@ -689,17 +679,17 @@
       zmn(m1:,:,1) = 0
 
       IF (parity .eq. f_cos) THEN
-         lmn(m0,-ntor:n0,:) = 0
-         rmn(m0,-ntor:-n1,:) = 0
-         zmn(m0,-ntor:n0,:) = 0
-         currumn(m0,-ntor:-n1,:) = 0
-         currvmn(m0,-ntor:-n1,:) = 0
+         CALL set_bndy_fouier_m0(lmn, f_sin)
+         CALL set_bndy_fouier_m0(rmn, f_cos)
+         CALL set_bndy_fouier_m0(zmn, f_sin)
+         CALL set_bndy_fouier_m0(currumn, f_cos)
+         CALL set_bndy_fouier_m0(currvmn, f_cos)
       ELSE
-         lmn(m0,-ntor:-n0,:) = 0
-         rmn(m0,-ntor:n0,:) = 0
-         zmn(m0,-ntor:-n1,:) = 0
-         currumn(m0,-ntor:n0,:) = 0
-         currvmn(m0,-ntor:n0,:) = 0
+         CALL set_bndy_fouier_m0(lmn, f_cos)
+         CALL set_bndy_fouier_m0(rmn, f_sin)
+         CALL set_bndy_fouier_m0(zmn, f_cos)
+         CALL set_bndy_fouier_m0(currumn, f_sin)
+         CALL set_bndy_fouier_m0(currvmn, f_sin)
       END IF
 
       currumn(:,:,ns) = 0
@@ -727,6 +717,7 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_info_spline_modes(ymn_vmec, ymn_spline, xm_in, istat)
       USE island_params, hs=>hs_i, ohs=>ohs_i, ns=>ns_i
+      USE descriptor_mod, ONLY: iam
 
       IMPLICIT NONE
 
@@ -747,7 +738,6 @@
       REAL (dp), ALLOCATABLE, DIMENSION(:)   :: snodes
       REAL (dp), ALLOCATABLE, DIMENSION(:)   :: fac2
       REAL (dp), ALLOCATABLE, DIMENSION(:)   :: y_spline
-      REAL (dp)                              :: hsv
       REAL (dp)                              :: expm
       REAL (dp)                              :: offset
 
@@ -780,20 +770,21 @@
          offset = 1.0_dp
       ELSE
          offset = 1.5_dp
-         snodes_vmec(SIZE(snodes_vmec)) = 1
+         snodes_vmec(SIZE(snodes_vmec)) = (SIZE(snodes_vmec) - offset)         &
+                                        / (ns_vmec - 1.0_dp)
          fac1(SIZE(snodes_vmec)) = 1;
          fac2(SIZE(snodes)) = 1
-         snodes(SIZE(snodes)) = 1
+         snodes(SIZE(snodes)) = (SIZE(snodes) - offset)/(ns_vmec - 1.0_dp)
       END IF
 
 !  Set up "knots" on initial (vmec, svmec ~ phi) mesh and factor for taking out
 !  (putting back) [sqrt(s)]**m factor for odd m.
-      hsv = one/(ns_vmec - 1)
-      snodes_vmec(1) = 0;  fac1(1) = 1;
+      snodes_vmec(1) = 0
+      fac1(1) = 1
       DO js = 2, ns_vmec
-         snodes_vmec(js) = hsv*(js - offset)
-         fac1(js) = one/SQRT(snodes_vmec(js))     !regularization factor: sqrt(FLUX) for odd modes
+         snodes_vmec(js) = (js - offset)/(ns_vmec - 1.0_dp)
       END DO
+!  Regularization factor: sqrt(FLUX) for odd modes
       fac1(2:ns_vmec) = one/SQRT(snodes_vmec(2:ns_vmec))
 
 !  Set up s-nodes on final (snodes, splined) mesh [s_siesta(sfinal) ~ sfinal**2]
@@ -815,7 +806,7 @@
          y_vmec = ymn_vmec(modes,:)
          mp = xm_in(modes)
 
-         IF (istat.EQ.0 .and. mp.GT.0) THEN
+         IF (istat .eq. 0 .and. mp .gt. 0) THEN
             IF (MOD(mp,2) .eq. 1) THEN
                expm = 1
             ELSE

@@ -258,7 +258,6 @@
 !$OMP& SCHEDULE(STATIC)
       DO i = parallel%start(num_v_use), parallel%end(num_v_use)
          x = (i - 0.5)*primed_grid_construct_both%dv
-!         WRITE (*,*) x     ! TEMP
          cosv(i) = COS(x)
          sinv(i) = SIN(x)
          cosnv(:,i) = COS(xn*x)
@@ -302,11 +301,9 @@
          sinmn = sinmu(:,ui)*cosnv(:,vi) - cosmu(:,ui)*sinnv(:,vi)
          cosmn_nyq = cosmu_nyq(:,ui)*cosnv_nyq(:,vi)                           &
      &             + sinmu_nyq(:,ui)*sinnv_nyq(:,vi)
-!         x = (vi - 0.5)*primed_grid_construct_both%dv
+
          r = SUM(rmnc(:,si)*cosmn(:))
          z = SUM(zmns(:,si)*sinmn(:))
-
-!         IF (si .eq. ns) WRITE (20000,*) '{',r,',',x,',',z,'},'
 
          ru = -SUM(xm*rmnc(:,si)*sinmn(:))
          rv =  SUM(xn*rmnc(:,si)*sinmn(:))

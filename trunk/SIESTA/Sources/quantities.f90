@@ -269,7 +269,7 @@
       IMPLICIT NONE
 
 !  Local variables.
-      INTEGER                                  :: istat               ,i,j,k
+      INTEGER                                  :: istat
       INTEGER                                  :: l
       REAL (dp)                                :: sum1
       REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: tempmn_sym
@@ -718,6 +718,7 @@
                DO np = -ntor, ntor
                   DO mp = 0, mpol
                      mnp = mnp + 1
+!  Node the phip term is folded into the solve for lambda.
                      atemp = (m*mp*gvv(:,js) + n*nfp*np*nfp*guu(:,js) -        &
                               nfp*(m*np + mp*n)*guv(:,js))/jacobh(:,js)
 
@@ -746,12 +747,10 @@
          CALL solver(amat, brhs, mnmax*n2, 1, info)
          CALL ASSERT(info.EQ.0,'INFO != 0 IN RECOMPUTE_LAMBDA')
 
-! Divide by phiph -> old style
+!  The we really solved for phip*lambda so divide of that component.
          lmns(:,js) = brhs(:,1)/(orthonorm*phiph(js))
-!!         lmns(:,js) = brhs(:,1)/orthonorm/phiph(js)
          IF (lasym) THEN
             lmnc(:,js) = brhs(:,2)/(orthonorm*phiph(js))
-!!            lmnc(:,js) = brhs(:,2)/orthonorm/phiph(js)
          END IF
       END DO
 
@@ -876,6 +875,7 @@
       USE fourier, ONLY: f_none, f_cos, f_sin, f_sum
       USE metrics, ONLY: toupper
       USE utilities, ONLY: set_bndy_full_origin
+      USE hessian, ONLY: gather_array
 
 !  Local Variables
       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: fsubsijf
@@ -933,6 +933,10 @@
          CALL set_bndy_full_origin(fsupsmncf, fsupumnsf, fsupvmnsf)
       END IF
 
+      CALL gather_array(fsupsmncf)
+      CALL gather_array(fsupumnsf)
+      CALL gather_array(fsupvmnsf)
+
       IF (lasym) THEN
          CALL fourier_context%tomnsp(fsupsijf, fsupsmnsf(:,:,nsmin:nsmax),     &
                                      f_sin)
@@ -944,6 +948,10 @@
          IF (nsmin .eq. 1) THEN
             CALL set_bndy_full_origin(fsupsmnsf, fsupumncf, fsupvmncf)
          END IF
+
+         CALL gather_array(fsupsmnsf)
+         CALL gather_array(fsupumncf)
+         CALL gather_array(fsupvmncf)
       END IF
 
       DEALLOCATE(fsupsijf, fsupuijf, fsupvijf, stat=istat)

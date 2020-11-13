@@ -252,8 +252,8 @@
 
 !  Compute de/dr
       er = 0.0
-      DO j = 1, 4
-         DO i = 0, 4
+      DO j = 0, 4
+         DO i = 1, 4
             er = er                                                            &
      &         + this%arz(i,j)*i*((r - this%rc)**(i-1)) *                      &
      &           ((z - this%zc)**j)
@@ -262,8 +262,8 @@
 
 !  Compute de/dz
       ez = 0.0
-      DO j = 0, 4
-         DO i = 1, 4
+      DO j = 1, 4
+         DO i = 0, 4
             ez = ez                                                            &
      &          + this%arz(i,j)*j*((r - this%rc)**i) *                         &
      &            ((z - this%zc)**(j - 1))

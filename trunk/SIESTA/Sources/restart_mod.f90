@@ -10,7 +10,7 @@
       MODULE restart_mod
       USE ezcdf
       USE stel_kinds
-      USE utilities, ONLY: GradientFull, to_full_mesh
+      USE utilities, ONLY: GradientFull
       USE metrics, ONLY: tolowerh
       USE descriptor_mod, ONLY: iam
       USE shared_data, ONLY: lasym, unit_out
@@ -121,6 +121,30 @@
       CHARACTER (len=*), PARAMETER :: vn_jksupvmns = 'jksupvmnsf(m,n,r)'
 !>  Name for the restart file jksupvmnc.
       CHARACTER (len=*), PARAMETER :: vn_jksupvmnc = 'jksupvmncf(m,n,r)'
+!>  Name for the restart file fsupsmns.
+      CHARACTER (len=*), PARAMETER :: vn_fsupsmns = 'fsupsmnsf(m,n,r)'
+!>  Name for the restart file fsupsmnc.
+      CHARACTER (len=*), PARAMETER :: vn_fsupsmnc = 'fsupsmncf(m,n,r)'
+!>  Name for the restart file fsupumns.
+      CHARACTER (len=*), PARAMETER :: vn_fsupumns = 'fsupumnsf(m,n,r)'
+!>  Name for the restart file fsupumnc.
+      CHARACTER (len=*), PARAMETER :: vn_fsupumnc = 'fsupumncf(m,n,r)'
+!>  Name for the restart file fsupvmns.
+      CHARACTER (len=*), PARAMETER :: vn_fsupvmns = 'fsupvmnsf(m,n,r)'
+!>  Name for the restart file fsupvmnc.
+      CHARACTER (len=*), PARAMETER :: vn_fsupvmnc = 'fsupvmncf(m,n,r)'
+!>  Name for the restart file fsubsmns.
+      CHARACTER (len=*), PARAMETER :: vn_fsubsmns = 'fsubsmnsf(m,n,r)'
+!>  Name for the restart file fsubsmnc.
+      CHARACTER (len=*), PARAMETER :: vn_fsubsmnc = 'fsubsmncf(m,n,r)'
+!>  Name for the restart file fsubumns.
+      CHARACTER (len=*), PARAMETER :: vn_fsubumns = 'fsubumnsf(m,n,r)'
+!>  Name for the restart file fsubumnc.
+      CHARACTER (len=*), PARAMETER :: vn_fsubumnc = 'fsubumncf(m,n,r)'
+!>  Name for the restart file fsubvmns.
+      CHARACTER (len=*), PARAMETER :: vn_fsubvmns = 'fsubvmnsf(m,n,r)'
+!>  Name for the restart file fsubvmnc.
+      CHARACTER (len=*), PARAMETER :: vn_fsubvmnc = 'fsubvmncf(m,n,r)'
 
 !>  Name for the restart file p_factor.
       CHARACTER (len=*), PARAMETER :: vn_p_factor = 'p_factor'
@@ -245,64 +269,64 @@
       CALL cdf_read(ncid, vn_jbsupss, tempmn_r)
       jbsupsmnsh(:,:,1) = 0
       CALL interpit(tempmn_r, jbsupsmnsh, ns, nsin, mpol, mpolin,              &
-     &              ntor, ntorin, nfp, nfpin, .true.)
+     &              ntor, ntorin, nfp, nfp_i, .true.)
       jbsupsmnsh(m1,-nmin:nmin,1) = jbsupsmnsh(m1,-nmin:nmin,2)
 
       CALL cdf_read(ncid, vn_jbsupuc, tempmn_r)
       jbsupumnch(:,:,1) = 0
       CALL interpit(tempmn_r, jbsupumnch, ns, nsin, mpol, mpolin,              &
-     &              ntor, ntorin, nfp, nfpin, .true.)
+     &              ntor, ntorin, nfp, nfp_i, .true.)
       jbsupumnch(m1,-nmin:nmin,1) = jbsupumnch(m1,-nmin:nmin,2)
 
       CALL cdf_read(ncid, vn_jbsupvc, tempmn_r)
       jbsupvmnch(:,:,1) = 0
       CALL interpit(tempmn_r, jbsupvmnch, ns, nsin, mpol, mpolin,              &
-     &              ntor, ntorin, nfp, nfpin, .true.)
+     &              ntor, ntorin, nfp, nfp_i, .true.)
       jbsupvmnch(m0,-nmin:nmin,1) = jbsupvmnch(m0,-nmin:nmin,2)
 
       CALL cdf_read(ncid, vn_jpresc,  tempmn_r)
       jpmnch(:,:,1) = 0
       CALL interpit(tempmn_r, jpmnch,     ns, nsin, mpol, mpolin,              &
-     &              ntor, ntorin, nfp, nfpin, .true.)
+     &              ntor, ntorin, nfp, nfp_i, .true.)
       jpmnch(m0,-nmin:nmin,1) = jpmnch(m0,-nmin:nmin,2)
 
       CALL cdf_read(ncid, vn_rmnc, tempmn_r)
       CALL interpit(tempmn_r, rmnc, ns, nsin, mpol, mpolin,                    &
-                    ntor, ntorin, nfp, nfpin, .false.)
+                    ntor, ntorin, nfp, nfp_i, .false.)
 
       CALL cdf_read(ncid, vn_zmns, tempmn_r)
       CALL interpit(tempmn_r, zmns, ns, nsin, mpol, mpolin,                    &
-                    ntor, ntorin, nfp, nfpin, .false.)
+                    ntor, ntorin, nfp, nfp_i, .false.)
 
       IF (BTEST(flags, restart_lasym) .and. lasym) THEN
          jbsupsmnch(:,:,1) = 0
          CALL cdf_read(ncid, vn_jbsupsc, tempmn_r)
          CALL interpit(tempmn_r, jbsupsmnch, ns, nsin, mpol, mpolin,           &
-     &                 ntor, ntorin, nfp, nfpin, .true.)
+     &                 ntor, ntorin, nfp, nfp_i, .true.)
          jbsupsmnch(m1,-nmin:nmin,1) = jbsupsmnch(m1,-nmin:nmin,2)
 
          CALL cdf_read(ncid, vn_jbsupus, tempmn_r)
          CALL interpit(tempmn_r, jbsupumnsh, ns, nsin, mpol, mpolin,           &
-     &                 ntor, ntorin, nfp, nfpin, .true.)
+     &                 ntor, ntorin, nfp, nfp_i, .true.)
          jbsupumnsh(m1,-nmin:nmin,1) = jbsupumnsh(m1,-nmin:nmin,2)
 
          CALL cdf_read(ncid, vn_jbsupvs, tempmn_r)
          CALL interpit(tempmn_r, jbsupvmnsh, ns, nsin, mpol, mpolin,           &
-     &                 ntor, ntorin, nfp, nfpin, .true.)
+     &                 ntor, ntorin, nfp, nfp_i, .true.)
          jbsupvmnsh(m0,-nmin:nmin,1) = jbsupvmnsh(m0,-nmin:nmin,2)
 
          CALL cdf_read(ncid, vn_jpress,  tempmn_r)
          CALL interpit(tempmn_r, jpmnsh,     ns, nsin, mpol, mpolin,           &
-     &                 ntor, ntorin, nfp, nfpin, .true.)
+     &                 ntor, ntorin, nfp, nfp_i, .true.)
          jpmnsh(m0,-nmin:nmin,1) = jpmnsh(m0,-nmin:nmin,2)
 
          CALL cdf_read(ncid, vn_rmns, tempmn_r)
          CALL interpit(tempmn_r, rmns, ns, nsin, mpol, mpolin,                 &
-                       ntor, ntorin, nfp, nfpin, .false.)
+                       ntor, ntorin, nfp, nfp_i, .false.)
 
          CALL cdf_read(ncid, vn_zmns, tempmn_r)
          CALL interpit(tempmn_r, zmnc, ns, nsin, mpol, mpolin,                 &
-                       ntor, ntorin, nfp, nfpin, .false.)
+                       ntor, ntorin, nfp, nfp_i, .false.)
 
       ELSE IF (lasym) THEN
          jbsupsmnch = 0
@@ -320,7 +344,7 @@
 
       CALL cdf_close(ncid)
 
-      fourier_context => fourier_class(mpolin, ntorin, nu_i, nv_i, nfpin, lasym)
+      fourier_context => fourier_class(mpolin, ntorin, nu_i, nv_i, nfp_i, lasym)
 
       CALL restart_normalize(rmnc, one)
       CALL restart_normalize(zmns, one)
@@ -360,8 +384,12 @@
                             jbsupumnsh, jbsupumnch,                            &
                             jbsupvmnsh, jbsupvmnch,                            &
                             jpmnsh,     jpmnch,                                &
+                            fsubsmncf, fsubumnsf, fsubvmnsf,                   &
+                            fsubsmnsf, fsubumncf, fsubvmncf,                   &
+                            fsupsmncf, fsupumnsf, fsupvmnsf,                   &
+                            fsupsmnsf, fsupumncf, fsupvmncf,                   &
                             b_factor,   p_factor, jacobh
-      USE fourier, ONLY: f_cos, f_sin, f_sum, f_none
+      USE fourier, ONLY: f_cos, f_sin, f_sum, f_none, n0, m0
       USE island_params, ONLY: nfp => nfp_i, chipf => chipf_i,                 &
                                phipf => phipf_i, wb => wb_i, wp => wp_i,       &
                                rmajor => rmajor_i, fourier_context,            &
@@ -446,6 +474,12 @@
       CALL cdf_define(ncid, vn_jksupsmns, jbsupsmnsh, dimname=restart_dims)
       CALL cdf_define(ncid, vn_jksupumnc, jbsupumnch, dimname=restart_dims)
       CALL cdf_define(ncid, vn_jksupvmnc, jbsupvmnch, dimname=restart_dims)
+      CALL cdf_define(ncid, vn_fsupsmnc,  jbsupsmnsh, dimname=restart_dims)
+      CALL cdf_define(ncid, vn_fsupumns,  jbsupumnch, dimname=restart_dims)
+      CALL cdf_define(ncid, vn_fsupvmns,  jbsupvmnch, dimname=restart_dims)
+      CALL cdf_define(ncid, vn_fsubsmnc,  jbsupsmnsh, dimname=restart_dims)
+      CALL cdf_define(ncid, vn_fsubumns,  jbsupumnch, dimname=restart_dims)
+      CALL cdf_define(ncid, vn_fsubvmns,  jbsupvmnch, dimname=restart_dims)
       CALL cdf_define(ncid, vn_pmnc,      jpmnch,     dimname=restart_dims)
       CALL cdf_define(ncid, vn_b_factor,  b_factor)
       CALL cdf_define(ncid, vn_p_factor,  p_factor)
@@ -472,6 +506,12 @@
          CALL cdf_define(ncid, vn_jksupsmnc, jbsupsmnch, dimname=restart_dims)
          CALL cdf_define(ncid, vn_jksupumns, jbsupumnsh, dimname=restart_dims)
          CALL cdf_define(ncid, vn_jksupvmns, jbsupvmnsh, dimname=restart_dims)
+         CALL cdf_define(ncid, vn_fsupsmns,  jbsupsmnsh, dimname=restart_dims)
+         CALL cdf_define(ncid, vn_fsupumnc,  jbsupumnch, dimname=restart_dims)
+         CALL cdf_define(ncid, vn_fsupvmnc,  jbsupvmnch, dimname=restart_dims)
+         CALL cdf_define(ncid, vn_fsubsmns,  jbsupsmnsh, dimname=restart_dims)
+         CALL cdf_define(ncid, vn_fsubumnc,  jbsupumnch, dimname=restart_dims)
+         CALL cdf_define(ncid, vn_fsubvmnc,  jbsupvmnch, dimname=restart_dims)
          CALL cdf_define(ncid, vn_pmns, jpmnsh, dimname=restart_dims)
       END IF
 
@@ -515,6 +555,9 @@
       CALL cdf_write(ncid, vn_wp, wp)
       CALL cdf_write(ncid, vn_rmajor, rmajor)
 
+      CALL cdf_write(ncid, vn_p_factor, p_factor)
+      CALL cdf_write(ncid, vn_b_factor, b_factor)
+
       ALLOCATE(bsupsijh(ntheta,nzeta,ns))
       ALLOCATE(bsupuijh(ntheta,nzeta,ns))
       ALLOCATE(bsupvijh(ntheta,nzeta,ns))
@@ -529,9 +572,6 @@
       CALL fourier_context%toijsp(jbsupumnch, bsupuijh, f_none, f_cos)
       CALL fourier_context%toijsp(jbsupvmnch, bsupvijh, f_none, f_cos)
       CALL fourier_context%toijsp(jpmnch, pijh, f_none, f_cos)
-
-      CALL cdf_write(ncid, vn_p_factor, p_factor)
-      CALL cdf_write(ncid, vn_b_factor, b_factor)
 
       IF (lasym) THEN
          CALL fourier_context%toijsp(jbsupsmnch, bsupsijh, f_sum, f_cos)
@@ -571,6 +611,30 @@
       CALL restart_denormalize(tempmn_w, b_factor)
       CALL cdf_write(ncid, vn_bsupvmnc, tempmn_w)
 
+      tempmn_w = fsubsmncf
+      CALL restart_denormalize(tempmn_w, 1.0_dp)
+      CALL cdf_write(ncid, vn_fsubsmnc, tempmn_w)
+
+      tempmn_w = fsubumnsf
+      CALL restart_denormalize(tempmn_w, 1.0_dp)
+      CALL cdf_write(ncid, vn_fsubumns, tempmn_w)
+
+      tempmn_w = fsubvmnsf
+      CALL restart_denormalize(tempmn_w, 1.0_dp)
+      CALL cdf_write(ncid, vn_fsubvmns, tempmn_w)
+
+      tempmn_w = fsupsmncf
+      CALL restart_denormalize(tempmn_w, 1.0_dp)
+      CALL cdf_write(ncid, vn_fsupsmnc, tempmn_w)
+
+      tempmn_w = fsupumnsf
+      CALL restart_denormalize(tempmn_w, 1.0_dp)
+      CALL cdf_write(ncid, vn_fsupumns, tempmn_w)
+
+      tempmn_w = fsupvmnsf
+      CALL restart_denormalize(tempmn_w, 1.0_dp)
+      CALL cdf_write(ncid, vn_fsupvmns, tempmn_w)
+
 !  Remove the orthonorm and p_factor so this quantity can be directly summed.
       CALL fourier_context%tomnsp(pijh, tempmn_w, f_cos)
       CALL restart_denormalize(tempmn_w, p_factor*mu0)
@@ -588,18 +652,10 @@
       ALLOCATE(bsubumnh(0:mpol,-ntor:ntor,ns))
       ALLOCATE(bsubvmnh(0:mpol,-ntor:ntor,ns))
 
-!  Remove the orthonorm and b_factor so these quantities can be directly summed.
+!  Need to compute current before denormalizing quantities.
       CALL fourier_context%tomnsp(bsubsijh, bsubsmnh, f_sin)
-      CALL restart_denormalize(bsubsmnh, b_factor)
-      CALL cdf_write(ncid, vn_bsubsmns, bsubsmnh)
-
       CALL fourier_context%tomnsp(bsubuijh, bsubumnh, f_cos)
-      CALL restart_denormalize(bsubumnh, b_factor)
-      CALL cdf_write(ncid, vn_bsubumnc, bsubumnh)
-
       CALL fourier_context%tomnsp(bsubvijh, bsubvmnh, f_cos)
-      CALL restart_denormalize(bsubvmnh, b_factor)
-      CALL cdf_write(ncid, vn_bsubvmnc, bsubvmnh)
 
 !  Compute currents on the full mesh.
       ALLOCATE(jksupsmnf(0:mpol,-ntor:ntor,ns))
@@ -608,7 +664,16 @@
 
       CALL curl_htof(bsubsmnh, bsubumnh, bsubvmnh,                             &
      &               jksupsmnf, jksupumnf, jksupvmnf,                          &
-     &               f_sin, 1, ns, .false., tempscalar)
+     &               f_sin, 1, ns, ns, tempscalar)
+
+!  Remove the orthonorm and b_factor so these quantities can be directly summed.
+      CALL restart_denormalize(bsubsmnh, b_factor)
+      CALL restart_denormalize(bsubvmnh, b_factor)
+      CALL restart_denormalize(bsubumnh, b_factor)
+
+      CALL cdf_write(ncid, vn_bsubsmns, bsubsmnh)
+      CALL cdf_write(ncid, vn_bsubumnc, bsubumnh)
+      CALL cdf_write(ncid, vn_bsubvmnc, bsubvmnh)
 
       CALL restart_denormalize(jksupsmnf, b_factor)
       CALL restart_denormalize(jksupumnf, b_factor)
@@ -618,6 +683,7 @@
       CALL cdf_write(ncid, vn_jksupumnc, jksupumnf)
       CALL cdf_write(ncid, vn_jksupvmnc, jksupvmnf)
 
+      tempscalar = -fourier_context%orthonorm(m0,n0)*tempscalar/b_factor
       CALL cdf_write(ncid, vn_curtor, tempscalar)
 
       IF (lasym) THEN
@@ -634,27 +700,52 @@
          CALL restart_denormalize(tempmn_w, b_factor)
          CALL cdf_write(ncid, vn_bsupvmns, tempmn_w)
 
+         tempmn_w = fsubsmnsf
+         CALL restart_denormalize(tempmn_w, 1.0_dp)
+         CALL cdf_write(ncid, vn_fsubsmns, tempmn_w)
+
+         tempmn_w = fsubumncf
+         CALL restart_denormalize(tempmn_w, 1.0_dp)
+         CALL cdf_write(ncid, vn_fsubumnc, tempmn_w)
+
+         tempmn_w = fsubvmncf
+         CALL restart_denormalize(tempmn_w, 1.0_dp)
+         CALL cdf_write(ncid, vn_fsubvmnc, tempmn_w)
+
+         tempmn_w = fsupsmnsf
+         CALL restart_denormalize(tempmn_w, 1.0_dp)
+         CALL cdf_write(ncid, vn_fsupsmns, tempmn_w)
+
+         tempmn_w = fsupumncf
+         CALL restart_denormalize(tempmn_w, 1.0_dp)
+         CALL cdf_write(ncid, vn_fsupumnc, tempmn_w)
+
+         tempmn_w = fsupvmncf
+         CALL restart_denormalize(tempmn_w, 1.0_dp)
+         CALL cdf_write(ncid, vn_fsupvmnc, tempmn_w)
+
 !  Remove the orthonorm and p_factor so this quantity can be directly summed.
          CALL fourier_context%tomnsp(pijh, tempmn_w, f_sin)
          CALL restart_denormalize(tempmn_w, p_factor*mu0)
          CALL cdf_write(ncid, vn_pmns, tempmn_w)
 
-!  Remove the orthonorm and b_factor so these quantities can be directly summed.
+!  Need to compute current before denormalizing quantities.
          CALL fourier_context%tomnsp(bsubsijh, bsubsmnh, f_cos)
-         CALL restart_denormalize(tempmn_w, b_factor)
-         CALL cdf_write(ncid, vn_bsubsmnc, tempmn_w)
-
          CALL fourier_context%tomnsp(bsubuijh, bsubumnh, f_sin)
-         CALL restart_denormalize(tempmn_w, b_factor)
-         CALL cdf_write(ncid, vn_bsubumns, tempmn_w)
-
          CALL fourier_context%tomnsp(bsubvijh, bsubvmnh, f_sin)
-         CALL restart_denormalize(tempmn_w, b_factor)
-         CALL cdf_write(ncid, vn_bsubvmns, tempmn_w)
 
          CALL curl_htof(bsubsmnh, bsubumnh, bsubvmnh,                          &
      &                  jksupsmnf, jksupumnf, jksupvmnf,                       &
-     &                  f_cos, 1, ns, .false., tempscalar)
+     &                  f_cos, 1, ns, ns, tempscalar)
+
+!  Remove the orthonorm and b_factor so these quantities can be directly summed.
+         CALL restart_denormalize(bsubsmnh, b_factor)
+         CALL restart_denormalize(bsubumnh, b_factor)
+         CALL restart_denormalize(bsubvmnh, b_factor)
+
+         CALL cdf_write(ncid, vn_bsubsmnc, bsubsmnh)
+         CALL cdf_write(ncid, vn_bsubumns, bsubumnh)
+         CALL cdf_write(ncid, vn_bsubvmns, bsubvmnh)
 
          CALL restart_denormalize(jksupsmnf, b_factor)
          CALL restart_denormalize(jksupumnf, b_factor)
@@ -889,7 +980,7 @@
 
 !  Start of executable code.
       DO s = 1, SIZE(xmn,3)
-         xmn(:,:,s) = xmn(:,:,s)*factor/fourier_context%orthonorm*xmn(:,:,s)
+         xmn(:,:,s) = xmn(:,:,s)*factor/fourier_context%orthonorm
       END DO
 
       END SUBROUTINE
