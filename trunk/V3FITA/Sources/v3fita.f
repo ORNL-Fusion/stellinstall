@@ -18,6 +18,7 @@
 !>  @author Steve Knowlton
 !>  @author Gregorio L. Trevisan
 !>  @author Eric C. Howell
+!>  @author Andreas Wingen
 !>
 !>  The theory behind V3FIT is outlined in
 !>     Hanson et. al. doi:10.1088/0029-5515/49/7/075031
@@ -690,6 +691,7 @@
       USE coordinate_utilities
       USE functions
       USE integration_path
+      USE rho_bndy
       USE fourier
 
       IMPLICIT NONE
@@ -701,30 +703,37 @@
       WRITE (*,*) ' *** In task unit_test'
       tests_failed = .false.
 
-! Line segment tests
+!  Line segment tests
       IF (line_seg_test()) THEN
          WRITE (*,*) 'Line Segment Test Passed'
       ELSE
          tests_failed = .true.
       END IF
 
-! Coordinate tests
+!  Coordinate tests
       IF (cood_utils_test()) THEN
          WRITE (*,*) 'Coord Utilites Test Passed'
       ELSE
          tests_failed = .true.
       END IF
 
-! Profile function tests
+!  Profile function tests
       IF (function_test()) THEN
          WRITE (*,*) 'Functions Test Passed'
       ELSE
          tests_failed = .true.
       END IF
 
-! Integration path tests
+!  Integration path tests
       IF (path_test()) THEN
          WRITE (*,*) 'Integration Path Test Passed'
+      ELSE
+         tests_failed = .true.
+      END IF
+
+!  Rho Boundary tests
+      IF (rho_bndy_test()) THEN
+         WRITE (*,*) 'Rho Boundary Test Passed'
       ELSE
          tests_failed = .true.
       END IF

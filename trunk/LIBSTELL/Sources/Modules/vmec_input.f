@@ -156,6 +156,13 @@
 !>     @item{zbc,          Z boundary coefficients stellarator asymmetric., vmec_input::rbc}
 !>     @item{mfilter_fbdy, Filter poloidal boundary terms.,                 vmec_input::mfilter_fbdy}
 !>     @item{nfilter_fbdy, Filter toroidal boundary terms.,                 vmec_input::nfilter_fbdy}
+!>     @table_subsection{vmec_rho_edge_parameters_sec, Rho Boundary parameters.}
+!>        @item{rhoc,         Rho boundary coefficients stellarator symmetric.,    vmec_input::rhoc}
+!>        @item{rhos,         Rho boundary coefficients stellarator asymmetric.,   vmec_input::rhos}
+!>        @item{rho_raxis_cc, Rho R boundary coefficients stellarator symmetric.,  vmec_input::rho_raxis_cc}
+!>        @item{rho_raxis_cs, Rho R boundary coefficients stellarator asymmetric., vmec_input::rho_raxis_cs}
+!>        @item{rho_zaxis_cs, Rho Z boundary coefficients stellarator symmetric.,  vmec_input::rho_zaxis_cs}
+!>        @item{rho_zaxis_cc, Rho Z boundary coefficients stellarator asymmetric., vmec_input::rho_zaxis_cc}
 !>  @end_table
 !>
 !>  @table_section{vmec_axis_parameters_sec, Inital magnetic axis guess.}
@@ -424,6 +431,20 @@
 !>  Filter toroidal boundary terms.
       INTEGER                                        :: nfilter_fbdy
 
+!  Rho Boundary parameters.
+!>  Rho boundary coefficients stellarator symmetric.
+      REAL (rprec), DIMENSION(-ntord:ntord,0:mpol1d) :: rhoc
+!>  Rho boundary coefficients stellarator asymmetric.
+      REAL (rprec), DIMENSION(-ntord:ntord,0:mpol1d) :: rhos
+!>  Rho R Axis for cosine parity.
+      REAL (rprec), DIMENSION(0:ntord)               :: rho_raxis_cc
+!>  Rho R Axis for sine parity.
+      REAL (rprec), DIMENSION(0:ntord)               :: rho_raxis_cs
+!>  Rho Z Axis for cosine parity.
+      REAL (rprec), DIMENSION(0:ntord)               :: rho_zaxis_cc
+!>  Rho Z Axis for sine parity.
+      REAL (rprec), DIMENSION(0:ntord)               :: rho_zaxis_cs
+
 !  Inital magnetic axis guess.
 !>  R axis coefficients stellarator symmetric.
       REAL (rprec), DIMENSION(0:ntord) :: raxis_cc
@@ -522,6 +543,9 @@
      &   bcrit, at, ah,                                                        &
 !  Edge Boundary parameters.
      &   phiedge, rbc, rbs, zbs, zbc, mfilter_fbdy, nfilter_fbdy,              &
+!  Rho Boundary parameters.
+     &   rhoc, rhos, rho_raxis_cc, rho_raxis_cs, rho_zaxis_cs,                 &
+     &   rho_zaxis_cc,                                                         &
 !  Inital magnetic axis guess.
      &   raxis_cc, raxis_cs, zaxis_cs, zaxis_cc, raxis, zaxis,                 &
 !  Unclassified.
@@ -655,6 +679,10 @@
       mfilter_fbdy = -1
       nfilter_fbdy = -1
 
+!  Rho boundary terms
+      rhoc = 0
+      rhos = 0
+
 !  Initial axis guess.
       raxis_cc = 0
       zaxis_cs = 0
@@ -668,6 +696,22 @@
 
       IF (ALL(niter_array == -1)) THEN
          niter_array = niter
+      END IF
+
+!  If using the rho boundaries over write the _c* axis values.
+      IF (ANY(rho_raxis_cc .ne. 0)) THEN
+         raxis = 0
+         raxis_cc = rho_raxis_cc
+      END IF
+      IF (ANY(rho_raxis_cs .ne. 0)) THEN
+         raxis_cs = rho_raxis_cs
+      END IF
+      IF (ANY(rho_zaxis_cs .ne. 0)) THEN
+         zaxis = 0
+         zaxis_cs = rho_zaxis_cs
+      END IF
+      IF (ANY(rho_zaxis_cc .ne. 0)) THEN
+         zaxis_cc = rho_raxis_cc
       END IF
 
 !  Work around a bug in gfortran. When performing an optimized build, the WHERE
