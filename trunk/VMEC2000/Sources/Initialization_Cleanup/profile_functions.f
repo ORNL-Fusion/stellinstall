@@ -763,11 +763,14 @@
          pmass = two_power(x, am)
 
       CASE ('two_two_power')
-!  Two power profile
-!  p(s) = [1 - s**am(0)]**am(1)          !! Old as of 2010-05-26
-!  p(s) = am(0) * [1 - s**am(1)]**am(2)  !! Current as of 2010-05-26
+!  Two two power profile
          pmass = am(0) * (am(3)*(one-x**am(1))**am(2)                          &
      &          +(one-am(3))*(one-x**am(4))**am(5))
+
+      CASE ('two_two_power_offset')
+!  Two two power profile with offset
+         pmass = am(0) * (am(3)*(one-x**am(1))**am(2)                          &
+     &          +(one-am(3))*(one-x**am(4))**am(5)) + am(6)
 
       CASE ('two_power_gs')
 !  Two power profile with guassian peaks.

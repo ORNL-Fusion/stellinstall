@@ -8,6 +8,7 @@
 
 #include <vector>
 #include <cmath>
+#include <cstddef>
 
 #include "parity.hpp"
 
